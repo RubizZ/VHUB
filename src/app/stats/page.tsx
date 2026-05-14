@@ -158,7 +158,7 @@ export default function StatsPage() {
                           <td style={{ padding: "8px", textAlign: "center" }}>{me.stats.assists}</td>
                           <td style={{ padding: "8px", textAlign: "center" }}>{acs}</td>
                           <td style={{ padding: "8px", textAlign: "right", color: "var(--text-muted)", fontSize: 12 }}>
-                            {new Date(m.metadata.game_start * 1000).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                            {new Date(m.metadata.game_start_patched).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
                           </td>
                         </tr>
                       );

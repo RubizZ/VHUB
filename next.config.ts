@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['pg'],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.valorant-api.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -13,7 +13,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [activePlayer, setActivePlayer] = useState<number>(1);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(null);
 
   useEffect(() => {
     fetch("/api/players").then(r => r.json()).then(d => { setPlayers(d.players || []); if (d.players?.[0]) setActivePlayer(d.players[0].id); });
@@ -28,7 +28,7 @@ export default function ChatPage() {
   useEffect(() => {
     loadMessages();
     pollRef.current = setInterval(loadMessages, 3000);
-    return () => clearInterval(pollRef.current);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [channel]);
 
   useEffect(() => {

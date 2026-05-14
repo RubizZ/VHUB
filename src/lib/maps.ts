@@ -1,82 +1,199 @@
-export interface ValorantMap {
-  id: string;
-  name: string;
-  image: string;
-  minimap: string;
-  competitive: boolean;
-}
+// Maps data with real UUIDs and asset URLs from valorant-api.com
 
-export interface ValorantAgent {
-  id: string;
+export interface ValorantMap {
+  id: string;         // UUID from Riot
   name: string;
-  role: 'duelist' | 'initiator' | 'controller' | 'sentinel';
-  color: string;
-  icon: string;
+  competitive: boolean;
+  displayIcon: string | null;    // Minimap outline
+  splash: string;                // Full splash art
+  listViewIcon: string;          // List thumbnail
+  listViewIconTall: string;      // Tall thumbnail
+  premierBackground: string | null;
+  mapUrl: string;                // Internal game path (used by Riot API match data)
+  tacticalDescription: string | null;
+  xMultiplier: number;
+  yMultiplier: number;
+  xScalarToAdd: number;
+  yScalarToAdd: number;
 }
 
 export const MAPS: ValorantMap[] = [
-  { id: 'ascent', name: 'Ascent', image: '/maps/ascent.svg', minimap: '/maps/ascent.svg', competitive: true },
-  { id: 'breeze', name: 'Breeze', image: '/maps/breeze.svg', minimap: '/maps/breeze.svg', competitive: true },
-  { id: 'fracture', name: 'Fracture', image: '/maps/fracture.svg', minimap: '/maps/fracture.svg', competitive: true },
-  { id: 'haven', name: 'Haven', image: '/maps/haven.svg', minimap: '/maps/haven.svg', competitive: true },
-  { id: 'lotus', name: 'Lotus', image: '/maps/lotus.svg', minimap: '/maps/lotus.svg', competitive: true },
-  { id: 'pearl', name: 'Pearl', image: '/maps/pearl.svg', minimap: '/maps/pearl.svg', competitive: true },
-  { id: 'split', name: 'Split', image: '/maps/split.svg', minimap: '/maps/split.svg', competitive: true },
-  { id: 'bind', name: 'Bind', image: '/maps/bind.svg', minimap: '/maps/bind.svg', competitive: false },
-  { id: 'icebox', name: 'Icebox', image: '/maps/icebox.svg', minimap: '/maps/icebox.svg', competitive: false },
-  { id: 'sunset', name: 'Sunset', image: '/maps/sunset.svg', minimap: '/maps/sunset.svg', competitive: false },
-  { id: 'abyss', name: 'Abyss', image: '/maps/abyss.svg', minimap: '/maps/abyss.svg', competitive: false },
+  {
+    id: '7eaecc1b-4337-bbf6-6ab9-04b8f06b3319',
+    name: 'Ascent',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/7eaecc1b-4337-bbf6-6ab9-04b8f06b3319/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/7eaecc1b-4337-bbf6-6ab9-04b8f06b3319/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/7eaecc1b-4337-bbf6-6ab9-04b8f06b3319/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/7eaecc1b-4337-bbf6-6ab9-04b8f06b3319/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/7eaecc1b-4337-bbf6-6ab9-04b8f06b3319/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Ascent/Ascent',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7e-05, yMultiplier: -7e-05, xScalarToAdd: 0.813895, yScalarToAdd: 0.573242,
+  },
+  {
+    id: 'd960549e-485c-e861-8d71-aa9d1aed12a2',
+    name: 'Split',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/d960549e-485c-e861-8d71-aa9d1aed12a2/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/d960549e-485c-e861-8d71-aa9d1aed12a2/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/d960549e-485c-e861-8d71-aa9d1aed12a2/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/d960549e-485c-e861-8d71-aa9d1aed12a2/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/d960549e-485c-e861-8d71-aa9d1aed12a2/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Bonsai/Bonsai',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7.8e-05, yMultiplier: -7.8e-05, xScalarToAdd: 0.842188, yScalarToAdd: 0.697578,
+  },
+  {
+    id: 'b529448b-4d60-346e-e89e-00a4c527a405',
+    name: 'Fracture',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/b529448b-4d60-346e-e89e-00a4c527a405/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/b529448b-4d60-346e-e89e-00a4c527a405/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/b529448b-4d60-346e-e89e-00a4c527a405/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/b529448b-4d60-346e-e89e-00a4c527a405/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/b529448b-4d60-346e-e89e-00a4c527a405/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Canyon/Canyon',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7.8e-05, yMultiplier: -7.8e-05, xScalarToAdd: 0.556952, yScalarToAdd: 1.155886,
+  },
+  {
+    id: '2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba',
+    name: 'Bind',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Duality/Duality',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 5.9e-05, yMultiplier: -5.9e-05, xScalarToAdd: 0.576941, yScalarToAdd: 0.967566,
+  },
+  {
+    id: '2fb9a4fd-47b8-4e7d-a969-74b4046ebd53',
+    name: 'Breeze',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/2fb9a4fd-47b8-4e7d-a969-74b4046ebd53/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/2fb9a4fd-47b8-4e7d-a969-74b4046ebd53/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/2fb9a4fd-47b8-4e7d-a969-74b4046ebd53/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/2fb9a4fd-47b8-4e7d-a969-74b4046ebd53/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/2fb9a4fd-47b8-4e7d-a969-74b4046ebd53/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Foxtrot/Foxtrot',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7e-05, yMultiplier: -7e-05, xScalarToAdd: 0.465123, yScalarToAdd: 0.833078,
+  },
+  {
+    id: '2fe4ed3a-450a-948b-6d6b-e89a78e680a9',
+    name: 'Lotus',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/2fe4ed3a-450a-948b-6d6b-e89a78e680a9/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/2fe4ed3a-450a-948b-6d6b-e89a78e680a9/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/2fe4ed3a-450a-948b-6d6b-e89a78e680a9/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/2fe4ed3a-450a-948b-6d6b-e89a78e680a9/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/2fe4ed3a-450a-948b-6d6b-e89a78e680a9/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Jam/Jam',
+    tacticalDescription: 'A/B/C Sites',
+    xMultiplier: 7.2e-05, yMultiplier: -7.2e-05, xScalarToAdd: 0.454789, yScalarToAdd: 0.917752,
+  },
+  {
+    id: 'fd267378-4d1d-484f-ff52-77821ed10dc2',
+    name: 'Pearl',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Pitt/Pitt',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7.8e-05, yMultiplier: -7.8e-05, xScalarToAdd: 0.480469, yScalarToAdd: 0.916016,
+  },
+  {
+    id: '2bee0dc9-4ffe-519b-1cbd-7fbe763a6047',
+    name: 'Haven',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/2bee0dc9-4ffe-519b-1cbd-7fbe763a6047/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/2bee0dc9-4ffe-519b-1cbd-7fbe763a6047/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/2bee0dc9-4ffe-519b-1cbd-7fbe763a6047/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/2bee0dc9-4ffe-519b-1cbd-7fbe763a6047/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/2bee0dc9-4ffe-519b-1cbd-7fbe763a6047/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Triad/Triad',
+    tacticalDescription: 'A/B/C Sites',
+    xMultiplier: 7.5e-05, yMultiplier: -7.5e-05, xScalarToAdd: 1.09345, yScalarToAdd: 0.642728,
+  },
+  {
+    id: 'e2ad5c54-4114-a870-9641-8ea21279579a',
+    name: 'Icebox',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/e2ad5c54-4114-a870-9641-8ea21279579a/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/e2ad5c54-4114-a870-9641-8ea21279579a/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/e2ad5c54-4114-a870-9641-8ea21279579a/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/e2ad5c54-4114-a870-9641-8ea21279579a/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/e2ad5c54-4114-a870-9641-8ea21279579a/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Port/Port',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7.2e-05, yMultiplier: -7.2e-05, xScalarToAdd: 0.460214, yScalarToAdd: 0.304687,
+  },
+  {
+    id: '92584fbe-486a-b1b2-9faa-39b0f486b498',
+    name: 'Sunset',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Juliett/Juliett',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7.8e-05, yMultiplier: -7.8e-05, xScalarToAdd: 0.5, yScalarToAdd: 0.515625,
+  },
+  {
+    id: '224b0a95-48b9-f703-1bd8-67aca101a61f',
+    name: 'Abyss',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/224b0a95-48b9-f703-1bd8-67aca101a61f/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/224b0a95-48b9-f703-1bd8-67aca101a61f/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/224b0a95-48b9-f703-1bd8-67aca101a61f/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/224b0a95-48b9-f703-1bd8-67aca101a61f/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/224b0a95-48b9-f703-1bd8-67aca101a61f/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Infinity/Infinity',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 8.1e-05, yMultiplier: -8.1e-05, xScalarToAdd: 0.5, yScalarToAdd: 0.5,
+  },
+  {
+    id: '1c18ab1f-420d-0d8b-71d0-77ad3c439115',
+    name: 'Corrode',
+    competitive: true,
+    displayIcon: 'https://media.valorant-api.com/maps/1c18ab1f-420d-0d8b-71d0-77ad3c439115/displayicon.png',
+    splash: 'https://media.valorant-api.com/maps/1c18ab1f-420d-0d8b-71d0-77ad3c439115/splash.png',
+    listViewIcon: 'https://media.valorant-api.com/maps/1c18ab1f-420d-0d8b-71d0-77ad3c439115/listviewicon.png',
+    listViewIconTall: 'https://media.valorant-api.com/maps/1c18ab1f-420d-0d8b-71d0-77ad3c439115/listviewicontall.png',
+    premierBackground: 'https://media.valorant-api.com/maps/1c18ab1f-420d-0d8b-71d0-77ad3c439115/premierbackgroundimage.png',
+    mapUrl: '/Game/Maps/Rook/Rook',
+    tacticalDescription: 'A/B Sites',
+    xMultiplier: 7e-05, yMultiplier: -7e-05, xScalarToAdd: 0.526158, yScalarToAdd: 0.5,
+  },
 ];
 
-export const AGENTS: ValorantAgent[] = [
-  // Duelists
-  { id: 'jett', name: 'Jett', role: 'duelist', color: '#89CFF0', icon: '⚡' },
-  { id: 'phoenix', name: 'Phoenix', role: 'duelist', color: '#FF6B35', icon: '🔥' },
-  { id: 'raze', name: 'Raze', role: 'duelist', color: '#FF8C42', icon: '💥' },
-  { id: 'reyna', name: 'Reyna', role: 'duelist', color: '#9B59B6', icon: '👁️' },
-  { id: 'yoru', name: 'Yoru', role: 'duelist', color: '#1A237E', icon: '🌀' },
-  { id: 'neon', name: 'Neon', role: 'duelist', color: '#00BCD4', icon: '⚡' },
-  { id: 'iso', name: 'Iso', role: 'duelist', color: '#7C4DFF', icon: '🛡️' },
-  { id: 'clove', name: 'Clove', role: 'duelist', color: '#E040FB', icon: '🦋' },
-  { id: 'waylay', name: 'Waylay', role: 'duelist', color: '#4DB6AC', icon: '🎯' },
+/** Find a map by its Riot mapUrl (as returned in match data) */
+export function findMapByUrl(mapUrl: string): ValorantMap | undefined {
+  return MAPS.find((m) => m.mapUrl === mapUrl);
+}
 
-  // Initiators
-  { id: 'sova', name: 'Sova', role: 'initiator', color: '#2196F3', icon: '🏹' },
-  { id: 'breach', name: 'Breach', role: 'initiator', color: '#FF5722', icon: '🤜' },
-  { id: 'skye', name: 'Skye', role: 'initiator', color: '#4CAF50', icon: '🌿' },
-  { id: 'kayo', name: 'KAY/O', role: 'initiator', color: '#607D8B', icon: '🤖' },
-  { id: 'fade', name: 'Fade', role: 'initiator', color: '#37474F', icon: '😱' },
-  { id: 'gekko', name: 'Gekko', role: 'initiator', color: '#76FF03', icon: '🦎' },
-  { id: 'tejo', name: 'Tejo', role: 'initiator', color: '#8D6E63', icon: '🎯' },
+/** Find a map by UUID */
+export function findMapById(id: string): ValorantMap | undefined {
+  return MAPS.find((m) => m.id === id);
+}
 
-  // Controllers
-  { id: 'brimstone', name: 'Brimstone', role: 'controller', color: '#FF9800', icon: '☁️' },
-  { id: 'viper', name: 'Viper', role: 'controller', color: '#00C853', icon: '☠️' },
-  { id: 'omen', name: 'Omen', role: 'controller', color: '#311B92', icon: '👻' },
-  { id: 'astra', name: 'Astra', role: 'controller', color: '#7B1FA2', icon: '⭐' },
-  { id: 'harbor', name: 'Harbor', role: 'controller', color: '#00897B', icon: '🌊' },
-
-  // Sentinels
-  { id: 'sage', name: 'Sage', role: 'sentinel', color: '#00E5FF', icon: '💎' },
-  { id: 'cypher', name: 'Cypher', role: 'sentinel', color: '#795548', icon: '📷' },
-  { id: 'killjoy', name: 'Killjoy', role: 'sentinel', color: '#FFC107', icon: '🔧' },
-  { id: 'chamber', name: 'Chamber', role: 'sentinel', color: '#D4AF37', icon: '🎩' },
-  { id: 'deadlock', name: 'Deadlock', role: 'sentinel', color: '#546E7A', icon: '🔒' },
-  { id: 'vyse', name: 'Vyse', role: 'sentinel', color: '#CE93D8', icon: '🔮' },
-];
+/** Only competitive maps */
+export function getCompetitiveMaps(): ValorantMap[] {
+  return MAPS.filter((m) => m.competitive);
+}
 
 export const ROLE_COLORS: Record<string, string> = {
   duelist: '#FF4655',
   initiator: '#00D4AA',
   controller: '#A855F7',
   sentinel: '#3B82F6',
-  flex: '#F59E0B',
-};
-
-export const ROLE_LABELS: Record<string, string> = {
-  duelist: 'Duelista',
-  initiator: 'Iniciador',
-  controller: 'Controlador',
-  sentinel: 'Centinela',
-  flex: 'Flex',
 };

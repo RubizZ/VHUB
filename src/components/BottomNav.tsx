@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", icon: "🏠", label: "Home" },
   { href: "/strategies", icon: "🗺️", label: "Strats" },
+  { href: "/matches", icon: "🎮", label: "Partidos" },
   { href: "/availability", icon: "📅", label: "Dispo" },
   { href: "/chat", icon: "💬", label: "Chat" },
-  { href: "/stats", icon: "📊", label: "Stats" },
 ];
 
 export function BottomNav() {

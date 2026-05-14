@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { MAPS } from "@/lib/maps";
+import { MAPS, getCompetitiveMaps, findMapById } from "@/lib/maps";
 
 interface Player { id: number; name: string; avatar_color: string; }
 interface Ev { id: number; title: string; type: string; date: string; time: string; description: string; map: string; }
