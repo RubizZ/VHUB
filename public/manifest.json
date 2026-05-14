@@ -1,0 +1,14 @@
+{
+  "name": "7R Premier Hub",
+  "short_name": "7R",
+  "description": "Gestión de equipo Valorant Premier",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0F",
+  "theme_color": "#FF4655",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
