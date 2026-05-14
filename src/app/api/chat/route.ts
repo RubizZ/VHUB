@@ -1,56 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, dbReady } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  await dbReady;
   const { searchParams } = new URL(req.url);
   const channel = searchParams.get("channel") || "general";
   const limit = parseInt(searchParams.get("limit") || "50");
   const before = searchParams.get("before");
 
-  const totalResult = await query<{ c: string }>(
-    "SELECT COUNT(*) as c FROM messages WHERE channel = $1",
-    [channel]
-  );
-  const total = parseInt(totalResult[0]?.c || "0");
+  const total = await db.message.count({
+    where: { channel }
+  });
 
-  const params: (string | number)[] = [channel];
-  let paramIdx = 2;
-  let whereClause = "WHERE m.channel = $1";
+  const messagesRaw = await db.message.findMany({
+    where: {
+      channel,
+      id: before ? { lt: Number(before) } : undefined
+    },
+    take: limit,
+    orderBy: { id: 'desc' },
+    include: {
+      player: { select: { name: true, avatar_color: true } }
+    }
+  });
 
-  if (before) {
-    whereClause += ` AND m.id < $${paramIdx}`;
-    params.push(parseInt(before));
-    paramIdx++;
-  }
+  const messages = messagesRaw.map(m => ({
+    ...m,
+    player_name: m.player.name,
+    avatar_color: m.player.avatar_color
+  })).reverse();
 
-  const messages = await query(
-    `SELECT m.*, p.name as player_name, p.avatar_color
-     FROM messages m JOIN players p ON m.player_id = p.id
-     ${whereClause}
-     ORDER BY m.created_at DESC
-     LIMIT $${paramIdx}`,
-    [...params, limit]
-  );
-
-  return NextResponse.json({ messages: messages.reverse(), total });
+  return NextResponse.json({ messages, total });
 }
 
 export async function POST(req: NextRequest) {
-  await dbReady;
   const body = await req.json();
   const { channel, player_id, content } = body;
+  
   if (!player_id || !content)
     return NextResponse.json({ error: "player_id and content required" }, { status: 400 });
 
-  const result = await query(
-    "INSERT INTO messages (channel, player_id, content) VALUES ($1, $2, $3) RETURNING id",
-    [channel || "general", player_id, content]
-  );
-  const newId = result[0]?.id;
-  const msg = await query(
-    "SELECT m.*, p.name as player_name, p.avatar_color FROM messages m JOIN players p ON m.player_id = p.id WHERE m.id = $1",
-    [newId]
-  );
-  return NextResponse.json({ message: msg[0] });
+  const newMessage = await db.message.create({
+    data: {
+      channel: channel || "general",
+      player_id: Number(player_id),
+      content
+    },
+    include: {
+      player: { select: { name: true, avatar_color: true } }
+    }
+  });
+
+  const message = {
+    ...newMessage,
+    player_name: newMessage.player.name,
+    avatar_color: newMessage.player.avatar_color
+  };
+
+  return NextResponse.json({ message });
 }

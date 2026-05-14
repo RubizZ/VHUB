@@ -1,4 +1,4 @@
-import { query, execute, dbReady } from '@/lib/db';
+import { db } from './db';
 
 /**
  * Premier Manager
@@ -12,24 +12,28 @@ export async function checkPremierWeek(premierWeek: number): Promise<{
   played: number;
   cancelled: number;
 }> {
-  await dbReady;
-
   // Count completed matches in this week
-  const completedEvents = await query<{ count: string }>(
-    "SELECT COUNT(*) as count FROM events WHERE premier_week = $1 AND status = 'completed' AND type IN ('match', 'premier')",
-    [premierWeek]
-  );
-  const played = parseInt(completedEvents[0]?.count || '0');
+  const played = await db.event.count({
+    where: {
+      premier_week: premierWeek,
+      status: 'completed',
+      type: { in: ['match', 'premier'] }
+    }
+  });
 
   let cancelled = 0;
 
   if (played >= 2) {
     // Cancel remaining scheduled events in this week
-    const result = await execute(
-      "UPDATE events SET status = 'cancelled' WHERE premier_week = $1 AND status = 'scheduled' AND type IN ('match', 'premier')",
-      [premierWeek]
-    );
-    cancelled = result.rowCount;
+    const result = await db.event.updateMany({
+      where: {
+        premier_week: premierWeek,
+        status: 'scheduled',
+        type: { in: ['match', 'premier'] }
+      },
+      data: { status: 'cancelled' }
+    });
+    cancelled = result.count;
   }
 
   return { played, cancelled };
@@ -41,14 +45,15 @@ export async function checkPremierWeek(premierWeek: number): Promise<{
 export async function checkAllPremierWeeks(): Promise<{
   weeks: { week: number; played: number; cancelled: number }[];
 }> {
-  await dbReady;
-
-  const weeks = await query<{ premier_week: number }>(
-    "SELECT DISTINCT premier_week FROM events WHERE premier_week IS NOT NULL ORDER BY premier_week"
-  );
+  const weeksRaw = await db.event.findMany({
+    where: { premier_week: { not: null } },
+    select: { premier_week: true },
+    distinct: ['premier_week']
+  });
 
   const results = [];
-  for (const { premier_week } of weeks) {
+  for (const { premier_week } of weeksRaw) {
+    if (premier_week === null) continue;
     const result = await checkPremierWeek(premier_week);
     results.push({ week: premier_week, ...result });
   }
@@ -58,7 +63,6 @@ export async function checkAllPremierWeeks(): Promise<{
 
 /**
  * Get Premier week number from a date
- * Each Premier season has a start date, and weeks are counted from there
  */
 export function getPremierWeekFromDate(date: Date, seasonStartDate: Date): number {
   const diffMs = date.getTime() - seasonStartDate.getTime();

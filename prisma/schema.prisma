@@ -1,0 +1,200 @@
+// Prisma Schema for 7R Premier Hub
+// Managed by Antigravity AI
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- AUTH MODELS (NextAuth) ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials login
+  role          String    @default("member") // admin, member
+  playerId      Int?      @unique // Link to player profile
+  accounts      Account[]
+  sessions      Session[]
+
+  player        Player?   @relation(fields: [playerId], references: [id])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- APP MODELS ---
+
+model Player {
+  id           Int            @id @default(autoincrement())
+  puuid        String?        @unique
+  name         String
+  riot_name    String?
+  riot_tag     String?
+  role         String         @default("flex")
+  avatar_color String         @default("#FF4655")
+  created_at   DateTime       @default(now())
+  
+  user         User?
+  availability Availability[]
+  messages     Message[]
+  stats        MatchPlayerStats[]
+}
+
+model Map {
+  id          String   @id // UUID from Riot
+  name        String
+  compositions Composition[]
+}
+
+model Composition {
+  id          Int        @id @default(autoincrement())
+  map_id      String
+  name        String
+  description String?
+  agent_1     String
+  agent_2     String
+  agent_3     String
+  agent_4     String
+  agent_5     String
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  map         Map        @relation(fields: [map_id], references: [id])
+  strategies  Strategy[]
+}
+
+model Strategy {
+  id             Int         @id @default(autoincrement())
+  composition_id Int
+  name           String
+  side           String      @default("attack") // attack, defense
+  description    String?
+  canvas_data    Json?       @default("{}")
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  composition    Composition @relation(fields: [composition_id], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id           Int            @id @default(autoincrement())
+  title        String
+  type         String         @default("match") // match, practice, premier
+  date         String         // Format YYYY-MM-DD
+  time         String         // Format HH:MM
+  description  String?
+  map          String?
+  premier_week Int?
+  match_id     String?
+  status       String         @default("scheduled") // scheduled, completed, cancelled
+  created_at   DateTime       @default(now())
+
+  availability Availability[]
+  match        Match?         @relation(fields: [match_id], references: [riot_match_id])
+}
+
+model Availability {
+  id         Int      @id @default(autoincrement())
+  event_id   Int
+  player_id  Int
+  status     String   @default("pending") // available, unavailable, maybe, pending
+  note       String?
+  updated_at DateTime @default(now())
+
+  event      Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  player     Player   @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, player_id])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  channel    String   @default("general")
+  player_id  Int
+  content    String
+  created_at DateTime @default(now())
+
+  player     Player   @relation(fields: [player_id], references: [id])
+}
+
+model Match {
+  id               Int      @id @default(autoincrement())
+  riot_match_id    String   @unique
+  map_id           String
+  map_name         String
+  game_mode        String
+  game_start       DateTime
+  game_length_ms   Int
+  is_ranked        Boolean  @default(false)
+  queue_id         String?
+  season_id        String?
+  team_blue_score  Int      @default(0)
+  team_red_score   Int      @default(0)
+  team_blue_won    Boolean  @default(false)
+  event_id         Int?
+  raw_data         Json?
+
+  player_stats     MatchPlayerStats[]
+  events           Event[]
+}
+
+model MatchPlayerStats {
+  id               Int      @id @default(autoincrement())
+  match_id         Int
+  puuid            String
+  player_id        Int?
+  character_id     String
+  team_id          String
+  kills            Int      @default(0)
+  deaths           Int      @default(0)
+  assists          Int      @default(0)
+  score            Int      @default(0)
+  rounds_played    Int      @default(0)
+  competitive_tier Int?
+  ability_casts    Json?
+
+  match            Match    @relation(fields: [match_id], references: [id])
+  player           Player?  @relation(fields: [player_id], references: [id])
+
+  @@unique([match_id, puuid])
+}

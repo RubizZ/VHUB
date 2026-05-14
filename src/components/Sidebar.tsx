@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const links = [
   { href: "/", icon: "🏠", label: "Dashboard" },
@@ -9,6 +10,7 @@ const links = [
   { href: "/availability", icon: "📅", label: "Disponibilidad" },
   { href: "/chat", icon: "💬", label: "Chat" },
   { href: "/stats", icon: "📊", label: "Estadísticas" },
+  { href: "/profile", icon: "👤", label: "Mi Perfil" },
 ];
 
 export function Sidebar() {
@@ -38,6 +40,10 @@ export function Sidebar() {
           <span className="nav-link-icon">⚙️</span>
           Ajustes
         </Link>
+        <button onClick={() => signOut()} className="nav-link" style={{ background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer", color: "var(--val-red)" }}>
+          <span className="nav-link-icon">🚪</span>
+          Cerrar sesión
+        </button>
       </nav>
     </aside>
   );

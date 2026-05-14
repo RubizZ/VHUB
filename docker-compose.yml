@@ -1,6 +1,37 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 7r-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # --- Internal Non-Secret Env Vars ---
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sevenr}:${POSTGRES_PASSWORD:-sevenr_dev}@db:5432/${POSTGRES_DB:-sevenr}
+      PRISMA_CLIENT_ENGINE_TYPE: library
+      NEXTAUTH_URL: http://localhost:${APP_PORT:-3000}
+      
+      # --- External Secrets (Passed from .env) ---
+      RIOT_API_KEY: ${RIOT_API_KEY}
+      VALORANT_REGION: ${VALORANT_REGION:-eu}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      
+      # Upstash / Supabase (Optional)
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+
   db:
     image: postgres:16-alpine
+    container_name: 7r-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-sevenr}
@@ -15,26 +46,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: dev
-    restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sevenr}:${POSTGRES_PASSWORD:-sevenr_dev}@db:5432/${POSTGRES_DB:-sevenr}
-      RIOT_API_KEY: ${RIOT_API_KEY:-}
-      VALORANT_REGION: ${VALORANT_REGION:-eu}
-      TEAM_NAME: ${TEAM_NAME:-7R}
-    volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-    depends_on:
-      db:
-        condition: service_healthy
 
 volumes:
   pgdata:

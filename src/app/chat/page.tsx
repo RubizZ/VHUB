@@ -1,23 +1,18 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useSession } from "next-auth/react";
 
 interface Message { id: number; channel: string; player_id: number; player_name: string; avatar_color: string; content: string; created_at: string; }
-interface Player { id: number; name: string; avatar_color: string; }
 
 const CHANNELS = ["general", "estrategias", "disponibilidad", "off-topic"];
 
 export default function ChatPage() {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [channel, setChannel] = useState("general");
   const [input, setInput] = useState("");
-  const [activePlayer, setActivePlayer] = useState<number>(1);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval>>(null);
-
-  useEffect(() => {
-    fetch("/api/players").then(r => r.json()).then(d => { setPlayers(d.players || []); if (d.players?.[0]) setActivePlayer(d.players[0].id); });
-  }, []);
 
   const loadMessages = async () => {
     const res = await fetch(`/api/chat?channel=${channel}&limit=100`);
@@ -27,8 +22,27 @@ export default function ChatPage() {
 
   useEffect(() => {
     loadMessages();
-    pollRef.current = setInterval(loadMessages, 3000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+
+    if (isSupabaseConfigured) {
+      const subscription = supabase
+        .channel(`chat:${channel}`)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'Message',
+          filter: `channel=eq.${channel}`
+        }, () => {
+          loadMessages(); 
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    } else {
+      const interval = setInterval(loadMessages, 3000);
+      return () => clearInterval(interval);
+    }
   }, [channel]);
 
   useEffect(() => {
@@ -36,10 +50,24 @@ export default function ChatPage() {
   }, [messages]);
 
   const send = async () => {
-    if (!input.trim()) return;
-    await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, player_id: activePlayer, content: input.trim() }) });
+    if (!input.trim() || !session?.user) return;
+    
+    const playerId = (session.user as any).playerId;
+    if (!playerId) {
+      alert("Tu usuario no está vinculado a un jugador.");
+      return;
+    }
+
+    await fetch("/api/chat", { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ 
+        channel, 
+        player_id: playerId, 
+        content: input.trim() 
+      }) 
+    });
     setInput("");
-    loadMessages();
   };
 
   const formatTime = (d: string) => {
@@ -56,13 +84,16 @@ export default function ChatPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2>💬 Chat</h2>
-            <p>Comunicación del equipo</p>
+            <p>Comunicación del equipo {isSupabaseConfigured ? "(Tiempo Real ⚡)" : "(Modo Dev 🕒)"}</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Como:</span>
-            <select value={activePlayer} onChange={e => setActivePlayer(Number(e.target.value))} style={{ width: "auto", fontSize: 13, padding: "6px 10px" }}>
-              {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{session?.user?.name}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(session?.user as any)?.role?.toUpperCase()}</div>
+            </div>
+            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 36, height: 36 }}>
+              {session?.user?.name?.[0]}
+            </div>
           </div>
         </div>
         <div className="channel-tabs">
@@ -98,7 +129,7 @@ export default function ChatPage() {
         </div>
         <div className="chat-input-bar">
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={`Mensaje en #${channel}...`} />
-          <button className="btn btn-primary" onClick={send}>Enviar</button>
+          <button className="btn btn-primary" onClick={send} disabled={!input.trim()}>Enviar</button>
         </div>
       </div>
     </>

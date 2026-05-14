@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { BottomNav } from "@/components/BottomNav";
+import { Providers } from "@/components/Providers";
+import { ClientLayout } from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "7R — Premier Hub",
@@ -21,13 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        <div className="app-layout">
-          <Sidebar />
-          <main className="main-content">
+        <Providers>
+          <ClientLayout>
             {children}
-          </main>
-          <BottomNav />
-        </div>
+          </ClientLayout>
+        </Providers>
       </body>
     </html>
   );
