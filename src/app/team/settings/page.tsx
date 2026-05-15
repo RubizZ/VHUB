@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
-  const [team, setTeam] = useState({ name: "", slug: "", logo_url: "", inviteCode: "" as string | null });
+  const [team, setTeam] = useState({ name: "", slug: "", logo_url: "", tag: "", division: "" as string | number, inviteCode: "" as string | null });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -29,7 +29,12 @@ export default function TeamSettingsPage() {
       const res = await fetch("/api/team/current", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: team.name, logo_url: team.logo_url })
+        body: JSON.stringify({ 
+          name: team.name, 
+          logo_url: team.logo_url,
+          tag: team.tag,
+          division: team.division
+        })
       });
 
       if (res.ok) {
@@ -87,6 +92,30 @@ export default function TeamSettingsPage() {
                     value={team.logo_url} 
                     onChange={e => setTeam({ ...team, logo_url: e.target.value })} 
                   />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                    <label>Tag de Premier (#TAG)</label>
+                    <input 
+                      className="input-field" 
+                      style={{ width: "100%" }} 
+                      placeholder="Ej: ABC"
+                      value={team.tag || ""} 
+                      onChange={e => setTeam({ ...team, tag: e.target.value.toUpperCase().replace("#", "") })} 
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                    <label>División (Número)</label>
+                    <input 
+                      type="number"
+                      className="input-field" 
+                      style={{ width: "100%" }} 
+                      placeholder="Ej: 15"
+                      value={team.division || ""} 
+                      onChange={e => setTeam({ ...team, division: e.target.value })} 
+                    />
+                  </div>
                 </div>
 
                 {message && (

@@ -6,7 +6,9 @@ import {
   HenrikMMRHistory, 
   HenrikMatch, 
   HenrikPremierTeam,
-  HenrikPremierSeason
+  HenrikPremierSeason,
+  HenrikPremierHistory,
+  HenrikPremierLeaderboard
 } from './henrik-types';
 
 // Re-exporting types for backward compatibility or direct use
@@ -130,6 +132,38 @@ export async function getPremierSeasons(region: string = 'eu') {
     return res.data || null;
   } catch (error) {
     console.error('[HenrikDev] getPremierSeasons error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get Premier Team History (V1)
+ */
+export async function getPremierHistory(teamName: string, teamTag: string) {
+  try {
+    const res = await henrikAxiosInstance<HenrikResponse<HenrikPremierHistory>>({
+      url: `/valorant/v1/premier/${encodeURIComponent(teamName)}/${encodeURIComponent(teamTag)}/history`,
+      method: 'GET'
+    });
+    return res.data || null;
+  } catch (error) {
+    console.error('[HenrikDev] getPremierHistory error:', error);
+    return null;
+  }
+}
+
+/**
+ * Get Premier Leaderboard/Standings (V1)
+ */
+export async function getPremierLeaderboard(region: string, conference: string, division: number) {
+  try {
+    const res = await henrikAxiosInstance<HenrikResponse<HenrikPremierLeaderboardEntry[]>>({
+      url: `/valorant/v1/premier/leaderboard/${region}/${encodeURIComponent(conference)}/${division}`,
+      method: 'GET'
+    });
+    return res.data || [];
+  } catch (error) {
+    console.error('[HenrikDev] getPremierLeaderboard error:', error);
     return [];
   }
 }

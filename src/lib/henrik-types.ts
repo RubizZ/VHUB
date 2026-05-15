@@ -183,6 +183,28 @@ export interface HenrikPremierTeam {
   member: HenrikPremierMember[];
 }
 
+export interface HenrikPremierHistory {
+  league_matches: {
+    id: string;
+    points_before: number;
+    points_after: number;
+    started_at: string;
+  }[];
+}
+
+export interface HenrikPremierLeaderboardEntry {
+  ranking: number;
+  name: string;
+  tag: string;
+  wins: number;
+  losses: number;
+  score: number;
+}
+
+export interface HenrikPremierLeaderboard {
+  leaderboard: HenrikPremierLeaderboardEntry[];
+}
+
 export type HenrikPremierEventType = 'LEAGUE' | 'TOURNAMENT' | 'SCRIM';
 
 export interface HenrikPremierEvent {

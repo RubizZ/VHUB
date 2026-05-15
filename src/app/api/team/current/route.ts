@@ -29,11 +29,11 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, logo_url } = body;
+    const { name, logo_url, tag, division } = body;
 
     const updatedTeam = await prisma.team.update({
       where: { id: session.user.teamId },
-      data: { name, logo_url }
+      data: { name, logo_url, tag, division: division ? Number(division) : null }
     });
 
     return NextResponse.json({ team: updatedTeam });
