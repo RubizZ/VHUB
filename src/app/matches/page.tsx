@@ -249,26 +249,14 @@ export default function MatchesPage() {
                   </div>
                 ) : (
                    <>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, margin: "12px 0" }}>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Tu Equipo</div>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
-                          {m.our_team_side === "Blue" ? m.team_blue_score : m.team_red_score}
-                        </div>
-                        <div style={{ fontSize: 10, color: m.our_team_side === "Blue" ? "#3B82F6" : "#FF4655", marginTop: 2 }}>
-                          {m.our_team_side === "Blue" ? "Defensa" : "Ataque"}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 12 }}>vs</span>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Rival</div>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? !m.team_blue_won : m.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
-                          {m.our_team_side === "Blue" ? m.team_red_score : m.team_blue_score}
-                        </div>
-                        <div style={{ fontSize: 10, color: m.our_team_side === "Blue" ? "#FF4655" : "#3B82F6", marginTop: 2 }}>
-                          {m.our_team_side === "Blue" ? "Ataque" : "Defensa"}
-                        </div>
-                      </div>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, margin: "12px 0" }}>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
+                        {m.our_team_side === "Blue" ? m.team_blue_score : m.team_red_score}
+                      </span>
+                      <span style={{ fontSize: 14, color: "var(--text-muted)" }}>vs</span>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? !m.team_blue_won : m.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
+                        {m.our_team_side === "Blue" ? m.team_red_score : m.team_blue_score}
+                      </span>
                     </div>
                   </>
                 )}

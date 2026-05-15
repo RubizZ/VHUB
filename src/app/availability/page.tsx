@@ -10,6 +10,7 @@ interface LinkedMatch {
   game_start: string; game_length_ms: number;
   team_blue_score: number; team_red_score: number; team_blue_won: boolean;
   queue_id: string;
+  our_team_side?: "Blue" | "Red";
 }
 interface Ev { 
   id: number; title: string; type: string; date: string; time: string; 
@@ -404,9 +405,19 @@ export default function AvailabilityPage() {
                               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                 <span style={{ fontSize: 13, fontWeight: 600 }}>🗺️ {m.map_name}</span>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <span style={{ fontSize: 16, fontWeight: 800, color: m.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{m.team_blue_score}</span>
+                                  <span style={{ 
+                                    fontSize: 16, fontWeight: 800, 
+                                    color: (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" 
+                                  }}>
+                                    {m.our_team_side === "Blue" ? m.team_blue_score : m.team_red_score}
+                                  </span>
                                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>vs</span>
-                                  <span style={{ fontSize: 16, fontWeight: 800, color: !m.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{m.team_red_score}</span>
+                                  <span style={{ 
+                                    fontSize: 16, fontWeight: 800, 
+                                    color: (m.our_team_side === "Blue" ? !m.team_blue_won : m.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" 
+                                  }}>
+                                    {m.our_team_side === "Blue" ? m.team_red_score : m.team_blue_score}
+                                  </span>
                                 </div>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

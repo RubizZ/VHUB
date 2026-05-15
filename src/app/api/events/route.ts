@@ -352,14 +352,27 @@ export async function GET(req: NextRequest) {
         team_blue_score: true,
         team_red_score: true,
         team_blue_won: true,
-        queue_id: true
+        queue_id: true,
+        player_stats: {
+          select: {
+            team_id: true,
+            player: { select: { teamId: true } }
+          },
+          where: { player_id: { not: null } }
+        }
       },
       orderBy: { game_start: 'asc' }
     }) : [];
 
+    // Enriquecer partidos con our_team_side
+    const processedLinkedMatches = (linkedMatches as any[]).map(m => {
+      const ourSide = m.player_stats.find((s: any) => s.player?.teamId === teamId)?.team_id || "Blue";
+      return { ...m, our_team_side: ourSide };
+    });
+
     // Agrupar partidos por event_id
-    const matchesByEvent: Record<number, typeof linkedMatches> = {};
-    for (const m of linkedMatches) {
+    const matchesByEvent: Record<number, any[]> = {};
+    for (const m of processedLinkedMatches) {
       if (m.event_id) {
         if (!matchesByEvent[m.event_id]) matchesByEvent[m.event_id] = [];
         matchesByEvent[m.event_id].push(m);
