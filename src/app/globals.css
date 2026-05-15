@@ -1007,6 +1007,13 @@ select option { background: var(--bg-secondary); }
   --ev-color: var(--text-muted);
 }
 
+.calendar-event-impossible {
+  background: rgba(255, 70, 85, 0.05);
+  color: var(--text-muted);
+  border-left: 2px solid var(--val-red);
+  opacity: 0.7;
+}
+
 /* Status Visuals (Google/Apple Style) */
 .calendar-event-match { --ev-color: var(--val-red); }
 .calendar-event-practice { --ev-color: var(--val-cyan); }

@@ -317,15 +317,19 @@ export default function AvailabilityPage() {
                     <span className="calendar-day-num">{d.day}</span>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
                       {d.events.map((ev: any) => {
-                        const myStatus = avail[ev.id]?.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                        const ea = avail[ev.id] || [];
+                        const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
                         const isCancelled = ev.status === 'cancelled';
+                        const unavailable = ea.filter(a => a.status === "unavailable").length;
+                        const isImpossible = (ev as any).localDate >= todayStr && (players.length - unavailable < 5);
+                        
                         return (
                           <div 
                             key={ev.id} 
-                            className={`calendar-event-item ${isCancelled ? 'calendar-event-cancelled' : ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
-                            title={`${ev.localTime} - ${ev.title} (${isCancelled ? 'Cancelado' : `Tu estado: ${myStatus}`})`}
+                            className={`calendar-event-item ${isCancelled ? 'calendar-event-cancelled' : isImpossible ? 'calendar-event-impossible' : ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
+                            title={`${ev.localTime} - ${ev.title} (${isCancelled ? 'Cancelado' : isImpossible ? 'Falta de asistencia' : `Tu estado: ${myStatus}`})`}
                             onClick={() => { setScrollToEventId(ev.id); setViewMode("list"); }} 
-                            style={isCancelled ? { textDecoration: 'line-through', opacity: 0.5 } : undefined}
+                            style={(isCancelled || isImpossible) ? { textDecoration: 'line-through', opacity: 0.5 } : undefined}
                           >
                             {ev.localTime} {ev.title}
                           </div>
@@ -344,10 +348,23 @@ export default function AvailabilityPage() {
             {events.map((ev, idx) => {
               const isPast = (ev as any).localDate < todayStr;
               const isCancelled = ev.status === 'cancelled';
-              const isFirstUpcoming = !isPast && !isCancelled && (idx === 0 || events.slice(0, idx).every(prev => (prev as any).localDate < todayStr || prev.status === 'cancelled'));
               
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
+              const unavailable = ea.filter(a => a.status === "unavailable").length;
+              const isImpossible = !isPast && (players.length - unavailable < 5);
+              const isConfirmed = confirmed >= 5;
+
+              // Un evento es "válido para ser el próximo" si no es pasado, ni cancelado, ni imposible por falta de gente
+              const isViableUpcoming = !isPast && !isCancelled && !isImpossible;
+              const isFirstUpcoming = isViableUpcoming && (idx === 0 || events.slice(0, idx).every(prev => {
+                const prevEA = avail[prev.id] || [];
+                const prevUnavail = prevEA.filter(a => a.status === "unavailable").length;
+                const prevIsPast = (prev as any).localDate < todayStr;
+                const prevIsImpossible = !prevIsPast && (players.length - prevUnavail < 5);
+                return prevIsPast || prev.status === 'cancelled' || prevIsImpossible;
+              }));
+              
               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
               const matches = ev.linkedMatches || [];
               
@@ -368,8 +385,8 @@ export default function AvailabilityPage() {
                     className="card" 
                     style={{ 
                       marginBottom: 12, 
-                      opacity: isPast || isCancelled ? 0.5 : 1,
-                      borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : isCancelled ? "4px solid var(--val-red)" : undefined,
+                      opacity: isPast || isCancelled || isImpossible ? 0.5 : 1,
+                      borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : (isCancelled || isImpossible) ? "4px solid var(--val-red)" : isConfirmed ? "4px solid var(--val-cyan)" : undefined,
                       transition: "opacity 0.3s ease",
                       scrollMarginTop: "100px"
                     }}
@@ -377,10 +394,12 @@ export default function AvailabilityPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 600, textDecoration: isCancelled ? 'line-through' : undefined, color: isCancelled ? 'var(--text-muted)' : undefined }}>{ev.title}</h3>
+                        <h3 style={{ fontSize: 16, fontWeight: 600, textDecoration: (isCancelled || isImpossible) ? 'line-through' : undefined, color: (isCancelled || isImpossible) ? 'var(--text-muted)' : undefined }}>{ev.title}</h3>
                         <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>{ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}</span>
                         {isCancelled && <span className="tag" style={{ background: "rgba(255, 70, 85, 0.15)", color: "var(--val-red)", fontWeight: 700 }}>Cancelado</span>}
-                        {isPast && !isCancelled && <span className="tag" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Pasado</span>}
+                        {isImpossible && <span className="tag" style={{ background: "rgba(255, 70, 85, 0.15)", color: "var(--val-red)", fontWeight: 700 }}>Sin suficientes jugadores</span>}
+                        {isConfirmed && !isPast && <span className="tag tag-cyan" style={{ fontWeight: 700 }}>¡Confirmado para jugar!</span>}
+                        {isPast && !isCancelled && !isImpossible && <span className="tag" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Pasado</span>}
                         {isFirstUpcoming && <span className="tag tag-cyan" style={{ fontSize: 10 }}>PRÓXIMO</span>}
                       </div>
                       <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
@@ -390,6 +409,7 @@ export default function AvailabilityPage() {
                       </div>
                       {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
                       {isCancelled && <div style={{ fontSize: 12, color: "var(--val-red)", marginTop: 4, fontStyle: 'italic' }}>Ya se jugaron 2 partidos esta semana</div>}
+                      {isImpossible && <div style={{ fontSize: 12, color: "var(--val-red)", marginTop: 4, fontStyle: 'italic' }}>No hay suficientes jugadores disponibles para alcanzar el mínimo de 5</div>}
                     </div>
                     {canManage && ev.type === "custom" && <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>}
                   </div>
