@@ -3,20 +3,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 
-const links = [
+const playerLinks = [
   { href: "/", icon: "🏠", label: "Dashboard" },
   { href: "/strategies", icon: "🗺️", label: "Estrategias" },
   { href: "/matches", icon: "🎮", label: "Partidos" },
   { href: "/availability", icon: "📅", label: "Disponibilidad" },
   { href: "/chat", icon: "💬", label: "Chat" },
   { href: "/stats", icon: "📊", label: "Estadísticas" },
-  { href: "/profile", icon: "👤", label: "Mi Perfil" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const role = session?.user?.role;
+  const loading = status === "loading";
 
   return (
     <aside className="sidebar">
@@ -28,7 +28,9 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="sidebar-nav">
-        {links.map((l) => (
+        {/* SECCIÓN JUGADOR */}
+        <div className="nav-separator">TU EQUIPO</div>
+        {playerLinks.map((l) => (
           <Link
             key={l.href}
             href={l.href}
@@ -38,10 +40,43 @@ export function Sidebar() {
             {l.label}
           </Link>
         ))}
+        <Link href="/profile" className={`nav-link ${pathname === "/profile" ? "active" : ""}`}>
+          <span className="nav-link-icon">👤</span>
+          Mi Perfil
+        </Link>
 
-        {role === "super_admin" && (
+        {/* SECCIÓN TEAM ADMIN */}
+        {!loading && (role === "team_admin" || role === "super_admin") && (
           <>
-            <div className="nav-separator">ADMIN</div>
+            <div className="nav-separator">GESTIÓN DE EQUIPO</div>
+            <Link 
+              href="/team/roster" 
+              className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`}
+            >
+              <span className="nav-link-icon">📋</span>
+              Plantilla
+            </Link>
+            <Link 
+              href="/team/settings" 
+              className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`}
+            >
+              <span className="nav-link-icon">⚙️</span>
+              Ajustes de Equipo
+            </Link>
+          </>
+        )}
+
+        {/* SECCIÓN SUPER ADMIN */}
+        {!loading && role === "super_admin" && (
+          <>
+            <div className="nav-separator">SISTEMA</div>
+            <Link 
+              href="/admin" 
+              className={`nav-link ${pathname === "/admin" ? "active" : ""}`}
+            >
+              <span className="nav-link-icon">📈</span>
+              Panel Global
+            </Link>
             <Link 
               href="/admin/teams" 
               className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`}
@@ -53,9 +88,10 @@ export function Sidebar() {
         )}
 
         <div style={{ flex: 1 }} />
+        
         <Link href="/settings" className={`nav-link ${pathname === "/settings" ? "active" : ""}`}>
-          <span className="nav-link-icon">⚙️</span>
-          Ajustes
+          <span className="nav-link-icon">🛠️</span>
+          Mi Cuenta
         </Link>
         <button onClick={() => signOut()} className="nav-link" style={{ background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer", color: "var(--val-red)" }}>
           <span className="nav-link-icon">🚪</span>
