@@ -130,6 +130,14 @@ async function ensureWeeklyEvents(teamId: string) {
 
     const eventsToCreate: any[] = [];
 
+    // Pre-procesar scheduled_events filtrados por conferencia del equipo
+    const teamConference = team.conference?.toLowerCase() || '';
+    const conferenceSchedules = activeSeason.scheduled_events?.filter(
+      (se: any) => se.conference?.toLowerCase() === teamConference
+    ) || [];
+    
+    console.log(`[ensureWeeklyEvents] Conferencia del equipo: ${teamConference}, scheduled_events encontrados: ${conferenceSchedules.length}`);
+
     while (tempDate <= limitDate) {
       const dateStr = tempDate.toISOString().split('T')[0];
       const day = tempDate.getDay(); 
@@ -146,12 +154,34 @@ async function ensureWeeklyEvents(teamId: string) {
       }
 
       if (evConfig) {
-        const evMeta = activeSeason.events?.find(m => {
-          if (!m.starts_at || !m.ends_at) return false;
-          const sDate = m.starts_at.split('T')[0];
-          const eDate = m.ends_at.split('T')[0];
+        // Estrategia de resolución de mapa:
+        // 1. Buscar scheduled_event de la conferencia del equipo que cubra esta fecha
+        // 2. Usar su event_id para encontrar el evento padre con map_selection
+        // 3. Fallback: buscar directamente en events por rango de fecha
+
+        let evMeta: any = null;
+
+        // Paso 1: Buscar via scheduled_events (más preciso, filtra por conferencia)
+        const matchingSchedule = conferenceSchedules.find((se: any) => {
+          if (!se.starts_at || !se.ends_at) return false;
+          const sDate = se.starts_at.split('T')[0];
+          const eDate = se.ends_at.split('T')[0];
           return dateStr >= sDate && dateStr <= eDate;
         });
+
+        if (matchingSchedule?.event_id) {
+          evMeta = activeSeason.events?.find((e: any) => e.id === matchingSchedule.event_id);
+        }
+
+        // Paso 2: Fallback directo en events por rango de fecha
+        if (!evMeta) {
+          evMeta = activeSeason.events?.find((m: any) => {
+            if (!m.starts_at || !m.ends_at) return false;
+            const sDate = m.starts_at.split('T')[0];
+            const eDate = m.ends_at.split('T')[0];
+            return dateStr >= sDate && dateStr <= eDate;
+          });
+        }
 
         let mapName = "Por decidir";
         let premierWeek = undefined;
@@ -191,6 +221,24 @@ async function ensureWeeklyEvents(teamId: string) {
         data: eventsToCreate,
         skipDuplicates: true
       });
+
+      // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
+      // (para prácticas y partidos, no playoffs)
+      for (const ev of eventsToCreate) {
+        if (ev.map && ev.map !== "Por decidir" && ev.type !== "playoffs") {
+          await db.event.updateMany({
+            where: {
+              teamId,
+              date: ev.date,
+              time: ev.time,
+              type: ev.type,
+              map: "Por decidir"
+            },
+            data: { map: ev.map }
+          });
+        }
+      }
+
       console.log("[ensureWeeklyEvents] ✅ Completado.");
     }
 

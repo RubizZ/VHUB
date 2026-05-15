@@ -22,9 +22,11 @@ export default function AvailabilityPage() {
   const [seasons, setSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
+  const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
 
   const myPlayerId = (session?.user as any)?.playerId;
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
+  const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
 
   useEffect(() => {
     setIsMounted(true);
@@ -46,14 +48,27 @@ export default function AvailabilityPage() {
   }, [selectedSeason]);
 
   useEffect(() => {
-    if (viewMode === "list" && firstUpcomingRef.current && isMounted && !hasInitialScrolled && events.length > 0) {
-      // Pequeño timeout para asegurar que el DOM se ha renderizado y posicionado
-      setTimeout(() => {
-        firstUpcomingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        setHasInitialScrolled(true);
-      }, 300);
+    if (viewMode === "list" && isMounted && events.length > 0) {
+      // Prioridad 1: scroll a evento específico (clic desde calendario)
+      if (scrollToEventId !== null) {
+        setTimeout(() => {
+          const targetEl = eventRefsMap.current[scrollToEventId];
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          setScrollToEventId(null);
+        }, 300);
+        return;
+      }
+      // Prioridad 2: scroll inicial al primer evento próximo
+      if (firstUpcomingRef.current && !hasInitialScrolled) {
+        setTimeout(() => {
+          firstUpcomingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setHasInitialScrolled(true);
+        }, 300);
+      }
     }
-  }, [viewMode, isMounted, events, hasInitialScrolled]);
+  }, [viewMode, isMounted, events, hasInitialScrolled, scrollToEventId]);
 
   const loadEvents = async (seasonId?: string | null) => {
     try {
@@ -281,7 +296,7 @@ export default function AvailabilityPage() {
                             key={ev.id} 
                             className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
                             title={`${ev.localTime} - ${ev.title} (Tu estado: ${myStatus})`}
-                            onClick={() => setViewMode("list")} 
+                            onClick={() => { setScrollToEventId(ev.id); setViewMode("list"); }} 
                           >
                             {ev.localTime} {ev.title}
                           </div>
@@ -308,7 +323,7 @@ export default function AvailabilityPage() {
               return (
                 <div 
                   key={ev.id} 
-                  ref={isFirstUpcoming ? firstUpcomingRef : null}
+                  ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
                   className="card" 
                   style={{ 
                     marginBottom: 12, 

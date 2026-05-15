@@ -318,28 +318,59 @@ export async function POST(req: NextRequest) {
             return m;
           });
 
-          // Auto-link to event
-          const dateStr = new Date(matchData.metadata.game_start * 1000).toISOString().split("T")[0];
+          // Auto-link to event: un partido se vincula a un evento si su game_start
+          // cae en la misma fecha del evento y dentro de la ventana de tiempo razonable.
+          // Pueden haber varios partidos por evento.
+          const gameStartDate = new Date(matchData.metadata.game_start * 1000);
+          const dateStr = gameStartDate.toISOString().split("T")[0];
+          const gameStartHour = gameStartDate.getUTCHours();
 
-          const unlinkedEvent = await db.event.findFirst({
+          // Buscar todos los eventos del equipo en esa fecha (match/practice/playoffs)
+          const candidateEvents = await db.event.findMany({
             where: {
               teamId,
               date: dateStr,
-              match_id: null,
-              type: { in: ['match', 'practice'] }
+              type: { in: ['match', 'practice', 'playoffs'] }
             },
             orderBy: { time: 'asc' }
           });
 
-          if (unlinkedEvent) {
-            await db.event.update({
-              where: { id: unlinkedEvent.id },
-              data: { match_id: newMatch.riot_match_id, status: 'completed' }
-            });
+          // Vincular al evento cuya hora de inicio esté más cerca del game_start
+          // (la ventana de registro suele ser ~15min antes del partido, 
+          // y los partidos pueden durar horas, así que usamos una ventana generosa)
+          let bestEvent = null;
+          let bestDiff = Infinity;
+
+          for (const ev of candidateEvents) {
+            const evHour = parseInt(ev.time.split(':')[0], 10);
+            // El partido debería empezar después del evento (o en la misma hora)
+            // y dentro de una ventana razonable (4 horas)
+            const diff = gameStartHour - evHour;
+            if (diff >= -1 && diff < 4 && diff < bestDiff) {
+              bestDiff = diff;
+              bestEvent = ev;
+            }
+          }
+
+          if (bestEvent) {
+            // Actualizar match con event_id
             await db.match.update({
               where: { id: newMatch.id },
-              data: { event_id: unlinkedEvent.id }
+              data: { event_id: bestEvent.id }
             });
+            // Actualizar event: poner match_id si no tiene (para backward compat),
+            // y marcar como completed
+            if (!bestEvent.match_id) {
+              await db.event.update({
+                where: { id: bestEvent.id },
+                data: { match_id: newMatch.riot_match_id, status: 'completed' }
+              });
+            } else {
+              await db.event.update({
+                where: { id: bestEvent.id },
+                data: { status: 'completed' }
+              });
+            }
           }
 
           synced++;
