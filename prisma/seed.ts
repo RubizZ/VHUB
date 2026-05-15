@@ -8,7 +8,26 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('🌱 Seeding from valorant-api.com...');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🧹 Cleaning database (Dev mode)...');
+    // Borramos en orden inverso a las dependencias
+    await prisma.availability.deleteMany();
+    await prisma.strategy.deleteMany();
+    await prisma.composition.deleteMany();
+    await prisma.message.deleteMany();
+    await prisma.matchPlayerStats.deleteMany();
+    await prisma.match.deleteMany();
+    await prisma.event.deleteMany();
+    await prisma.teamJoinRequest.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.player.deleteMany();
+    await prisma.team.deleteMany();
+    // No borramos 'Map' porque viene de la API de Valorant y es lento/estático
+  } else {
+    console.log('🛡️ Production mode detected: skipping database cleanup.');
+  }
+  
+  console.log('🌱 Seeding data...');
 
   // 1. Fetch Maps from Valorant API
   console.log('🛰️ Fetching maps...');
@@ -48,7 +67,8 @@ async function main() {
   console.log(`✅ ${mapsData.length} maps processed.`);
 
   // 2. Essential Admin Data
-  const hashedPassword = await bcrypt.hash('vhub123', 10);
+  const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+  const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
   const team = await prisma.team.upsert({
     where: { slug: 'vhub-elite' },
@@ -90,6 +110,12 @@ async function main() {
       playerId: player.id,
     },
   });
+
+  console.log('--------------------------------------------------');
+  console.log('🚀 ADMIN ACCESS CREDENTIALS:');
+  console.log(`📧 Email: admin@vhub.com`);
+  console.log(`🔑 Password: ${randomPassword}`);
+  console.log('--------------------------------------------------');
 
   console.log('✅ Team and Admin linked.');
 }
