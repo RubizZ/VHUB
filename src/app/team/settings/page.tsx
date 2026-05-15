@@ -100,18 +100,147 @@ export default function TeamSettingsPage() {
             )}
           </div>
 
-          <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
-            <div style={{ 
-              width: 120, height: 120, borderRadius: 20, background: "var(--val-red)", 
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, fontWeight: 800, marginBottom: 20
-            }}>
-              {team.name[0]}
-            </div>
-            <h3>Vista Previa del Equipo</h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Así es como otros equipos verán a {team.name} en la plataforma.</p>
+          <div className="card">
+            <h3 className="card-title" style={{ marginBottom: 20 }}>Enlace de Invitación</h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>Comparte este enlace para que nuevos usuarios se unan directamente al equipo.</p>
+            {loading ? <p>Cargando enlace...</p> : (
+              <InviteLinkSection inviteCode={team.inviteCode} setTeam={setTeam} team={team} />
+            )}
+          </div>
+
+          <div className="card">
+            <h3 className="card-title" style={{ marginBottom: 20 }}>Solicitudes de Unión</h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>Gestiona quién puede unirse a tu equipo.</p>
+            <JoinRequests />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function JoinRequests() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRequests = () => {
+    fetch("/api/teams/requests")
+      .then(res => res.json())
+      .then(data => {
+        if (data.requests) setRequests(data.requests);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleRequest = async (id: string, action: "approve" | "reject") => {
+    try {
+      const res = await fetch(`/api/teams/requests/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action })
+      });
+      if (res.ok) fetchRequests();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) return <p>Cargando solicitudes...</p>;
+  if (requests.length === 0) return <p style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No hay solicitudes pendientes.</p>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {requests.map(req => (
+        <div key={req.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, background: "var(--bg-glass)", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+          <div>
+            <div style={{ fontWeight: 600 }}>{req.user.name || "Usuario"}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{req.user.email}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button 
+              className="btn" 
+              style={{ padding: "6px 12px", fontSize: 12, background: "var(--val-red)", color: "#fff", border: "none" }}
+              onClick={() => handleRequest(req.id, "reject")}
+            >
+              Rechazar
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ padding: "6px 12px", fontSize: 12 }}
+              onClick={() => handleRequest(req.id, "approve")}
+            >
+              Aprobar
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function InviteLinkSection({ inviteCode, setTeam, team }: { inviteCode: string | null, setTeam: any, team: any }) {
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  const inviteUrl = inviteCode ? `${window.location.origin}/register?invite=${inviteCode}` : "";
+
+  const handleCopy = () => {
+    if (inviteUrl) {
+      navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const generateNewCode = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/team/invite", { method: "POST" });
+      const data = await res.json();
+      if (data.inviteCode) {
+        setTeam({ ...team, inviteCode: data.inviteCode });
+      }
+    } catch (err) {
+      console.error("Error al generar código", err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  if (!inviteCode) {
+    return (
+      <button className="btn" onClick={generateNewCode} disabled={generating}>
+        {generating ? "Generando..." : "Generar Enlace de Invitación"}
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input 
+          className="input-field" 
+          style={{ flex: 1, fontFamily: "monospace", fontSize: 13 }} 
+          value={inviteUrl} 
+          readOnly 
+        />
+        <button className="btn btn-primary" onClick={handleCopy} style={{ minWidth: 100 }}>
+          {copied ? "¡Copiado!" : "Copiar"}
+        </button>
+      </div>
+      <button 
+        className="btn" 
+        onClick={generateNewCode} 
+        disabled={generating}
+        style={{ fontSize: 12, padding: "6px 12px", background: "transparent", color: "var(--val-red)", border: "1px solid rgba(255, 70, 85, 0.3)" }}
+      >
+        {generating ? "Generando..." : "Generar Nuevo Enlace (Invalida el actual)"}
+      </button>
     </div>
   );
 }

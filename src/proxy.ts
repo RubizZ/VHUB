@@ -7,16 +7,29 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
+  const isRegisterPage = req.nextUrl.pathname === "/register";
+  const isOnboardingPage = req.nextUrl.pathname === "/onboarding";
   const role = (req.auth?.user as any)?.role;
+  const hasTeam = !!(req.auth?.user as any)?.teamId;
   const path = req.nextUrl.pathname;
 
   // 1. Redirección si no está logueado
-  if (!isLoggedIn && !isLoginPage) {
+  if (!isLoggedIn && !isLoginPage && !isRegisterPage) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // 2. Redirección si ya está logueado e intenta ir a login
-  if (isLoggedIn && isLoginPage) {
+  // 2. Redirección si ya está logueado e intenta ir a login o register
+  if (isLoggedIn && (isLoginPage || isRegisterPage)) {
+    return NextResponse.redirect(new URL(hasTeam ? "/" : "/onboarding", req.nextUrl));
+  }
+
+  // 3. Redirección a onboarding si no tiene equipo
+  if (isLoggedIn && !hasTeam && !isOnboardingPage) {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl));
+  }
+
+  // 4. Redirección fuera de onboarding si YA tiene equipo
+  if (isLoggedIn && hasTeam && isOnboardingPage) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 

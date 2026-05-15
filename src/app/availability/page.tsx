@@ -1,4 +1,5 @@
 "use client";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { MAPS, getCompetitiveMaps, findMapById } from "@/lib/maps";
 
@@ -7,15 +8,17 @@ interface Ev { id: number; title: string; type: string; date: string; time: stri
 interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
 
 export default function AvailabilityPage() {
+  const { data: session } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
   const [events, setEvents] = useState<Ev[]>([]);
   const [avail, setAvail] = useState<Record<number, Avail[]>>({});
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ title: "", type: "match", date: "", time: "21:00", description: "", map: "" });
-  const [activePlayer, setActivePlayer] = useState<number>(1);
+
+  const myPlayerId = (session?.user as any)?.playerId;
 
   useEffect(() => {
-    fetch("/api/players").then(r => r.json()).then(d => { setPlayers(d.players || []); if (d.players?.[0]) setActivePlayer(d.players[0].id); });
+    fetch("/api/players").then(r => r.json()).then(d => setPlayers(d.players || []));
     loadEvents();
   }, []);
 
@@ -26,9 +29,9 @@ export default function AvailabilityPage() {
       const d = await res.json();
       const loadedEvents: Ev[] = d.events || [];
       setEvents(loadedEvents);
-      
+
       const availMap: Record<number, Avail[]> = {};
-      
+
       // Cargamos disponibilidades de forma secuencial pero segura
       for (const ev of loadedEvents) {
         try {
@@ -60,7 +63,8 @@ export default function AvailabilityPage() {
   };
 
   const setAvailability = async (eventId: number, status: string) => {
-    await fetch("/api/availability", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_id: eventId, player_id: activePlayer, status }) });
+    if (!myPlayerId) return;
+    await fetch("/api/availability", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_id: eventId, player_id: myPlayerId, status }) });
     loadEvents();
   };
 
@@ -73,6 +77,8 @@ export default function AvailabilityPage() {
   const upcoming = events.filter(e => new Date(e.date) >= new Date(new Date().toDateString()));
   const past = events.filter(e => new Date(e.date) < new Date(new Date().toDateString()));
 
+  const canManage = (session?.user as any)?.role === "team_admin" || (session?.user as any)?.role === "super_admin";
+
   return (
     <>
       <div className="page-header">
@@ -81,11 +87,9 @@ export default function AvailabilityPage() {
       </div>
       <div className="page-content animate-in">
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuevo Evento</button>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Jugando como:</span>
-          <select value={activePlayer} onChange={e => setActivePlayer(Number(e.target.value))} style={{ width: "auto" }}>
-            {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          {canManage && (
+            <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuevo Evento</button>
+          )}
         </div>
 
         {upcoming.length === 0 && <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No hay eventos próximos.</p>}
@@ -93,7 +97,7 @@ export default function AvailabilityPage() {
         {upcoming.map(ev => {
           const ea = avail[ev.id] || [];
           const confirmed = ea.filter(a => a.status === "available").length;
-          const myStatus = ea.find(a => a.player_id === activePlayer)?.status || "pending";
+          const myStatus = ea.find(a => a.player_id === myPlayerId)?.status || "pending";
           return (
             <div key={ev.id} className="card" style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -108,7 +112,7 @@ export default function AvailabilityPage() {
                   </div>
                   {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>
+                {canManage && <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <div className="progress-bar" style={{ flex: 1 }}>
@@ -128,14 +132,21 @@ export default function AvailabilityPage() {
                   );
                 })}
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4, alignSelf: "center" }}>Tu respuesta:</span>
-                {["available", "maybe", "unavailable"].map(s => (
-                  <button key={s} className={`btn btn-sm ${myStatus === s ? "btn-primary" : "btn-secondary"}`} onClick={() => setAvailability(ev.id, s)}>
-                    {statusIcon(s)} {s === "available" ? "Disponible" : s === "maybe" ? "Quizás" : "No puedo"}
-                  </button>
-                ))}
-              </div>
+              
+              {myPlayerId ? (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4, alignSelf: "center" }}>Tu respuesta:</span>
+                  {["available", "maybe", "unavailable"].map(s => (
+                    <button key={s} className={`btn btn-sm ${myStatus === s ? "btn-primary" : "btn-secondary"}`} onClick={() => setAvailability(ev.id, s)}>
+                      {statusIcon(s)} {s === "available" ? "Disponible" : s === "maybe" ? "Quizás" : "No puedo"}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: "var(--val-red)", marginTop: 8 }}>
+                  Debes pertenecer a la plantilla (Roster) para poder confirmar asistencia.
+                </div>
+              )}
             </div>
           );
         })}

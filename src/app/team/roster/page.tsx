@@ -10,7 +10,7 @@ export default function TeamRosterPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [unlinkedUsers, setUnlinkedUsers] = useState<UnlinkedUser[]>([]);
   const [editing, setEditing] = useState<Player | null>(null);
-  const [form, setForm] = useState({ userId: "", riot_name: "", riot_tag: "", role: "flex", avatar_color: "#FF4655" });
+  const [form, setForm] = useState({ email: "", role: "flex", avatar_color: "#FF4655" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,14 +24,9 @@ export default function TeamRosterPage() {
 
   const loadData = async () => {
     try {
-      const [pRes, uRes] = await Promise.all([
-        fetch("/api/players"),
-        fetch("/api/users/unlinked")
-      ]);
+      const pRes = await fetch("/api/players");
       const pData = await pRes.json();
-      const uData = await uRes.json();
       setPlayers(pData.players || []);
-      setUnlinkedUsers(uData.users || []);
     } catch (err) {
       console.error("Error loading data:", err);
     }
@@ -40,12 +35,8 @@ export default function TeamRosterPage() {
   useEffect(() => { loadData(); }, [session]);
 
   const save = async () => {
-    if (!form.userId && !editing) {
-      setError("Debes seleccionar un usuario.");
-      return;
-    }
-    if (!form.riot_name || !form.riot_tag) {
-      setError("El Riot ID es obligatorio.");
+    if (!form.email && !editing) {
+      setError("Debes introducir un email.");
       return;
     }
     setError("");
@@ -55,7 +46,7 @@ export default function TeamRosterPage() {
       const res = await fetch("/api/players", { 
         method: editing ? "PUT" : "POST", 
         headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify(editing ? { id: editing.id, ...form } : form) 
+        body: JSON.stringify(editing ? { id: editing.id, role: form.role, avatar_color: form.avatar_color } : form) 
       });
       
       const data = await res.json();
@@ -63,7 +54,7 @@ export default function TeamRosterPage() {
         setError(data.error || "Error al procesar");
       } else {
         setEditing(null);
-        setForm({ userId: "", riot_name: "", riot_tag: "", role: "flex", avatar_color: "#FF4655" });
+        setForm({ email: "", role: "flex", avatar_color: "#FF4655" });
         loadData();
       }
     } catch (err) {
@@ -87,7 +78,7 @@ export default function TeamRosterPage() {
     <div className="page-container">
       <header className="page-header">
         <h1>📋 Plantilla del Equipo</h1>
-        <p style={{ color: "var(--text-secondary)" }}>Gestiona la lista oficial de jugadores y sus perfiles de Riot</p>
+        <p style={{ color: "var(--text-secondary)" }}>Gestiona la lista oficial de jugadores y sus roles</p>
       </header>
 
       <div className="page-content animate-in">
@@ -95,41 +86,27 @@ export default function TeamRosterPage() {
           {/* Formulario de registro/edición */}
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: 20 }}>
-              {editing ? "✏️ Editar Jugador" : "➕ Registrar Nuevo Jugador"}
+              {editing ? "✏️ Editar Jugador" : "➕ Añadir Jugador al Equipo"}
             </h3>
             
             {error && <div style={{ background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
             {!editing && (
               <div className="form-group" style={{ marginBottom: 16 }}>
-                <label>Vincular a Usuario Registrado</label>
-                <select 
+                <label>Email del Usuario</label>
+                <input 
+                  type="email"
                   className="input-field"
                   style={{ width: "100%" }}
-                  value={form.userId} 
-                  onChange={e => setForm({ ...form, userId: e.target.value })}
-                >
-                  <option value="">-- Elige un usuario --</option>
-                  {unlinkedUsers.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                  ))}
-                </select>
+                  placeholder="usuario@ejemplo.com"
+                  value={form.email} 
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                />
                 <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  Si el usuario no aparece, debe registrarse primero en la plataforma.
+                  El usuario debe estar registrado. Si no tiene equipo, se le añadirá directamente.
                 </p>
               </div>
             )}
-
-            <div className="form-row" style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Riot Name</label>
-                <input className="input-field" style={{ width: "100%" }} value={form.riot_name} onChange={e => setForm({ ...form, riot_name: e.target.value })} placeholder="Ej: TenZ" />
-              </div>
-              <div className="form-group" style={{ width: 100 }}>
-                <label>Tag</label>
-                <input className="input-field" style={{ width: "100%" }} value={form.riot_tag} onChange={e => setForm({ ...form, riot_tag: e.target.value })} placeholder="Ej: NA1" />
-              </div>
-            </div>
 
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>Rol en el Juego</label>

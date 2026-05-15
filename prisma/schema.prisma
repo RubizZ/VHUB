@@ -12,12 +12,13 @@ datasource db {
 // --- MODELS DE EQUIPO ---
 
 model Team {
-  id           String    @id @default(cuid())
-  name         String
-  slug         String    @unique
-  logo_url     String?
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  logo_url   String?
+  inviteCode String?  @unique @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   users        User[]
   players      Player[]
@@ -25,6 +26,7 @@ model Team {
   compositions Composition[]
   messages     Message[]
   matches      Match[]
+  joinRequests TeamJoinRequest[]
 }
 
 // --- AUTH MODELS (NextAuth) ---
@@ -35,30 +37,31 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  password      String?   
+  password      String?
   role          String    @default("member") // super_admin, team_admin, member
-  playerId      Int?      @unique 
-  teamId        String?   // Vínculo al equipo
+  playerId      Int?      @unique
+  teamId        String? // Vínculo al equipo
 
-  accounts      Account[]
-  sessions      Session[]
-  player        Player?   @relation(fields: [playerId], references: [id])
-  team          Team?     @relation(fields: [teamId], references: [id])
+  accounts     Account[]
+  sessions     Session[]
+  player       Player?           @relation(fields: [playerId], references: [id])
+  team         Team?             @relation(fields: [teamId], references: [id])
+  joinRequests TeamJoinRequest[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -84,17 +87,17 @@ model VerificationToken {
 // --- APP MODELS ---
 
 model Player {
-  id           Int            @id @default(autoincrement())
-  teamId       String?        // Vínculo al equipo
-  puuid        String?        @unique
+  id           Int      @id @default(autoincrement())
+  teamId       String? // Vínculo al equipo
+  puuid        String?  @unique
   name         String
   riot_name    String?
   riot_tag     String?
-  role         String         @default("flex")
-  avatar_color String         @default("#FF4655")
-  created_at   DateTime       @default(now())
-  
-  team         Team?          @relation(fields: [teamId], references: [id])
+  role         String   @default("flex")
+  avatar_color String   @default("#FF4655")
+  created_at   DateTime @default(now())
+
+  team         Team?              @relation(fields: [teamId], references: [id])
   user         User?
   availability Availability[]
   messages     Message[]
@@ -102,13 +105,13 @@ model Player {
 }
 
 model Map {
-  id          String   @id // UUID from Riot
-  name        String
+  id           String        @id // UUID from Riot
+  name         String
   compositions Composition[]
 }
 
 model Composition {
-  id          Int        @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   teamId      String?
   map_id      String
   name        String
@@ -118,40 +121,40 @@ model Composition {
   agent_3     String
   agent_4     String
   agent_5     String
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
-  team        Team?      @relation(fields: [teamId], references: [id])
-  map         Map        @relation(fields: [map_id], references: [id])
-  strategies  Strategy[]
+  team       Team?      @relation(fields: [teamId], references: [id])
+  map        Map        @relation(fields: [map_id], references: [id])
+  strategies Strategy[]
 }
 
 model Strategy {
-  id             Int         @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   composition_id Int
   name           String
-  side           String      @default("attack") 
+  side           String   @default("attack")
   description    String?
-  canvas_data    Json?       @default("{}")
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @updatedAt
+  canvas_data    Json?    @default("{}")
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 
-  composition    Composition @relation(fields: [composition_id], references: [id], onDelete: Cascade)
+  composition Composition @relation(fields: [composition_id], references: [id], onDelete: Cascade)
 }
 
 model Event {
-  id           Int            @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   teamId       String?
   title        String
-  type         String         @default("match") 
-  date         String         
-  time         String         
+  type         String   @default("match")
+  date         String
+  time         String
   description  String?
   map          String?
   premier_week Int?
   match_id     String?
-  status       String         @default("scheduled") 
-  created_at   DateTime       @default(now())
+  status       String   @default("scheduled")
+  created_at   DateTime @default(now())
 
   team         Team?          @relation(fields: [teamId], references: [id])
   availability Availability[]
@@ -162,12 +165,12 @@ model Availability {
   id         Int      @id @default(autoincrement())
   event_id   Int
   player_id  Int
-  status     String   @default("pending") 
+  status     String   @default("pending")
   note       String?
   updated_at DateTime @default(now())
 
-  event      Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  player     Player   @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  event  Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [player_id], references: [id], onDelete: Cascade)
 
   @@unique([event_id, player_id])
 }
@@ -180,50 +183,65 @@ model Message {
   content    String
   created_at DateTime @default(now())
 
-  team       Team?    @relation(fields: [teamId], references: [id])
-  player     Player   @relation(fields: [player_id], references: [id])
+  team   Team?  @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [player_id], references: [id])
 }
 
 model Match {
-  id               Int      @id @default(autoincrement())
-  teamId           String?
-  riot_match_id    String   @unique
-  map_id           String
-  map_name         String
-  game_mode        String
-  game_start       DateTime
-  game_length_ms   Int
-  is_ranked        Boolean  @default(false)
-  queue_id         String?
-  season_id        String?
-  team_blue_score  Int      @default(0)
-  team_red_score   Int      @default(0)
-  team_blue_won    Boolean  @default(false)
-  event_id         Int?
-  raw_data         Json?
+  id              Int      @id @default(autoincrement())
+  teamId          String?
+  riot_match_id   String   @unique
+  map_id          String
+  map_name        String
+  game_mode       String
+  game_start      DateTime
+  game_length_ms  Int
+  is_ranked       Boolean  @default(false)
+  queue_id        String?
+  season_id       String?
+  team_blue_score Int      @default(0)
+  team_red_score  Int      @default(0)
+  team_blue_won   Boolean  @default(false)
+  event_id        Int?
+  raw_data        Json?
 
-  team             Team?    @relation(fields: [teamId], references: [id])
-  player_stats     MatchPlayerStats[]
-  events           Event[]
+  team         Team?              @relation(fields: [teamId], references: [id])
+  player_stats MatchPlayerStats[]
+  events       Event[]
 }
 
 model MatchPlayerStats {
-  id               Int      @id @default(autoincrement())
+  id               Int    @id @default(autoincrement())
   match_id         Int
   puuid            String
   player_id        Int?
   character_id     String
   team_id          String
-  kills            Int      @default(0)
-  deaths           Int      @default(0)
-  assists          Int      @default(0)
-  score            Int      @default(0)
-  rounds_played    Int      @default(0)
+  kills            Int    @default(0)
+  deaths           Int    @default(0)
+  assists          Int    @default(0)
+  score            Int    @default(0)
+  rounds_played    Int    @default(0)
   competitive_tier Int?
   ability_casts    Json?
 
-  match            Match    @relation(fields: [match_id], references: [id])
-  player           Player?  @relation(fields: [player_id], references: [id])
+  match  Match   @relation(fields: [match_id], references: [id])
+  player Player? @relation(fields: [player_id], references: [id])
 
   @@unique([match_id, puuid])
+}
+
+// --- ONBOARDING & TEAM REQUESTS ---
+
+model TeamJoinRequest {
+  id         String   @id @default(cuid())
+  userId     String
+  teamId     String
+  status     String   @default("pending") // "pending", "approved", "rejected"
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId]) // Un usuario solo puede tener una petición activa por equipo
 }

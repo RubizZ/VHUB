@@ -53,8 +53,18 @@ export async function POST(req: NextRequest) {
     where: { id: Number(player_id) }
   });
 
-  if (!player || player.teamId !== teamId) {
-    return NextResponse.json({ error: "El jugador no existe en tu equipo" }, { status: 404 });
+  if (!player) {
+    return NextResponse.json({ error: "El jugador no existe" }, { status: 404 });
+  }
+
+  // Si el jugador no tiene equipo asignado (por algún error previo), lo sincronizamos con el del usuario
+  if (!player.teamId) {
+    await db.player.update({
+      where: { id: player.id },
+      data: { teamId: teamId }
+    });
+  } else if (player.teamId !== teamId) {
+    return NextResponse.json({ error: "El jugador no pertenece a tu equipo" }, { status: 403 });
   }
 
   // VALIDACIÓN DE EQUIPO: El evento debe ser del equipo del usuario

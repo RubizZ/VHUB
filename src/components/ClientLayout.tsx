@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/onboarding";
 
-  if (isLoginPage) return <>{children}</>;
+  if (isAuthPage) return <>{children}</>;
 
   return (
     <div className="app-layout">

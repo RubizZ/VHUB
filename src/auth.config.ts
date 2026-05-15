@@ -11,14 +11,30 @@ export const authConfig = {
   callbacks: {
     async authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      const hasTeam = !!(auth?.user as any)?.teamId;
       const isLoginPage = nextUrl.pathname === "/login";
+      const isRegisterPage = nextUrl.pathname === "/register";
+      const isOnboardingPage = nextUrl.pathname === "/onboarding";
 
-      if (!isLoggedIn && !isLoginPage) {
+      // Allow public access to login and register pages
+      if (!isLoggedIn) {
+        if (isLoginPage || isRegisterPage) return true;
         return false; // Redirect to login
       }
-      if (isLoggedIn && isLoginPage) {
+
+      // User is logged in
+      if (isLoginPage || isRegisterPage) {
+        return Response.redirect(new URL(hasTeam ? "/" : "/onboarding", nextUrl));
+      }
+
+      if (!hasTeam && !isOnboardingPage) {
+        return Response.redirect(new URL("/onboarding", nextUrl));
+      }
+
+      if (hasTeam && isOnboardingPage) {
         return Response.redirect(new URL("/", nextUrl));
       }
+
       return true;
     },
     async jwt({ token, user }) {

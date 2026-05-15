@@ -32,24 +32,21 @@ export async function POST(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 
   const body = await req.json();
-  const { userId, riot_name, riot_tag, role: playerRole, avatar_color } = body;
+  const { email, role: playerRole, avatar_color } = body;
   
-  if (!userId || !riot_name || !riot_tag) {
-    return NextResponse.json({ error: "Usuario y Riot ID son obligatorios" }, { status: 400 });
+  if (!email) {
+    return NextResponse.json({ error: "El email es obligatorio" }, { status: 400 });
   }
 
-  const client = getRiotClient();
-  if (!client) return NextResponse.json({ error: "Riot API no configurada" }, { status: 503 });
-
   try {
-    const account = await client.getAccount(riot_name, riot_tag);
-    
-    const selectedUser = await db.user.findUnique({ where: { id: userId } });
-    if (!selectedUser) return NextResponse.json({ error: "El usuario seleccionado no existe" }, { status: 404 });
+    const selectedUser = await db.user.findUnique({ where: { email } });
+    if (!selectedUser) return NextResponse.json({ error: "No existe ningún usuario con ese email" }, { status: 404 });
 
-    // Validar que el usuario a vincular pertenezca al mismo equipo
-    if (selectedUser.teamId !== teamId) {
-      return NextResponse.json({ error: "No puedes vincular usuarios de otros equipos" }, { status: 403 });
+    if (selectedUser.teamId) {
+      if (selectedUser.teamId === teamId) {
+        return NextResponse.json({ error: "El usuario ya pertenece a este equipo" }, { status: 400 });
+      }
+      return NextResponse.json({ error: "El usuario ya pertenece a otro equipo" }, { status: 403 });
     }
 
     const result = await db.$transaction(async (tx) => {
@@ -57,17 +54,26 @@ export async function POST(req: NextRequest) {
         data: {
           teamId: teamId,
           name: selectedUser.name || "Jugador",
-          riot_name: account.gameName,
-          riot_tag: account.tagLine,
-          puuid: account.puuid,
           role: playerRole || "flex",
           avatar_color: avatar_color || "#FF4655"
         }
       });
 
       await tx.user.update({
-        where: { id: userId },
-        data: { playerId: player.id }
+        where: { id: selectedUser.id },
+        data: { playerId: player.id, teamId: teamId, role: "member" }
+      });
+
+      // Accept invitation to this team if exists
+      await tx.teamJoinRequest.updateMany({
+        where: { userId: selectedUser.id, teamId: teamId, status: "pending" },
+        data: { status: "approved" }
+      });
+
+      // Reject invitations to other teams
+      await tx.teamJoinRequest.updateMany({
+        where: { userId: selectedUser.id, teamId: { not: teamId }, status: "pending" },
+        data: { status: "rejected" }
       });
 
       return player;
@@ -75,8 +81,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ id: result.id });
   } catch (err) {
-    const riotErr = err as RiotError;
-    if (riotErr.statusCode === 404) return NextResponse.json({ error: "Riot ID no encontrado" }, { status: 404 });
     return NextResponse.json({ error: "Error de servidor" }, { status: 500 });
   }
 }
@@ -89,7 +93,7 @@ export async function PUT(req: NextRequest) {
   if (role !== "team_admin" && role !== "super_admin") return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
 
   const body = await req.json();
-  const { id, riot_name, riot_tag, role: playerRole, avatar_color } = body;
+  const { id, role: playerRole, avatar_color } = body;
 
   // Validar que el jugador pertenezca al equipo del admin
   const existingPlayer = await db.player.findUnique({ where: { id: Number(id) } });
@@ -100,8 +104,6 @@ export async function PUT(req: NextRequest) {
   const player = await db.player.update({
     where: { id: Number(id) },
     data: {
-      riot_name: riot_name || undefined,
-      riot_tag: riot_tag || undefined,
       role: playerRole || undefined,
       avatar_color: avatar_color || undefined
     }
