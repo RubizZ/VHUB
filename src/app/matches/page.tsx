@@ -316,11 +316,28 @@ export default function MatchesPage() {
             </div>
 
             {[
-              { label: "Tu Equipo", team: selected.our_team_side === "Blue" ? blueTeam : redTeam, color: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655" },
-              { label: "Equipo Rival", team: selected.our_team_side === "Blue" ? redTeam : blueTeam, color: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6" }
-            ].map(({ label, team, color }) => (
+              { 
+                label: "Tu Equipo", 
+                team: selected.our_team_side === "Blue" ? blueTeam : redTeam, 
+                color: "var(--val-cyan)",
+                side: selected.our_team_side === "Blue" ? "Defensa" : "Ataque",
+                sideColor: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655"
+              },
+              { 
+                label: "Equipo Rival", 
+                team: selected.our_team_side === "Blue" ? redTeam : blueTeam, 
+                color: "var(--val-red)",
+                side: selected.our_team_side === "Blue" ? "Ataque" : "Defensa",
+                sideColor: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6"
+              }
+            ].map(({ label, team, color, side, sideColor }) => (
               <div key={label} className="card" style={{ marginBottom: 16 }}>
-                <h4 style={{ color, fontWeight: 700, marginBottom: 12 }}>{label}</h4>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+                  <h4 style={{ color, fontWeight: 700, margin: 0 }}>{label}</h4>
+                  <span style={{ fontSize: 11, color: sideColor, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Empezó en {side}
+                  </span>
+                </div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
