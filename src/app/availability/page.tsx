@@ -501,8 +501,9 @@ export default function AvailabilityPage() {
                     </>
                   )}
                 </div>
-              );
-            })}
+              </React.Fragment>
+            );
+          })}
           </div>
         )}
 
