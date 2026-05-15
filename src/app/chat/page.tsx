@@ -52,7 +52,7 @@ export default function ChatPage() {
   const send = async () => {
     if (!input.trim() || !session?.user) return;
     
-    const playerId = (session.user as any).playerId;
+    const playerId = session.user.playerId;
     if (!playerId) {
       alert("Tu usuario no está vinculado a un jugador.");
       return;
@@ -89,7 +89,7 @@ export default function ChatPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{session?.user?.name}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(session?.user as any)?.role?.toUpperCase()}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{session?.user?.role?.toUpperCase()}</div>
             </div>
             <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 36, height: 36 }}>
               {session?.user?.name?.[0]}

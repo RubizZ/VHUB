@@ -6,7 +6,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const playerId = (session.user as any).playerId;
+  const playerId = session.user.playerId;
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const player = await db.player.findUnique({
@@ -20,7 +20,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const playerId = (session.user as any).playerId;
+  const playerId = session.user.playerId;
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const body = await req.json();

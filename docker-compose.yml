@@ -6,24 +6,29 @@ services:
     container_name: 7r-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     environment:
-      # --- Internal Non-Secret Env Vars ---
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sevenr}:${POSTGRES_PASSWORD:-sevenr_dev}@db:5432/${POSTGRES_DB:-sevenr}
+      # --- Configuración de Desarrollo ---
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sevenr:sevenr_dev@db:5432/sevenr
       PRISMA_CLIENT_ENGINE_TYPE: library
-      NEXTAUTH_URL: http://localhost:${APP_PORT:-3000}
-      
-      # --- External Secrets (Passed from .env) ---
-      RIOT_API_KEY: ${RIOT_API_KEY}
-      VALORANT_REGION: ${VALORANT_REGION:-eu}
-      AUTH_SECRET: ${AUTH_SECRET}
+      NEXTAUTH_URL: http://localhost:3000
       AUTH_TRUST_HOST: "true"
+      VALORANT_REGION: "eu"
       
-      # Upstash / Supabase (Optional)
+      # ESTO ES CLAVE PARA HOT RELOAD EN DOCKER/WINDOWS
+      WATCHPACK_POLLING: "true"
+      
+      # --- Secretos Externos ---
+      RIOT_API_KEY: ${RIOT_API_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
       UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
       UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
@@ -34,15 +39,15 @@ services:
     container_name: 7r-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sevenr}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sevenr_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-sevenr}
+      POSTGRES_USER: sevenr
+      POSTGRES_PASSWORD: sevenr_dev
+      POSTGRES_DB: sevenr
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sevenr}"]
+      test: ["CMD-SHELL", "pg_isready -U sevenr"]
       interval: 5s
       timeout: 5s
       retries: 5

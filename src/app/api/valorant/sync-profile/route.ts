@@ -3,11 +3,15 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getRiotClient } from "@/lib/riot/client";
 
+interface RiotError {
+  statusCode?: number;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const playerId = (session.user as any).playerId;
+  const playerId = session.user.playerId;
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const body = await req.json();
@@ -25,7 +29,7 @@ export async function POST(req: NextRequest) {
     const account = await client.getAccount(riotName, riotTag);
 
     // 2. Update player profile in DB
-    const player = await db.player.update({
+    await db.player.update({
       where: { id: Number(playerId) },
       data: {
         riot_name: account.gameName,
@@ -40,9 +44,10 @@ export async function POST(req: NextRequest) {
       riotName: account.gameName,
       riotTag: account.tagLine
     });
-  } catch (err: any) {
+  } catch (err) {
+    const riotErr = err as RiotError;
     console.error("Riot Sync Error:", err);
-    if (err.statusCode === 404) 
+    if (riotErr.statusCode === 404) 
       return NextResponse.json({ error: "Cuenta de Riot no encontrada. Revisa el Nombre y el Tag." }, { status: 404 });
     
     return NextResponse.json({ error: "Error al comunicar con Riot Games" }, { status: 500 });

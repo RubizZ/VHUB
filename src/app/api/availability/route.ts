@@ -1,66 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const eventId = searchParams.get("event_id");
+  const event_id = searchParams.get("event_id");
 
-  if (eventId) {
-    const rows = await db.availability.findMany({
-      where: { event_id: Number(eventId) },
-      include: {
-        player: {
-          select: { name: true, avatar_color: true }
+  if (!event_id) return NextResponse.json({ error: "event_id required" }, { status: 400 });
+
+  const availability = await db.availability.findMany({
+    where: { event_id: Number(event_id) },
+    include: {
+      player: {
+        select: {
+          name: true,
+          avatar_color: true,
+          role: true
         }
       }
-    });
-    
-    // Transform to match previous API format
-    const availability = rows.map(r => ({
-      ...r,
-      player_name: r.player.name,
-      avatar_color: r.player.avatar_color
-    }));
-    
-    return NextResponse.json({ availability });
-  }
-
-  const rows = await db.availability.findMany({
-    include: {
-      player: { select: { name: true } }
     }
   });
-
-  const availability = rows.map(r => ({
-    ...r,
-    player_name: r.player.name
-  }));
 
   return NextResponse.json({ availability });
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { event_id, player_id, status } = body;
-  
-  if (!event_id || !player_id || !status)
-    return NextResponse.json({ error: "event_id, player_id, status required" }, { status: 400 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await db.availability.upsert({
+  const body = await req.json();
+  const { event_id, player_id, status, note } = body;
+
+  if (!event_id || !player_id || !status) {
+    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  // VALIDACIÓN ESTRICTA: ¿Existe este jugador en MI base de datos?
+  const playerExists = await db.player.findUnique({
+    where: { id: Number(player_id) }
+  });
+
+  if (!playerExists) {
+    return NextResponse.json({ error: "El jugador no existe en el equipo (Base de Datos)" }, { status: 404 });
+  }
+
+  // Validar que el usuario solo pueda marcar su propia disponibilidad (a menos que sea admin)
+  const userPlayerId = session.user.playerId;
+  const isAdmin = session.user.role === "admin";
+  
+  if (!isAdmin && Number(player_id) !== Number(userPlayerId)) {
+    return NextResponse.json({ error: "No puedes marcar disponibilidad para otro jugador" }, { status: 403 });
+  }
+
+  const availability = await db.availability.upsert({
     where: {
       event_id_player_id: {
         event_id: Number(event_id),
         player_id: Number(player_id)
       }
     },
-    update: { status, updated_at: new Date() },
+    update: { status, note, updated_at: new Date() },
     create: {
       event_id: Number(event_id),
       player_id: Number(player_id),
       status,
-      updated_at: new Date()
+      note
     }
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ availability });
 }

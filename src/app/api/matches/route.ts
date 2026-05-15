@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
                 team_blue_score: blueTeam?.roundsWon || 0,
                 team_red_score: redTeam?.roundsWon || 0,
                 team_blue_won: blueTeam?.won || false,
-                raw_data: matchData as any
+                raw_data: matchData as object
               }
             });
 
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
                   score: player.stats.score,
                   rounds_played: player.stats.roundsPlayed,
                   competitive_tier: player.competitiveTier,
-                  ability_casts: player.stats.abilityCasts as any
+                  ability_casts: JSON.stringify(player.stats.abilityCasts)
                 }
               });
             }

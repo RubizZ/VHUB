@@ -40,6 +40,33 @@ export async function GET(req: NextRequest) {
         const match = await client.getMatch(matchId);
         return NextResponse.json({ match, configured: true });
       }
+      case "stats": {
+        const name = searchParams.get("name");
+        const tag = searchParams.get("tag");
+        if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
+
+        // 1. Obtener Cuenta (PUUID)
+        const account = await client.getAccount(name, tag);
+
+        // 2. Obtener Historial (Matchlist)
+        const matchlist = await client.getMatchlist(account.puuid);
+
+        // 3. Obtener detalles de las últimas 5 partidas
+        const matchPromises = matchlist.history.slice(0, 5).map(m => client.getMatch(m.matchId));
+        const matches = await Promise.all(matchPromises);
+
+        // 4. Analizar estadísticas (Usamos el analizador que ya tenemos)
+        const { analyzePlayerStats } = await import("@/lib/stats-analyzer");
+        const stats = analyzePlayerStats(matches, account.gameName, account.tagLine);
+
+        return NextResponse.json({
+          stats,
+          mmr: null, // El MMR requiere un endpoint diferente de Riot (V3) que no está en este wrapper básico
+          matches,
+          mock: false,
+          configured: true
+        });
+      }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }

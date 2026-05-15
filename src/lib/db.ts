@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -23,6 +23,6 @@ export const dbReady = Promise.resolve();
 /**
  * Transaction helper (Prisma already has $transaction)
  */
-export async function withTransaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
+export async function withTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
   return prisma.$transaction(fn);
 }

@@ -20,16 +20,35 @@ export default function AvailabilityPage() {
   }, []);
 
   const loadEvents = async () => {
-    const res = await fetch("/api/events");
-    const d = await res.json();
-    setEvents(d.events || []);
-    const availMap: Record<number, Avail[]> = {};
-    for (const ev of (d.events || [])) {
-      const r2 = await fetch(`/api/availability?event_id=${ev.id}`);
-      const d2 = await r2.json();
-      availMap[ev.id] = d2.availability || [];
+    try {
+      const res = await fetch("/api/events");
+      if (!res.ok) throw new Error(`Events API failed: ${res.status}`);
+      const d = await res.json();
+      const loadedEvents: Ev[] = d.events || [];
+      setEvents(loadedEvents);
+      
+      const availMap: Record<number, Avail[]> = {};
+      
+      // Cargamos disponibilidades de forma secuencial pero segura
+      for (const ev of loadedEvents) {
+        try {
+          const r2 = await fetch(`/api/availability?event_id=${ev.id}`);
+          if (r2.ok) {
+            const d2 = await r2.json();
+            availMap[ev.id] = d2.availability || [];
+          } else {
+            console.warn(`Disponibilidad no encontrada para evento ${ev.id}`);
+            availMap[ev.id] = [];
+          }
+        } catch (err) {
+          console.error(`Error al parsear disponibilidad de evento ${ev.id}:`, err);
+          availMap[ev.id] = [];
+        }
+      }
+      setAvail(availMap);
+    } catch (err) {
+      console.error("Error cargando eventos:", err);
     }
-    setAvail(availMap);
   };
 
   const createEvent = async () => {

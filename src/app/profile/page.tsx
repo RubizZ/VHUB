@@ -13,7 +13,7 @@ interface PlayerData {
 }
 
 export default function ProfilePage() {
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,6 +56,7 @@ export default function ProfilePage() {
         setMessage({ text: data.error || "Error al sincronizar", type: "error" });
       }
     } catch (err) {
+      console.error(err);
       setMessage({ text: "Error de conexión", type: "error" });
     } finally {
       setSaving(false);
@@ -75,6 +76,7 @@ export default function ProfilePage() {
         setMessage({ text: "Perfil actualizado", type: "success" });
       }
     } catch (err) {
+      console.error(err);
       setMessage({ text: "Error al actualizar", type: "error" });
     } finally {
       setSaving(false);
