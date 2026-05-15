@@ -75,7 +75,9 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      return NextResponse.json({ match, playerStats });
+      const ourSide = match.player_stats.find(s => s.player_id !== null)?.team_id || "Blue";
+
+      return NextResponse.json({ match: { ...match, our_team_side: ourSide }, playerStats });
     }
 
     // Case 2: Match List
@@ -121,6 +123,11 @@ export async function GET(req: NextRequest) {
           reason: "Privacidad: Sin consentimiento"
         };
       }
+
+      // Determinar qué bando es el nuestro (el que tiene jugadores vinculados)
+      // En la query usamos include con un take: 1 de player_stats donde player_id != null
+      const ourSide = m.player_stats[0]?.team_id || "Blue";
+
       return {
         id: m.id,
         riot_match_id: m.riot_match_id,
@@ -134,6 +141,7 @@ export async function GET(req: NextRequest) {
         team_blue_won: m.team_blue_won,
         event_id: m.event_id,
         premier_season_id: m.premier_season_id,
+        our_team_side: ourSide,
         isHidden: false
       };
     });

@@ -8,6 +8,7 @@ interface Match {
   game_start: string; game_length_ms: number; queue_id: string;
   team_blue_score: number; team_red_score: number; team_blue_won: boolean;
   event_id: number | null;
+  our_team_side?: "Blue" | "Red";
   isHidden?: boolean;
   reason?: string;
 }
@@ -247,11 +248,27 @@ export default function MatchesPage() {
                     🔒 {m.reason || "Sin consentimiento de datos"}
                   </div>
                 ) : (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, margin: "12px 0" }}>
-                      <span style={{ fontSize: 28, fontWeight: 800, color: m.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{m.team_blue_score}</span>
-                      <span style={{ fontSize: 14, color: "var(--text-muted)" }}>vs</span>
-                      <span style={{ fontSize: 28, fontWeight: 800, color: !m.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{m.team_red_score}</span>
+                   <>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, margin: "12px 0" }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Tu Equipo</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
+                          {m.our_team_side === "Blue" ? m.team_blue_score : m.team_red_score}
+                        </div>
+                        <div style={{ fontSize: 10, color: m.our_team_side === "Blue" ? "#3B82F6" : "#FF4655", marginTop: 2 }}>
+                          {m.our_team_side === "Blue" ? "Defensa" : "Ataque"}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 12 }}>vs</span>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Rival</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? !m.team_blue_won : m.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
+                          {m.our_team_side === "Blue" ? m.team_red_score : m.team_blue_score}
+                        </div>
+                        <div style={{ fontSize: 10, color: m.our_team_side === "Blue" ? "#FF4655" : "#3B82F6", marginTop: 2 }}>
+                          {m.our_team_side === "Blue" ? "Ataque" : "Defensa"}
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
@@ -268,21 +285,40 @@ export default function MatchesPage() {
         ) : (
           <>
             <button className="btn btn-ghost" style={{ marginBottom: 16 }} onClick={() => { setSelected(null); setStats([]); }}>← Volver</button>
-            <div className="card" style={{ marginBottom: 16 }}>
+             <div className="card" style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
                 <div>
                   <h3 style={{ fontSize: 20, fontWeight: 700 }}>{selected.map_name}</h3>
                   <p style={{ color: "var(--text-muted)", margin: 0 }}>{formatDate(selected.game_start)} · {formatDuration(selected.game_length_ms)}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 36, fontWeight: 800, color: selected.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{selected.team_blue_score}</span>
-                  <span style={{ fontSize: 16, color: "var(--text-muted)" }}>—</span>
-                  <span style={{ fontSize: 36, fontWeight: 800, color: !selected.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{selected.team_red_score}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Tu Equipo</div>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: (selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
+                      {selected.our_team_side === "Blue" ? selected.team_blue_score : selected.team_red_score}
+                    </div>
+                    <div style={{ fontSize: 11, color: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655", fontWeight: 700 }}>
+                      Empezó {selected.our_team_side === "Blue" ? "Defendiendo" : "Atacando"}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 20, color: "var(--text-muted)", marginTop: 16 }}>—</span>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Rival</div>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: (selected.our_team_side === "Blue" ? !selected.team_blue_won : selected.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
+                      {selected.our_team_side === "Blue" ? selected.team_red_score : selected.team_blue_score}
+                    </div>
+                    <div style={{ fontSize: 11, color: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6", fontWeight: 700 }}>
+                      Empezó {selected.our_team_side === "Blue" ? "Atacando" : "Defendiendo"}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {[{ label: "Blue Team", team: blueTeam, color: "#3B82F6" }, { label: "Red Team", team: redTeam, color: "#FF4655" }].map(({ label, team, color }) => (
+            {[
+              { label: "Tu Equipo", team: selected.our_team_side === "Blue" ? blueTeam : redTeam, color: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655" },
+              { label: "Equipo Rival", team: selected.our_team_side === "Blue" ? redTeam : blueTeam, color: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6" }
+            ].map(({ label, team, color }) => (
               <div key={label} className="card" style={{ marginBottom: 16 }}>
                 <h4 style={{ color, fontWeight: 700, marginBottom: 12 }}>{label}</h4>
                 <div style={{ overflowX: "auto" }}>

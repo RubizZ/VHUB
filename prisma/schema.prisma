@@ -154,6 +154,8 @@ model Event {
   type              String         @default("match")
   date              String
   time              String
+  end_date          String?
+  end_time          String?
   description       String?
   map               String?
   premier_week      String?

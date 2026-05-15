@@ -146,7 +146,7 @@ async function ensureWeeklyEvents(teamId: string) {
 
       // Prioridad 1: Playoffs (Si es el día del torneo o el último día de la generación si hay torneo planeado)
       if (dateStr === tournamentDateStr || (tempDate.getTime() === limitDate.getTime() && tournamentEvent)) {
-        evConfig = { title: "Playoffs Premier", type: "playoffs", time: "17:00", description: "Inscripción (17:00 - 17:15) y Brackets" };
+        evConfig = { title: "Playoffs Premier", type: "playoffs", time: "17:00" };
       } else if (day === 3 || day === 5) {
         evConfig = { title: "Práctica de Equipo", type: "practice", time: "17:00" };
       } else if (day === 4 || day === 6 || day === 0) {
@@ -160,9 +160,10 @@ async function ensureWeeklyEvents(teamId: string) {
         // 3. Fallback: buscar directamente en events por rango de fecha
 
         let evMeta: any = null;
+        let matchingSchedule: any = null;
 
         // Paso 1: Buscar via scheduled_events (más preciso, filtra por conferencia)
-        const matchingSchedule = conferenceSchedules.find((se: any) => {
+        matchingSchedule = conferenceSchedules.find((se: any) => {
           if (!se.starts_at || !se.ends_at) return false;
           const sDate = se.starts_at.split('T')[0];
           const eDate = se.ends_at.split('T')[0];
@@ -195,12 +196,26 @@ async function ensureWeeklyEvents(teamId: string) {
           if (evMeta.type === 'LEAGUE') premierWeek = "Semana de Liga";
         }
 
+        // Extraer end_date y end_time de la ventana del scheduled_event o del evento padre
+        let endDate: string | undefined = undefined;
+        let endTime: string | undefined = undefined;
+        const endSource = matchingSchedule?.ends_at || evMeta?.ends_at;
+        if (endSource) {
+          const endDt = new Date(endSource);
+          if (!isNaN(endDt.getTime()) && endDt.getFullYear() > 2000) {
+            endDate = endDt.toISOString().split('T')[0];
+            endTime = endDt.getUTCHours().toString().padStart(2, '0') + ':' + endDt.getUTCMinutes().toString().padStart(2, '0');
+          }
+        }
+
         eventsToCreate.push({
           teamId,
           title: evConfig.title,
           type: evConfig.type,
           date: dateStr,
           time: evConfig.time,
+          end_date: endDate || null,
+          end_time: endTime || null,
           description: evConfig.description || "",
           map: mapName,
           premier_week: premierWeek,
@@ -237,7 +252,30 @@ async function ensureWeeklyEvents(teamId: string) {
             data: { map: ev.map }
           });
         }
+        // Actualizar end_date/end_time en eventos existentes que no los tengan
+        if (ev.end_date && ev.end_time) {
+          await db.event.updateMany({
+            where: {
+              teamId,
+              date: ev.date,
+              time: ev.time,
+              type: ev.type,
+              end_date: null
+            },
+            data: { end_date: ev.end_date, end_time: ev.end_time }
+          });
+        }
       }
+
+      // Limpiar descripciones hardcodeadas de playoffs
+      await db.event.updateMany({
+        where: {
+          teamId,
+          type: 'playoffs',
+          description: { not: "" }
+        },
+        data: { description: "" }
+      });
 
       console.log("[ensureWeeklyEvents] ✅ Completado.");
     }

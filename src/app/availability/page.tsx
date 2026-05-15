@@ -11,7 +11,14 @@ interface LinkedMatch {
   team_blue_score: number; team_red_score: number; team_blue_won: boolean;
   queue_id: string;
 }
-interface Ev { id: number; title: string; type: string; date: string; time: string; description: string; map: string; status: string; localDate?: string; localTime?: string; linkedMatches?: LinkedMatch[]; }
+interface Ev { 
+  id: number; title: string; type: string; date: string; time: string; 
+  end_date?: string; end_time?: string;
+  description: string; map: string; status: string; 
+  localDate?: string; localTime?: string; 
+  localEndDate?: string; localEndTime?: string;
+  linkedMatches?: LinkedMatch[]; 
+}
 interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
 
 export default function AvailabilityPage() {
@@ -98,10 +105,19 @@ export default function AvailabilityPage() {
       const loadedEvents: Ev[] = (d.events || []).map((ev: any) => {
         // ev.date (YYYY-MM-DD) y ev.time (HH:mm) están en UTC 0
         const utcDate = new Date(`${ev.date}T${ev.time}:00Z`);
+        let localEndDate = undefined;
+        let localEndTime = undefined;
+        if (ev.end_date && ev.end_time) {
+          const utcEnd = new Date(`${ev.end_date}T${ev.end_time}:00Z`);
+          localEndDate = formatDateLocal(utcEnd);
+          localEndTime = utcEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
         return {
           ...ev,
           localDate: formatDateLocal(utcDate),
-          localTime: utcDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+          localTime: utcDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          localEndDate,
+          localEndTime
         };
       });
       
@@ -356,6 +372,7 @@ export default function AvailabilityPage() {
                       </div>
                       <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
                         📅 {new Date(`${ev.date}T${ev.time}:00Z`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · ⏰ {ev.localTime}
+                        {ev.localEndTime && <> - {ev.localEndTime}</>}
                         {ev.map && <> · 🗺️ {maps.find(m => m.id === ev.map)?.name || ev.map}</>}
                       </div>
                       {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
