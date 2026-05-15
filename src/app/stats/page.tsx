@@ -12,6 +12,7 @@ export default function StatsPage() {
   const [selected, setSelected] = useState<Player | null>(null);
   const [data, setData] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { 
     fetch("/api/players")
@@ -22,16 +23,28 @@ export default function StatsPage() {
   const loadStats = async (p: Player) => {
     setSelected(p);
     setLoading(true);
+    setError(null);
+    setData(null);
     const name = p.riot_name || p.name;
     const tag = p.riot_tag || "EUW";
     try {
       const res = await fetch(`/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
       const d = await res.json();
-      if (d.error) throw new Error(d.error);
+      
+      if (d.error) {
+        if (d.error.includes("401")) {
+          throw new Error("La Riot API Key ha caducado o es inválida. Por favor, renuévala en el .env");
+        }
+        if (d.error.includes("429")) {
+          throw new Error("Demasiadas solicitudes a Riot. Espera un minuto y vuelve a intentarlo.");
+        }
+        throw new Error(d.error);
+      }
+      
       setData(d);
     } catch (err) {
       console.error("Error al cargar estadísticas:", err);
-      setData(null);
+      setError(err instanceof Error ? err.message : "Error desconocido al cargar estadísticas");
     } finally {
       setLoading(false);
     }
@@ -77,6 +90,17 @@ export default function StatsPage() {
         {loading && (
           <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
             <p style={{ animation: "pulse 1.5s infinite" }}>Cargando estadísticas reales...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="card" style={{ border: "1px solid var(--val-red)", background: "rgba(255,70,85,0.05)", textAlign: "center", padding: 32 }}>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>⚠️</p>
+            <h4 style={{ color: "var(--val-red)", marginBottom: 8 }}>Error al cargar datos</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 400, margin: "0 auto 20px" }}>{error}</p>
+            {error.includes("Key") && (
+              <p style={{ fontSize: 12, opacity: 0.7 }}>Tip: Si usas una clave de desarrollo, recuerda que caducan cada 24 horas.</p>
+            )}
           </div>
         )}
 

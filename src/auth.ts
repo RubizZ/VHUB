@@ -1,12 +1,13 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/db";
+import { db as prisma } from "@/lib/db";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   providers: [
     ...authConfig.providers,
@@ -31,7 +32,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) return null;
-        return { id: user.id };
+        return { 
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          teamId: user.teamId,
+          playerId: user.playerId
+        };
       }
     }),
     {
@@ -47,11 +55,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
       profile(profile: any) {
+        console.log(`[auth] Riot Games profile callback - Sub: ${profile?.sub}`);
         return {
           id: profile.sub,
-          name: profile.acct.game_name,
+          name: profile.acct?.game_name || profile.name || "Riot User",
           email: profile.email || `${profile.sub}@riot.com`,
-          image: null,
+          image: profile.picture || null,
+          role: "member"
         };
       },
     }
@@ -62,34 +72,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user }) {
+      console.log(`[auth] JWT callback - Token ID: ${token?.id}, User ID: ${user?.id}`);
       if (user) {
         token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        // SACAMOS TODA LA INFO EN CALIENTE DE LA DB
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { 
-            id: true, 
-            name: true, 
-            email: true, 
-            role: true, 
-            playerId: true, 
-            teamId: true 
+      console.log(`[auth] Session callback - Session User: ${session?.user?.email}, Token ID: ${token?.id}`);
+      if (session?.user && token?.id) {
+        try {
+          // SACAMOS TODA LA INFO EN CALIENTE DE LA DB
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { 
+              id: true, 
+              name: true, 
+              email: true, 
+              role: true, 
+              playerId: true, 
+              teamId: true 
+            }
+          });
+
+          if (!dbUser) {
+            console.log(`[auth] !!! USER NOT FOUND IN DB: ${token.id} !!!`);
+            throw new Error("SessionInvalid");
           }
-        });
 
-        if (!dbUser) return null as any;
-
-        session.user.id = dbUser.id;
-        session.user.name = dbUser.name;
-        session.user.email = dbUser.email;
-        (session.user as any).role = dbUser.role;
-        (session.user as any).playerId = dbUser.playerId;
-        (session.user as any).teamId = dbUser.teamId;
+          console.log(`[auth] User found: ${dbUser.email}, Team: ${dbUser.teamId}`);
+          session.user.id = dbUser.id;
+          session.user.name = dbUser.name;
+          session.user.email = dbUser.email || "";
+          (session.user as any).role = dbUser.role;
+          (session.user as any).playerId = dbUser.playerId;
+          (session.user as any).teamId = dbUser.teamId;
+        } catch (error: any) {
+          console.error("[auth] Session callback error:", error);
+          if (error.message === "SessionInvalid") {
+             // Invalidate session cleanly without breaking NextAuth schemas
+             session.user.id = "";
+             return session;
+          }
+          return session;
+        }
       }
       return session;
     },

@@ -30,10 +30,10 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { name, slug } = body;
+    const { name, slug, conference } = body;
 
-    if (!name || !slug) {
-      return NextResponse.json({ error: "Nombre y slug son requeridos" }, { status: 400 });
+    if (!name || !slug || !conference) {
+      return NextResponse.json({ error: "Nombre, slug y región son requeridos" }, { status: 400 });
     }
 
     // Check if slug is taken
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const result = await db.$transaction(async (tx) => {
       // 1. Create the Team
       const team = await tx.team.create({
-        data: { name, slug }
+        data: { name, slug, conference }
       });
 
       // 2. Create the Player profile for the founder

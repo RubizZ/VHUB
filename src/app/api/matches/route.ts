@@ -33,6 +33,22 @@ export async function GET(req: NextRequest) {
 
     if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
+    // Verificamos si hay consentimiento de al menos un jugador
+    const hasConsent = match.player_stats.some(s => s.player_id !== null);
+
+    if (!hasConsent) {
+      return NextResponse.json({ 
+        match: {
+          id: match.id,
+          riot_match_id: match.riot_match_id,
+          game_start: match.game_start,
+          isHidden: true,
+          reason: "Este partido está oculto porque ningún jugador del equipo ha dado su consentimiento para compartir datos en V-HUB."
+        },
+        playerStats: []
+      });
+    }
+
     // Transform player stats to match previous API format
     const playerStats = match.player_stats.map(s => ({
       ...s,
@@ -45,24 +61,45 @@ export async function GET(req: NextRequest) {
 
   const matches = await db.match.findMany({
     where: { teamId },
-    select: {
-      id: true,
-      riot_match_id: true,
-      map_name: true,
-      game_mode: true,
-      game_start: true,
-      game_length_ms: true,
-      queue_id: true,
-      team_blue_score: true,
-      team_red_score: true,
-      team_blue_won: true,
-      event_id: true
+    include: {
+      player_stats: {
+        select: { player_id: true },
+        where: { player_id: { not: null } },
+        take: 1
+      }
     },
     orderBy: { game_start: 'desc' },
     take: 50
   });
 
-  return NextResponse.json({ matches });
+  const formattedMatches = matches.map(m => {
+    const hasConsent = m.player_stats.length > 0;
+    if (!hasConsent) {
+      return {
+        id: m.id,
+        riot_match_id: m.riot_match_id,
+        game_start: m.game_start,
+        isHidden: true,
+        reason: "Privacidad: Sin consentimiento"
+      };
+    }
+    return {
+      id: m.id,
+      riot_match_id: m.riot_match_id,
+      map_name: m.map_name,
+      game_mode: m.game_mode,
+      game_start: m.game_start,
+      game_length_ms: m.game_length_ms,
+      queue_id: m.queue_id,
+      team_blue_score: m.team_blue_score,
+      team_red_score: m.team_red_score,
+      team_blue_won: m.team_blue_won,
+      event_id: m.event_id,
+      isHidden: false
+    };
+  });
+
+  return NextResponse.json({ matches: formattedMatches });
 }
 
 export async function POST(req: NextRequest) {
@@ -80,6 +117,18 @@ export async function POST(req: NextRequest) {
     if (action === "sync") {
       if (!puuid) return NextResponse.json({ error: "puuid required for sync" }, { status: 400 });
 
+      // Verificar consentimiento del usuario autenticado
+      const userId = session.user.id;
+      const requestingUser = await db.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!requestingUser?.dataConsent) {
+        return NextResponse.json({ 
+          error: "No has dado tu consentimiento para procesar tus datos de juego. Actívalo en tu perfil." 
+        }, { status: 403 });
+      }
+
       const matchlist = await client.getMatchlist(puuid);
       let synced = 0;
 
@@ -88,8 +137,6 @@ export async function POST(req: NextRequest) {
           where: { riot_match_id: entry.matchId } 
         });
         
-        // Si ya existe pero no tiene teamId (migración), o si queremos que aparezca en múltiples equipos
-        // En este caso, si ya existe el registro global, lo vinculamos si no lo está
         if (existing) {
           if (!existing.teamId) {
             await db.match.update({ where: { id: existing.id }, data: { teamId } });
@@ -127,13 +174,19 @@ export async function POST(req: NextRequest) {
             });
 
             for (const player of matchData.players) {
-              const ourPlayer = await tx.player.findUnique({ where: { puuid: player.puuid } });
+              // Solo vinculamos estadísticas si el jugador existe en nuestro sistema Y ha dado su consentimiento
+              const ourPlayer = await tx.player.findUnique({ 
+                where: { puuid: player.puuid },
+                include: { user: true }
+              });
               
+              const hasConsent = ourPlayer?.user?.dataConsent === true;
+
               await tx.matchPlayerStats.create({
                 data: {
                   match_id: m.id,
                   puuid: player.puuid,
-                  player_id: ourPlayer?.id || null,
+                  player_id: hasConsent ? ourPlayer?.id : null, // Solo vinculamos si hay consentimiento
                   character_id: player.characterId,
                   team_id: player.teamId,
                   kills: player.stats.kills,

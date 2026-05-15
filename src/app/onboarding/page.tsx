@@ -13,6 +13,7 @@ export default function OnboardingPage() {
   // Form states
   const [teamName, setTeamName] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
+  const [conference, setConference] = useState("EU_IBIT");
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
 
@@ -50,7 +51,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: teamName, slug: teamSlug })
+        body: JSON.stringify({ name: teamName, slug: teamSlug, conference })
       });
       const data = await res.json();
 
@@ -159,6 +160,30 @@ export default function OnboardingPage() {
                 required 
                 style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
               />
+            </div>
+            <div className="form-group" style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>REGIÓN DE COMPETICIÓN (VALORANT PREMIER)</label>
+              <select 
+                value={conference} 
+                onChange={(e) => setConference(e.target.value)} 
+                required 
+                style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
+              >
+                <option value="EU_IBIT">Europa (Iberia, Italia, Balcanes)</option>
+                <option value="EU_FRANCE">Europa (Francia)</option>
+                <option value="EU_DACH">Europa (DACH - DE/AT/CH)</option>
+                <option value="EU_NORTH">Europa (Norte)</option>
+                <option value="EU_EAST">Europa (Este)</option>
+                <option value="EU_TURKEY">Europa (Turquía)</option>
+                <option value="EU_MIDDLE_EAST">Europa (Oriente Medio)</option>
+                <option value="NA_EAST">Norteamérica Este</option>
+                <option value="NA_WEST">Norteamérica Oeste</option>
+                <option value="LATAM_NORTH">LATAM Norte</option>
+                <option value="LATAM_SOUTH">LATAM Sur</option>
+                <option value="BR">Brasil</option>
+                <option value="AP">Asia Pacífico</option>
+                <option value="KR">Corea</option>
+              </select>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <button type="button" className="btn" onClick={() => setMode("choice")} style={{ flex: 1, background: "var(--bg-glass)" }}>Volver</button>

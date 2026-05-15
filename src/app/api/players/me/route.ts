@@ -10,10 +10,16 @@ export async function GET() {
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const player = await db.player.findUnique({
-    where: { id: Number(playerId) }
+    where: { id: Number(playerId) },
+    include: { user: { select: { dataConsent: true } } }
   });
 
-  return NextResponse.json({ player });
+  return NextResponse.json({ 
+    player: {
+      ...player,
+      dataConsent: player?.user?.dataConsent || false
+    } 
+  });
 }
 
 export async function PUT(req: NextRequest) {
@@ -24,7 +30,7 @@ export async function PUT(req: NextRequest) {
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const body = await req.json();
-  const { role, avatar_color } = body;
+  const { role, avatar_color, dataConsent } = body;
 
   try {
     const existingPlayer = await db.player.findUnique({ where: { id: Number(playerId) } });
@@ -37,11 +43,22 @@ export async function PUT(req: NextRequest) {
       where: { id: Number(playerId) },
       data: {
         ...(role !== undefined && { role }),
-        ...(avatar_color !== undefined && { avatar_color })
-      }
+        ...(avatar_color !== undefined && { avatar_color }),
+        user: {
+          update: {
+            ...(dataConsent !== undefined && { dataConsent })
+          }
+        }
+      },
+      include: { user: { select: { dataConsent: true } } }
     });
 
-    return NextResponse.json({ player });
+    return NextResponse.json({ 
+      player: {
+        ...player,
+        dataConsent: player.user?.dataConsent || false
+      }
+    });
   } catch (error) {
     console.error("[PUT /api/players/me] Prisma Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { ClientLayout } from "@/components/ClientLayout";
+import { SessionGuard } from "@/components/SessionGuard";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -25,25 +26,21 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   
-  console.log("ROOT_LAYOUT: Session ID:", session?.user?.id);
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  const pathname = h.get("x-url") || h.get("x-invoke-path") || ""; 
+  const isPublicPage = pathname === "/login" || pathname === "/register";
+  const isOnboardingPage = pathname === "/onboarding";
 
   // Si hay sesión, verificar que el usuario siga existiendo y tenga equipo
   if (session?.user?.id) {
     const hasTeam = !!(session.user as any).teamId;
-    const { headers } = await import("next/headers");
-    const h = await headers();
-    // Intentar obtener la ruta actual de varios headers posibles
-    const pathname = h.get("x-url") || h.get("x-invoke-path") || ""; 
 
-    const isPublicPage = pathname === "/login" || 
-                         pathname === "/register" || 
-                         pathname === "/onboarding";
-
-    if (!hasTeam && !isPublicPage) {
+    if (!hasTeam && !isPublicPage && !isOnboardingPage) {
       redirect("/onboarding");
     }
 
-    if (hasTeam && pathname === "/onboarding") {
+    if (hasTeam && isOnboardingPage) {
       redirect("/");
     }
   }
@@ -52,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es">
       <body>
         <Providers>
+          <SessionGuard />
           <ClientLayout>
             {children}
           </ClientLayout>

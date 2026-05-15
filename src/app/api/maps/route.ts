@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { valorantApi } from '@/lib/valorant-api';
 
 export async function GET() {
   try {
@@ -10,9 +11,7 @@ export async function GET() {
     // Auto-sync si no hay mapas
     if (maps.length === 0) {
       console.log('🔄 Auto-syncing maps from Valorant API...');
-      const response = await fetch('https://valorant-api.com/v1/maps');
-      const json = await response.json();
-      const mapsData = json.data;
+      const mapsData = await valorantApi.mapsEndpoints.getMapsV1();
 
       for (const map of mapsData) {
         if (map.tacticalDescription) {

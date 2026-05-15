@@ -83,7 +83,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json({ success: true, request: result });
   } catch (error) {
-    console.error(`[PUT /api/teams/requests/${params.id}] Error:`, error);
+    console.error(`[PUT /api/teams/requests/error] Error:`, error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

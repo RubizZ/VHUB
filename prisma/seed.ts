@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import * as bcrypt from 'bcryptjs';
+import { ValorantApi } from '@valpro-labs/valorant-api';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -31,9 +32,8 @@ async function main() {
 
   // 1. Fetch Maps from Valorant API
   console.log('🛰️ Fetching maps...');
-  const response = await fetch('https://valorant-api.com/v1/maps');
-  const json = await response.json();
-  const mapsData = json.data;
+  const valorantApi = new ValorantApi({ language: 'es-ES' });
+  const mapsData = await valorantApi.mapsEndpoints.getMapsV1();
 
   for (const map of mapsData) {
     // Solo guardamos mapas que tengan descripción táctica (filtramos tutoriales/rangos)
@@ -70,6 +70,26 @@ async function main() {
   const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
   const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
+  const riotName = 'Rubiz';
+  const riotTag = '000';
+  let puuid = null;
+
+  console.log(`🛰️ Fetching PUUID for ${riotName}#${riotTag}...`);
+  try {
+    const henrikRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/account/${riotName}/${riotTag}`, {
+      headers: { 'Authorization': process.env.HENRIK_API_KEY || '' }
+    });
+    const henrikData = await henrikRes.json();
+    if (henrikRes.ok && henrikData.data) {
+      puuid = henrikData.data.puuid;
+      console.log(`✅ Found PUUID: ${puuid}`);
+    } else {
+      console.warn(`⚠️ Could not fetch PUUID for ${riotName}#${riotTag}: ${henrikData.message || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Error connecting to HenrikDev API:`, err);
+  }
+
   const team = await prisma.team.upsert({
     where: { slug: 'vhub-elite' },
     update: {},
@@ -78,20 +98,28 @@ async function main() {
       slug: 'vhub-elite',
       logo_url: '/logo.png',
       inviteCode: 'VHUB-JOIN-2026',
+      conference: 'EU_IBIT',
+      matchHistoryConsent: true,
     },
   });
 
   const player = await prisma.player.upsert({
     where: { id: 1 },
-    update: { teamId: team.id },
+    update: { 
+      teamId: team.id,
+      puuid,
+      riot_name: riotName,
+      riot_tag: riotTag,
+    },
     create: {
       id: 1,
       name: 'Administrador',
       teamId: team.id,
       role: 'flex',
       avatar_color: '#FF4655',
-      riot_name: 'Admin',
-      riot_tag: 'VHUB',
+      riot_name: riotName,
+      riot_tag: riotTag,
+      puuid,
     },
   });
 
@@ -100,6 +128,7 @@ async function main() {
     update: {
       teamId: team.id,
       playerId: player.id,
+      dataConsent: true,
     },
     create: {
       name: 'Administrador',
@@ -108,6 +137,7 @@ async function main() {
       role: 'super_admin',
       teamId: team.id,
       playerId: player.id,
+      dataConsent: true,
     },
   });
 

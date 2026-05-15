@@ -8,7 +8,7 @@ import { db } from './db';
  * and marks remaining scheduled events for that week as "cancelled".
  */
 
-export async function checkPremierWeek(premierWeek: number): Promise<{
+export async function checkPremierWeek(premierWeek: string): Promise<{
   played: number;
   cancelled: number;
 }> {
@@ -43,7 +43,7 @@ export async function checkPremierWeek(premierWeek: number): Promise<{
  * Check all Premier weeks that have events
  */
 export async function checkAllPremierWeeks(): Promise<{
-  weeks: { week: number; played: number; cancelled: number }[];
+  weeks: { week: string; played: number; cancelled: number }[];
 }> {
   const weeksRaw = await db.event.findMany({
     where: { premier_week: { not: null } },
@@ -64,8 +64,8 @@ export async function checkAllPremierWeeks(): Promise<{
 /**
  * Get Premier week number from a date
  */
-export function getPremierWeekFromDate(date: Date, seasonStartDate: Date): number {
+export function getPremierWeekFromDate(date: Date, seasonStartDate: Date): string {
   const diffMs = date.getTime() - seasonStartDate.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  return Math.floor(diffDays / 7) + 1;
+  return (Math.floor(diffDays / 7) + 1).toString();
 }

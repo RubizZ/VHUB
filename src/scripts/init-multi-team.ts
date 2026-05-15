@@ -12,6 +12,7 @@ async function main() {
     create: {
       name: "SevenR Premier",
       slug: "7r-premier",
+      conference: "EU_IBIT"
     },
   });
 

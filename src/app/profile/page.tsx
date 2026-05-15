@@ -10,6 +10,7 @@ interface PlayerData {
   role: string;
   avatar_color: string;
   puuid: string | null;
+  dataConsent: boolean;
 }
 
 export default function ProfilePage() {
@@ -173,11 +174,32 @@ export default function ProfilePage() {
           </div>
 
           {player?.puuid && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--val-cyan)", fontSize: 13 }}>
-              <span style={{ fontSize: 18 }}>✅</span>
-              <div>
-                <strong>Cuenta Vinculada:</strong><br/>
-                <span style={{ opacity: 0.7, fontSize: 11 }}>{player.puuid}</span>
+            <div style={{ marginTop: 24, borderTop: "1px solid var(--border-color)", paddingTop: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--val-cyan)", fontSize: 13, marginBottom: 16 }}>
+                <span style={{ fontSize: 18 }}>✅</span>
+                <div>
+                  <strong>Cuenta Vinculada:</strong><br/>
+                  <span style={{ opacity: 0.7, fontSize: 11 }}>{player.puuid}</span>
+                </div>
+              </div>
+
+              <div className="card" style={{ background: "rgba(255, 70, 85, 0.05)", border: "1px solid rgba(255, 70, 85, 0.1)", padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ flex: 1, paddingRight: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--val-red)", marginBottom: 4 }}>Consentimiento de Datos</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                      Permito que V-HUB procese mis estadísticas de partidas para el análisis del equipo. Si lo desactivas, no aparecerás en las analíticas ni se guardarán tus registros de partidas.
+                    </div>
+                  </div>
+                  <label className="switch">
+                    <input 
+                      type="checkbox" 
+                      checked={player.dataConsent} 
+                      onChange={(e) => handleUpdateProfile({ dataConsent: e.target.checked })} 
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
               </div>
             </div>
           )}

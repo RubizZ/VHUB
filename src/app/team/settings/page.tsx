@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
-  const [team, setTeam] = useState({ name: "", slug: "", logo_url: "" });
+  const [team, setTeam] = useState({ name: "", slug: "", logo_url: "", inviteCode: "" as string | null });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 

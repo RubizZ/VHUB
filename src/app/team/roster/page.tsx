@@ -159,7 +159,14 @@ export default function TeamRosterPage() {
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.riot_name}#{p.riot_tag}</div>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(p); setForm({ userId: p.user?.email || "", riot_name: p.riot_name, riot_tag: p.riot_tag, role: p.role, avatar_color: p.avatar_color }) }}>✏️</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { 
+                      setEditing(p); 
+                      setForm({ 
+                        email: p.user?.email || "", 
+                        role: p.role, 
+                        avatar_color: p.avatar_color 
+                      }); 
+                    }}>✏️</button>
                     <button className="btn btn-ghost btn-sm" style={{ color: "var(--val-red)" }} onClick={() => del(p.id)}>🗑️</button>
                   </div>
                 </div>

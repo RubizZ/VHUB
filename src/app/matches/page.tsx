@@ -7,6 +7,8 @@ interface Match {
   game_start: string; game_length_ms: number; queue_id: string;
   team_blue_score: number; team_red_score: number; team_blue_won: boolean;
   event_id: number | null;
+  isHidden?: boolean;
+  reason?: string;
 }
 interface PlayerStat {
   id: number; puuid: string; player_name: string; avatar_color: string;
@@ -20,34 +22,67 @@ export default function MatchesPage() {
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/matches").then(r => r.json()).then(d => setMatches(d.matches || []));
   }, []);
 
   const loadMatch = async (m: Match) => {
+    if (m.isHidden) return;
     setSelected(m);
-    const res = await fetch(`/api/matches?id=${m.id}`);
-    const data = await res.json();
-    setStats(data.playerStats || []);
+    setError(null);
+    try {
+      const res = await fetch(`/api/matches?id=${m.id}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setStats(data.playerStats || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar detalles");
+    }
   };
 
   const syncMatches = async () => {
     setSyncing(true);
+    setError(null);
+    setSuccess(null);
     try {
       // Get first player with puuid
       const pRes = await fetch("/api/players");
       const pData = await pRes.json();
       const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
-      if (!playerWithPuuid) { alert("Ningún jugador tiene un PUUID configurado. Ve a Ajustes y añade el Riot ID de un jugador."); return; }
-      const res = await fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" }) });
+      
+      if (!playerWithPuuid) { 
+        setError("Ningún jugador tiene un PUUID configurado. Ve a Ajustes y añade el Riot ID de un jugador."); 
+        return; 
+      }
+      
+      const res = await fetch("/api/matches", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" }) 
+      });
+      
       const data = await res.json();
-      if (data.error) { alert(data.error); return; }
-      alert(`Sincronizados ${data.synced} partidos nuevos de ${data.total} totales.`);
+      if (data.error) {
+        if (data.error.includes("consentimiento")) {
+          setError("No has dado tu consentimiento para procesar tus datos. Ve a tu Perfil para activarlo.");
+        } else {
+          setError(data.error);
+        }
+        return;
+      }
+      
+      setSuccess(`Sincronizados ${data.synced} partidos nuevos.`);
       const mRes = await fetch("/api/matches");
       const mData = await mRes.json();
       setMatches(mData.matches || []);
-    } finally { setSyncing(false); }
+    } catch (err) {
+      setError("Error de conexión al servidor");
+    } finally { 
+      setSyncing(false); 
+    }
   };
 
   const formatDuration = (ms: number) => { const m = Math.floor(ms / 60000); return `${m}min`; };
@@ -83,28 +118,55 @@ export default function MatchesPage() {
     <>
       <div className="page-header"><h2>🎮 Partidos</h2><p>Historial de partidos de Valorant</p></div>
       <div className="page-content animate-in">
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>{syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar desde Riot"}</button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          {error && (
+            <div className="card" style={{ border: "1px solid var(--val-red)", background: "rgba(255,70,85,0.05)", color: "var(--val-red)", padding: "12px 16px", fontSize: 14 }}>
+              ⚠️ {error}
+            </div>
+          )}
+          {success && (
+            <div className="card" style={{ border: "1px solid var(--val-cyan)", background: "rgba(0,212,170,0.05)", color: "var(--val-cyan)", padding: "12px 16px", fontSize: 14 }}>
+              ✅ {success}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>{syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar desde Riot"}</button>
+          </div>
         </div>
 
         {!selected ? (
           <div className="grid grid-auto">
             {matches.map(m => (
-              <div key={m.id} className="card" style={{ cursor: "pointer" }} onClick={() => loadMatch(m)}>
+              <div 
+                key={m.id} 
+                className="card" 
+                style={{ cursor: m.isHidden ? "default" : "pointer", opacity: m.isHidden ? 0.7 : 1 }} 
+                onClick={() => loadMatch(m)}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700 }}>{m.map_name}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700 }}>{m.isHidden ? "Partido Privado" : m.map_name}</h3>
                   <span className={`tag ${m.queue_id === "premier" ? "tag-gold" : "tag-blue"}`}>{m.queue_id || "custom"}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, margin: "12px 0" }}>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: m.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{m.team_blue_score}</span>
-                  <span style={{ fontSize: 14, color: "var(--text-muted)" }}>vs</span>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: !m.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{m.team_red_score}</span>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
+                
+                {m.isHidden ? (
+                  <div style={{ padding: "12px 0", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
+                    🔒 {m.reason || "Sin consentimiento de datos"}
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, margin: "12px 0" }}>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: m.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{m.team_blue_score}</span>
+                      <span style={{ fontSize: 14, color: "var(--text-muted)" }}>vs</span>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: !m.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{m.team_red_score}</span>
+                    </div>
+                  </>
+                )}
+                
+                <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                   <span>{formatDate(m.game_start)}</span>
-                  <span>{formatDuration(m.game_length_ms)}</span>
+                  {!m.isHidden && <span>{formatDuration(m.game_length_ms)}</span>}
                 </div>
-                {m.event_id && <span style={{ fontSize: 11, color: "#00D4AA", marginTop: 4, display: "block" }}>📅 Vinculado a evento</span>}
+                {m.event_id && !m.isHidden && <span style={{ fontSize: 11, color: "#00D4AA", marginTop: 4, display: "block" }}>📅 Vinculado a evento</span>}
               </div>
             ))}
             {matches.length === 0 && <p style={{ color: "var(--text-muted)" }}>No hay partidos sincronizados. Configura tu Riot API key y sincroniza.</p>}
