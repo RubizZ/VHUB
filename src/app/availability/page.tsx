@@ -19,6 +19,8 @@ export default function AvailabilityPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
   const [maps, setMaps] = useState<any[]>([]);
+  const [seasons, setSeasons] = useState<string[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
 
   const myPlayerId = (session?.user as any)?.playerId;
 
@@ -26,18 +28,27 @@ export default function AvailabilityPage() {
     setIsMounted(true);
     fetch("/api/players").then(r => r.json()).then(d => setPlayers(d.players || []));
     fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
-    loadEvents();
   }, []);
 
-  const loadEvents = async () => {
+  useEffect(() => {
+    loadEvents(selectedSeason);
+  }, [selectedSeason]);
+
+  const loadEvents = async (seasonId?: string | null) => {
     try {
       setError(null);
-      const res = await fetch("/api/events");
+      const url = (seasonId !== null && seasonId !== undefined) ? `/api/events?season=${encodeURIComponent(seasonId)}` : "/api/events";
+      const res = await fetch(url);
       if (res.status === 401) {
         window.location.href = "/login";
         return;
       }
       const d = await res.json();
+      
+      if (d.seasons) setSeasons(d.seasons);
+      if (d.activeSeasonId && seasonId === null && selectedSeason === null) {
+        setSelectedSeason(d.activeSeasonId);
+      }
       if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
       
       const loadedEvents: Ev[] = (d.events || []).map((ev: any) => {
@@ -195,10 +206,27 @@ export default function AvailabilityPage() {
       </div>
 
       <div className="page-content animate-in">
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-          {canManage && (
-            <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuevo Evento</button>
-          )}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 12 }}>
+            {canManage && (
+              <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuevo Evento</button>
+            )}
+          </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 14, color: "var(--text-muted)" }}>Temporada:</span>
+            <select
+              className="card"
+              style={{ padding: "6px 12px", background: "var(--card-bg)", color: "white", border: "1px solid var(--border-color)", borderRadius: 4 }}
+              value={selectedSeason || ""}
+              onChange={(e) => setSelectedSeason(e.target.value || "")}
+            >
+              <option value="">Todas las temporadas</option>
+              {seasons.map(s => (
+                <option key={s} value={s}>{s.substring(0, 8)}...</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {error && (
@@ -263,7 +291,7 @@ export default function AvailabilityPage() {
                       </div>
                       {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
                     </div>
-                    {canManage && <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>}
+                    {canManage && ev.type === "custom" && <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div className="progress-bar" style={{ flex: 1 }}>
@@ -271,7 +299,7 @@ export default function AvailabilityPage() {
                     </div>
                     <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/{players.length}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
                     {players.map(p => {
                       const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
                       return (

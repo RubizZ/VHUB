@@ -19,7 +19,7 @@ interface PlayerStat {
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [seasons, setSeasons] = useState<{id: string, name: string}[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string>("");
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [selected, setSelected] = useState<Match | null>(null);
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function MatchesPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = season ? `/api/matches?season=${encodeURIComponent(season)}` : "/api/matches";
+      const url = (season !== null && season !== undefined && season !== "") ? `/api/matches?season=${encodeURIComponent(season)}` : "/api/matches";
       const r = await fetch(url);
       const d = await r.json();
 
@@ -41,7 +41,7 @@ export default function MatchesPage() {
 
       setMatches(d.matches || []);
       if (d.seasons) setSeasons(d.seasons);
-      if (d.activeSeasonId && !season && !selectedSeason) {
+      if (d.activeSeasonId && season === null && selectedSeason === null) {
         setSelectedSeason(d.activeSeasonId);
       }
     } catch (err) {
@@ -109,7 +109,7 @@ export default function MatchesPage() {
       }
 
       setSuccess(`Sincronización completada: ${data.synced} partidos procesados.`);
-      await fetchMatches(selectedSeason);
+      await fetchMatches(selectedSeason || "");
     } catch (err) {
       console.error("[MatchesPage] syncMatches error:", err);
       setError(err instanceof Error ? err.message : "Error de conexión al servidor");
@@ -178,7 +178,7 @@ export default function MatchesPage() {
                 <select
                   className="card"
                   style={{ padding: "6px 12px", background: "var(--card-bg)", color: "white", border: "1px solid var(--border-color)", borderRadius: 4 }}
-                  value={selectedSeason}
+                  value={selectedSeason || ""}
                   onChange={(e) => setSelectedSeason(e.target.value)}
                 >
                   <option value="">Todas las temporadas</option>

@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) return null;
-        return { 
+        return {
           id: user.id,
           name: user.name,
           email: user.email,
@@ -72,11 +72,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user }) {
+      console.log(`[auth] JWT callback - Token ID: ${token?.id}, User ID: ${user?.id}`);
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.teamId = (user as any).teamId;
-        token.playerId = (user as any).playerId;
       }
       return token;
     },
@@ -87,13 +85,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // SACAMOS TODA LA INFO EN CALIENTE DE LA DB
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { 
-              id: true, 
-              name: true, 
-              email: true, 
-              role: true, 
-              playerId: true, 
-              teamId: true 
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              playerId: true,
+              teamId: true
             }
           });
 
@@ -112,9 +110,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } catch (error: any) {
           console.error("[auth] Session callback error:", error);
           if (error.message === "SessionInvalid") {
-             // Invalidate session cleanly without breaking NextAuth schemas
-             session.user.id = "";
-             return session;
+            // Invalidate session cleanly without breaking NextAuth schemas
+            session.user.id = "";
+            return session;
           }
           return session;
         }

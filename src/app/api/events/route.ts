@@ -361,6 +361,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
+  if (existingEvent.type !== "custom") {
+    return NextResponse.json({ error: "Solo puedes borrar eventos personalizados (tipo custom)" }, { status: 400 });
+  }
+
   await db.event.delete({
     where: { id: Number(id) }
   });
