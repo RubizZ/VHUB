@@ -26,11 +26,12 @@ services:
     image: node:22-alpine
     container_name: vhub-studio
     working_dir: /app
-    command: sh -c "npx prisma generate && npx prisma studio --browser none"
+    command: sh -c "npx prisma generate && npx prisma studio --browser none --port 5555"
     ports:
       - "5555:5555"
     environment:
       - DATABASE_URL=postgresql://vhub:vhub_dev@db:5432/vhub
+      - PRISMA_STUDIO_HOSTNAME=0.0.0.0
     volumes:
       - .:/app
       - node_modules:/app/node_modules
