@@ -31,15 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          playerId: user.playerId,
-          teamId: user.teamId
-        };
+        return { id: user.id };
       }
     }),
     {
@@ -60,7 +52,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: profile.acct.game_name,
           email: profile.email || `${profile.sub}@riot.com`,
           image: null,
-          role: "member",
         };
       },
     }
@@ -70,20 +61,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (session.user && token.id) {
-        // Esta comprobación se ejecuta en Node.js (API routes), no en el Middleware
-        const userExists = await prisma.user.findUnique({
+        // SACAMOS TODA LA INFO EN CALIENTE DE LA DB
+        const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true }
+          select: { 
+            id: true, 
+            name: true, 
+            email: true, 
+            role: true, 
+            playerId: true, 
+            teamId: true 
+          }
         });
 
-        if (!userExists) return null as any;
+        if (!dbUser) return null as any;
 
-        session.user.id = token.id as string;
-        (session.user as any).role = token.role as string;
-        (session.user as any).playerId = token.playerId as number | null;
-        (session.user as any).teamId = token.teamId as string | null;
+        session.user.id = dbUser.id;
+        session.user.name = dbUser.name;
+        session.user.email = dbUser.email;
+        (session.user as any).role = dbUser.role;
+        (session.user as any).playerId = dbUser.playerId;
+        (session.user as any).teamId = dbUser.teamId;
       }
       return session;
     },

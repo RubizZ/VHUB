@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { MAPS, getCompetitiveMaps, findMapById } from "@/lib/maps";
+
 
 interface Player { id: number; name: string; avatar_color: string; }
 interface Ev { id: number; title: string; type: string; date: string; time: string; description: string; map: string; }
@@ -15,10 +15,11 @@ export default function AvailabilityPage() {
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ title: "", type: "match", date: "", time: "21:00", description: "", map: "" });
 
-  const myPlayerId = (session?.user as any)?.playerId;
+  const [maps, setMaps] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/players").then(r => r.json()).then(d => setPlayers(d.players || []));
+    fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
     loadEvents();
   }, []);
 
@@ -108,7 +109,7 @@ export default function AvailabilityPage() {
                   </div>
                   <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
                     📅 {new Date(ev.date).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · ⏰ {ev.time}
-                    {ev.map && <> · 🗺️ {MAPS.find(m => m.id === ev.map)?.name || ev.map}</>}
+                    {ev.map && <> · 🗺️ {maps.find(m => m.id === ev.map)?.name || ev.map}</>}
                   </div>
                   {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
                 </div>
@@ -172,7 +173,7 @@ export default function AvailabilityPage() {
               <div className="form-group"><label>Título</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ej: Premier Semana 3" /></div>
               <div className="form-row">
                 <div className="form-group" style={{ flex: 1 }}><label>Tipo</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option value="match">Partido</option><option value="practice">Práctica</option></select></div>
-                <div className="form-group" style={{ flex: 1 }}><label>Mapa</label><select value={form.map} onChange={e => setForm({ ...form, map: e.target.value })}><option value="">Sin definir</option>{MAPS.filter(m => m.competitive).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                <div className="form-group" style={{ flex: 1 }}><label>Mapa</label><select value={form.map} onChange={e => setForm({ ...form, map: e.target.value })}><option value="">Sin definir</option>{maps.filter(m => m.tacticalDescription).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
               </div>
               <div className="form-row">
                 <div className="form-group" style={{ flex: 1 }}><label>Fecha</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>

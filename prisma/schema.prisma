@@ -105,9 +105,16 @@ model Player {
 }
 
 model Map {
-  id           String        @id // UUID from Riot
-  name         String
-  compositions Composition[]
+  id                  String        @id // UUID from Riot
+  name                String
+  displayIcon         String?
+  splash              String?
+  listViewIcon        String?
+  listViewIconTall    String?
+  premierBackground   String?
+  mapUrl              String?
+  tacticalDescription String?
+  compositions        Composition[]
 }
 
 model Composition {

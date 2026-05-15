@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 export default function OnboardingPage() {
   const [mode, setMode] = useState<"choice" | "create" | "join" | "pending">("choice");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { update } = useSession();
   const router = useRouter();
 
   // Form states
@@ -54,8 +55,14 @@ export default function OnboardingPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Need to reload the app to pick up the new session with the teamId
-        window.location.href = "/";
+        // Actualizamos la sesión en cliente antes de redirigir
+        // Esto refresca el JWT para que el Middleware vea que ya tenemos equipo
+        await update({ 
+          teamId: data.team.id,
+          role: "team_admin" // El creador suele ser admin
+        });
+        
+        router.push("/");
       } else {
         setError(data.error || "Error al crear el equipo");
       }

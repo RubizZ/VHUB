@@ -27,19 +27,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   
   console.log("ROOT_LAYOUT: Session ID:", session?.user?.id);
 
-  // Si hay sesión, verificar que el usuario siga existiendo en la DB
+  // Si hay sesión, verificar que el usuario siga existiendo y tenga equipo
   if (session?.user?.id) {
-    const userExists = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true }
-    });
+    const hasTeam = !!(session.user as any).teamId;
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    // Intentar obtener la ruta actual de varios headers posibles
+    const pathname = h.get("x-url") || h.get("x-invoke-path") || ""; 
 
-    console.log("ROOT_LAYOUT: User exists in DB?", !!userExists);
+    const isPublicPage = pathname === "/login" || 
+                         pathname === "/register" || 
+                         pathname === "/onboarding";
 
-    if (!userExists) {
-      console.log("ROOT_LAYOUT: User NOT found. Redirecting to logout...");
-      // Si el usuario no existe (DB reset), forzamos logout
-      redirect("/api/auth/signout?callbackUrl=/login");
+    if (!hasTeam && !isPublicPage) {
+      redirect("/onboarding");
+    }
+
+    if (hasTeam && pathname === "/onboarding") {
+      redirect("/");
     }
   }
 

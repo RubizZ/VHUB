@@ -24,14 +24,6 @@ export const authConfig = {
 
       // User is logged in
       if (isLoginPage || isRegisterPage) {
-        return Response.redirect(new URL(hasTeam ? "/" : "/onboarding", nextUrl));
-      }
-
-      if (!hasTeam && !isOnboardingPage) {
-        return Response.redirect(new URL("/onboarding", nextUrl));
-      }
-
-      if (hasTeam && isOnboardingPage) {
         return Response.redirect(new URL("/", nextUrl));
       }
 
@@ -40,18 +32,12 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.playerId = (user as any).playerId;
-        token.teamId = (user as any).teamId;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token) {
         session.user.id = token.id as string;
-        (session.user as any).role = token.role as string;
-        (session.user as any).playerId = token.playerId as number | null;
-        (session.user as any).teamId = token.teamId as string | null;
       }
       return session;
     },
