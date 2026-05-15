@@ -90,15 +90,15 @@ export default function Dashboard() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {upcomingEvents.map(e => (
-                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.02)", borderLeft: `3px solid ${e.type === "match" ? "var(--val-red)" : "var(--val-cyan)"}` }}>
+                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.02)", borderLeft: `3px solid ${e.type === "match" ? "var(--val-red)" : e.type === "playoffs" ? "var(--val-gold)" : "var(--val-cyan)"}` }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{e.title}</div>
                       <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                         {new Date(e.date).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })} · {e.time}
                       </div>
                     </div>
-                    <span className={`tag ${e.type === "match" ? "tag-red" : "tag-green"}`} style={{ marginLeft: "auto" }}>
-                      {e.type === "match" ? "Partido" : "Práctica"}
+                    <span className={`tag ${e.type === "match" ? "tag-red" : e.type === "playoffs" ? "tag-gold" : "tag-green"}`} style={{ marginLeft: "auto" }}>
+                      {e.type === "match" ? "Partido" : e.type === "playoffs" ? "Playoffs" : "Práctica"}
                     </span>
                   </div>
                 ))}

@@ -8,6 +8,7 @@
   --val-purple: #A855F7;
   --val-blue: #3B82F6;
   --val-yellow: #F59E0B;
+  --val-gold: #D4AF37;
   --val-orange: #FF6B35;
   --bg-primary: #0A0A0F;
   --bg-secondary: #12121A;
@@ -584,6 +585,7 @@ select option { background: var(--bg-secondary); }
 .tag-purple { background: rgba(168, 85, 247, 0.15); color: var(--val-purple); }
 .tag-blue { background: rgba(59, 130, 246, 0.15); color: var(--val-blue); }
 .tag-yellow { background: rgba(245, 158, 11, 0.15); color: var(--val-yellow); }
+.tag-gold { background: rgba(212, 175, 55, 0.15); color: var(--val-gold); border: 1px solid rgba(212, 175, 55, 0.3); }
 
 /* ── Win/Loss indicators ── */
 .form-indicator {
@@ -978,6 +980,24 @@ select option { background: var(--bg-secondary); }
 .calendar-event-item:hover {
   filter: brightness(1.2);
   transform: translateX(2px);
+}
+
+.calendar-event-match {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--val-red);
+  border-left: 2px solid var(--val-red);
+}
+
+.calendar-event-practice {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--val-cyan);
+  border-left: 2px solid var(--val-cyan);
+}
+
+.calendar-event-playoffs {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--val-gold);
+  border-left: 2px solid var(--val-gold);
 }
 
 /* ── Toggle Switch ── */

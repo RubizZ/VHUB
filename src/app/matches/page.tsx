@@ -18,6 +18,8 @@ interface PlayerStat {
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [seasons, setSeasons] = useState<{id: string, name: string}[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [selected, setSelected] = useState<Match | null>(null);
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,9 +27,34 @@ export default function MatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const fetchMatches = async (season?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = season ? `/api/matches?season=${encodeURIComponent(season)}` : "/api/matches";
+      const r = await fetch(url);
+      const d = await r.json();
+
+      if (!r.ok) {
+        throw new Error(d.error || "Error al cargar los partidos");
+      }
+
+      setMatches(d.matches || []);
+      if (d.seasons) setSeasons(d.seasons);
+      if (d.activeSeasonId && !season && !selectedSeason) {
+        setSelectedSeason(d.activeSeasonId);
+      }
+    } catch (err) {
+      console.error("[MatchesPage] fetchMatches error:", err);
+      setError(err instanceof Error ? err.message : "Error al cargar los partidos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/matches").then(r => r.json()).then(d => setMatches(d.matches || []));
-  }, []);
+    fetchMatches(selectedSeason);
+  }, [selectedSeason]);
 
   const loadMatch = async (m: Match) => {
     if (m.isHidden) return;
@@ -51,37 +78,43 @@ export default function MatchesPage() {
       // Get first player with puuid
       const pRes = await fetch("/api/players");
       const pData = await pRes.json();
-      const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
-      
-      if (!playerWithPuuid) { 
-        setError("Ningún jugador tiene un PUUID configurado. Ve a Ajustes y añade el Riot ID de un jugador."); 
-        return; 
+
+      if (!pRes.ok) {
+        throw new Error(pData.error || "Error al cargar jugadores");
       }
-      
-      const res = await fetch("/api/matches", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" }) 
+
+      const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
+
+      if (!playerWithPuuid) {
+        setError("Ningún jugador tiene un PUUID configurado. Ve a Ajustes y añade el Riot ID de un jugador.");
+        setSyncing(false);
+        return;
+      }
+
+      const res = await fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" })
       });
-      
+
       const data = await res.json();
-      if (data.error) {
-        if (data.error.includes("consentimiento")) {
+      if (!res.ok) {
+        const errMsg = typeof data.error === 'string' ? data.error : "Error en la sincronización";
+        if (errMsg.toLowerCase().includes("consentimiento")) {
           setError("No has dado tu consentimiento para procesar tus datos. Ve a tu Perfil para activarlo.");
         } else {
-          setError(data.error);
+          setError(errMsg);
         }
         return;
       }
-      
-      setSuccess(`Sincronizados ${data.synced} partidos nuevos.`);
-      const mRes = await fetch("/api/matches");
-      const mData = await mRes.json();
-      setMatches(mData.matches || []);
+
+      setSuccess(`Sincronización completada: ${data.synced} partidos procesados.`);
+      await fetchMatches(selectedSeason);
     } catch (err) {
-      setError("Error de conexión al servidor");
-    } finally { 
-      setSyncing(false); 
+      console.error("[MatchesPage] syncMatches error:", err);
+      setError(err instanceof Error ? err.message : "Error de conexión al servidor");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -116,7 +149,10 @@ export default function MatchesPage() {
 
   return (
     <>
-      <div className="page-header"><h2>🎮 Partidos</h2><p>Historial de partidos de Valorant</p></div>
+      <div className="page-header">
+        <h2>🏆 Partidos de Premier</h2>
+        <p>Historial competitivo y estadísticas de temporada</p>
+      </div>
       <div className="page-content animate-in">
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
           {error && (
@@ -129,25 +165,48 @@ export default function MatchesPage() {
               ✅ {success}
             </div>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>{syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar desde Riot"}</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>
+                {syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar Premier"}
+              </button>
+            </div>
+
+            {seasons.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14, color: "var(--text-muted)" }}>Temporada:</span>
+                <select
+                  className="card"
+                  style={{ padding: "6px 12px", background: "var(--card-bg)", color: "white", border: "1px solid var(--border-color)", borderRadius: 4 }}
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  <option value="">Todas las temporadas</option>
+                  {seasons.map(s => (
+                    <option key={s.id} value={s.id}>{s.name || s.id}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
-        {!selected ? (
+        {loading && !syncing ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>Cargando partidos...</div>
+        ) : !selected ? (
           <div className="grid grid-auto">
             {matches.map(m => (
-              <div 
-                key={m.id} 
-                className="card" 
-                style={{ cursor: m.isHidden ? "default" : "pointer", opacity: m.isHidden ? 0.7 : 1 }} 
+              <div
+                key={m.id}
+                className="card"
+                style={{ cursor: m.isHidden ? "default" : "pointer", opacity: m.isHidden ? 0.7 : 1 }}
                 onClick={() => loadMatch(m)}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 700 }}>{m.isHidden ? "Partido Privado" : m.map_name}</h3>
-                  <span className={`tag ${m.queue_id === "premier" ? "tag-gold" : "tag-blue"}`}>{m.queue_id || "custom"}</span>
+                  <span className={`tag ${m.queue_id?.toLowerCase() === "premier" ? "tag-gold" : "tag-blue"}`}>{m.queue_id || "premier"}</span>
                 </div>
-                
+
                 {m.isHidden ? (
                   <div style={{ padding: "12px 0", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
                     🔒 {m.reason || "Sin consentimiento de datos"}
@@ -161,7 +220,7 @@ export default function MatchesPage() {
                     </div>
                   </>
                 )}
-                
+
                 <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                   <span>{formatDate(m.game_start)}</span>
                   {!m.isHidden && <span>{formatDuration(m.game_length_ms)}</span>}

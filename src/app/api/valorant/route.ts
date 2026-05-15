@@ -1,67 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRiotClient } from "@/lib/riot/client";
+import { getAccount, getMatches, getMMR } from "@/lib/henrik-api";
+import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action") || "status";
-  const client = getRiotClient();
-
-  if (!client) {
-    return NextResponse.json({ error: "Riot API key not configured. Set RIOT_API_KEY in .env.local", configured: false }, { status: 503 });
-  }
 
   try {
     switch (action) {
       case "status": {
-        const status = await client.getPlatformStatus();
-        return NextResponse.json({ status, configured: true });
-      }
-      case "content": {
-        const locale = searchParams.get("locale") || undefined;
-        const content = await client.getContent(locale);
-        return NextResponse.json({ content, configured: true });
-      }
-      case "account": {
-        const name = searchParams.get("name");
-        const tag = searchParams.get("tag");
-        if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
-        const account = await client.getAccount(name, tag);
-        return NextResponse.json({ account, configured: true });
-      }
-      case "matchlist": {
-        const puuid = searchParams.get("puuid");
-        if (!puuid) return NextResponse.json({ error: "puuid required" }, { status: 400 });
-        const matchlist = await client.getMatchlist(puuid);
-        return NextResponse.json({ matchlist, configured: true });
-      }
-      case "match": {
-        const matchId = searchParams.get("matchId");
-        if (!matchId) return NextResponse.json({ error: "matchId required" }, { status: 400 });
-        const match = await client.getMatch(matchId);
-        return NextResponse.json({ match, configured: true });
+        // Podríamos usar la de Henrik o la de Riot, pero Henrik es más estable para nosotros
+        return NextResponse.json({ status: "available", configured: true });
       }
       case "stats": {
         const name = searchParams.get("name");
         const tag = searchParams.get("tag");
+        const region = searchParams.get("region") || "eu";
+        
         if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
 
-        // 1. Obtener Cuenta (PUUID)
-        const account = await client.getAccount(name, tag);
+        // 1. Obtener Historial (V3 devuelve el objeto completo de cada partida)
+        const matches = await getMatches(region, name, tag, undefined, 10);
+        if (!matches) return NextResponse.json({ error: "No se pudieron obtener las partidas" }, { status: 502 });
 
-        // 2. Obtener Historial (Matchlist)
-        const matchlist = await client.getMatchlist(account.puuid);
+        // 2. Obtener MMR (Rango)
+        const mmrData = await getMMR(region, name, tag);
+        const mmr = mmrData ? {
+          currenttierpatched: mmrData.current_data.currenttierpatched,
+          ranking_in_tier: mmrData.current_data.ranking_in_tier,
+          mmr_change_to_last_game: mmrData.current_data.mmr_change_to_last_game,
+          elo: mmrData.current_data.elo
+        } : null;
 
-        // 3. Obtener detalles de las últimas 5 partidas
-        const matchPromises = matchlist.history.slice(0, 5).map(m => client.getMatch(m.matchId));
-        const matches = await Promise.all(matchPromises);
-
-        // 4. Analizar estadísticas (Usamos el analizador que ya tenemos)
-        const { analyzePlayerStats } = await import("@/lib/stats-analyzer");
-        const stats = analyzePlayerStats(matches, account.gameName, account.tagLine);
+        // 3. Analizar estadísticas
+        const stats = analyzeHenrikPlayerStats(matches, name, tag);
 
         return NextResponse.json({
           stats,
-          mmr: null, // El MMR requiere un endpoint diferente de Riot (V3) que no está en este wrapper básico
+          mmr,
           matches,
           mock: false,
           configured: true

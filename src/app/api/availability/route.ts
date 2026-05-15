@@ -12,9 +12,12 @@ export async function GET(req: NextRequest) {
 
   if (!event_id) return NextResponse.json({ error: "event_id required" }, { status: 400 });
 
-  // Validar que el evento pertenece al equipo
   const event = await db.event.findUnique({ where: { id: Number(event_id) } });
-  if (!event || event.teamId !== teamId) {
+  const userRole = (session?.user as any)?.role;
+  const isSuperAdmin = userRole === "super_admin";
+
+  if (!event || (event.teamId !== teamId && !isSuperAdmin)) {
+    console.log(`[API AVAILABILITY] GET 403 - TeamMismatch. SessionTeam: ${teamId}, EventTeam: ${event?.teamId}, Role: ${userRole}`);
     return NextResponse.json({ error: "Event not found or not authorized" }, { status: 403 });
   }
 
@@ -24,6 +27,8 @@ export async function GET(req: NextRequest) {
       player: {
         select: {
           name: true,
+          riot_name: true,
+          riot_tag: true,
           avatar_color: true,
           role: true
         }
@@ -39,7 +44,10 @@ export async function POST(req: NextRequest) {
   const teamId = session?.user?.teamId;
   const role = session?.user?.role;
   
-  if (!session?.user || !teamId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user || !teamId) {
+    console.warn(`[API AVAILABILITY] POST 401 - Unauthorized. Session: ${!!session}, TeamId: ${teamId}`);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
   const { event_id, player_id, status, note } = body;
@@ -64,6 +72,7 @@ export async function POST(req: NextRequest) {
       data: { teamId: teamId }
     });
   } else if (player.teamId !== teamId) {
+    console.warn(`[API AVAILABILITY] POST 403 - PlayerTeamMismatch. Player: ${player.id}, PlayerTeam: ${player.teamId}, SessionTeam: ${teamId}`);
     return NextResponse.json({ error: "El jugador no pertenece a tu equipo" }, { status: 403 });
   }
 
@@ -72,7 +81,8 @@ export async function POST(req: NextRequest) {
     where: { id: Number(event_id) }
   });
 
-  if (!event || event.teamId !== teamId) {
+  if (!event || (event.teamId !== teamId && role !== "super_admin")) {
+    console.warn(`[API AVAILABILITY] POST 403 - EventTeamMismatch. Event: ${event?.id}, EventTeam: ${event?.teamId}, SessionTeam: ${teamId}, Role: ${role}`);
     return NextResponse.json({ error: "El evento no pertenece a tu equipo" }, { status: 403 });
   }
 
@@ -81,6 +91,7 @@ export async function POST(req: NextRequest) {
   const isPrivileged = role === "team_admin" || role === "super_admin";
   
   if (!isPrivileged && Number(player_id) !== Number(userPlayerId)) {
+    console.log(`[API AVAILABILITY] POST 403 - No Privilegiado y ID Mismatch. Solicitado: ${player_id}, Sesion: ${userPlayerId}`);
     return NextResponse.json({ error: "No puedes marcar disponibilidad para otro jugador" }, { status: 403 });
   }
 

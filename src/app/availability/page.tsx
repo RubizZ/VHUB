@@ -51,22 +51,16 @@ export default function AvailabilityPage() {
       });
       
       setEvents(loadedEvents);
-
+      
       const availMap: Record<number, Avail[]> = {};
-
-      for (const ev of loadedEvents) {
-        try {
-          const r2 = await fetch(`/api/availability?event_id=${ev.id}`);
-          if (r2.ok) {
-            const d2 = await r2.json();
-            availMap[ev.id] = d2.availability || [];
-          } else {
-            availMap[ev.id] = [];
-          }
-        } catch (err) {
-          availMap[ev.id] = [];
-        }
-      }
+      loadedEvents.forEach((ev: any) => {
+        availMap[ev.id] = (ev.availability || []).map((a: any) => ({
+          player_id: a.player_id,
+          player_name: a.player?.name || "Desconocido",
+          status: a.status,
+          avatar_color: a.player?.avatar_color || "#999"
+        }));
+      });
       setAvail(availMap);
     } catch (err: any) {
       console.error("Error cargando eventos:", err);
@@ -102,9 +96,28 @@ export default function AvailabilityPage() {
   };
 
   const setAvailability = async (eventId: number, status: string) => {
-    if (!myPlayerId) return;
-    await fetch("/api/availability", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_id: eventId, player_id: myPlayerId, status }) });
-    loadEvents();
+    if (!myPlayerId) {
+      alert("No estás vinculado a ningún jugador. Contacta con tu administrador.");
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/availability", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ event_id: eventId, player_id: myPlayerId, status }) 
+      });
+      
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Error al actualizar disponibilidad");
+      }
+      
+      loadEvents();
+    } catch (err: any) {
+      console.error("Error al marcar disponibilidad:", err);
+      alert(err.message);
+    }
   };
 
   const deleteEvent = async (id: number) => {
@@ -215,7 +228,7 @@ export default function AvailabilityPage() {
                       {d.events.map((ev: any) => (
                         <div 
                           key={ev.id} 
-                          className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : "calendar-event-practice"}`}
+                          className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"}`}
                           title={`${ev.localTime} - ${ev.title}`}
                           onClick={() => setViewMode("list")} // Saltar a la lista para ver detalles
                         >
@@ -235,14 +248,14 @@ export default function AvailabilityPage() {
             {upcoming.map(ev => {
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
-              const myStatus = ea.find(a => a.player_id === myPlayerId)?.status || "pending";
+              const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
               return (
                 <div key={ev.id} className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <h3 style={{ fontSize: 16, fontWeight: 600 }}>{ev.title}</h3>
-                        <span className={`tag ${ev.type === "match" ? "tag-red" : "tag-green"}`}>{ev.type === "match" ? "Partido" : "Práctica"}</span>
+                        <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>{ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}</span>
                       </div>
                       <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
                         📅 {new Date(`${ev.date}T${ev.time}:00Z`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · ⏰ {ev.localTime}

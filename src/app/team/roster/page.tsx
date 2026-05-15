@@ -155,8 +155,8 @@ export default function TeamRosterPage() {
                     {p.name[0]}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.riot_name}#{p.riot_tag}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.riot_name ? `${p.riot_name}#${p.riot_tag}` : p.name}</div>
+                    {p.riot_name && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.name}</div>}
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => { 

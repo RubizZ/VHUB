@@ -72,9 +72,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user }) {
-      console.log(`[auth] JWT callback - Token ID: ${token?.id}, User ID: ${user?.id}`);
       if (user) {
         token.id = user.id;
+        token.role = (user as any).role;
+        token.teamId = (user as any).teamId;
+        token.playerId = (user as any).playerId;
       }
       return token;
     },
@@ -100,7 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             throw new Error("SessionInvalid");
           }
 
-          console.log(`[auth] User found: ${dbUser.email}, Team: ${dbUser.teamId}`);
+          console.log(`[auth] User found: ${dbUser.email}, Team: ${dbUser.teamId}, Role: ${dbUser.role}`);
           session.user.id = dbUser.id;
           session.user.name = dbUser.name;
           session.user.email = dbUser.email || "";

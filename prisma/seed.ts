@@ -15,15 +15,16 @@ async function main() {
     await prisma.availability.deleteMany();
     await prisma.strategy.deleteMany();
     await prisma.composition.deleteMany();
-    await prisma.message.deleteMany();
     await prisma.matchPlayerStats.deleteMany();
-    await prisma.match.deleteMany();
     await prisma.event.deleteMany();
+    await prisma.match.deleteMany();
+    await prisma.season.deleteMany();
     await prisma.teamJoinRequest.deleteMany();
     await prisma.user.deleteMany();
     await prisma.player.deleteMany();
     await prisma.team.deleteMany();
-    // No borramos 'Map' porque viene de la API de Valorant y es lento/estático
+    await prisma.map.deleteMany();
+    console.log('✅ All data cleared.');
   } else {
     console.log('🛡️ Production mode detected: skipping database cleanup.');
   }

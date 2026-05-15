@@ -11,7 +11,13 @@ export const metadata: Metadata = {
   title: "V-HUB — Valorant Premier Platform",
   description: "Plataforma de gestión para equipos de Valorant Premier: estrategias, disponibilidad, chat y estadísticas en tiempo real",
   manifest: "/manifest.json",
-  icons: { icon: "/icon-192.png", apple: "/icon-512.png" },
+  icons: { 
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icon-512.png" 
+  },
 };
 
 export const dynamic = "force-dynamic";
