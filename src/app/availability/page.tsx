@@ -352,7 +352,7 @@ export default function AvailabilityPage() {
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
               const unavailable = ea.filter(a => a.status === "unavailable").length;
-              const isImpossible = isMounted && !isPast && players.length > 0 && (players.length - unavailable < 5);
+              const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
               const isConfirmed = confirmed >= 5;
 
               // Un evento es "válido para ser el próximo" si no es pasado, ni cancelado, ni imposible por falta de gente
@@ -361,7 +361,7 @@ export default function AvailabilityPage() {
                 const prevEA = avail[prev.id] || [];
                 const prevUnavail = prevEA.filter(a => a.status === "unavailable").length;
                 const prevIsPast = isMounted && (prev as any).localDate < todayStr;
-                const prevIsImpossible = isMounted && !prevIsPast && players.length > 0 && (players.length - prevUnavail < 5);
+                const prevIsImpossible = isMounted && !prevIsPast && players.length >= 5 && (players.length - prevUnavail < 5);
                 return prevIsPast || prev.status === 'cancelled' || prevIsImpossible;
               }));
               
