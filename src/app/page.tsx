@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
@@ -132,18 +133,43 @@ export default function Dashboard() {
 function PremierStats() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/team/premier")
       .then(r => r.json())
       .then(d => {
-        if (!d.error) setData(d);
+        if (d.error) {
+          setError(d.error);
+        } else {
+          setData(d);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error("Error fetching premier stats:", err);
+        setError("Error de conexión con el servidor");
+        setLoading(false);
+      });
   }, []);
 
   if (loading) return <div className="card mb-6 animate-pulse" style={{ height: 140, marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Cargando datos de Premier...</div>;
+  
+  if (error) {
+    return (
+      <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--val-yellow)", background: "rgba(245, 158, 11, 0.05)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "var(--val-yellow)" }}>Estado de Premier</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>{error}</div>
+          </div>
+          <a href="/team/settings" className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }}>Configurar</a>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) return null;
 
   const { details, leaderboard, config } = data;
@@ -159,7 +185,7 @@ function PremierStats() {
             <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-red)", marginTop: 4 }}>{details?.placement?.points || 0}</div>
           </div>
           <div style={{ background: "rgba(255,255,255,0.05)", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-            DIV {details?.placement?.division || config.division}
+            {PREMIER_DIVISIONS.find(d => d.id === (details?.placement?.division || config.division))?.name || `DIV ${details?.placement?.division || config.division}`}
           </div>
         </div>
         <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-secondary)" }}>

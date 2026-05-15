@@ -15,9 +15,9 @@ model Team {
   created_at          DateTime          @default(now())
   updated_at          DateTime          @updatedAt
   conference          String
-  tag                 String?
-  division            Int?
   matchHistoryConsent Boolean           @default(false)
+  division            Int?
+  tag                 String?
   compositions        Composition[]
   events              Event[]
   matches             Match[]

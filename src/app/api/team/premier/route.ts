@@ -17,11 +17,14 @@ export async function GET() {
     });
 
     if (!team || !team.name || !team.tag) {
+      console.log("[API Premier] Team config missing for ID:", teamId, { name: team?.name, tag: team?.tag });
       return NextResponse.json({ 
         error: "Configura el nombre y el tag de Premier en los ajustes de equipo",
         config_required: true 
       });
     }
+
+    console.log("[API Premier] Fetching for:", team.name, team.tag);
 
     // Fetch data from Henrik API in parallel
     const [premierDetails, history, leaderboard] = await Promise.all([
@@ -29,6 +32,16 @@ export async function GET() {
       getPremierHistory(team.name, team.tag),
       team.division ? getPremierLeaderboard('eu', team.conference, team.division) : Promise.resolve([])
     ]);
+
+    if (!premierDetails) {
+      console.log("[API Premier] Team not found in Henrik API:", team.name, team.tag);
+      return NextResponse.json({ 
+        error: `No se encontró el equipo "${team.name}#${team.tag}" en la API de Premier.`,
+        config_required: true 
+      });
+    }
+
+    console.log("[API Premier] Success for:", team.name);
 
     return NextResponse.json({
       details: premierDetails,

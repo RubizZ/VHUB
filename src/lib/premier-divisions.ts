@@ -1,0 +1,23 @@
+export const PREMIER_DIVISIONS = [
+  { id: 1, name: "Open 1" },
+  { id: 2, name: "Open 2" },
+  { id: 3, name: "Open 3" },
+  { id: 4, name: "Open 4" },
+  { id: 5, name: "Open 5" },
+  { id: 6, name: "Intermediate 1" },
+  { id: 7, name: "Intermediate 2" },
+  { id: 8, name: "Intermediate 3" },
+  { id: 9, name: "Intermediate 4" },
+  { id: 10, name: "Intermediate 5" },
+  { id: 11, name: "Advanced 1" },
+  { id: 12, name: "Advanced 2" },
+  { id: 13, name: "Advanced 3" },
+  { id: 14, name: "Advanced 4" },
+  { id: 15, name: "Advanced 5" },
+  { id: 16, name: "Elite 1" },
+  { id: 17, name: "Elite 2" },
+  { id: 18, name: "Elite 3" },
+  { id: 19, name: "Elite 4" },
+  { id: 20, name: "Elite 5" },
+  { id: 21, name: "Contender" }
+];

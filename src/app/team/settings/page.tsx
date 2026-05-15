@@ -1,6 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
@@ -106,15 +107,18 @@ export default function TeamSettingsPage() {
                     />
                   </div>
                   <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
-                    <label>División (Número)</label>
-                    <input 
-                      type="number"
+                    <label>División</label>
+                    <select 
                       className="input-field" 
                       style={{ width: "100%" }} 
-                      placeholder="Ej: 15"
                       value={team.division || ""} 
-                      onChange={e => setTeam({ ...team, division: e.target.value })} 
-                    />
+                      onChange={e => setTeam({ ...team, division: e.target.value ? Number(e.target.value) : "" })}
+                    >
+                      <option value="">Selecciona tu división...</option>
+                      {PREMIER_DIVISIONS.map(div => (
+                        <option key={div.id} value={div.id}>{div.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
