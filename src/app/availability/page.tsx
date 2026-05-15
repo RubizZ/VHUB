@@ -64,7 +64,7 @@ export default function AvailabilityPage() {
   }, [selectedSeason]);
 
   useEffect(() => {
-    if (viewMode === "list" && isMounted && events.length > 0) {
+    if (viewMode === "list" && isMounted && events.length > 0 && players.length > 0) {
       // Prioridad 1: scroll a evento específico (clic desde calendario)
       if (scrollToEventId !== null) {
         setTimeout(() => {
@@ -86,7 +86,7 @@ export default function AvailabilityPage() {
         }, 300);
       }
     }
-  }, [viewMode, isMounted, events, hasInitialScrolled, scrollToEventId]);
+  }, [viewMode, isMounted, events, hasInitialScrolled, scrollToEventId, players, avail]);
 
   const loadEvents = async (seasonId?: string | null) => {
     try {
@@ -346,22 +346,22 @@ export default function AvailabilityPage() {
           <div className="events-list-container">
             {events.length === 0 && <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No hay eventos.</p>}
             {events.map((ev, idx) => {
-              const isPast = (ev as any).localDate < todayStr;
+              const isPast = isMounted && (ev as any).localDate < todayStr;
               const isCancelled = ev.status === 'cancelled';
               
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
               const unavailable = ea.filter(a => a.status === "unavailable").length;
-              const isImpossible = !isPast && (players.length - unavailable < 5);
+              const isImpossible = isMounted && !isPast && players.length > 0 && (players.length - unavailable < 5);
               const isConfirmed = confirmed >= 5;
 
               // Un evento es "válido para ser el próximo" si no es pasado, ni cancelado, ni imposible por falta de gente
-              const isViableUpcoming = !isPast && !isCancelled && !isImpossible;
+              const isViableUpcoming = isMounted && !isPast && !isCancelled && !isImpossible;
               const isFirstUpcoming = isViableUpcoming && (idx === 0 || events.slice(0, idx).every(prev => {
                 const prevEA = avail[prev.id] || [];
                 const prevUnavail = prevEA.filter(a => a.status === "unavailable").length;
-                const prevIsPast = (prev as any).localDate < todayStr;
-                const prevIsImpossible = !prevIsPast && (players.length - prevUnavail < 5);
+                const prevIsPast = isMounted && (prev as any).localDate < todayStr;
+                const prevIsImpossible = isMounted && !prevIsPast && players.length > 0 && (players.length - prevUnavail < 5);
                 return prevIsPast || prev.status === 'cancelled' || prevIsImpossible;
               }));
               
