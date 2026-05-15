@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
 
 export default function Dashboard() {
+  const { data: session } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [msgCount, setMsgCount] = useState(0);
@@ -28,14 +30,14 @@ export default function Dashboard() {
   return (
     <>
       <div className="page-header">
-        <h2>Dashboard</h2>
-        <p>Panel de control del equipo 7R</p>
+        <h1>Dashboard</h1>
+        <p style={{ color: "var(--text-secondary)" }}>Resumen de actividad y estado de la plantilla</p>
       </div>
       <div className="page-content animate-in">
         <div className="grid grid-4" style={{ marginBottom: 24 }}>
           <div className="card">
             <div className="stat-value">{players.length}</div>
-            <div className="stat-label">Jugadores</div>
+            <div className="stat-label">Integrantes</div>
           </div>
           <div className="card">
             <div className="stat-value">{stratCount}</div>
@@ -43,7 +45,7 @@ export default function Dashboard() {
           </div>
           <div className="card">
             <div className="stat-value">{upcomingEvents.length}</div>
-            <div className="stat-label">Próximos eventos</div>
+            <div className="stat-label">Próximos Eventos</div>
           </div>
           <div className="card">
             <div className="stat-value">{msgCount}</div>
@@ -54,41 +56,44 @@ export default function Dashboard() {
         <div className="grid grid-2">
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">👥 Equipo</h3>
-              <a href="/settings" className="btn btn-ghost btn-sm">Gestionar</a>
+              <h3 className="card-title">👥 Plantilla</h3>
+              <a href="/team/roster" className="btn btn-ghost btn-sm">Ver todos</a>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {players.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 8, background: "var(--bg-glass)" }}>
-                  <div className="chat-avatar" style={{ background: p.avatar_color, color: "#fff", width: 32, height: 32, fontSize: 12 }}>
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)" }}>
+                  <div style={{ background: p.avatar_color, color: "#fff", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
                     {p.name.charAt(0)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    {p.riot_name && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.riot_name}#{p.riot_tag}</div>}
+                    {p.riot_name && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.riot_name}#{p.riot_tag}</div>}
                   </div>
-                  <span className="tag" style={{ background: `${roleColors[p.role]}22`, color: roleColors[p.role] }}>
+                  <span className="tag" style={{ background: `${roleColors[p.role]}22`, color: roleColors[p.role], border: `1px solid ${roleColors[p.role]}44` }}>
                     {roleLabels[p.role] || 'FLX'}
                   </span>
                 </div>
               ))}
+              {players.length === 0 && <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: 20 }}>No hay jugadores registrados.</p>}
             </div>
           </div>
 
           <div className="card">
             <div className="card-header">
               <h3 className="card-title">📅 Próximos Eventos</h3>
-              <a href="/availability" className="btn btn-ghost btn-sm">Ver todos</a>
+              <a href="/availability" className="btn btn-ghost btn-sm">Agenda</a>
             </div>
             {upcomingEvents.length === 0 ? (
-              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No hay eventos próximos. Crea uno desde Disponibilidad.</p>
+              <div style={{ textAlign: "center", padding: 40 }}>
+                 <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No hay eventos próximos.</p>
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {upcomingEvents.map(e => (
-                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, background: "var(--bg-glass)", borderLeft: `3px solid ${e.type === "match" ? "var(--val-red)" : "var(--val-cyan)"}` }}>
+                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.02)", borderLeft: `3px solid ${e.type === "match" ? "var(--val-red)" : "var(--val-cyan)"}` }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{e.title}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                         {new Date(e.date).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })} · {e.time}
                       </div>
                     </div>
@@ -104,7 +109,7 @@ export default function Dashboard() {
 
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header">
-            <h3 className="card-title">🚀 Acceso Rápido</h3>
+            <h3 className="card-title">🚀 Acciones de Equipo</h3>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href="/strategies" className="btn btn-primary">🗺️ Nueva Estrategia</a>

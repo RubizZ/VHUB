@@ -1,7 +1,7 @@
 {
-  "name": "7R Premier Hub",
-  "short_name": "7R",
-  "description": "Gestión de equipo Valorant Premier",
+  "name": "V-HUB — Valorant Premier Platform",
+  "short_name": "V-HUB",
+  "description": "Gestión de equipos Valorant Premier",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0F",

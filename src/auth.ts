@@ -38,16 +38,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           teamId: user.teamId
         };
       }
-    })
+    }),
+    {
+      id: "riot-games",
+      name: "Riot Games",
+      type: "oidc",
+      issuer: "https://auth.riotgames.com",
+      clientId: process.env.AUTH_RIOT_ID,
+      clientSecret: process.env.AUTH_RIOT_SECRET,
+      authorization: {
+        params: {
+          scope: "openid offline_access",
+        },
+      },
+      profile(profile: any) {
+        return {
+          id: profile.sub,
+          name: profile.acct.game_name,
+          email: profile.email || `${profile.sub}@riot.com`,
+          image: null,
+          role: "member", // Rol por defecto para nuevos usuarios de Riot
+        };
+      },
+    }
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id as string;
         token.role = user.role;
         token.playerId = user.playerId;
         token.teamId = user.teamId;
       }
+      
+      // Si el usuario se acaba de vincular con Riot
+      if (account?.provider === "riot-games" && profile) {
+        // Aquí podríamos actualizar el PUUID del jugador automáticamente
+        token.riotId = profile.sub;
+      }
+      
       return token;
     },
     async session({ session, token }) {

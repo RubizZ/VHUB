@@ -4,8 +4,8 @@ import { Providers } from "@/components/Providers";
 import { ClientLayout } from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
-  title: "7R — Premier Hub",
-  description: "Gestión de equipo Valorant Premier: estrategias, disponibilidad, chat y estadísticas",
+  title: "V-HUB — Valorant Premier Platform",
+  description: "Plataforma de gestión para equipos de Valorant Premier: estrategias, disponibilidad, chat y estadísticas en tiempo real",
   manifest: "/manifest.json",
   icons: { icon: "/icon-192.png", apple: "/icon-512.png" },
 };

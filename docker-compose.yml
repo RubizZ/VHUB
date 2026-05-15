@@ -3,48 +3,37 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dev
     container_name: 7r-app
-    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm i && npx prisma generate && npm run dev"
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+    environment:
+      - DATABASE_URL=postgresql://sevenr:sevenr_dev@db:5432/sevenr
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-    environment:
-      # --- Configuración de Desarrollo ---
-      NODE_ENV: development
-      DATABASE_URL: postgresql://sevenr:sevenr_dev@db:5432/sevenr
-      PRISMA_CLIENT_ENGINE_TYPE: library
-      NEXTAUTH_URL: http://localhost:3000
-      AUTH_TRUST_HOST: "true"
-      VALORANT_REGION: "eu"
-      
-      # ESTO ES CLAVE PARA HOT RELOAD EN DOCKER/WINDOWS
-      WATCHPACK_POLLING: "true"
-      
-      # --- Secretos Externos ---
-      RIOT_API_KEY: ${RIOT_API_KEY}
-      AUTH_SECRET: ${AUTH_SECRET}
-      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
-      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
 
   studio:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: 7r-studio
     working_dir: /app
     command: sh -c "npx prisma generate && npx prisma studio --browser none"
     ports:
       - "5555:5555"
     environment:
-      DATABASE_URL: postgresql://sevenr:sevenr_dev@db:5432/sevenr
+      - DATABASE_URL=postgresql://sevenr:sevenr_dev@db:5432/sevenr
     volumes:
       - .:/app
+      - node_modules:/app/node_modules
     depends_on:
       db:
         condition: service_healthy
@@ -52,20 +41,21 @@ services:
   db:
     image: postgres:16-alpine
     container_name: 7r-db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: sevenr
       POSTGRES_PASSWORD: sevenr_dev
       POSTGRES_DB: sevenr
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sevenr"]
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - pg_data:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
+  node_modules:
+  next_cache:
+  pg_data:
