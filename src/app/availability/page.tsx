@@ -1,14 +1,22 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 
 interface Player { id: number; name: string; avatar_color: string; }
-interface Ev { id: number; title: string; type: string; date: string; time: string; description: string; map: string; localDate?: string; localTime?: string; }
+interface LinkedMatch {
+  id: number; riot_match_id: string; map_name: string;
+  game_start: string; game_length_ms: number;
+  team_blue_score: number; team_red_score: number; team_blue_won: boolean;
+  queue_id: string;
+}
+interface Ev { id: number; title: string; type: string; date: string; time: string; description: string; map: string; status: string; localDate?: string; localTime?: string; linkedMatches?: LinkedMatch[]; }
 interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
 
 export default function AvailabilityPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [events, setEvents] = useState<Ev[]>([]);
   const [avail, setAvail] = useState<Record<number, Avail[]>>({});
@@ -291,12 +299,14 @@ export default function AvailabilityPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
                       {d.events.map((ev: any) => {
                         const myStatus = avail[ev.id]?.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                        const isCancelled = ev.status === 'cancelled';
                         return (
                           <div 
                             key={ev.id} 
-                            className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
-                            title={`${ev.localTime} - ${ev.title} (Tu estado: ${myStatus})`}
+                            className={`calendar-event-item ${isCancelled ? 'calendar-event-cancelled' : ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
+                            title={`${ev.localTime} - ${ev.title} (${isCancelled ? 'Cancelado' : `Tu estado: ${myStatus}`})`}
                             onClick={() => { setScrollToEventId(ev.id); setViewMode("list"); }} 
+                            style={isCancelled ? { textDecoration: 'line-through', opacity: 0.5 } : undefined}
                           >
                             {ev.localTime} {ev.title}
                           </div>
@@ -314,11 +324,13 @@ export default function AvailabilityPage() {
             {events.length === 0 && <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No hay eventos.</p>}
             {events.map((ev, idx) => {
               const isPast = (ev as any).localDate < todayStr;
-              const isFirstUpcoming = !isPast && (idx === 0 || (events[idx-1] as any).localDate < todayStr);
+              const isCancelled = ev.status === 'cancelled';
+              const isFirstUpcoming = !isPast && !isCancelled && (idx === 0 || events.slice(0, idx).every(prev => (prev as any).localDate < todayStr || prev.status === 'cancelled'));
               
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+              const matches = ev.linkedMatches || [];
               
               return (
                 <div 
@@ -327,8 +339,8 @@ export default function AvailabilityPage() {
                   className="card" 
                   style={{ 
                     marginBottom: 12, 
-                    opacity: isPast ? 0.5 : 1,
-                    borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : undefined,
+                    opacity: isPast || isCancelled ? 0.5 : 1,
+                    borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : isCancelled ? "4px solid var(--val-red)" : undefined,
                     transition: "opacity 0.3s ease",
                     scrollMarginTop: "100px"
                   }}
@@ -336,9 +348,10 @@ export default function AvailabilityPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 600 }}>{ev.title}</h3>
+                        <h3 style={{ fontSize: 16, fontWeight: 600, textDecoration: isCancelled ? 'line-through' : undefined, color: isCancelled ? 'var(--text-muted)' : undefined }}>{ev.title}</h3>
                         <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>{ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}</span>
-                        {isPast && <span className="tag" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Pasado</span>}
+                        {isCancelled && <span className="tag" style={{ background: "rgba(255, 70, 85, 0.15)", color: "var(--val-red)", fontWeight: 700 }}>Cancelado</span>}
+                        {isPast && !isCancelled && <span className="tag" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Pasado</span>}
                         {isFirstUpcoming && <span className="tag tag-cyan" style={{ fontSize: 10 }}>PRÓXIMO</span>}
                       </div>
                       <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
@@ -346,41 +359,86 @@ export default function AvailabilityPage() {
                         {ev.map && <> · 🗺️ {maps.find(m => m.id === ev.map)?.name || ev.map}</>}
                       </div>
                       {ev.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{ev.description}</div>}
+                      {isCancelled && <div style={{ fontSize: 12, color: "var(--val-red)", marginTop: 4, fontStyle: 'italic' }}>Ya se jugaron 2 partidos esta semana</div>}
                     </div>
                     {canManage && ev.type === "custom" && <button className="btn btn-ghost btn-sm" onClick={() => deleteEvent(ev.id)}>🗑️</button>}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                    <div className="progress-bar" style={{ flex: 1 }}>
-                      <div className="progress-fill" style={{ width: `${(confirmed / Math.max(players.length, 1)) * 100}%` }} />
+
+                  {/* Resumen de partidos vinculados */}
+                  {matches.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>🏆 Partidos jugados ({matches.length})</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {matches.map((m: LinkedMatch) => {
+                          const duration = Math.floor(m.game_length_ms / 60000);
+                          return (
+                            <div 
+                              key={m.id} 
+                              onClick={() => router.push(`/matches?id=${m.id}`)}
+                              style={{ 
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                padding: "8px 12px", borderRadius: 8, cursor: "pointer",
+                                background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)",
+                                transition: "all 0.2s ease"
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'var(--val-cyan)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>🗺️ {m.map_name}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ fontSize: 16, fontWeight: 800, color: m.team_blue_won ? "#3B82F6" : "var(--text-muted)" }}>{m.team_blue_score}</span>
+                                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>vs</span>
+                                  <span style={{ fontSize: 16, fontWeight: 800, color: !m.team_blue_won ? "#FF4655" : "var(--text-muted)" }}>{m.team_red_score}</span>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{duration}min</span>
+                                <span style={{ fontSize: 11, color: "var(--val-cyan)" }}>Ver detalles →</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/{players.length}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                    {players.map(p => {
-                      const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
-                      return (
-                        <div key={p.id} className={`avail-cell avail-${ps}`} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px" }}>
-                          <div style={{ width: 20, height: 20, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 700 }}>{p.name[0]}</div>
-                          <span style={{ fontSize: 12 }}>{p.name}</span>
-                          <span>{statusIcon(ps)}</span>
+                  )}
+
+                  {!isCancelled && (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <div className="progress-bar" style={{ flex: 1 }}>
+                          <div className="progress-fill" style={{ width: `${(confirmed / Math.max(players.length, 1)) * 100}%` }} />
                         </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {myPlayerId ? (
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4, alignSelf: "center" }}>Tu respuesta:</span>
-                      {["available", "maybe", "unavailable"].map(s => (
-                        <button key={s} className={`btn btn-sm ${myStatus === s ? "btn-primary" : "btn-secondary"}`} onClick={() => setAvailability(ev.id, s)}>
-                          {statusIcon(s)} {s === "available" ? "Disponible" : s === "maybe" ? "Quizás" : "No puedo"}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 13, color: "var(--val-red)", marginTop: 8 }}>
-                      Debes pertenecer a la plantilla (Roster) para poder confirmar asistencia.
-                    </div>
+                        <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/{players.length}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                        {players.map(p => {
+                          const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
+                          return (
+                            <div key={p.id} className={`avail-cell avail-${ps}`} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px" }}>
+                              <div style={{ width: 20, height: 20, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 700 }}>{p.name[0]}</div>
+                              <span style={{ fontSize: 12 }}>{p.name}</span>
+                              <span>{statusIcon(ps)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {myPlayerId ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4, alignSelf: "center" }}>Tu respuesta:</span>
+                          {["available", "maybe", "unavailable"].map(s => (
+                            <button key={s} className={`btn btn-sm ${myStatus === s ? "btn-primary" : "btn-secondary"}`} onClick={() => setAvailability(ev.id, s)}>
+                              {statusIcon(s)} {s === "available" ? "Disponible" : s === "maybe" ? "Quizás" : "No puedo"}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: "var(--val-red)", marginTop: 8 }}>
+                          Debes pertenecer a la plantilla (Roster) para poder confirmar asistencia.
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );

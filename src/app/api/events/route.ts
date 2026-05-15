@@ -298,6 +298,84 @@ export async function GET(req: NextRequest) {
       ]
     });
 
+    // 2b. Obtener partidos vinculados a estos eventos (via Match.event_id)
+    const eventIds = events.map(e => e.id);
+    const linkedMatches = eventIds.length > 0 ? await db.match.findMany({
+      where: {
+        event_id: { in: eventIds }
+      },
+      select: {
+        id: true,
+        event_id: true,
+        riot_match_id: true,
+        map_name: true,
+        game_start: true,
+        game_length_ms: true,
+        team_blue_score: true,
+        team_red_score: true,
+        team_blue_won: true,
+        queue_id: true
+      },
+      orderBy: { game_start: 'asc' }
+    }) : [];
+
+    // Agrupar partidos por event_id
+    const matchesByEvent: Record<number, typeof linkedMatches> = {};
+    for (const m of linkedMatches) {
+      if (m.event_id) {
+        if (!matchesByEvent[m.event_id]) matchesByEvent[m.event_id] = [];
+        matchesByEvent[m.event_id].push(m);
+      }
+    }
+
+    // 2c. Auto-cancelar eventos de tipo "match" si ya hay 2+ partidos jugados esa semana
+    // Calcular semana ISO para cada evento
+    const getISOWeek = (dateStr: string) => {
+      const d = new Date(dateStr + 'T00:00:00Z');
+      const dayNum = d.getUTCDay() || 7; // Make Sunday = 7
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Set to nearest Thursday
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+      return `${d.getUTCFullYear()}-W${weekNo}`;
+    };
+
+    // Contar partidos jugados por semana (solo para eventos tipo "match" con status "completed")
+    const matchesPlayedPerWeek: Record<string, number> = {};
+    for (const ev of events) {
+      if (ev.type === 'match' && ev.status === 'completed') {
+        const week = getISOWeek(ev.date);
+        const matchCount = matchesByEvent[ev.id]?.length || 0;
+        matchesPlayedPerWeek[week] = (matchesPlayedPerWeek[week] || 0) + Math.max(matchCount, 1);
+      }
+    }
+
+    // Cancelar eventos de tipo "match" programados si ya se jugaron 2+ esa semana
+    const eventIdsToCancel: number[] = [];
+    for (const ev of events) {
+      if (ev.type === 'match' && ev.status === 'scheduled') {
+        const week = getISOWeek(ev.date);
+        if ((matchesPlayedPerWeek[week] || 0) >= 2) {
+          eventIdsToCancel.push(ev.id);
+          ev.status = 'cancelled'; // Actualizar en memoria para la respuesta
+        }
+      }
+    }
+
+    // Persistir cancelaciones en DB
+    if (eventIdsToCancel.length > 0) {
+      await db.event.updateMany({
+        where: { id: { in: eventIdsToCancel } },
+        data: { status: 'cancelled' }
+      });
+      console.log(`[GET /api/events] Auto-cancelados ${eventIdsToCancel.length} eventos de partido (2+ ya jugados esa semana)`);
+    }
+
+    // Enriquecer eventos con partidos vinculados
+    const enrichedEvents = events.map(ev => ({
+      ...ev,
+      linkedMatches: matchesByEvent[ev.id] || []
+    }));
+
     // 3. Obtener IDs de temporadas presentes en los eventos para el filtro del frontend
     const seasonsData = await db.event.findMany({
       where: { teamId, premier_season_id: { not: null } },
@@ -317,10 +395,10 @@ export async function GET(req: NextRequest) {
       select: { id: true }
     });
 
-    console.log(`[GET /api/events] Devolviendo ${events.length} eventos para equipo ${teamId}`);
+    console.log(`[GET /api/events] Devolviendo ${enrichedEvents.length} eventos para equipo ${teamId}`);
 
     return NextResponse.json({ 
-      events, 
+      events: enrichedEvents, 
       seasons, 
       activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : "") 
     });

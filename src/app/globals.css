@@ -1000,6 +1000,13 @@ select option { background: var(--bg-secondary); }
   border-left: 3px solid var(--val-gold);
 }
 
+.calendar-event-cancelled {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  border-left: 2px solid var(--border-color);
+  --ev-color: var(--text-muted);
+}
+
 /* Status Visuals (Google/Apple Style) */
 .calendar-event-match { --ev-color: var(--val-red); }
 .calendar-event-practice { --ev-color: var(--val-cyan); }

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { findAgentById, ROLE_COLORS } from "@/lib/agents";
 
 interface Match {
@@ -17,6 +18,7 @@ interface PlayerStat {
 }
 
 export default function MatchesPage() {
+  const searchParams = useSearchParams();
   const [matches, setMatches] = useState<Match[]>([]);
   const [seasons, setSeasons] = useState<{id: string, name: string}[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
@@ -26,6 +28,7 @@ export default function MatchesPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const fetchMatches = async (season?: string) => {
     setLoading(true);
@@ -56,6 +59,23 @@ export default function MatchesPage() {
     fetchMatches(selectedSeason);
   }, [selectedSeason]);
 
+  // Deep-link: auto-load match from ?id= query param
+  useEffect(() => {
+    if (deepLinkHandled || loading) return;
+    const matchIdParam = searchParams.get("id");
+    if (matchIdParam && matches.length > 0) {
+      const matchId = Number(matchIdParam);
+      const match = matches.find(m => m.id === matchId);
+      if (match && !match.isHidden) {
+        loadMatch(match);
+      } else if (!match) {
+        // Match not in current season list - load directly from API
+        loadMatchById(matchId);
+      }
+      setDeepLinkHandled(true);
+    }
+  }, [matches, loading, deepLinkHandled, searchParams]);
+
   const loadMatch = async (m: Match) => {
     if (m.isHidden) return;
     setSelected(m);
@@ -67,6 +87,21 @@ export default function MatchesPage() {
       setStats(data.playerStats || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar detalles");
+    }
+  };
+
+  const loadMatchById = async (matchId: number) => {
+    setError(null);
+    try {
+      const res = await fetch(`/api/matches?id=${matchId}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.match) {
+        setSelected(data.match as Match);
+        setStats(data.playerStats || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar detalles del partido");
     }
   };
 
