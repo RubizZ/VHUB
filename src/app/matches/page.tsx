@@ -194,7 +194,7 @@ export default function MatchesPage() {
         {loading && !syncing ? (
           <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>Cargando partidos...</div>
         ) : !selected ? (
-          <div className="grid grid-auto">
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {matches.map(m => (
               <div
                 key={m.id}

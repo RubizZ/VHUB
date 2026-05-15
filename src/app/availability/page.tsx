@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 
 interface Player { id: number; name: string; avatar_color: string; }
@@ -21,18 +21,39 @@ export default function AvailabilityPage() {
   const [maps, setMaps] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
+  const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
   const myPlayerId = (session?.user as any)?.playerId;
+  const firstUpcomingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
     fetch("/api/players").then(r => r.json()).then(d => setPlayers(d.players || []));
     fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
+    
+    const saved = localStorage.getItem("vhub_avail_view_mode");
+    if (saved === "list" || saved === "calendar") setViewMode(saved);
   }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("vhub_avail_view_mode", viewMode);
+    }
+  }, [viewMode, isMounted]);
 
   useEffect(() => {
     loadEvents(selectedSeason);
   }, [selectedSeason]);
+
+  useEffect(() => {
+    if (viewMode === "list" && firstUpcomingRef.current && isMounted && !hasInitialScrolled && events.length > 0) {
+      // Pequeño timeout para asegurar que el DOM se ha renderizado y posicionado
+      setTimeout(() => {
+        firstUpcomingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setHasInitialScrolled(true);
+      }, 300);
+    }
+  }, [viewMode, isMounted, events, hasInitialScrolled]);
 
   const loadEvents = async (seasonId?: string | null) => {
     try {
@@ -253,16 +274,19 @@ export default function AvailabilityPage() {
                   <>
                     <span className="calendar-day-num">{d.day}</span>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
-                      {d.events.map((ev: any) => (
-                        <div 
-                          key={ev.id} 
-                          className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"}`}
-                          title={`${ev.localTime} - ${ev.title}`}
-                          onClick={() => setViewMode("list")} // Saltar a la lista para ver detalles
-                        >
-                          {ev.localTime} {ev.title}
-                        </div>
-                      ))}
+                      {d.events.map((ev: any) => {
+                        const myStatus = avail[ev.id]?.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                        return (
+                          <div 
+                            key={ev.id} 
+                            className={`calendar-event-item ${ev.type === "match" ? "calendar-event-match" : ev.type === "playoffs" ? "calendar-event-playoffs" : "calendar-event-practice"} calendar-event-${myStatus}`}
+                            title={`${ev.localTime} - ${ev.title} (Tu estado: ${myStatus})`}
+                            onClick={() => setViewMode("list")} 
+                          >
+                            {ev.localTime} {ev.title}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -271,19 +295,36 @@ export default function AvailabilityPage() {
           </div>
           </>
         ) : (
-          <>
-            {upcoming.length === 0 && <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No hay eventos próximos.</p>}
-            {upcoming.map(ev => {
+          <div className="events-list-container">
+            {events.length === 0 && <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No hay eventos.</p>}
+            {events.map((ev, idx) => {
+              const isPast = (ev as any).localDate < todayStr;
+              const isFirstUpcoming = !isPast && (idx === 0 || (events[idx-1] as any).localDate < todayStr);
+              
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+              
               return (
-                <div key={ev.id} className="card" style={{ marginBottom: 12 }}>
+                <div 
+                  key={ev.id} 
+                  ref={isFirstUpcoming ? firstUpcomingRef : null}
+                  className="card" 
+                  style={{ 
+                    marginBottom: 12, 
+                    opacity: isPast ? 0.5 : 1,
+                    borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : undefined,
+                    transition: "opacity 0.3s ease",
+                    scrollMarginTop: "100px"
+                  }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <h3 style={{ fontSize: 16, fontWeight: 600 }}>{ev.title}</h3>
                         <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>{ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}</span>
+                        {isPast && <span className="tag" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Pasado</span>}
+                        {isFirstUpcoming && <span className="tag tag-cyan" style={{ fontSize: 10 }}>PRÓXIMO</span>}
                       </div>
                       <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
                         📅 {new Date(`${ev.date}T${ev.time}:00Z`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · ⏰ {ev.localTime}
@@ -299,7 +340,7 @@ export default function AvailabilityPage() {
                     </div>
                     <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/{players.length}</span>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                     {players.map(p => {
                       const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
                       return (
@@ -329,22 +370,9 @@ export default function AvailabilityPage() {
                 </div>
               );
             })}
-          </>
+          </div>
         )}
 
-        {past.length > 0 && viewMode === "list" && (
-          <>
-            <h3 style={{ fontSize: 16, fontWeight: 600, marginTop: 24, marginBottom: 12, color: "var(--text-muted)" }}>Eventos pasados</h3>
-            {past.slice(0, 5).map(ev => (
-              <div key={ev.id} className="card" style={{ marginBottom: 8, opacity: 0.6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 14 }}>{ev.title}</span>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(ev.date).toLocaleDateString("es-ES")}</span>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
 
         {showNew && (
           <div className="modal-overlay" onClick={() => setShowNew(false)}>

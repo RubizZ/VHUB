@@ -997,7 +997,41 @@ select option { background: var(--bg-secondary); }
 .calendar-event-playoffs {
   background: rgba(212, 175, 55, 0.15);
   color: var(--val-gold);
-  border-left: 2px solid var(--val-gold);
+  border-left: 3px solid var(--val-gold);
+}
+
+/* Status Visuals (Google/Apple Style) */
+.calendar-event-match { --ev-color: var(--val-red); }
+.calendar-event-practice { --ev-color: var(--val-cyan); }
+.calendar-event-playoffs { --ev-color: var(--val-gold); }
+
+.calendar-event-available {
+  background: color-mix(in srgb, var(--ev-color), transparent 85%) !important;
+  border-left-width: 4px;
+}
+
+.calendar-event-maybe {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--ev-color), transparent 92%),
+    color-mix(in srgb, var(--ev-color), transparent 92%) 4px,
+    color-mix(in srgb, var(--ev-color), transparent 82%) 4px,
+    color-mix(in srgb, var(--ev-color), transparent 82%) 8px
+  ) !important;
+  border-left-width: 4px;
+}
+
+.calendar-event-unavailable {
+  opacity: 0.3;
+  background: transparent !important;
+  border-left: 2px solid var(--ev-color) !important;
+  text-decoration: line-through;
+}
+
+.calendar-event-pending {
+  background: transparent !important;
+  border: 1px dashed color-mix(in srgb, var(--ev-color), transparent 40%) !important;
+  border-left: 4px solid color-mix(in srgb, var(--ev-color), transparent 20%) !important;
 }
 
 /* ── Toggle Switch ── */
