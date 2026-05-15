@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 const links = [
   { href: "/", icon: "🏠", label: "Dashboard" },
@@ -15,6 +15,9 @@ const links = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -35,6 +38,20 @@ export function Sidebar() {
             {l.label}
           </Link>
         ))}
+
+        {role === "super_admin" && (
+          <>
+            <div className="nav-separator">ADMIN</div>
+            <Link 
+              href="/admin/teams" 
+              className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`}
+            >
+              <span className="nav-link-icon">🏢</span>
+              Equipos
+            </Link>
+          </>
+        )}
+
         <div style={{ flex: 1 }} />
         <Link href="/settings" className={`nav-link ${pathname === "/settings" ? "active" : ""}`}>
           <span className="nav-link-icon">⚙️</span>

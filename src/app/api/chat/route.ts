@@ -3,12 +3,19 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const { searchParams } = new URL(req.url);
   const channel = searchParams.get("channel") || "general";
   const limit = Number(searchParams.get("limit")) || 50;
 
   const messages = await db.message.findMany({
-    where: { channel },
+    where: { 
+      channel,
+      teamId
+    },
     take: limit,
     orderBy: { created_at: 'desc' },
     include: {
@@ -21,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
   });
 
-  const total = await db.message.count({ where: { channel } });
+  const total = await db.message.count({ where: { channel, teamId } });
 
   // Transform to match UI expectations
   const formatted = messages.reverse().map(m => ({
@@ -39,26 +46,28 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const teamId = session?.user?.teamId;
+  if (!session?.user || !teamId) return NextResponse.json({ error: "Unauthorized or no team context" }, { status: 401 });
 
   const body = await req.json();
   const { channel, player_id, content } = body;
 
   if (!player_id || !content) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-  // VALIDACIÓN ESTRICTA: ¿Existe este jugador y es el del usuario?
+  // VALIDACIÓN ESTRICTA: ¿Existe este jugador, es del usuario y del mismo equipo?
   const userPlayerId = session.user.playerId;
   if (Number(player_id) !== Number(userPlayerId)) {
     return NextResponse.json({ error: "Intento de suplantación: ID de jugador no válido" }, { status: 403 });
   }
 
   const playerExists = await db.player.findUnique({ where: { id: Number(player_id) } });
-  if (!playerExists) {
-    return NextResponse.json({ error: "El perfil de jugador no existe" }, { status: 404 });
+  if (!playerExists || playerExists.teamId !== teamId) {
+    return NextResponse.json({ error: "El perfil de jugador no existe o pertenece a otro equipo" }, { status: 404 });
   }
 
   const message = await db.message.create({
     data: {
+      teamId,
       channel: channel || "general",
       player_id: Number(player_id),
       content

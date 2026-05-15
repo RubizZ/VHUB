@@ -14,7 +14,8 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isAdmin = session?.user?.role === "admin";
+  const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
+  
   const colors = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#E040FB", "#00BCD4"];
   const roles = [
     { value: "duelist", label: "Duelista" }, { value: "initiator", label: "Iniciador" },
@@ -22,17 +23,21 @@ export default function SettingsPage() {
   ];
 
   const loadData = async () => {
-    const [pRes, uRes] = await Promise.all([
-      fetch("/api/players"),
-      fetch("/api/users/unlinked")
-    ]);
-    const pData = await pRes.json();
-    const uData = await uRes.json();
-    setPlayers(pData.players || []);
-    setUnlinkedUsers(uData.users || []);
+    try {
+      const [pRes, uRes] = await Promise.all([
+        fetch("/api/players"),
+        fetch("/api/users/unlinked")
+      ]);
+      const pData = await pRes.json();
+      const uData = await uRes.json();
+      setPlayers(pData.players || []);
+      setUnlinkedUsers(uData.users || []);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [session]);
 
   const save = async () => {
     if (!form.userId && !editing) {
@@ -75,14 +80,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
-      <div className="page-header">
-        <h2>⚙️ Ajustes de Equipo</h2>
-        <p>Gestiona quién pertenece al equipo oficial</p>
-      </div>
+    <div className="page-container">
+      <header className="page-header">
+        <h1>⚙️ Ajustes de Equipo</h1>
+        <p style={{ color: "var(--text-secondary)" }}>Gestiona quién pertenece al equipo oficial</p>
+      </header>
+
       <div className="page-content animate-in">
         <div className="grid grid-2">
-          {isAdmin ? (
+          {canManage ? (
             <div className="card">
               <h3 className="card-title" style={{ marginBottom: 16 }}>
                 {editing ? "Editar Jugador" : "Vincular Usuario al Equipo"}
@@ -91,9 +97,11 @@ export default function SettingsPage() {
               {error && <div style={{ background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
               {!editing && (
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 16 }}>
                   <label>Seleccionar Usuario Registrado</label>
                   <select 
+                    className="input-field"
+                    style={{ width: "100%", padding: "10px", borderRadius: 8, background: "var(--bg-secondary)", color: "white", border: "1px solid var(--border-color)" }}
                     value={form.userId} 
                     onChange={e => setForm({ ...form, userId: e.target.value })}
                   >
@@ -103,32 +111,32 @@ export default function SettingsPage() {
                     ))}
                   </select>
                   <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                    Solo aparecen usuarios que ya se han registrado pero no son parte del equipo aún.
+                    Solo aparecen usuarios de tu equipo que aún no tienen perfil de jugador.
                   </p>
                 </div>
               )}
 
-              <div className="form-row" style={{ display: "flex", gap: 12 }}>
+              <div className="form-row" style={{ display: "flex", gap: 12, marginBottom: 16 }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Riot Name</label>
-                  <input value={form.riot_name} onChange={e => setForm({ ...form, riot_name: e.target.value })} placeholder="Ej: TenZ" />
+                  <input className="input-field" style={{ width: "100%" }} value={form.riot_name} onChange={e => setForm({ ...form, riot_name: e.target.value })} placeholder="Ej: TenZ" />
                 </div>
                 <div className="form-group" style={{ width: 100 }}>
                   <label>Tag</label>
-                  <input value={form.riot_tag} onChange={e => setForm({ ...form, riot_tag: e.target.value })} placeholder="Ej: NA1" />
+                  <input className="input-field" style={{ width: "100%" }} value={form.riot_tag} onChange={e => setForm({ ...form, riot_tag: e.target.value })} placeholder="Ej: NA1" />
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: 16 }}>
                 <label>Rol Principal</label>
-                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
+                <select className="input-field" style={{ width: "100%" }} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
                   {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: 20 }}>
                 <label>Color de Identidad</label>
-                <div style={{ display: "flex", gap: 6 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   {colors.map(c => (
                     <button key={c} onClick={() => setForm({ ...form, avatar_color: c })} style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: form.avatar_color === c ? "3px solid white" : "2px solid transparent", cursor: "pointer" }} />
                   ))}
@@ -145,30 +153,33 @@ export default function SettingsPage() {
           ) : (
             <div className="card">
               <h3 className="card-title">Acceso Restringido</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Solo administradores pueden gestionar el equipo.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Solo administradores de equipo pueden gestionar la plantilla.</p>
             </div>
           )}
 
           <div className="card">
-            <h3 className="card-title" style={{ marginBottom: 16 }}>Jugadores del Equipo ({players.length})</h3>
+            <h3 className="card-title" style={{ marginBottom: 16 }}>Plantilla del Equipo ({players.length})</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {players.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, background: "var(--bg-glass)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)" }}>
                   <div style={{ width: 40, height: 40, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.name[0]}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.user?.email}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.user?.email}</div>
                   </div>
-                  {isAdmin && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => del(p.id)}>🗑️</button>
+                  {canManage && (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(p); setForm({ userId: p.user?.email || "", riot_name: p.riot_name, riot_tag: p.riot_tag, role: p.role, avatar_color: p.avatar_color }) }}>✏️</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => del(p.id)}>🗑️</button>
+                    </div>
                   )}
                 </div>
               ))}
-              {players.length === 0 && <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No hay jugadores vinculados.</p>}
+              {players.length === 0 && <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No hay jugadores registrados en tu equipo.</p>}
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -9,7 +9,11 @@ interface RiotError {
 }
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user?.teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const players = await db.player.findMany({
+    where: { teamId: session.user.teamId },
     orderBy: { id: 'asc' },
     include: { user: { select: { email: true, name: true } } }
   });
@@ -18,12 +22,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const role = session?.user?.role;
+  const teamId = session?.user?.teamId;
+
+  if (role !== "team_admin" && role !== "super_admin") {
     return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
   }
 
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const body = await req.json();
-  const { userId, riot_name, riot_tag, role, avatar_color } = body;
+  const { userId, riot_name, riot_tag, role: playerRole, avatar_color } = body;
   
   if (!userId || !riot_name || !riot_tag) {
     return NextResponse.json({ error: "Usuario y Riot ID son obligatorios" }, { status: 400 });
@@ -35,19 +44,23 @@ export async function POST(req: NextRequest) {
   try {
     const account = await client.getAccount(riot_name, riot_tag);
     
-    // Obtenemos el nombre del usuario real de la DB para el perfil de jugador
     const selectedUser = await db.user.findUnique({ where: { id: userId } });
     if (!selectedUser) return NextResponse.json({ error: "El usuario seleccionado no existe" }, { status: 404 });
 
-    // Transacción: Crear jugador y vincular al usuario
+    // Validar que el usuario a vincular pertenezca al mismo equipo
+    if (selectedUser.teamId !== teamId) {
+      return NextResponse.json({ error: "No puedes vincular usuarios de otros equipos" }, { status: 403 });
+    }
+
     const result = await db.$transaction(async (tx) => {
       const player = await tx.player.create({
         data: {
+          teamId: teamId,
           name: selectedUser.name || "Jugador",
           riot_name: account.gameName,
           riot_tag: account.tagLine,
           puuid: account.puuid,
-          role: role || "flex",
+          role: playerRole || "flex",
           avatar_color: avatar_color || "#FF4655"
         }
       });
@@ -70,17 +83,26 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const session = await auth();
-  if (session?.user?.role !== "admin") return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
+  const role = session?.user?.role;
+  const teamId = session?.user?.teamId;
+
+  if (role !== "team_admin" && role !== "super_admin") return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
 
   const body = await req.json();
-  const { id, riot_name, riot_tag, role, avatar_color } = body;
+  const { id, riot_name, riot_tag, role: playerRole, avatar_color } = body;
+
+  // Validar que el jugador pertenezca al equipo del admin
+  const existingPlayer = await db.player.findUnique({ where: { id: Number(id) } });
+  if (!existingPlayer || existingPlayer.teamId !== teamId) {
+    return NextResponse.json({ error: "No autorizado o jugador no encontrado" }, { status: 403 });
+  }
 
   const player = await db.player.update({
     where: { id: Number(id) },
     data: {
       riot_name: riot_name || undefined,
       riot_tag: riot_tag || undefined,
-      role: role || undefined,
+      role: playerRole || undefined,
       avatar_color: avatar_color || undefined
     }
   });
@@ -90,12 +112,20 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const session = await auth();
-  if (session?.user?.role !== "admin") return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
+  const role = session?.user?.role;
+  const teamId = session?.user?.teamId;
+
+  if (role !== "team_admin" && role !== "super_admin") return NextResponse.json({ error: "No tienes permisos" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
   
+  const existingPlayer = await db.player.findUnique({ where: { id: Number(id) } });
+  if (!existingPlayer || existingPlayer.teamId !== teamId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
   await db.player.delete({ where: { id: Number(id) } });
   return NextResponse.json({ ok: true });
 }

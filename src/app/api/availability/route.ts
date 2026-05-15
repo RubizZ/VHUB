@@ -3,10 +3,20 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
 
   if (!event_id) return NextResponse.json({ error: "event_id required" }, { status: 400 });
+
+  // Validar que el evento pertenece al equipo
+  const event = await db.event.findUnique({ where: { id: Number(event_id) } });
+  if (!event || event.teamId !== teamId) {
+    return NextResponse.json({ error: "Event not found or not authorized" }, { status: 403 });
+  }
 
   const availability = await db.availability.findMany({
     where: { event_id: Number(event_id) },
@@ -26,7 +36,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const teamId = session?.user?.teamId;
+  const role = session?.user?.role;
+  
+  if (!session?.user || !teamId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const { event_id, player_id, status, note } = body;
@@ -35,20 +48,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // VALIDACIÓN ESTRICTA: ¿Existe este jugador en MI base de datos?
-  const playerExists = await db.player.findUnique({
+  // VALIDACIÓN DE EQUIPO: El jugador debe ser del equipo del usuario
+  const player = await db.player.findUnique({
     where: { id: Number(player_id) }
   });
 
-  if (!playerExists) {
-    return NextResponse.json({ error: "El jugador no existe en el equipo (Base de Datos)" }, { status: 404 });
+  if (!player || player.teamId !== teamId) {
+    return NextResponse.json({ error: "El jugador no existe en tu equipo" }, { status: 404 });
   }
 
-  // Validar que el usuario solo pueda marcar su propia disponibilidad (a menos que sea admin)
+  // VALIDACIÓN DE EQUIPO: El evento debe ser del equipo del usuario
+  const event = await db.event.findUnique({
+    where: { id: Number(event_id) }
+  });
+
+  if (!event || event.teamId !== teamId) {
+    return NextResponse.json({ error: "El evento no pertenece a tu equipo" }, { status: 403 });
+  }
+
+  // Validar permisos de edición (dueño o admin)
   const userPlayerId = session.user.playerId;
-  const isAdmin = session.user.role === "admin";
+  const isPrivileged = role === "team_admin" || role === "super_admin";
   
-  if (!isAdmin && Number(player_id) !== Number(userPlayerId)) {
+  if (!isPrivileged && Number(player_id) !== Number(userPlayerId)) {
     return NextResponse.json({ error: "No puedes marcar disponibilidad para otro jugador" }, { status: 403 });
   }
 

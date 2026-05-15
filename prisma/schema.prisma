@@ -1,4 +1,4 @@
-// Prisma Schema for 7R Premier Hub
+// Prisma Schema for 7R Premier Hub - Multi-Team Architecture
 // Managed by Antigravity AI
 
 generator client {
@@ -10,6 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- MODELS DE EQUIPO ---
+
+model Team {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  logo_url     String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  users        User[]
+  players      Player[]
+  events       Event[]
+  compositions Composition[]
+  messages     Message[]
+  matches      Match[]
+}
+
 // --- AUTH MODELS (NextAuth) ---
 
 model User {
@@ -18,13 +36,15 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // For credentials login
-  role          String    @default("member") // admin, member
-  playerId      Int?      @unique // Link to player profile
+  password      String?   
+  role          String    @default("member") // super_admin, team_admin, member
+  playerId      Int?      @unique 
+  teamId        String?   // Vínculo al equipo
+
   accounts      Account[]
   sessions      Session[]
-
   player        Player?   @relation(fields: [playerId], references: [id])
+  team          Team?     @relation(fields: [teamId], references: [id])
 }
 
 model Account {
@@ -66,6 +86,7 @@ model VerificationToken {
 
 model Player {
   id           Int            @id @default(autoincrement())
+  teamId       String?        // Vínculo al equipo
   puuid        String?        @unique
   name         String
   riot_name    String?
@@ -74,6 +95,7 @@ model Player {
   avatar_color String         @default("#FF4655")
   created_at   DateTime       @default(now())
   
+  team         Team?          @relation(fields: [teamId], references: [id])
   user         User?
   availability Availability[]
   messages     Message[]
@@ -88,6 +110,7 @@ model Map {
 
 model Composition {
   id          Int        @id @default(autoincrement())
+  teamId      String?
   map_id      String
   name        String
   description String?
@@ -99,6 +122,7 @@ model Composition {
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
 
+  team        Team?      @relation(fields: [teamId], references: [id])
   map         Map        @relation(fields: [map_id], references: [id])
   strategies  Strategy[]
 }
@@ -107,7 +131,7 @@ model Strategy {
   id             Int         @id @default(autoincrement())
   composition_id Int
   name           String
-  side           String      @default("attack") // attack, defense
+  side           String      @default("attack") 
   description    String?
   canvas_data    Json?       @default("{}")
   created_at     DateTime    @default(now())
@@ -118,17 +142,19 @@ model Strategy {
 
 model Event {
   id           Int            @id @default(autoincrement())
+  teamId       String?
   title        String
-  type         String         @default("match") // match, practice, premier
-  date         String         // Format YYYY-MM-DD
-  time         String         // Format HH:MM
+  type         String         @default("match") 
+  date         String         
+  time         String         
   description  String?
   map          String?
   premier_week Int?
   match_id     String?
-  status       String         @default("scheduled") // scheduled, completed, cancelled
+  status       String         @default("scheduled") 
   created_at   DateTime       @default(now())
 
+  team         Team?          @relation(fields: [teamId], references: [id])
   availability Availability[]
   match        Match?         @relation(fields: [match_id], references: [riot_match_id])
 }
@@ -137,7 +163,7 @@ model Availability {
   id         Int      @id @default(autoincrement())
   event_id   Int
   player_id  Int
-  status     String   @default("pending") // available, unavailable, maybe, pending
+  status     String   @default("pending") 
   note       String?
   updated_at DateTime @default(now())
 
@@ -149,16 +175,19 @@ model Availability {
 
 model Message {
   id         Int      @id @default(autoincrement())
+  teamId     String?
   channel    String   @default("general")
   player_id  Int
   content    String
   created_at DateTime @default(now())
 
+  team       Team?    @relation(fields: [teamId], references: [id])
   player     Player   @relation(fields: [player_id], references: [id])
 }
 
 model Match {
   id               Int      @id @default(autoincrement())
+  teamId           String?
   riot_match_id    String   @unique
   map_id           String
   map_name         String
@@ -174,6 +203,7 @@ model Match {
   event_id         Int?
   raw_data         Json?
 
+  team             Team?    @relation(fields: [teamId], references: [id])
   player_stats     MatchPlayerStats[]
   events           Event[]
 }
