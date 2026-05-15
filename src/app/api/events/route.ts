@@ -218,7 +218,7 @@ async function ensureWeeklyEvents(teamId: string) {
           end_time: endTime || null,
           description: evConfig.description || "",
           map: mapName,
-          premier_week: premierWeek,
+          premier_week: premierWeek || null,
           premier_season_id: activeSeason.id,
           status: 'scheduled'
         });

@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 
@@ -70,7 +70,7 @@ export default function AvailabilityPage() {
         setTimeout(() => {
           const targetEl = eventRefsMap.current[scrollToEventId];
           if (targetEl) {
-            targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
           }
           setScrollToEventId(null);
         }, 300);
@@ -79,7 +79,9 @@ export default function AvailabilityPage() {
       // Prioridad 2: scroll inicial al primer evento próximo
       if (firstUpcomingRef.current && !hasInitialScrolled) {
         setTimeout(() => {
-          firstUpcomingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (!scrollToEventId && firstUpcomingRef.current) {
+            firstUpcomingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
           setHasInitialScrolled(true);
         }, 300);
       }
@@ -350,18 +352,28 @@ export default function AvailabilityPage() {
               const matches = ev.linkedMatches || [];
               
               return (
-                <div 
-                  key={ev.id} 
-                  ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                  className="card" 
-                  style={{ 
-                    marginBottom: 12, 
-                    opacity: isPast || isCancelled ? 0.5 : 1,
-                    borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : isCancelled ? "4px solid var(--val-red)" : undefined,
-                    transition: "opacity 0.3s ease",
-                    scrollMarginTop: "100px"
-                  }}
-                >
+                <React.Fragment key={ev.id}>
+                  {isFirstUpcoming && (
+                    <div style={{ 
+                      display: "flex", alignItems: "center", gap: 12, margin: "24px 0 16px 0", 
+                      color: "var(--val-cyan)", fontSize: 12, fontWeight: 800, letterSpacing: 2 
+                    }}>
+                      <div style={{ flex: 1, height: 1, borderTop: "1px dashed rgba(0, 212, 170, 0.3)" }} />
+                      <span>HOY · {new Date().toLocaleDateString("es-ES", { day: "numeric", month: "short" }).toUpperCase()}</span>
+                      <div style={{ flex: 1, height: 1, borderTop: "1px dashed rgba(0, 212, 170, 0.3)" }} />
+                    </div>
+                  )}
+                  <div 
+                    ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
+                    className="card" 
+                    style={{ 
+                      marginBottom: 12, 
+                      opacity: isPast || isCancelled ? 0.5 : 1,
+                      borderLeft: isFirstUpcoming ? "4px solid var(--val-cyan)" : isCancelled ? "4px solid var(--val-red)" : undefined,
+                      transition: "opacity 0.3s ease",
+                      scrollMarginTop: "100px"
+                    }}
+                  >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -435,9 +447,9 @@ export default function AvailabilityPage() {
                     <>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                         <div className="progress-bar" style={{ flex: 1 }}>
-                          <div className="progress-fill" style={{ width: `${(confirmed / Math.max(players.length, 1)) * 100}%` }} />
+                          <div className="progress-fill" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
                         </div>
-                        <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/{players.length}</span>
+                        <span style={{ fontSize: 13, color: confirmed >= 5 ? "var(--val-cyan)" : "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/5</span>
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                         {players.map(p => {

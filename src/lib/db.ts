@@ -22,6 +22,7 @@ export const prisma =
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export const db = prisma;
+// Force client refresh
 export const dbReady = Promise.resolve();
 
 export async function withTransaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
