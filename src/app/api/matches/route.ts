@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         include: {
           player_stats: {
             include: {
-              player: { select: { name: true, riot_name: true, riot_tag: true, avatar_color: true } }
+              player: { select: { teamId: true, name: true, riot_name: true, riot_tag: true, avatar_color: true } }
             },
             orderBy: { score: 'desc' }
           }
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      const ourSide = match.player_stats.find(s => s.player_id !== null)?.team_id || "Blue";
+      const ourSide = match.player_stats.find(s => s.player?.teamId === teamId)?.team_id || "Blue";
 
       return NextResponse.json({ match: { ...match, our_team_side: ourSide }, playerStats });
     }
@@ -95,9 +95,11 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         include: {
           player_stats: {
-            select: { player_id: true },
-            where: { player_id: { not: null } },
-            take: 1
+            select: { 
+              team_id: true,
+              player: { select: { teamId: true } }
+            },
+            where: { player_id: { not: null } }
           },
           season: true // Traer info de la temporada
         },
@@ -124,9 +126,8 @@ export async function GET(req: NextRequest) {
         };
       }
 
-      // Determinar qué bando es el nuestro (el que tiene jugadores vinculados)
-      // En la query usamos include con un take: 1 de player_stats donde player_id != null
-      const ourSide = m.player_stats[0]?.team_id || "Blue";
+      // Determinar qué bando es el nuestro (el que tiene jugadores que pertenecen a nuestro equipo)
+      const ourSide = m.player_stats.find((s: any) => s.player?.teamId === teamId)?.team_id || "Blue";
 
       return {
         id: m.id,
