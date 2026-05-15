@@ -8,6 +8,7 @@
   --val-purple: #A855F7;
   --val-blue: #3B82F6;
   --val-yellow: #F59E0B;
+  --val-yellow-dark: #B45309;
   --val-gold: #D4AF37;
   --val-orange: #FF6B35;
   --bg-primary: #0A0A0F;
@@ -608,6 +609,7 @@ select option { background: var(--bg-secondary); }
   background: var(--bg-glass);
   border-radius: 3px;
   overflow: hidden;
+  display: flex;
 }
 
 .progress-fill {
@@ -615,6 +617,23 @@ select option { background: var(--bg-secondary); }
   border-radius: 3px;
   transition: width 0.5s ease;
   background: linear-gradient(90deg, var(--val-red), var(--val-red-dark));
+  flex-shrink: 0;
+}
+
+.progress-fill-cyan {
+  background: linear-gradient(90deg, var(--val-cyan), #00A383);
+}
+
+.progress-fill-maybe {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--val-yellow),
+    var(--val-yellow) 10px,
+    var(--val-yellow-dark) 10px,
+    var(--val-yellow-dark) 20px
+  );
+  opacity: 0.9;
+  flex-shrink: 0;
 }
 
 /* ── Channel tabs ── */

@@ -351,6 +351,7 @@ export default function AvailabilityPage() {
               
               const ea = avail[ev.id] || [];
               const confirmed = ea.filter(a => a.status === "available").length;
+              const maybeCount = ea.filter(a => a.status === "maybe").length;
               const unavailable = ea.filter(a => a.status === "unavailable").length;
               const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
               const isConfirmed = confirmed >= 5;
@@ -467,7 +468,8 @@ export default function AvailabilityPage() {
                     <>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                         <div className="progress-bar" style={{ flex: 1 }}>
-                          <div className="progress-fill" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                          <div className="progress-fill progress-fill-cyan" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                          <div className="progress-fill-maybe" style={{ width: `${Math.min((maybeCount / 5) * 100, Math.max(0, 100 - (confirmed / 5) * 100))}%` }} />
                         </div>
                         <span style={{ fontSize: 13, color: confirmed >= 5 ? "var(--val-cyan)" : "var(--text-secondary)", fontWeight: 600 }}>{confirmed}/5</span>
                       </div>
