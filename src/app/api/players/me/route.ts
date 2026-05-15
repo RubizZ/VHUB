@@ -26,13 +26,24 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { role, avatar_color } = body;
 
-  const player = await db.player.update({
-    where: { id: Number(playerId) },
-    data: {
-      role: role || undefined,
-      avatar_color: avatar_color || undefined
+  try {
+    const existingPlayer = await db.player.findUnique({ where: { id: Number(playerId) } });
+    if (!existingPlayer) {
+      console.error(`[PUT /api/players/me] Player not found with ID: ${playerId} (Type: ${typeof playerId})`);
+      return NextResponse.json({ error: "Player not found in database" }, { status: 404 });
     }
-  });
 
-  return NextResponse.json({ player });
+    const player = await db.player.update({
+      where: { id: Number(playerId) },
+      data: {
+        ...(role !== undefined && { role }),
+        ...(avatar_color !== undefined && { avatar_color })
+      }
+    });
+
+    return NextResponse.json({ player });
+  } catch (error) {
+    console.error("[PUT /api/players/me] Prisma Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
