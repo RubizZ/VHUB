@@ -33,6 +33,7 @@
   --header-height: 64px;
   --bottom-nav-height: 72px;
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-valorant: 'JetBrains Mono', monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -273,6 +274,51 @@ body::before {
 .card-title {
   font-size: 16px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title svg {
+  color: var(--val-red);
+}
+
+.glass-card {
+  background: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  border-color: var(--val-red);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--val-red-glow);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at 0% 0%, rgba(255, 70, 85, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 100% 100%, rgba(0, 212, 170, 0.08) 0%, transparent 40%);
+}
+
+.stat-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 100px; height: 100px;
+  background: linear-gradient(135deg, transparent 50%, var(--glow-color, var(--val-red)) 150%);
+  opacity: 0.1;
+  pointer-events: none;
 }
 
 /* ── Buttons ── */

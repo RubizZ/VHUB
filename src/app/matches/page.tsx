@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { findAgentById, ROLE_COLORS } from "@/lib/agents";
+import Link from "next/link";
 
 interface Match {
   id: number; riot_match_id: string; map_name: string; game_mode: string;
@@ -38,18 +39,13 @@ export default function MatchesPage() {
       const url = (season !== null && season !== undefined && season !== "") ? `/api/matches?season=${encodeURIComponent(season)}` : "/api/matches";
       const r = await fetch(url);
       const d = await r.json();
-
-      if (!r.ok) {
-        throw new Error(d.error || "Error al cargar los partidos");
-      }
-
+      if (!r.ok) throw new Error(d.error || "Error al cargar los partidos");
       setMatches(d.matches || []);
       if (d.seasons) setSeasons(d.seasons);
       if (d.activeSeasonId && season === null && selectedSeason === null) {
         setSelectedSeason(d.activeSeasonId);
       }
     } catch (err) {
-      console.error("[MatchesPage] fetchMatches error:", err);
       setError(err instanceof Error ? err.message : "Error al cargar los partidos");
     } finally {
       setLoading(false);
@@ -57,10 +53,9 @@ export default function MatchesPage() {
   };
 
   useEffect(() => {
-    fetchMatches(selectedSeason);
+    fetchMatches(selectedSeason || "");
   }, [selectedSeason]);
 
-  // Deep-link: auto-load match from ?id= query param
   useEffect(() => {
     if (deepLinkHandled || loading) return;
     const matchIdParam = searchParams.get("id");
@@ -70,7 +65,6 @@ export default function MatchesPage() {
       if (match && !match.isHidden) {
         loadMatch(match);
       } else if (!match) {
-        // Match not in current season list - load directly from API
         loadMatchById(matchId);
       }
       setDeepLinkHandled(true);
@@ -111,44 +105,25 @@ export default function MatchesPage() {
     setError(null);
     setSuccess(null);
     try {
-      // Get first player with puuid
       const pRes = await fetch("/api/players");
       const pData = await pRes.json();
-
-      if (!pRes.ok) {
-        throw new Error(pData.error || "Error al cargar jugadores");
-      }
-
       const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
-
       if (!playerWithPuuid) {
-        setError("Ningún jugador tiene un PUUID configurado. Ve a Ajustes y añade el Riot ID de un jugador.");
+        setError("Ningún jugador tiene un PUUID configurado.");
         setSyncing(false);
         return;
       }
-
       const res = await fetch("/api/matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" })
       });
-
       const data = await res.json();
-      if (!res.ok) {
-        const errMsg = typeof data.error === 'string' ? data.error : "Error en la sincronización";
-        if (errMsg.toLowerCase().includes("consentimiento")) {
-          setError("No has dado tu consentimiento para procesar tus datos. Ve a tu Perfil para activarlo.");
-        } else {
-          setError(errMsg);
-        }
-        return;
-      }
-
+      if (!res.ok) throw new Error(data.error || "Error en la sincronización");
       setSuccess(`Sincronización completada: ${data.synced} partidos procesados.`);
-      await fetchMatches(selectedSeason || "");
-    } catch (err) {
-      console.error("[MatchesPage] syncMatches error:", err);
-      setError(err instanceof Error ? err.message : "Error de conexión al servidor");
+      fetchMatches(selectedSeason || "");
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setSyncing(false);
     }
@@ -156,6 +131,12 @@ export default function MatchesPage() {
 
   const formatDuration = (ms: number) => { const m = Math.floor(ms / 60000); return `${m}min`; };
   const formatDate = (d: string) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const winRate = useMemo(() => {
+    if (matches.length === 0) return 0;
+    const wins = matches.filter(m => (m.our_team_side === 'Blue' ? m.team_blue_won : !m.team_blue_won)).length;
+    return Math.round((wins / matches.length) * 100);
+  }, [matches]);
 
   const blueTeam = stats.filter(s => s.team_id === "Blue");
   const redTeam = stats.filter(s => s.team_id === "Red");
@@ -165,188 +146,189 @@ export default function MatchesPage() {
     const acs = p.rounds_played > 0 ? Math.round(p.score / p.rounds_played) : 0;
     const kd = p.deaths > 0 ? (p.kills / p.deaths).toFixed(2) : p.kills.toString();
     return (
-      <tr key={p.id}>
-        <td style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <tr key={p.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+        <td style={{ padding: "12px 8px", display: "flex", alignItems: "center", gap: 12 }}>
           {agent && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={agent.displayIcon} alt={agent.name} style={{ width: 24, height: 24, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[agent.role]}` }} />
+            <img src={agent.displayIcon} alt={agent.name} style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[agent.role] || 'var(--val-red)'}` }} />
           )}
-          <span>{p.player_name || p.puuid?.substring(0, 8) || "?"}</span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontWeight: 600 }}>{p.player_name || p.puuid?.substring(0, 8) || "?"}</span>
+            <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>{agent?.name || "?" }</span>
+          </div>
         </td>
-        <td style={{ textAlign: "center" }}>{agent?.name || "?"}</td>
-        <td style={{ textAlign: "center", fontWeight: 700 }}>{p.kills}</td>
-        <td style={{ textAlign: "center", color: "#FF4655" }}>{p.deaths}</td>
-        <td style={{ textAlign: "center", color: "#00D4AA" }}>{p.assists}</td>
-        <td style={{ textAlign: "center", fontWeight: 600, color: parseFloat(kd as string) >= 1 ? "#00D4AA" : "#FF4655" }}>{kd}</td>
-        <td style={{ textAlign: "center" }}>{acs}</td>
+        <td style={{ textAlign: "center", fontWeight: 800, fontSize: 16 }}>{p.kills}</td>
+        <td style={{ textAlign: "center", color: "rgba(255,70,85,0.6)" }}>{p.deaths}</td>
+        <td style={{ textAlign: "center", color: "rgba(0,212,170,0.6)" }}>{p.assists}</td>
+        <td style={{ textAlign: "center", fontWeight: 700, color: parseFloat(kd as string) >= 1 ? "var(--val-cyan)" : "var(--val-red)" }}>{kd}</td>
+        <td style={{ textAlign: "center", fontWeight: 600 }}>{acs}</td>
       </tr>
     );
   };
 
   return (
-    <>
-      <div className="page-header">
-        <h2>🏆 Partidos de Premier</h2>
-        <p>Historial competitivo y estadísticas de temporada</p>
-      </div>
-      <div className="page-content animate-in">
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-          {error && (
-            <div className="card" style={{ border: "1px solid var(--val-red)", background: "rgba(255,70,85,0.05)", color: "var(--val-red)", padding: "12px 16px", fontSize: 14 }}>
-              ⚠️ {error}
-            </div>
-          )}
-          {success && (
-            <div className="card" style={{ border: "1px solid var(--val-cyan)", background: "rgba(0,212,170,0.05)", color: "var(--val-cyan)", padding: "12px 16px", fontSize: 14 }}>
-              ✅ {success}
-            </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>
-                {syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar Premier"}
-              </button>
-            </div>
-
-            {seasons.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14, color: "var(--text-muted)" }}>Temporada:</span>
-                <select
-                  className="card"
-                  style={{ padding: "6px 12px", background: "var(--card-bg)", color: "white", border: "1px solid var(--border-color)", borderRadius: 4 }}
-                  value={selectedSeason || ""}
-                  onChange={(e) => setSelectedSeason(e.target.value)}
-                >
-                  <option value="">Todas las temporadas</option>
-                  {seasons.map(s => (
-                    <option key={s.id} value={s.id}>{s.name || s.id}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+    <div className="matches-wrapper">
+      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Historial de Partidos</h1>
+            <p style={{ fontSize: 14, marginTop: 4 }}>Análisis detallado de tu rendimiento en Premier</p>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+             <button className="btn btn-primary" onClick={syncMatches} disabled={syncing}>
+                {syncing ? "⏳ Sincronizando..." : "🔄 Sincronizar Partidos"}
+             </button>
           </div>
         </div>
 
-        {loading && !syncing ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>Cargando partidos...</div>
-        ) : !selected ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {matches.map(m => (
-              <div
-                key={m.id}
-                className="card"
-                style={{ cursor: m.isHidden ? "default" : "pointer", opacity: m.isHidden ? 0.7 : 1 }}
-                onClick={() => loadMatch(m)}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700 }}>{m.isHidden ? "Partido Privado" : m.map_name}</h3>
-                  <span className={`tag ${m.queue_id?.toLowerCase() === "premier" ? "tag-gold" : "tag-blue"}`}>{m.queue_id || "premier"}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, gap: 16 }}>
+           <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+              <SeasonTab active={selectedSeason === null} label="Todas" onClick={() => setSelectedSeason(null)} />
+              {seasons.map(s => (
+                <SeasonTab key={s.id} active={selectedSeason === s.id} label={s.name || s.id} onClick={() => setSelectedSeason(s.id)} />
+              ))}
+           </div>
+           {matches.length > 0 && (
+             <div className="glass-card" style={{ padding: "8px 16px", borderRadius: 12, display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ textAlign: "center" }}>
+                   <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Win Rate</div>
+                   <div style={{ fontSize: 18, fontWeight: 800, color: "var(--val-cyan)" }}>{winRate}%</div>
                 </div>
-
-                {m.isHidden ? (
-                  <div style={{ padding: "12px 0", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
-                    🔒 {m.reason || "Sin consentimiento de datos"}
-                  </div>
-                ) : (
-                   <>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, margin: "12px 0" }}>
-                      <span style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
-                        {m.our_team_side === "Blue" ? m.team_blue_score : m.team_red_score}
-                      </span>
-                      <span style={{ fontSize: 14, color: "var(--text-muted)" }}>vs</span>
-                      <span style={{ fontSize: 28, fontWeight: 800, color: (m.our_team_side === "Blue" ? !m.team_blue_won : m.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
-                        {m.our_team_side === "Blue" ? m.team_red_score : m.team_blue_score}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                  <span>{formatDate(m.game_start)}</span>
-                  {!m.isHidden && <span>{formatDuration(m.game_length_ms)}</span>}
+                <div style={{ width: 1, height: 24, background: "var(--border-color)" }} />
+                <div style={{ textAlign: "center" }}>
+                   <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Jugados</div>
+                   <div style={{ fontSize: 18, fontWeight: 800 }}>{matches.length}</div>
                 </div>
-                {m.event_id && !m.isHidden && <span style={{ fontSize: 11, color: "#00D4AA", marginTop: 4, display: "block" }}>📅 Vinculado a evento</span>}
+             </div>
+           )}
+        </div>
+      </div>
+
+      <div className="page-content animate-in" style={{ paddingTop: 0 }}>
+        {error && <div className="card" style={{ background: "rgba(255,70,85,0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 16 }}>{error}</div>}
+        {success && <div className="card" style={{ background: "rgba(0,212,170,0.1)", border: "1px solid var(--val-cyan)", color: "var(--val-cyan)", marginBottom: 16 }}>{success}</div>}
+
+        {!selected ? (
+          <div className="grid grid-2" style={{ gap: 16 }}>
+            {loading && matches.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 40, color: "var(--text-muted)" }}>Cargando...</div>
+            ) : (
+              matches.map(m => (
+                <MatchCard key={m.id} match={m} onClick={() => loadMatch(m)} />
+              ))
+            )}
+            {matches.length === 0 && !loading && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <EmptyState message="No hay partidos registrados para esta temporada." />
               </div>
-            ))}
-            {matches.length === 0 && <p style={{ color: "var(--text-muted)" }}>No hay partidos sincronizados. Configura tu Riot API key y sincroniza.</p>}
+            )}
           </div>
         ) : (
-          <>
-            <button className="btn btn-ghost" style={{ marginBottom: 16 }} onClick={() => { setSelected(null); setStats([]); }}>← Volver</button>
-             <div className="card" style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
+          <div className="animate-in">
+            <button className="btn btn-ghost" style={{ marginBottom: 20, paddingLeft: 0 }} onClick={() => { setSelected(null); setStats([]); }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 8 }}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Volver al historial
+            </button>
+
+            <div className="card glass-card" style={{ marginBottom: 24, overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: (selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won) ? "var(--val-cyan)" : "var(--val-red)" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 32 }}>
                 <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 700 }}>{selected.map_name}</h3>
-                  <p style={{ color: "var(--text-muted)", margin: 0 }}>{formatDate(selected.game_start)} · {formatDuration(selected.game_length_ms)}</p>
+                  <h2 style={{ fontSize: 28, fontWeight: 800 }}>{selected.map_name}</h2>
+                  <p style={{ color: "var(--text-secondary)", marginTop: 4 }}>{formatDate(selected.game_start)} • {selected.queue_id || "Premier"}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Tu Equipo</div>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: (selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won) ? "var(--val-cyan)" : "var(--text-muted)" }}>
-                      {selected.our_team_side === "Blue" ? selected.team_blue_score : selected.team_red_score}
-                    </div>
-                    <div style={{ fontSize: 11, color: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655", fontWeight: 700 }}>
-                      Empezó {selected.our_team_side === "Blue" ? "Defendiendo" : "Atacando"}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 20, color: "var(--text-muted)", marginTop: 16 }}>—</span>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Rival</div>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: (selected.our_team_side === "Blue" ? !selected.team_blue_won : selected.team_blue_won) ? "var(--val-red)" : "var(--text-muted)" }}>
-                      {selected.our_team_side === "Blue" ? selected.team_red_score : selected.team_blue_score}
-                    </div>
-                    <div style={{ fontSize: 11, color: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6", fontWeight: 700 }}>
-                      Empezó {selected.our_team_side === "Blue" ? "Atacando" : "Defendiendo"}
-                    </div>
-                  </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+                   <ScoreBlock label="Tu Equipo" score={selected.our_team_side === "Blue" ? selected.team_blue_score : selected.team_red_score} color="var(--val-cyan)" win={selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won} />
+                   <div style={{ fontSize: 24, fontWeight: 200, color: "var(--text-muted)" }}>VS</div>
+                   <ScoreBlock label="Rival" score={selected.our_team_side === "Blue" ? selected.team_red_score : selected.team_blue_score} color="var(--val-red)" win={selected.our_team_side === "Blue" ? !selected.team_blue_won : selected.team_blue_won} />
                 </div>
               </div>
             </div>
 
-            {[
-              { 
-                label: "Tu Equipo", 
-                team: selected.our_team_side === "Blue" ? blueTeam : redTeam, 
-                color: "var(--val-cyan)",
-                side: selected.our_team_side === "Blue" ? "Defensa" : "Ataque",
-                sideColor: selected.our_team_side === "Blue" ? "#3B82F6" : "#FF4655"
-              },
-              { 
-                label: "Equipo Rival", 
-                team: selected.our_team_side === "Blue" ? redTeam : blueTeam, 
-                color: "var(--val-red)",
-                side: selected.our_team_side === "Blue" ? "Ataque" : "Defensa",
-                sideColor: selected.our_team_side === "Blue" ? "#FF4655" : "#3B82F6"
-              }
-            ].map(({ label, team, color, side, sideColor }) => (
-              <div key={label} className="card" style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                  <h4 style={{ color, fontWeight: 700, margin: 0 }}>{label}</h4>
-                  <span style={{ fontSize: 11, color: sideColor, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                    Empezó en {side}
-                  </span>
-                </div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>Jugador</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>Agente</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>K</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>D</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>A</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>K/D</th>
-                        <th style={{ textAlign: "center", padding: "6px 8px" }}>ACS</th>
-                      </tr>
-                    </thead>
-                    <tbody>{team.map(renderPlayerRow)}</tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-          </>
+            <div className="grid grid-2" style={{ gap: 24, alignItems: "start" }}>
+               {[
+                 { label: "Estadísticas de tu Equipo", team: selected.our_team_side === "Blue" ? blueTeam : redTeam, color: "var(--val-cyan)" },
+                 { label: "Estadísticas del Rival", team: selected.our_team_side === "Blue" ? redTeam : blueTeam, color: "var(--val-red)" }
+               ].map(t => (
+                 <div key={t.label} className="card glass-card" style={{ padding: 20 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: t.color }}>{t.label}</h3>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                            <th style={{ textAlign: "left", padding: "0 8px 12px" }}>Jugador</th>
+                            <th style={{ textAlign: "center", padding: "0 8px 12px" }}>K</th>
+                            <th style={{ textAlign: "center", padding: "0 8px 12px" }}>D</th>
+                            <th style={{ textAlign: "center", padding: "0 8px 12px" }}>A</th>
+                            <th style={{ textAlign: "center", padding: "0 8px 12px" }}>K/D</th>
+                            <th style={{ textAlign: "center", padding: "0 8px 12px" }}>ACS</th>
+                          </tr>
+                        </thead>
+                        <tbody>{t.team.map(renderPlayerRow)}</tbody>
+                      </table>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
         )}
       </div>
-    </>
+    </div>
+  );
+}
+
+function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
+  const isWin = match.team_blue_won === (match.our_team_side === 'Blue');
+  return (
+    <div className="card glass-card hover-lift" onClick={onClick} style={{ cursor: "pointer", padding: 20, borderLeft: `4px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+           <div style={{ fontWeight: 800, fontSize: 18 }}>{match.map_name}</div>
+           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{new Date(match.game_start).toLocaleDateString()}</div>
+        </div>
+        <div className={`tag ${isWin ? 'tag-green' : 'tag-red'}`} style={{ height: "fit-content" }}>
+          {isWin ? 'VICTORIA' : 'DERROTA'}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 24, fontWeight: 800, color: isWin ? 'var(--val-cyan)' : 'var(--text-primary)' }}>
+          {match.our_team_side === 'Blue' ? match.team_blue_score : match.team_red_score}
+        </div>
+        <div style={{ color: "var(--text-muted)", fontSize: 12 }}>—</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: !isWin ? 'var(--val-red)' : 'var(--text-primary)' }}>
+          {match.our_team_side === 'Blue' ? match.team_red_score : match.team_blue_score}
+        </div>
+        <div style={{ marginLeft: "auto", textAlign: "right" }}>
+           <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{match.queue_id || "Premier"}</div>
+           <div style={{ fontSize: 11, color: "var(--val-red)", fontWeight: 800, marginTop: 2 }}>DETALLES →</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreBlock({ label, score, color, win }: any) {
+  return (
+    <div style={{ textAlign: "center" }}>
+       <div style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{label}</div>
+       <div style={{ fontSize: 48, fontWeight: 900, color: win ? color : "var(--text-primary)", opacity: win ? 1 : 0.4 }}>{score}</div>
+       {win && <div style={{ fontSize: 11, fontWeight: 800, color, marginTop: 4 }}>GANADOR</div>}
+    </div>
+  );
+}
+
+function SeasonTab({ active, label, onClick }: any) {
+  return (
+    <button onClick={onClick} className={`btn btn-sm ${active ? 'btn-primary' : 'btn-ghost'}`} style={{ whiteSpace: "nowrap" }}>
+      {label}
+    </button>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
+      <div style={{ fontSize: 32, marginBottom: 16 }}>🎮</div>
+      <p style={{ fontSize: 14 }}>{message}</p>
+    </div>
   );
 }

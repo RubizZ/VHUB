@@ -33,23 +33,17 @@ export default function StrategiesPage() {
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  // Load compositions for a map
   const loadComps = (mapId: string) => fetch(`/api/compositions?map_id=${mapId}`).then(r => r.json()).then(d => setCompositions(d.compositions || []));
-  // Load strategies for a composition
   const loadStrats = (compId: number) => fetch(`/api/strategies?composition_id=${compId}`).then(r => r.json()).then(d => setStrategies(d.strategies || []));
 
-  // Navigate to map
   const goToMap = (map: ValorantMap) => { setSelectedMap(map); setView("compositions"); loadComps(map.id); };
-  // Navigate to composition
   const goToComp = (comp: Composition) => { setSelectedComp(comp); setView("strategies"); loadStrats(comp.id); };
-  // Navigate back
   const goBack = () => {
     if (view === "editor") { setCurrent(null); setView("strategies"); }
     else if (view === "strategies") { setSelectedComp(null); setView("compositions"); }
     else if (view === "compositions") { setSelectedMap(null); setView("maps"); }
   };
 
-  // Preload map image
   useEffect(() => {
     if (!selectedMap?.displayIcon) return;
     const img = new Image();
@@ -58,7 +52,6 @@ export default function StrategiesPage() {
     img.onload = () => { mapImgRef.current = img; };
   }, [selectedMap]);
 
-  // Canvas redraw with real minimap
   const redraw = useCallback(() => {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
@@ -67,7 +60,6 @@ export default function StrategiesPage() {
     ctx.fillStyle = "#0a0e14";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw minimap
     const mapImg = mapImgRef.current;
     if (mapImg && mapImg.complete) {
       const scale = Math.min(canvas.width / mapImg.width, canvas.height / mapImg.height);
@@ -79,7 +71,6 @@ export default function StrategiesPage() {
       ctx.drawImage(mapImg, ox, oy, w, h);
       ctx.globalAlpha = 1;
     } else {
-      // Fallback: map name
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       ctx.font = "bold 60px Outfit, sans-serif";
       ctx.textAlign = "center";
@@ -87,14 +78,12 @@ export default function StrategiesPage() {
       ctx.textAlign = "start";
     }
 
-    // Side indicator
     ctx.fillStyle = selectedSide === "attack" ? "rgba(255,70,85,0.15)" : "rgba(59,130,246,0.15)";
     ctx.fillRect(0, 0, 4, canvas.height);
     ctx.fillStyle = selectedSide === "attack" ? "#FF4655" : "#3B82F6";
     ctx.font = "bold 11px Outfit, sans-serif";
     ctx.fillText(selectedSide === "attack" ? "ATK" : "DEF", 10, 18);
 
-    // Draw paths
     for (const path of pathsRef.current) {
       if (path.points.length < 2) continue;
       ctx.beginPath();
@@ -119,7 +108,6 @@ export default function StrategiesPage() {
       }
     }
 
-    // Draw agents with real icons
     for (const a of agentsRef.current) {
       const img = agentImgsRef.current.get(a.id);
       const agent = findAgentById(a.id);
@@ -177,7 +165,6 @@ export default function StrategiesPage() {
 
   const dropAgent = (a: ValorantAgent) => {
     const c = canvasRef.current; if (!c) return;
-    // Preload agent icon
     if (!agentImgsRef.current.has(a.id)) {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -226,83 +213,101 @@ export default function StrategiesPage() {
   const colors2 = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#FFFFFF", "#FFD700"];
 
   return (
-    <>
-      <div className="page-header">
-        <h2>🗺️ Estrategias</h2>
-        <p>{view === "maps" ? "Selecciona un mapa" : view === "compositions" ? `${selectedMap?.name} — Composiciones` : view === "strategies" ? `${selectedComp?.name} — Estrategias` : `Editando — ${current?.name}`}</p>
+    <div className="strategies-wrapper">
+      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>🗺️ Centro Táctico</h1>
+            <p style={{ fontSize: 14, marginTop: 4 }}>
+              {view === "maps" ? "Selecciona un mapa para ver sus estrategias" : 
+               view === "compositions" ? `${selectedMap?.name} — Gestiona tus composiciones` : 
+               view === "strategies" ? `${selectedComp?.name} — Biblioteca de tácticas` : 
+               `Editor Táctico — ${current?.name}`}
+            </p>
+          </div>
+          {view !== "maps" && (
+            <button className="btn btn-ghost" onClick={goBack}>
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 8 }}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+               Volver
+            </button>
+          )}
+        </div>
       </div>
-      <div className="page-content animate-in">
-        {view !== "maps" && (
-          <button className="btn btn-ghost" style={{ marginBottom: 16 }} onClick={goBack}>← Volver</button>
-        )}
 
-        {/* MAP GRID */}
+      <div className="page-content animate-in" style={{ paddingTop: 0 }}>
+        
         {view === "maps" && (
-          <div className="grid grid-auto">
+          <div className="grid grid-4" style={{ gap: 20 }}>
             {competitiveMaps.map(m => (
-              <div key={m.id} className="card" style={{ cursor: "pointer", padding: 0, overflow: "hidden" }} onClick={() => goToMap(m)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={m.listViewIconTall} alt={m.name} style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
-                <div style={{ padding: "12px 16px" }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700 }}>{m.name}</h3>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{m.tacticalDescription}</span>
+              <div key={m.id} className="card glass-card hover-lift" style={{ cursor: "pointer", padding: 0, overflow: "hidden" }} onClick={() => goToMap(m)}>
+                <div style={{ position: "relative", height: 240 }}>
+                  <img src={m.listViewIconTall} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,10,15,1) 0%, transparent 60%)" }} />
+                  <div style={{ position: "absolute", bottom: 20, left: 20 }}>
+                    <h3 style={{ fontSize: 22, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>{m.name}</h3>
+                    <span style={{ fontSize: 11, color: "var(--val-red)", fontWeight: 800, letterSpacing: 2 }}>{m.tacticalDescription?.toUpperCase() || 'COMPETITIVO'}</span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* COMPOSITIONS LIST */}
         {view === "compositions" && (
-          <>
-            <button className="btn btn-primary" style={{ marginBottom: 16 }} onClick={() => setShowNewComp(true)}>+ Nueva Composición</button>
-            <div className="grid grid-auto">
+          <div className="animate-in">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Composiciones Disponibles</h2>
+               <button className="btn btn-primary" onClick={() => setShowNewComp(true)}>+ Crear Nueva</button>
+            </div>
+            <div className="grid grid-3" style={{ gap: 20 }}>
               {compositions.map(c => {
                 const agents = getAgentIcons(c);
                 return (
-                  <div key={c.id} className="card" style={{ cursor: "pointer" }} onClick={() => goToComp(c)}>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{c.name}</h3>
-                    <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+                  <div key={c.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => goToComp(c)}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16 }}>{c.name}</h3>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                       {agents.map(a => (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img key={a.id} src={a.displayIcon} alt={a.name} title={a.name} style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role]}`, background: "#1a1a2e" }} />
+                        <img key={a.id} src={a.displayIcon} alt={a.name} title={a.name} style={{ width: 36, height: 36, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, background: "rgba(0,0,0,0.3)" }} />
                       ))}
                     </div>
-                    {c.description && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>{c.description}</p>}
+                    {c.description && <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{c.description}</p>}
                   </div>
                 );
               })}
-              {compositions.length === 0 && <p style={{ color: "var(--text-muted)" }}>No hay composiciones para {selectedMap?.name}. ¡Crea la primera!</p>}
+              {compositions.length === 0 && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <EmptyState message={`No hay composiciones para ${selectedMap?.name}.`} />
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
 
-        {/* STRATEGIES LIST */}
         {view === "strategies" && selectedComp && (
-          <>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-              <button className="btn btn-primary" onClick={() => setShowNewStrat(true)}>+ Nueva Estrategia</button>
-              <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-                {getAgentIcons(selectedComp).map(a => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={a.id} src={a.displayIcon} alt={a.name} title={a.name} style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role]}` }} />
-                ))}
-              </div>
+          <div className="animate-in">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Estrategias para {selectedComp.name}</h2>
+               <button className="btn btn-primary" onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
             </div>
             {(["attack", "defense"] as const).map(side => {
               const sideStrats = strategies.filter(s => s.side === side);
               if (sideStrats.length === 0) return null;
               return (
-                <div key={side} style={{ marginBottom: 20 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 700, color: side === "attack" ? "#FF4655" : "#3B82F6", textTransform: "uppercase", marginBottom: 8 }}>
-                    {side === "attack" ? "⚔️ Ataque" : "🛡️ Defensa"}
-                  </h4>
-                  <div className="grid grid-auto">
+                <div key={side} style={{ marginBottom: 32 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <div style={{ width: 4, height: 16, background: side === "attack" ? "var(--val-red)" : "var(--val-cyan)", borderRadius: 2 }} />
+                    <h4 style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
+                      {side === "attack" ? "Misiones de Ataque" : "Estrategias Defensivas"}
+                    </h4>
+                  </div>
+                  <div className="grid grid-3" style={{ gap: 20 }}>
                     {sideStrats.map(s => (
-                      <div key={s.id} className="card" style={{ cursor: "pointer" }} onClick={() => openEditor(s)}>
+                      <div key={s.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => openEditor(s)}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <h3 style={{ fontSize: 15, fontWeight: 600 }}>{s.name}</h3>
-                          <span className={`tag ${s.side === "attack" ? "tag-red" : "tag-blue"}`}>{s.side === "attack" ? "ATK" : "DEF"}</span>
+                          <h3 style={{ fontSize: 16, fontWeight: 700 }}>{s.name}</h3>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: s.side === "attack" ? "var(--val-red)" : "var(--val-cyan)" }}>
+                            {s.side === "attack" ? "ATK" : "DEF"}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -310,101 +315,106 @@ export default function StrategiesPage() {
                 </div>
               );
             })}
-            {strategies.length === 0 && <p style={{ color: "var(--text-muted)" }}>No hay estrategias para esta composición. ¡Crea la primera!</p>}
-          </>
+            {strategies.length === 0 && <EmptyState message="Aún no hay estrategias creadas." />}
+          </div>
         )}
 
-        {/* STRATEGY EDITOR */}
         {view === "editor" && current && (
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 600px" }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-                <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} style={{ borderColor: selectedSide === "attack" ? "#FF4655" : undefined, background: selectedSide === "attack" ? "#FF465522" : undefined }} onClick={() => { setSelectedSide("attack"); setTimeout(redraw, 50); }}>⚔️ ATK</button>
-                <button className={`btn btn-sm ${selectedSide === "defense" ? "btn-primary" : "btn-ghost"}`} style={{ borderColor: selectedSide === "defense" ? "#3B82F6" : undefined, background: selectedSide === "defense" ? "#3B82F622" : undefined }} onClick={() => { setSelectedSide("defense"); setTimeout(redraw, 50); }}>🛡️ DEF</button>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  <button className="btn btn-secondary btn-sm" onClick={saveStrategy}>💾 Guardar</button>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 800px" }}>
+              <div className="card glass-card" style={{ padding: 12, marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div className="glass-card" style={{ display: "flex", padding: 4, borderRadius: 8 }}>
+                   <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("attack"); setTimeout(redraw, 50); }}>⚔️ Atacante</button>
+                   <button className={`btn btn-sm ${selectedSide === "defense" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("defense"); setTimeout(redraw, 50); }}>🛡️ Defensor</button>
+                </div>
+                <div style={{ width: 1, height: 24, background: "var(--border-color)" }} />
+                <div className="strategy-toolbar" style={{ border: "none", padding: 0, display: "flex", gap: 4 }}>
+                  {([["select", "👆"], ["draw", "✏️"], ["arrow", "➡️"], ["eraser", "🧹"]] as [Tool, string][]).map(([t, ic]) => (
+                    <button key={t} className={`tool-btn ${tool === t ? "active" : ""}`} onClick={() => setTool(t)} style={{ background: tool === t ? 'rgba(255,255,255,0.1)' : 'transparent', border: '1px solid var(--border-color)', borderRadius: 6, width: 36, height: 36, cursor: "pointer" }}>{ic}</button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                   {colors2.map(c => (<button key={c} className="tool-btn" style={{ background: color === c ? `${c}33` : "transparent", border: color === c ? `2px solid ${c}` : "1px solid transparent", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setColor(c)}><div style={{ width: 14, height: 14, borderRadius: "50%", background: c }} /></button>))}
+                </div>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => { pathsRef.current.pop(); redraw(); }}>↩ Deshacer</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => { pathsRef.current = []; agentsRef.current = []; redraw(); }}>🗑️</button>
+                  <button className="btn btn-primary btn-sm" onClick={saveStrategy}>💾 Guardar Cambios</button>
                 </div>
               </div>
-              <div className="strategy-toolbar" style={{ marginBottom: 8 }}>
-                {([["select", "👆"], ["draw", "✏️"], ["arrow", "➡️"], ["eraser", "🧹"]] as [Tool, string][]).map(([t, ic]) => (
-                  <button key={t} className={`tool-btn ${tool === t ? "active" : ""}`} onClick={() => setTool(t)}>{ic}</button>
-                ))}
-                <div style={{ width: 1, background: "var(--border-color)", margin: "0 4px" }} />
-                {colors2.map(c => (<button key={c} className="tool-btn" style={{ background: color === c ? `${c}33` : "transparent", border: color === c ? `2px solid ${c}` : "1px solid transparent" }} onClick={() => setColor(c)}><div style={{ width: 14, height: 14, borderRadius: "50%", background: c }} /></button>))}
-              </div>
-              <div className="strategy-canvas-wrap">
-                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : "crosshair", touchAction: "none", borderRadius: 8 }}
+              <div className="strategy-canvas-wrap glass-card" style={{ padding: 0, overflow: "hidden", border: "1px solid var(--border-color)" }}>
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : "crosshair", touchAction: "none" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
               </div>
             </div>
-            <div style={{ flex: "0 0 200px" }}>
-              <div className="card" style={{ position: "sticky", top: 80 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Agentes</h4>
-                {Object.entries(byRole).map(([role, agents]) => (
-                  <div key={role} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, color: ROLE_COLORS[role as keyof typeof ROLE_COLORS], fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{role}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                      {agents.map(a => (
-                        <button key={a.id} className="tool-btn" title={a.name} onClick={() => dropAgent(a)} style={{ padding: 2, width: 32, height: 32 }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={a.displayIcon} alt={a.name} style={{ width: 24, height: 24, borderRadius: "50%" }} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* NEW COMPOSITION MODAL */}
-        {showNewComp && (
-          <div className="modal-overlay" onClick={() => setShowNewComp(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
-              <h3>Nueva Composición — {selectedMap?.name}</h3>
-              <div className="form-group"><label>Nombre</label><input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Double Duelist Agro" autoFocus /></div>
-              <div className="form-group"><label>Descripción (opcional)</label><input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Notas sobre esta composición..." /></div>
-              <h4 style={{ fontSize: 13, fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Agentes (5)</h4>
-              {compAgents.map((agentId, idx) => (
-                <div key={idx} className="form-group" style={{ marginBottom: 6 }}>
-                  <select value={agentId} onChange={e => { const next = [...compAgents]; next[idx] = e.target.value; setCompAgents(next); }} style={{ padding: "6px 10px" }}>
-                    <option value="">— Agente {idx + 1} —</option>
-                    {AGENTS.map(a => <option key={a.id} value={a.id} disabled={compAgents.includes(a.id) && compAgents[idx] !== a.id}>{a.name} ({a.role})</option>)}
-                  </select>
+            <div style={{ flex: "0 0 240px" }}>
+              <div className="card glass-card" style={{ position: "sticky", top: 80 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Agentes de Comp.</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {selectedComp && getAgentIcons(selectedComp).map(a => (
+                    <button key={a.id} className="card hover-lift" onClick={() => dropAgent(a)} style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.02)", cursor: "pointer", border: "1px solid var(--border-color)" }}>
+                      <img src={a.displayIcon} alt={a.name} style={{ width: 40, height: 40, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, marginBottom: 4 }} />
+                      <div style={{ fontSize: 10, fontWeight: 700 }}>{a.name.toUpperCase()}</div>
+                    </button>
+                  ))}
                 </div>
-              ))}
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
-                <button className="btn btn-ghost" onClick={() => setShowNewComp(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={createComp} disabled={compAgents.some(a => !a)}>Crear</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* NEW STRATEGY MODAL */}
-        {showNewStrat && (
-          <div className="modal-overlay" onClick={() => setShowNewStrat(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>Nueva Estrategia</h3>
-              <div className="form-group"><label>Nombre</label><input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: B Rush Fake A" autoFocus /></div>
-              <div className="form-group"><label>Lado</label>
-                <select value={selectedSide} onChange={e => setSelectedSide(e.target.value as "attack" | "defense")}>
-                  <option value="attack">Atacante</option>
-                  <option value="defense">Defensor</option>
-                </select>
-              </div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn btn-ghost" onClick={() => setShowNewStrat(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={createStrat}>Crear</button>
               </div>
             </div>
           </div>
         )}
       </div>
-    </>
+
+      {showNewComp && (
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="card glass-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, width: "90%" }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Nueva Composición — {selectedMap?.name}</h3>
+            <div className="form-group" style={{ marginBottom: 16 }}><label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nombre</label><input className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Double Duelist Agro" autoFocus /></div>
+            <div className="form-group" style={{ marginBottom: 16 }}><label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Descripción (opcional)</label><input className="input-field" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Notas sobre esta composición..." /></div>
+            <h4 style={{ fontSize: 13, fontWeight: 800, marginTop: 20, marginBottom: 12, textTransform: "uppercase" }}>Selección de Agentes</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {compAgents.map((agentId, idx) => (
+                <select key={idx} className="input-field" value={agentId} onChange={e => { const next = [...compAgents]; next[idx] = e.target.value; setCompAgents(next); }}>
+                  <option value="">— Agente {idx + 1} —</option>
+                  {AGENTS.map(a => <option key={a.id} value={a.id} disabled={compAgents.includes(a.id) && compAgents[idx] !== a.id}>{a.name} ({a.role})</option>)}
+                </select>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 24 }}>
+              <button className="btn btn-secondary" onClick={() => setShowNewComp(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={createComp} disabled={compAgents.some(a => !a)}>Crear Composición</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNewStrat && (
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="card glass-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 400, width: "90%" }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Nueva Estrategia</h3>
+            <div className="form-group" style={{ marginBottom: 16 }}><label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nombre</label><input className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: B Rush Fake A" autoFocus /></div>
+            <div className="form-group" style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Lado Inicial</label>
+              <select className="input-field" value={selectedSide} onChange={e => setSelectedSide(e.target.value as "attack" | "defense")}>
+                <option value="attack">Atacante (⚔️)</option>
+                <option value="defense">Defensor (🛡️)</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button className="btn btn-secondary" onClick={() => setShowNewStrat(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={createStrat}>Comenzar a Dibujar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
+      <div style={{ fontSize: 32, marginBottom: 16 }}>🎯</div>
+      <p style={{ fontSize: 14 }}>{message}</p>
+    </div>
   );
 }
