@@ -10,7 +10,7 @@ async function main() {
     where: { slug: "7r-premier" },
     update: {},
     create: {
-      name: "7R Premier",
+      name: "SevenR Premier",
       slug: "7r-premier",
     },
   });

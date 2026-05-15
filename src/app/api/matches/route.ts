@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getRiotClient } from "@/lib/riot/client";
 import { findMapByUrl } from "@/lib/maps";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const { searchParams } = new URL(req.url);
   const matchId = searchParams.get("id");
 
   if (matchId) {
     const match = await db.match.findFirst({
       where: {
+        teamId,
         OR: [
           { id: isNaN(Number(matchId)) ? -1 : Number(matchId) },
           { riot_match_id: matchId }
@@ -38,6 +44,7 @@ export async function GET(req: NextRequest) {
   }
 
   const matches = await db.match.findMany({
+    where: { teamId },
     select: {
       id: true,
       riot_match_id: true,
@@ -59,6 +66,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const body = await req.json();
   const { puuid, action } = body;
 
@@ -73,8 +84,19 @@ export async function POST(req: NextRequest) {
       let synced = 0;
 
       for (const entry of matchlist.history.slice(0, 10)) {
-        const existing = await db.match.findUnique({ where: { riot_match_id: entry.matchId } });
-        if (existing) continue;
+        const existing = await db.match.findUnique({ 
+          where: { riot_match_id: entry.matchId } 
+        });
+        
+        // Si ya existe pero no tiene teamId (migración), o si queremos que aparezca en múltiples equipos
+        // En este caso, si ya existe el registro global, lo vinculamos si no lo está
+        if (existing) {
+          if (!existing.teamId) {
+            await db.match.update({ where: { id: existing.id }, data: { teamId } });
+            synced++;
+          }
+          continue;
+        }
 
         try {
           const matchData = await client.getMatch(entry.matchId);
@@ -87,6 +109,7 @@ export async function POST(req: NextRequest) {
           const newMatch = await db.$transaction(async (tx) => {
             const m = await tx.match.create({
               data: {
+                teamId,
                 riot_match_id: matchData.matchInfo.matchId,
                 map_id: matchData.matchInfo.mapId,
                 map_name: map?.name || matchData.matchInfo.mapId,
@@ -133,6 +156,7 @@ export async function POST(req: NextRequest) {
           
           const unlinkedEvent = await db.event.findFirst({
             where: {
+              teamId,
               date: dateStr,
               match_id: null,
               type: { in: ['match', 'premier'] }

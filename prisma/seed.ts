@@ -1,90 +1,109 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Initialize Prisma with the Driver Adapter for PostgreSQL
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('🌱 Starting seed...');
 
-  // 1. Create Maps
+  // 1. Clean existing data (carefully)
+  await prisma.availability.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.strategy.deleteMany();
+  await prisma.composition.deleteMany();
+  await prisma.matchPlayerStats.deleteMany();
+  await prisma.match.deleteMany();
+  await prisma.event.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.player.deleteMany();
+  await prisma.team.deleteMany();
+  await prisma.map.deleteMany();
+
+  console.log('🧹 Database cleaned.');
+
+  // 2. Create Main Team
+  const team7R = await prisma.team.create({
+    data: {
+      name: 'SevenR Premier',
+      slug: '7r-premier',
+      logo_url: 'https://utfs.io/f/8e8d8a7c-6e6e-4e8e-8e8e-8e8e8e8e8e8e-7r.png',
+    },
+  });
+
+  console.log('✅ Team created.');
+
+  // 3. Create Maps
   const maps = [
-    { id: '7eaecc1b-4337-bbf6-6ab9-04b8f06b3319', name: 'Ascent' },
-    { id: 'd960549e-485c-e861-8d71-aa9d1aed12a2', name: 'Split' },
-    { id: 'b529448b-4d60-346e-e89e-00a4c527a405', name: 'Fracture' },
-    { id: '2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba', name: 'Bind' },
-    { id: '2fb9a4fd-47b8-4e7d-a969-74b4046ebd53', name: 'Breeze' },
-    { id: '2fe4ed3a-450a-948b-6d6b-e89a78e680a9', name: 'Lotus' },
-    { id: 'fd267378-4d1d-484f-ff52-77821ed10dc2', name: 'Pearl' },
-    { id: '2bee0dc9-4ffe-519b-1cbd-7fbe763a6047', name: 'Haven' },
-    { id: 'e2ad30e6-4c11-1f1a-7b36-119569382091', name: 'Icebox' },
-    { id: '22697a3d-45bf-8dd7-4f4a-9b973b13199b', name: 'Abyss' },
-    { id: '12452a9d-48c3-0202-3159-4581967cb302', name: 'Sunset' },
+    { id: '7eaecc1b-4337-bbf6-6130-0383b7b066fe', name: 'Ascent' },
+    { id: '2c9dbf58-4130-8d5c-9c71-29a997380962', name: 'Bind' },
+    { id: '2fb9a4ff-437c-52c1-b9a3-0a35a6bc341c', name: 'Breeze' },
+    { id: 'cc8b6908-419b-a91d-09ad-da9a3c9044d3', name: 'Fracture' },
+    { id: 'fd2697a1-4a91-9370-c9c1-1e94119d675b', name: 'Haven' },
+    { id: 'e2ad30e4-4140-0772-1308-319ef72535d0', name: 'Icebox' },
+    { id: '22283aeb-4c80-a704-219d-768a4a51916e', name: 'Lotus' },
+    { id: '6f2a4076-4172-8703-9e19-94813f38006d', name: 'Pearl' },
+    { id: '320b2a48-4d2b-d13d-bc88-829910d64479', name: 'Split' },
+    { id: '12401c44-4155-b3e8-1c4b-32bc21e75e92', name: 'Sunset' },
+    { id: '2bee0dc9-4ffe-519b-1ccd-7d116374d2fe', name: 'Abyss' },
   ];
 
-  for (const m of maps) {
-    await prisma.map.upsert({
-      where: { id: m.id },
-      update: {},
-      create: m,
-    });
+  for (const map of maps) {
+    await prisma.map.create({ data: map });
   }
 
-  // 2. Create Players & Users
-  const players = [
-    { name: 'Rubén', riot_name: 'Ruben', riot_tag: '7R', role: 'duelist', avatar_color: '#FF4655', email: 'admin@7r.com' },
-    { name: 'Alex', riot_name: 'Alex', riot_tag: '7R', role: 'initiator', avatar_color: '#00D4AA', email: 'alex@7r.com' },
-    { name: 'Dani', riot_name: 'Dani', riot_tag: '7R', role: 'controller', avatar_color: '#A855F7', email: 'dani@7r.com' },
-    { name: 'Marc', riot_name: 'Marc', riot_tag: '7R', role: 'sentinel', avatar_color: '#3B82F6', email: 'marc@7r.com' },
-    { name: 'Pol', riot_name: 'Pol', riot_tag: '7R', role: 'flex', avatar_color: '#F59E0B', email: 'pol@7r.com' },
-  ];
+  console.log('✅ Maps created.');
 
-  const hashedPassword = await bcrypt.hash('sevenr_pass', 10);
+  // 4. Create ONLY the Main Admin User/Player
+  const hashedPassword = await bcrypt.hash('vhub_pass', 10);
 
-  for (const pData of players) {
-    const { email, ...p } = pData;
-    const player = await prisma.player.create({
-      data: p,
-    });
+  const player = await prisma.player.create({
+    data: {
+      name: 'Rubén',
+      riot_name: 'Ruben',
+      riot_tag: 'VHUB',
+      role: 'duelist',
+      avatar_color: '#FF4655',
+      teamId: team7R.id,
+    },
+  });
 
-    await prisma.user.create({
-      data: {
-        name: player.name,
-        email: email,
-        password: hashedPassword,
-        role: email === 'admin@7r.com' ? 'admin' : 'member',
-        playerId: player.id
-      }
-    });
-  }
+  await prisma.user.create({
+    data: {
+      name: 'Rubén',
+      email: 'admin@vhub.com',
+      password: hashedPassword,
+      role: 'super_admin', // Super admin has team admin permissions in the code
+      teamId: team7R.id,
+      playerId: player.id,
+    },
+  });
 
-  // 3. Create initial events
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  console.log('✅ Admin user created.');
+
+  // 5. Create some initial events
+  const today = new Date();
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   await prisma.event.create({
     data: {
-      title: 'Práctica Semanal',
+      teamId: team7R.id,
+      title: 'Práctica Táctica - Ascent',
       type: 'practice',
-      date: today,
+      date: nextWeek.toISOString().split('T')[0],
       time: '21:00',
-      description: 'Entrenamiento de tácticas en Ascent',
       map: 'Ascent',
-    }
+      description: 'Revisión de ejecuciones en el sitio de A.',
+      status: 'scheduled',
+    },
   });
 
-  await prisma.event.create({
-    data: {
-      title: 'Partido Premier #1',
-      type: 'match',
-      date: tomorrow,
-      time: '20:00',
-      description: 'Primer partido de la temporada',
-      premier_week: 1,
-    }
-  });
-
-  console.log('Seed completed successfully!');
-  console.log('Admin user: admin@7r.com / sevenr_pass');
+  console.log('✅ Initial events created.');
+  console.log('🚀 Seed finished successfully!');
 }
 
 main()
@@ -94,4 +113,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

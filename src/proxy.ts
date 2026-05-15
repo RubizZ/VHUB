@@ -1,10 +1,13 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
-  const role = req.auth?.user?.role;
+  const role = (req.auth?.user as any)?.role;
   const path = req.nextUrl.pathname;
 
   // 1. Redirección si no está logueado

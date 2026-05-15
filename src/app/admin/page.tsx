@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     <div className="page-container">
       <header className="page-header">
         <h1>📈 Panel de Control Global</h1>
-        <p style={{ color: "var(--text-secondary)" }}>Visión general del ecosistema 7R Premier Hub</p>
+        <p style={{ color: "var(--text-secondary)" }}>Visión general de la plataforma V-HUB</p>
       </header>
 
       {loading ? (

@@ -38,12 +38,10 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card animate-in">
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div className="logo" style={{ fontSize: 48, marginBottom: 16 }}>7R</div>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Premier Hub</h1>
+          <div className="logo" style={{ fontSize: 48, marginBottom: 16 }}>VH</div>
+          <h1 style={{ fontSize: 24, fontWeight: 700 }}>V-HUB</h1>
           <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Inicia sesión para acceder al panel del equipo</p>
-        </div>
-
+        
         <form onSubmit={handleSubmit}>
           {error && (
             <div style={{ background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 20, border: "1px solid rgba(255, 70, 85, 0.2)" }}>
@@ -57,7 +55,7 @@ export default function LoginPage() {
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
-              placeholder="ejemplo@7r.com" 
+              placeholder="ejemplo@vhub.com" 
               required 
               style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
             />
@@ -86,36 +84,9 @@ export default function LoginPage() {
         </form>
 
         <div style={{ marginTop: 32, textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-          ¿No tienes cuenta? Contacta con el administrador de 7R.
+          ¿No tienes cuenta? Contacta con el administrador de V-HUB.
         </div>
       </div>
-
-      <style jsx>{`
-        .login-page {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: radial-gradient(circle at center, #1f2326 0%, #0f1113 100%);
-          padding: 20px;
-        }
-        .login-card {
-          width: 100%;
-          max-width: 400px;
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 24px;
-          padding: 48px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .logo {
-          font-family: 'JetBrains Mono', monospace;
-          font-weight: 900;
-          color: var(--val-red);
-          text-shadow: 0 0 20px rgba(255, 70, 85, 0.4);
-        }
-      `}</style>
     </div>
   );
 }

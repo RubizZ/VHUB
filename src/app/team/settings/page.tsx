@@ -11,19 +11,36 @@ export default function TeamSettingsPage() {
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
 
   useEffect(() => {
-    // Aquí cargaríamos los datos del equipo actual desde una API
-    setTeam({ 
-      name: "7R Premier", 
-      slug: "7r-premier", 
-      logo_url: "" 
-    });
-    setLoading(false);
+    fetch("/api/team/current")
+      .then(res => res.json())
+      .then(data => {
+        if (data.team) {
+          setTeam(data.team);
+        }
+        setLoading(false);
+      });
   }, []);
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("Configuración del equipo guardada (Simulado)");
-    setTimeout(() => setMessage(""), 3000);
+    setMessage("");
+    
+    try {
+      const res = await fetch("/api/team/current", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: team.name, logo_url: team.logo_url })
+      });
+
+      if (res.ok) {
+        setMessage("✅ Configuración guardada correctamente");
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        setMessage("❌ Error al guardar los cambios");
+      }
+    } catch (err) {
+      setMessage("❌ Error de conexión");
+    }
   };
 
   if (!canManage) {
@@ -91,7 +108,7 @@ export default function TeamSettingsPage() {
               {team.name[0]}
             </div>
             <h3>Vista Previa del Equipo</h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Así es como otros equipos verán a 7R Premier en la plataforma.</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Así es como otros equipos verán a {team.name} en la plataforma.</p>
           </div>
         </div>
       </div>

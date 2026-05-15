@@ -1,6 +1,6 @@
 {
-  "name": "7r-premier-hub",
-  "version": "0.1.0",
+  "name": "vhub",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

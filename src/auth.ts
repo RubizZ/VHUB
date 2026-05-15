@@ -3,10 +3,13 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   providers: [
+    ...authConfig.providers,
     Credentials({
       name: "Credentials",
       credentials: {
@@ -57,42 +60,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: profile.acct.game_name,
           email: profile.email || `${profile.sub}@riot.com`,
           image: null,
-          role: "member", // Rol por defecto para nuevos usuarios de Riot
+          role: "member",
         };
       },
     }
   ],
-  callbacks: {
-    async jwt({ token, user, account, profile }) {
-      if (user) {
-        token.id = user.id as string;
-        token.role = user.role;
-        token.playerId = user.playerId;
-        token.teamId = user.teamId;
-      }
-      
-      // Si el usuario se acaba de vincular con Riot
-      if (account?.provider === "riot-games" && profile) {
-        // Aquí podríamos actualizar el PUUID del jugador automáticamente
-        token.riotId = profile.sub;
-      }
-      
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.playerId = token.playerId as number | null;
-        session.user.teamId = token.teamId as string | null;
-      }
-      return session;
-    }
-  },
-  pages: {
-    signIn: "/login",
-  },
   session: {
     strategy: "jwt",
+  },
+  callbacks: {
+    ...authConfig.callbacks,
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        // Esta comprobación se ejecuta en Node.js (API routes), no en el Middleware
+        const userExists = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { id: true }
+        });
+
+        if (!userExists) return null as any;
+
+        session.user.id = token.id as string;
+        (session.user as any).role = token.role as string;
+        (session.user as any).playerId = token.playerId as number | null;
+        (session.user as any).teamId = token.teamId as string | null;
+      }
+      return session;
+    },
   },
 });

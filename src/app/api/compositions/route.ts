@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const { searchParams } = new URL(req.url);
   const mapId = searchParams.get("map_id");
 
   const compositions = await db.composition.findMany({
-    where: mapId ? { map_id: mapId } : undefined,
+    where: {
+      teamId,
+      ...(mapId ? { map_id: mapId } : {})
+    },
     orderBy: { updated_at: 'desc' }
   });
   
@@ -14,6 +22,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  const teamId = session?.user?.teamId;
+  if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
+
   const body = await req.json();
   const { map_id, name, description, agent_1, agent_2, agent_3, agent_4, agent_5 } = body;
   
@@ -22,6 +34,7 @@ export async function POST(req: NextRequest) {
 
   const composition = await db.composition.create({
     data: {
+      teamId,
       map_id,
       name,
       description: description || "",
