@@ -570,6 +570,7 @@ export default function AvailabilityPage() {
                                 <div
                                   key={ev.id}
                                   onClick={() => setSelectedEventId(ev.id)}
+                                  className={`event-card ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
                                   style={{
                                     fontSize: 10, padding: "4px 6px", borderRadius: 4,
                                     background: isRed 
@@ -720,6 +721,7 @@ export default function AvailabilityPage() {
                               <div
                                 key={ev.id}
                                 onClick={() => setSelectedEventId(ev.id)}
+                                className={isFirstUpcoming ? "upcoming-highlight-mini" : ""}
                                 style={{
                                   position: "absolute", top: top, left: 4, right: 4, height: height,
                                   fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
@@ -825,7 +827,7 @@ export default function AvailabilityPage() {
 
                   <div
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                    className={`card glass-card animate-card-in ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
+                    className={`card glass-card ${isFirstUpcoming ? "upcoming-highlight" : "animate-card-in"} ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
                     style={{
                       marginBottom: 12,
                       borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
@@ -1261,53 +1263,60 @@ export default function AvailabilityPage() {
             </div>
 
             {/* Floating Quick Navigation Indicators */}
-            {upcomingScrollPosition !== "in-view" && firstUpcomingId && (
-              <div 
-                onClick={() => {
-                  const card = eventRefsMap.current[firstUpcomingId];
-                  if (card) {
-                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    setTimeout(checkUpcomingScrollPosition, 600);
-                  }
-                }}
-                className="glass-card hover-lift transition-smooth"
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  top: upcomingScrollPosition === "above" ? 20 : "auto",
-                  bottom: upcomingScrollPosition === "below" ? 20 : "auto",
-                  padding: "10px 20px",
-                  borderRadius: 30,
-                  border: "1px solid rgba(0, 212, 170, 0.3)",
-                  background: "rgba(10, 11, 20, 0.9)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 212, 170, 0.15)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  zIndex: 100,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: "var(--val-cyan)",
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
-                {upcomingScrollPosition === "above" ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="19" x2="12" y2="5"></line>
-                    <polyline points="5 12 12 5 19 12"></polyline>
-                  </svg>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <polyline points="19 12 12 19 5 12"></polyline>
-                  </svg>
-                )}
-                <span>Ver Próximo Evento</span>
-              </div>
-            )}
+            {upcomingScrollPosition !== "in-view" && firstUpcomingId && (() => {
+              const upcomingEv = events.find(e => e.id === firstUpcomingId);
+              const upcomingColor = upcomingEv ? (upcomingEv.type === "match" ? "var(--val-red)" : upcomingEv.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)") : "var(--val-cyan)";
+              const upcomingGlow = upcomingEv ? (upcomingEv.type === "match" ? "rgba(255, 70, 85, 0.25)" : upcomingEv.type === "playoffs" ? "rgba(234, 180, 8, 0.25)" : "rgba(0, 212, 170, 0.25)") : "rgba(0, 212, 170, 0.25)";
+              const upcomingBorder = upcomingEv ? (upcomingEv.type === "match" ? "rgba(255, 70, 85, 0.4)" : upcomingEv.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)") : "rgba(0, 212, 170, 0.4)";
+              
+              return (
+                <div 
+                  onClick={() => {
+                    const card = eventRefsMap.current[firstUpcomingId];
+                    if (card) {
+                      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(checkUpcomingScrollPosition, 600);
+                    }
+                  }}
+                  className="glass-card hover-lift transition-smooth"
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    top: upcomingScrollPosition === "above" ? 20 : "auto",
+                    bottom: upcomingScrollPosition === "below" ? 20 : "auto",
+                    padding: "10px 20px",
+                    borderRadius: 30,
+                    border: `1px solid ${upcomingBorder}`,
+                    background: "rgba(10, 11, 20, 0.9)",
+                    boxShadow: `0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px ${upcomingGlow}`,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    zIndex: 100,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: upcomingColor,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {upcomingScrollPosition === "above" ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="19" x2="12" y2="5"></line>
+                      <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <polyline points="19 12 12 19 5 12"></polyline>
+                    </svg>
+                  )}
+                  <span>Ver Próximo Evento</span>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
