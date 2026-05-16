@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
       if (!puuid) return NextResponse.json({ error: "puuid required for sync" }, { status: 400 });
 
       // Verificar consentimiento del usuario autenticado
-      const userId = session.user.id;
+      const userId = session?.user.id;
       const requestingUser = await db.user.findUnique({
         where: { id: userId },
         include: { player: true }

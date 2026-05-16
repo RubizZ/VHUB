@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; }>; }
 ) {
   const session = await auth();
   if (session?.user?.role !== "super_admin") {
@@ -12,10 +12,10 @@ export async function GET(
   }
 
   const team = await db.team.findUnique({
-    where: { id: params.id },
+    where: { id: (await params).id },
     include: {
       _count: {
-        select: { players: true, users: true, matches: true, strategies: true }
+        select: { players: true, users: true, matches: true, compositions: true }
       }
     }
   });
@@ -27,7 +27,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; }>; }
 ) {
   const session = await auth();
   if (session?.user?.role !== "super_admin") {
@@ -39,7 +39,7 @@ export async function PUT(
 
   try {
     const team = await db.team.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         name,
         slug: slug?.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
@@ -58,7 +58,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; }>; }
 ) {
   const session = await auth();
   if (session?.user?.role !== "super_admin") {
@@ -67,7 +67,7 @@ export async function DELETE(
 
   try {
     await db.team.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
     return NextResponse.json({ success: true });
   } catch (err) {

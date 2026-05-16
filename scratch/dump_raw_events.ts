@@ -13,7 +13,6 @@ async function main() {
   console.log('--- ACTIVE SEASON METADATA ---');
   console.log(JSON.stringify({
     id: activeSeason.id,
-    name: activeSeason.name,
     starts_at: activeSeason.starts_at,
     ends_at: activeSeason.ends_at
   }, null, 2));

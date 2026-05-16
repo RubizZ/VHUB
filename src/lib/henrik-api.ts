@@ -8,7 +8,8 @@ import {
   HenrikPremierTeam,
   HenrikPremierSeason,
   HenrikPremierHistory,
-  HenrikPremierLeaderboard
+  HenrikPremierLeaderboard,
+  HenrikPremierLeaderboardEntry
 } from './henrik-types';
 
 // Re-exporting types for backward compatibility or direct use

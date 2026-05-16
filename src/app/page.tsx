@@ -11,7 +11,7 @@ interface Event { id: number; title: string; type: string; date: string; time: s
 export default function Dashboard() {
   const { data: session } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
-  const [events, setEvents] = useState<Ev[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [msgCount, setMsgCount] = useState(0);
   const [stratCount, setStratCount] = useState(0);
