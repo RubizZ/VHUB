@@ -909,13 +909,12 @@ select option {
 }
 
 .calendar-event-hover {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease, box-shadow 0.2s ease, z-index 0s;
+  transition: filter 0.2s ease, box-shadow 0.2s ease, z-index 0s;
 }
 
 .calendar-event-hover:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.2) contrast(1.05);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 10px var(--hover-color, rgba(255, 255, 255, 0.2));
+  filter: brightness(1.25) contrast(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 10px var(--hover-color, rgba(255, 255, 255, 0.2));
   z-index: 50 !important;
 }
 
