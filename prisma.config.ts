@@ -22,10 +22,14 @@ if (!databaseUrl) {
           process.env["POSTGRES_URL_NON_POOLING"]);
 }
 
-// ✅ LA SOLUCIÓN LIMPIA: Inyectar los parámetros SSL solo si estamos en producción
-// y el string es una URL real válida de Supabase
+// ✅ CONFIGURACIÓN TLS ADAPTADA AL LOG DE ERROR
 if (databaseUrl && process.env.NODE_ENV === "production") {
-    const sslParams = "sslmode=require&sslaccept=accept_invalid_certs";
+    // 1. uselibpqcompat=true -> Activa la compatibilidad estándar de Postgres y evita que Node fuerce 'verify-full'
+    // 2. sslmode=require     -> Fuerza cifrado TLS
+    // 3. sslaccept=accept_invalid_certs -> Permite el certificado del pooler de Supabase
+    const sslParams =
+        "uselibpqcompat=true&sslmode=require&sslaccept=accept_invalid_certs";
+
     databaseUrl = databaseUrl.includes("?")
         ? `${databaseUrl}&${sslParams}`
         : `${databaseUrl}?${sslParams}`;
