@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { Skeleton } from "@/components/Skeleton";
 
 interface AdminStats {
   teams: number;
@@ -45,7 +46,41 @@ export default function AdminDashboard() {
       </header>
 
       {loading ? (
-        <div className="loading-state">Analizando datos globales...</div>
+        <div className="animate-in">
+          <div className="grid grid-3" style={{ marginBottom: 32 }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="card" style={{ padding: 24, textAlign: "center" }}>
+                <Skeleton width={80} height={12} style={{ margin: "0 auto 12px" }} />
+                <Skeleton width={100} height={40} style={{ margin: "0 auto" }} />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-2">
+            <div className="card" style={{ padding: 0 }}>
+              <div style={{ padding: 20, borderBottom: "1px solid var(--border-color)" }}>
+                <Skeleton width={150} height={20} />
+              </div>
+              <div style={{ padding: 10 }}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+                    <Skeleton width={32} height={32} style={{ borderRadius: 4 }} />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <Skeleton width="60%" height={14} />
+                      <Skeleton width="30%" height={10} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card">
+              <Skeleton width={120} height={20} style={{ marginBottom: 20 }} />
+              <div className="grid grid-2" style={{ gap: 12 }}>
+                <Skeleton width="100%" height={100} />
+                <Skeleton width="100%" height={100} />
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="animate-in">
           {/* KPIs */}

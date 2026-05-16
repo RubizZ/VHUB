@@ -2,6 +2,7 @@
 import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Player { id: number; name: string; avatar_color: string; }
 interface LinkedMatch {
@@ -290,8 +291,33 @@ export default function AvailabilityPage() {
         {error && <div className="card" style={{ background: "rgba(255, 70, 85, 0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 20, padding: 12, borderRadius: 8 }}>⚠️ {error}</div>}
 
         {viewMode === null ? (
-          <div className="animate-fade-in" style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "40vh", color: "var(--text-muted)" }}>
-            <div className="animate-pulse">Cargando agenda...</div>
+          <div className="animate-fade-in">
+            <div className="card glass-card" style={{ padding: 0, overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid var(--border-color)" }}>
+                <Skeleton width={150} height={24} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Skeleton width={32} height={32} />
+                  <Skeleton width={48} height={32} />
+                  <Skeleton width={32} height={32} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} style={{ padding: "12px 0", display: "flex", justifyContent: "center" }}>
+                    <Skeleton width={30} height={12} />
+                  </div>
+                ))}
+                {Array.from({ length: 28 }).map((_, i) => (
+                  <div key={i} style={{ height: 120, padding: 10, borderRight: "1px solid var(--border-color)", borderBottom: "1px solid var(--border-color)" }}>
+                    <Skeleton width={20} height={20} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                      {i % 3 === 0 && <Skeleton width="80%" height={16} />}
+                      {i % 5 === 0 && <Skeleton width="60%" height={16} />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : viewMode === "calendar" ? (
           <div className="card glass-card" style={{ padding: 0, overflow: "hidden" }}>

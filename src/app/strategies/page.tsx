@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getCompetitiveMaps, type ValorantMap } from "@/lib/maps";
 import { AGENTS, getAgentsByRole, findAgentById, ROLE_COLORS, type ValorantAgent } from "@/lib/agents";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Composition { id: number; map_id: string; name: string; description: string; agent_1: string; agent_2: string; agent_3: string; agent_4: string; agent_5: string; }
 interface Strategy { id: number; composition_id: number; name: string; side: string; description: string; canvas_data: string; }
@@ -25,6 +26,8 @@ export default function StrategiesPage() {
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [compAgents, setCompAgents] = useState<string[]>(["", "", "", "", ""]);
+  const [compsLoading, setCompsLoading] = useState(false);
+  const [stratsLoading, setStratsLoading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
@@ -33,8 +36,24 @@ export default function StrategiesPage() {
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  const loadComps = (mapId: string) => fetch(`/api/compositions?map_id=${mapId}`).then(r => r.json()).then(d => setCompositions(d.compositions || []));
-  const loadStrats = (compId: number) => fetch(`/api/strategies?composition_id=${compId}`).then(r => r.json()).then(d => setStrategies(d.strategies || []));
+  const loadComps = (mapId: string) => {
+    setCompsLoading(true);
+    return fetch(`/api/compositions?map_id=${mapId}`)
+      .then(r => r.json())
+      .then(d => {
+        setCompositions(d.compositions || []);
+        setCompsLoading(false);
+      });
+  };
+  const loadStrats = (compId: number) => {
+    setStratsLoading(true);
+    return fetch(`/api/strategies?composition_id=${compId}`)
+      .then(r => r.json())
+      .then(d => {
+        setStrategies(d.strategies || []);
+        setStratsLoading(false);
+      });
+  };
 
   const goToMap = (map: ValorantMap) => { setSelectedMap(map); setView("compositions"); loadComps(map.id); };
   const goToComp = (comp: Composition) => { setSelectedComp(comp); setView("strategies"); loadStrats(comp.id); };
@@ -260,7 +279,22 @@ export default function StrategiesPage() {
                <button className="btn btn-primary" onClick={() => setShowNewComp(true)}>+ Crear Nueva</button>
             </div>
             <div className="grid grid-3" style={{ gap: 20 }}>
-              {compositions.map(c => {
+              {compsLoading ? (
+                <>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="card glass-card">
+                      <Skeleton width="60%" height={20} style={{ marginBottom: 16 }} />
+                      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                        {Array.from({ length: 5 }).map((_, j) => (
+                          <Skeleton key={j} width={36} height={36} circle />
+                        ))}
+                      </div>
+                      <Skeleton width="100%" height={12} style={{ marginBottom: 4 }} />
+                      <Skeleton width="80%" height={12} />
+                    </div>
+                  ))}
+                </>
+              ) : compositions.map(c => {
                 const agents = getAgentIcons(c);
                 return (
                   <div key={c.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => goToComp(c)}>
@@ -274,7 +308,7 @@ export default function StrategiesPage() {
                   </div>
                 );
               })}
-              {compositions.length === 0 && (
+              {!compsLoading && compositions.length === 0 && (
                 <div style={{ gridColumn: "1 / -1" }}>
                   <EmptyState message={`No hay composiciones para ${selectedMap?.name}.`} />
                 </div>
@@ -289,33 +323,46 @@ export default function StrategiesPage() {
                <h2 style={{ fontSize: 20, fontWeight: 700 }}>Estrategias para {selectedComp.name}</h2>
                <button className="btn btn-primary" onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
             </div>
-            {(["attack", "defense"] as const).map(side => {
-              const sideStrats = strategies.filter(s => s.side === side);
-              if (sideStrats.length === 0) return null;
-              return (
-                <div key={side} style={{ marginBottom: 32 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                    <div style={{ width: 4, height: 16, background: side === "attack" ? "var(--val-red)" : "var(--val-cyan)", borderRadius: 2 }} />
-                    <h4 style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
-                      {side === "attack" ? "Misiones de Ataque" : "Estrategias Defensivas"}
-                    </h4>
+            {stratsLoading ? (
+              <div className="grid grid-3" style={{ gap: 20 }}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="card glass-card">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Skeleton width="70%" height={16} />
+                      <Skeleton width={30} height={12} />
+                    </div>
                   </div>
-                  <div className="grid grid-3" style={{ gap: 20 }}>
-                    {sideStrats.map(s => (
-                      <div key={s.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => openEditor(s)}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <h3 style={{ fontSize: 16, fontWeight: 700 }}>{s.name}</h3>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: s.side === "attack" ? "var(--val-red)" : "var(--val-cyan)" }}>
-                            {s.side === "attack" ? "ATK" : "DEF"}
-                          </span>
+                ))}
+              </div>
+            ) : (
+              (["attack", "defense"] as const).map(side => {
+                const sideStrats = strategies.filter(s => s.side === side);
+                if (sideStrats.length === 0) return null;
+                return (
+                  <div key={side} style={{ marginBottom: 32 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                      <div style={{ width: 4, height: 16, background: side === "attack" ? "var(--val-red)" : "var(--val-cyan)", borderRadius: 2 }} />
+                      <h4 style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
+                        {side === "attack" ? "Misiones de Ataque" : "Estrategias Defensivas"}
+                      </h4>
+                    </div>
+                    <div className="grid grid-3" style={{ gap: 20 }}>
+                      {sideStrats.map(s => (
+                        <div key={s.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => openEditor(s)}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <h3 style={{ fontSize: 16, fontWeight: 700 }}>{s.name}</h3>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: s.side === "attack" ? "var(--val-red)" : "var(--val-cyan)" }}>
+                              {s.side === "attack" ? "ATK" : "DEF"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {strategies.length === 0 && <EmptyState message="Aún no hay estrategias creadas." />}
+                );
+              })
+            )}
+            {!stratsLoading && strategies.length === 0 && <EmptyState message="Aún no hay estrategias creadas." />}
           </div>
         )}
 

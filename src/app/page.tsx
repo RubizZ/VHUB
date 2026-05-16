@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
@@ -77,10 +78,22 @@ export default function Dashboard() {
 
         {/* Quick Stats Row */}
         <div className="grid grid-4" style={{ marginBottom: 32, gap: 16 }}>
-          <QuickStatCard value={players.length} label="Integrantes" icon="👥" color="var(--val-cyan)" href="/team/roster" />
-          <QuickStatCard value={stratCount} label="Estrategias" icon="🗺️" color="var(--val-purple)" href="/strategies" />
-          <QuickStatCard value={upcomingEvents.length} label="Próximos Eventos" icon="📅" color="var(--val-yellow)" href="/availability" />
-          <QuickStatCard value={msgCount} label="Mensajes" icon="💬" color="var(--val-blue)" href="/chat" />
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card">
+                <Skeleton width={32} height={32} style={{ marginBottom: 8 }} />
+                <Skeleton width="40%" height={28} style={{ marginBottom: 4 }} />
+                <Skeleton width="60%" height={12} />
+              </div>
+            ))
+          ) : (
+            <>
+              <QuickStatCard value={players.length} label="Integrantes" icon="👥" color="var(--val-cyan)" href="/team/roster" />
+              <QuickStatCard value={stratCount} label="Estrategias" icon="🗺️" color="var(--val-purple)" href="/strategies" />
+              <QuickStatCard value={upcomingEvents.length} label="Próximos Eventos" icon="📅" color="var(--val-yellow)" href="/availability" />
+              <QuickStatCard value={msgCount} label="Mensajes" icon="💬" color="var(--val-blue)" href="/chat" />
+            </>
+          )}
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", gap: 24 }}>
@@ -97,7 +110,18 @@ export default function Dashboard() {
                 <Link href="/matches" className="btn btn-ghost btn-sm">Ver historial</Link>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {recentMatches.length === 0 ? (
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)" }}>
+                      <Skeleton width={4} height={40} />
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Skeleton width="40%" height={14} />
+                        <Skeleton width="20%" height={10} />
+                      </div>
+                      <Skeleton width={60} height={20} />
+                    </div>
+                  ))
+                ) : recentMatches.length === 0 ? (
                   <EmptyState message="No se han registrado partidos todavía." />
                 ) : (
                   recentMatches.map((m: any) => (
@@ -138,7 +162,17 @@ export default function Dashboard() {
                 </h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {upcomingEvents.length === 0 ? (
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} style={{ display: "flex", gap: 12, padding: "8px 12px" }}>
+                      <Skeleton width={36} height={36} style={{ borderRadius: 8 }} />
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Skeleton width="80%" height={13} />
+                        <Skeleton width="50%" height={11} />
+                      </div>
+                    </div>
+                  ))
+                ) : upcomingEvents.length === 0 ? (
                   <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "20px 0" }}>Sin eventos próximos</p>
                 ) : (
                   upcomingEvents.map(e => (
@@ -154,7 +188,17 @@ export default function Dashboard() {
                 <h3 className="card-title">👥 Plantilla</h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {players.slice(0, 6).map(p => (
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px" }}>
+                      <Skeleton width={28} height={28} circle />
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Skeleton width="60%" height={13} />
+                        <Skeleton width="40%" height={10} />
+                      </div>
+                    </div>
+                  ))
+                ) : players.slice(0, 6).map(p => (
                   <Link href="/team/roster" key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
                     <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       {p.name.charAt(0)}
@@ -299,7 +343,17 @@ function PremierStats() {
       });
   }, []);
 
-  if (loading) return <div className="card mb-6 animate-pulse" style={{ height: 140, marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Cargando datos de Premier...</div>;
+  if (loading) return (
+    <div className="grid grid-3" style={{ marginBottom: 32, gap: 20 }}>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="card" style={{ height: 140 }}>
+          <Skeleton width="40%" height={11} style={{ marginBottom: 12 }} />
+          <Skeleton width="30%" height={32} style={{ marginBottom: 16 }} />
+          <Skeleton width="80%" height={12} />
+        </div>
+      ))}
+    </div>
+  );
   
   if (error) {
     return (

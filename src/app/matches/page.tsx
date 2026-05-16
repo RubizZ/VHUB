@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { findAgentById, ROLE_COLORS } from "@/lib/agents";
 import Link from "next/link";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Match {
   id: number; riot_match_id: string; map_name: string; game_mode: string;
@@ -210,7 +211,28 @@ export default function MatchesPage() {
         {!selected ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {loading && matches.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 40, color: "var(--text-muted)" }}>Cargando...</div>
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="card glass-card" style={{ padding: 20, borderLeft: '4px solid var(--border-color)' }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Skeleton width={120} height={20} />
+                        <Skeleton width={80} height={12} />
+                      </div>
+                      <Skeleton width={80} height={24} />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <Skeleton width={40} height={32} />
+                      <Skeleton width={10} height={12} />
+                      <Skeleton width={40} height={32} />
+                      <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                        <Skeleton width={60} height={12} />
+                        <Skeleton width={80} height={12} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : (
               matches.map(m => (
                 <MatchCard key={m.id} match={m} onClick={() => loadMatch(m)} />

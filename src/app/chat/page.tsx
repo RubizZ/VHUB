@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Message { id: number; channel: string; player_id: number; player_name: string; avatar_color: string; content: string; created_at: string; }
 
@@ -12,12 +13,14 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [channel, setChannel] = useState("general");
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadMessages = async () => {
     const res = await fetch(`/api/chat?channel=${channel}&limit=100`);
     const d = await res.json();
     setMessages(d.messages || []);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -106,25 +109,42 @@ export default function ChatPage() {
       </div>
       <div className="chat-container" style={{ margin: "0 32px" }}>
         <div className="chat-messages">
-          {messages.length === 0 && (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>
-              No hay mensajes en #{channel}. ¡Sé el primero!
-            </div>
-          )}
-          {messages.map(m => (
-            <div key={m.id} className="chat-message">
-              <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff" }}>
-                {m.player_name?.[0] || "?"}
-              </div>
-              <div>
-                <div className="chat-msg-header">
-                  <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
-                  <span className="chat-msg-time">{formatTime(m.created_at)}</span>
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="chat-message">
+                <Skeleton width={36} height={36} circle />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <Skeleton width={80} height={14} />
+                    <Skeleton width={40} height={10} />
+                  </div>
+                  <Skeleton width="90%" height={14} />
                 </div>
-                <div className="chat-msg-content">{m.content}</div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <>
+              {messages.length === 0 && (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>
+                  No hay mensajes en #{channel}. ¡Sé el primero!
+                </div>
+              )}
+              {messages.map(m => (
+                <div key={m.id} className="chat-message">
+                  <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff" }}>
+                    {m.player_name?.[0] || "?"}
+                  </div>
+                  <div>
+                    <div className="chat-msg-header">
+                      <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
+                      <span className="chat-msg-time">{formatTime(m.created_at)}</span>
+                    </div>
+                    <div className="chat-msg-content">{m.content}</div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
           <div ref={bottomRef} />
         </div>
         <div className="chat-input-bar">

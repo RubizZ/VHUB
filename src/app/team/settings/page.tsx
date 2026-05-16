@@ -2,6 +2,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
+import { Skeleton } from "@/components/Skeleton";
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
@@ -64,7 +65,18 @@ export default function TeamSettingsPage() {
         <div className="grid grid-2" style={{ maxWidth: 1000 }}>
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: 20 }}>Identidad del Equipo</h3>
-            {loading ? <p>Cargando datos...</p> : (
+            {loading ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div className="form-group"><Skeleton width={120} height={14} style={{ marginBottom: 8 }} /><Skeleton width="100%" height={40} /></div>
+                <div className="form-group"><Skeleton width={120} height={14} style={{ marginBottom: 8 }} /><Skeleton width="100%" height={40} /></div>
+                <div className="form-group"><Skeleton width={120} height={14} style={{ marginBottom: 8 }} /><Skeleton width="100%" height={40} /></div>
+                <div className="form-row" style={{ display: "flex", gap: 12 }}>
+                  <div style={{ flex: 1 }}><Skeleton width={100} height={14} style={{ marginBottom: 8 }} /><Skeleton width="100%" height={40} /></div>
+                  <div style={{ flex: 1 }}><Skeleton width={100} height={14} style={{ marginBottom: 8 }} /><Skeleton width="100%" height={40} /></div>
+                </div>
+                <Skeleton width={150} height={40} />
+              </div>
+            ) : (
               <form onSubmit={save}>
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label>Nombre del Equipo</label>
@@ -136,7 +148,12 @@ export default function TeamSettingsPage() {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: 20 }}>Enlace de Invitación</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>Comparte este enlace para que nuevos usuarios se unan directamente al equipo.</p>
-            {loading ? <p>Cargando enlace...</p> : (
+            {loading ? (
+              <div style={{ display: "flex", gap: 8 }}>
+                <Skeleton width="100%" height={40} />
+                <Skeleton width={100} height={40} />
+              </div>
+            ) : (
               <InviteLinkSection inviteCode={team.inviteCode} setTeam={setTeam} team={team} />
             )}
           </div>
@@ -183,7 +200,22 @@ function JoinRequests() {
     }
   };
 
-  if (loading) return <p>Cargando solicitudes...</p>;
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, background: "var(--bg-glass)", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <Skeleton width={100} height={14} />
+            <Skeleton width={150} height={10} />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Skeleton width={80} height={32} />
+            <Skeleton width={80} height={32} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
   if (requests.length === 0) return <p style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No hay solicitudes pendientes.</p>;
 
   return (

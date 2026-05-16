@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; user?: { email: string } }
 interface UnlinkedUser { id: string; name: string; email: string; }
@@ -13,6 +14,7 @@ export default function TeamRosterPage() {
   const [form, setForm] = useState({ email: "", role: "flex", avatar_color: "#FF4655" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
   
@@ -24,11 +26,14 @@ export default function TeamRosterPage() {
 
   const loadData = async () => {
     try {
+      setDataLoading(true);
       const pRes = await fetch("/api/players");
       const pData = await pRes.json();
       setPlayers(pData.players || []);
     } catch (err) {
       console.error("Error loading data:", err);
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -136,7 +141,23 @@ export default function TeamRosterPage() {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: 20 }}>Roster Oficial ({players.length})</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {players.map(p => (
+              {dataLoading ? (
+                <>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)" }}>
+                      <Skeleton width={40} height={40} circle />
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Skeleton width={120} height={14} />
+                        <Skeleton width={80} height={10} />
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <Skeleton width={32} height={32} />
+                        <Skeleton width={32} height={32} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : players.map(p => (
                 <div key={p.id} className="player-list-item" style={{ 
                   display: "flex", 
                   alignItems: "center", 
@@ -171,7 +192,7 @@ export default function TeamRosterPage() {
                   </div>
                 </div>
               ))}
-              {players.length === 0 && (
+              {!dataLoading && players.length === 0 && (
                 <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
                   No hay jugadores registrados.
                 </div>

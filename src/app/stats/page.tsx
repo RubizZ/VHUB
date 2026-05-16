@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
 interface Stats { name: string; gamesPlayed: number; wins: number; losses: number; winRate: number; totalKills: number; totalDeaths: number; totalAssists: number; kdRatio: number; kdaRatio: number; avgKills: number; avgDeaths: number; avgAssists: number; avgACS: number; avgADR: number; headshotPct: number; mostPlayedAgent: string; mostPlayedMap: string; recentForm: string[]; agentStats: Record<string, { agent: string; games: number; wins: number; winRate: number }>; mapStats: Record<string, { map: string; games: number; wins: number; winRate: number; avgKills: number; avgDeaths: number }>; }
@@ -88,8 +89,48 @@ export default function StatsPage() {
         )}
 
         {loading && (
-          <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-            <p style={{ animation: "pulse 1.5s infinite" }}>Cargando estadísticas reales...</p>
+          <div className="animate-fade-in">
+            {/* MMR Skeleton */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+              <Skeleton width={60} height={60} circle />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Skeleton width={120} height={20} />
+                <Skeleton width={180} height={14} />
+              </div>
+            </div>
+
+            {/* Key Stats Skeleton */}
+            <div className="grid grid-4" style={{ marginBottom: 16 }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card" style={{ textAlign: "center" }}>
+                  <Skeleton width="60%" height={28} style={{ margin: "0 auto 8px" }} />
+                  <Skeleton width="40%" height={12} style={{ margin: "0 auto" }} />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-2" style={{ marginBottom: 16 }}>
+              <div className="card">
+                <Skeleton width={150} height={18} style={{ marginBottom: 16 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} width="100%" height={14} />
+                  ))}
+                </div>
+              </div>
+              <div className="card">
+                <Skeleton width={120} height={18} style={{ marginBottom: 16 }} />
+                <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} width={24} height={24} />
+                  ))}
+                </div>
+                <Skeleton width={100} height={14} style={{ marginTop: 16, marginBottom: 8 }} />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} width="100%" height={20} style={{ margin: "8px 0" }} />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/Skeleton";
 
 interface PlayerData {
   id: number;
@@ -84,7 +85,42 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <div className="p-32">Cargando perfil...</div>;
+  if (loading) {
+    return (
+      <div className="page-content animate-in">
+        <div className="page-header">
+          <Skeleton width={200} height={32} style={{ marginBottom: 8 }} />
+          <Skeleton width={350} height={16} />
+        </div>
+        <div className="grid grid-2">
+          <div className="card">
+            <Skeleton width={150} height={20} style={{ marginBottom: 24 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
+              <Skeleton width={80} height={80} circle />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Skeleton width={150} height={24} />
+                <Skeleton width={200} height={16} />
+              </div>
+            </div>
+            <Skeleton width="100%" height={40} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={40} />
+          </div>
+          <div className="card">
+            <Skeleton width={180} height={20} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={14} style={{ marginBottom: 4 }} />
+            <Skeleton width="100%" height={14} style={{ marginBottom: 20 }} />
+            <div style={{ background: "rgba(0,0,0,0.2)", padding: 16, borderRadius: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}><Skeleton width="100%" height={40} /></div>
+                <div style={{ width: 80 }}><Skeleton width="100%" height={40} /></div>
+              </div>
+              <Skeleton width="100%" height={40} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-content animate-in">
