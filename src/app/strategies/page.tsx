@@ -256,7 +256,7 @@ export default function StrategiesPage() {
       <div className="page-content animate-in" style={{ paddingTop: 0 }}>
         
         {view === "maps" && (
-          <div className="grid grid-4" style={{ gap: 20 }}>
+          <div className="grid grid-auto" style={{ gap: 20 }}>
             {competitiveMaps.map(m => (
               <div key={m.id} className="card glass-card hover-lift" style={{ cursor: "pointer", padding: 0, overflow: "hidden" }} onClick={() => goToMap(m)}>
                 <div style={{ position: "relative", height: 240 }}>
@@ -278,7 +278,7 @@ export default function StrategiesPage() {
                <h2 style={{ fontSize: 20, fontWeight: 700 }}>Composiciones Disponibles</h2>
                <button className="btn btn-primary" onClick={() => setShowNewComp(true)}>+ Crear Nueva</button>
             </div>
-            <div className="grid grid-3" style={{ gap: 20 }}>
+             <div className="grid grid-auto" style={{ gap: 20 }}>
               {compsLoading ? (
                 <>
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -366,9 +366,8 @@ export default function StrategiesPage() {
           </div>
         )}
 
-        {view === "editor" && current && (
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 800px" }}>
+        {view === "editor" && current && <div className="strategy-editor-layout" style={{ display: "flex", flexWrap: "wrap", gap: 24, minHeight: 0, flex: 1 }}>
+              <div style={{ flex: "1 1 500px", display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
               <div className="card glass-card" style={{ padding: 12, marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                 <div className="glass-card" style={{ display: "flex", padding: 4, borderRadius: 8 }}>
                    <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("attack"); setTimeout(redraw, 50); }}>⚔️ Atacante</button>
@@ -394,10 +393,10 @@ export default function StrategiesPage() {
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
               </div>
             </div>
-            <div style={{ flex: "0 0 240px" }}>
-              <div className="card glass-card" style={{ position: "sticky", top: 80 }}>
+            <div className="strategy-editor-sidebar" style={{ flex: "0 0 240px", width: "100%" }}>
+              <div className="card glass-card">
                 <h4 style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Agentes de Comp.</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 10 }}>
                   {selectedComp && getAgentIcons(selectedComp).map(a => (
                     <button key={a.id} className="card hover-lift" onClick={() => dropAgent(a)} style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.02)", cursor: "pointer", border: "1px solid var(--border-color)" }}>
                       <img src={a.displayIcon} alt={a.name} style={{ width: 40, height: 40, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, marginBottom: 4 }} />
@@ -408,7 +407,7 @@ export default function StrategiesPage() {
               </div>
             </div>
           </div>
-        )}
+        }
       </div>
 
       {showNewComp && (

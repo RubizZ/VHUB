@@ -83,11 +83,11 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="page-header" style={{ paddingBottom: 0, borderBottom: "none" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent", padding: "24px 0", flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h2 className="gradient-text">💬 Chat de Equipo</h2>
-            <p>Canal de comunicación {isSupabaseConfigured ? "en tiempo real ⚡" : "modo polling 🕒"}</p>
+            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Chat de Equipo</h1>
+            <p style={{ fontSize: 14, marginTop: 4 }}>Canal de comunicación {isSupabaseConfigured ? "en tiempo real ⚡" : "modo polling 🕒"}</p>
           </div>
           <div className="card glass-card" style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ textAlign: "right" }}>
@@ -99,7 +99,7 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
-        <div className="channel-tabs">
+        <div className="channel-tabs" style={{ marginTop: 24 }}>
           {CHANNELS.map(c => (
             <button key={c} className={`channel-tab ${channel === c ? "active" : ""}`} onClick={() => setChannel(c)}>
               <span style={{ opacity: 0.5, marginRight: 4 }}>#</span>{c}

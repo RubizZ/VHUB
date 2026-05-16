@@ -61,9 +61,9 @@ export default function StatsPage() {
 
   return (
     <>
-      <div className="page-header">
-        <h2>📊 Estadísticas</h2>
-        <p>Análisis de rendimiento del equipo</p>
+      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent", padding: "24px 0", flexShrink: 0 }}>
+        <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Estadísticas</h1>
+        <p style={{ fontSize: 14, marginTop: 4 }}>Análisis de rendimiento del equipo</p>
       </div>
       <div className="page-content animate-in">
         {/* Selector de Jugador */}
