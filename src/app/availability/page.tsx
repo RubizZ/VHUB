@@ -38,6 +38,7 @@ export default function AvailabilityPage() {
   const [maps, setMaps] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
   const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
   const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
@@ -58,6 +59,11 @@ export default function AvailabilityPage() {
     fetch("/api/players").then(r => r.json()).then(d => setPlayers(d.players || []));
     fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
 
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const saved = localStorage.getItem("vhub_avail_view_mode");
     if (saved === "list" || saved === "calendar" || saved === "week") {
       setViewMode(saved as any);
@@ -388,7 +394,7 @@ export default function AvailabilityPage() {
 
       </div>
 
-      <div className="page-content animate-in" style={{ paddingTop: 0, paddingBottom: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div className="page-content animate-in" style={{ padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         {error && <div className="card" style={{ background: "rgba(255, 70, 85, 0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 20, padding: 12, borderRadius: 8, flexShrink: 0 }}>⚠️ {error}</div>}
 
         {viewMode === null ? (
@@ -581,6 +587,32 @@ export default function AvailabilityPage() {
                             <div key={i} style={{ height: 60, borderBottom: "1px solid rgba(255,255,255,0.03)" }} />
                           ))}
 
+                          {/* Current Time Indicator */}
+                          {d.isToday && (
+                            <div style={{
+                              position: "absolute",
+                              top: now.getHours() * 60 + now.getMinutes(),
+                              left: 0,
+                              right: 0,
+                              height: 2,
+                              background: "var(--val-red)",
+                              zIndex: 20,
+                              pointerEvents: "none",
+                              boxShadow: "0 0 10px var(--val-red-glow)"
+                            }}>
+                              <div style={{
+                                position: "absolute",
+                                left: -4,
+                                top: -3,
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                background: "var(--val-red)",
+                                boxShadow: "0 0 15px var(--val-red-glow)"
+                              }} />
+                            </div>
+                          )}
+
                           {/* Events */}
                           {d.events.map((ev: any) => {
                             const [h, m] = ev.localTime.split(':').map(Number);
@@ -631,7 +663,9 @@ export default function AvailabilityPage() {
                                 }}
                               >
                                 <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{ev.title}</div>
-                                 {ev.map && <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>{maps.find((m: any) => m.id === ev.map)?.name || ev.map}</div>}
+                                 <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>
+                                   {ev.map ? (maps.find((m: any) => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}
+                                 </div>
                               </div>
                             );
                           })}
@@ -722,12 +756,10 @@ export default function AvailabilityPage() {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
                             {ev.localTime} {ev.localEndTime && `— ${ev.localEndTime}`}
                           </div>
-                          {ev.map && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                              {maps.find(m => m.id === ev.map)?.name || ev.map}
-                            </div>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            <span>Mapa: <strong style={{ color: 'white' }}>{ev.map ? (maps.find(m => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}</strong></span>
+                          </div>
                         </div>
 
                         {ev.description && <p style={{ marginTop: 12, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>{ev.description}</p>}
@@ -977,7 +1009,7 @@ export default function AvailabilityPage() {
 
         return (
           <div className="modal-overlay" onClick={() => setSelectedEventId(null)}>
-            <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: `1px solid ${isRed || myStatus === 'unavailable' ? 'rgba(255,255,255,0.1)' : evColorBase}` }}>
+            <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: `1px solid var(--border-color)` }}>
               <div style={{ 
                 position: 'relative', 
                 height: 160, 
@@ -1022,14 +1054,12 @@ export default function AvailabilityPage() {
                     </div>
                   </div>
 
-                  {ev.map && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-cyan)' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                      </div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.map_obj?.name || ev.map}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-cyan)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                     </div>
-                  )}
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.map ? (ev.map_obj?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}</div>
+                  </div>
                 </div>
 
                 {ev.description && (

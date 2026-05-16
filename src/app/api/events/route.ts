@@ -188,15 +188,21 @@ async function ensureWeeklyEvents(teamId: string) {
           });
         }
 
-        let mapName = "Por decidir";
+        let mapId: string | null = null;
+        let mapLabel = "Por decidir";
         let premierWeek = undefined;
 
-        if (evMeta) {
+        if (evConfig.type === 'playoffs') {
+          mapId = null;
+          mapLabel = "Pick & Ban";
+        } else if (evMeta) {
+          const apiMapName = evMeta.map_selection?.maps?.[0]?.name?.toLowerCase();
+          mapId = mapNameToId.get(apiMapName) || null;
+          
           if (evMeta.map_selection?.type === 'PICKBAN') {
-            mapName = "Pick & Ban";
+            mapLabel = "Pick & Ban";
           } else {
-            const apiMapName = evMeta.map_selection?.maps?.[0]?.name?.toLowerCase();
-            mapName = mapNameToId.get(apiMapName) || evMeta.map_selection?.maps?.[0]?.name || "Por decidir";
+            mapLabel = evMeta.map_selection?.maps?.[0]?.name || "Por decidir";
           }
           if (evMeta.type === 'LEAGUE') premierWeek = "Semana de Liga";
         }
@@ -221,8 +227,8 @@ async function ensureWeeklyEvents(teamId: string) {
           time: evConfig.time,
           end_date: endDate || null,
           end_time: endTime || null,
-          description: evConfig.description || "",
-          map: mapName,
+          description: evConfig.description || (mapLabel !== "Por decidir" && !mapId ? mapLabel : ""),
+          map: mapId,
           premier_week: premierWeek || null,
           premier_season_id: activeSeason.id,
           status: 'scheduled'
@@ -253,9 +259,9 @@ async function ensureWeeklyEvents(teamId: string) {
               time: ev.time,
               type: ev.type,
               OR: [
-                { map: "Por decidir" },
                 { map: "" },
-                { map: null }
+                { map: "Por decidir" },
+                { map: "Pick & Ban" }
               ]
             },
             data: { map: ev.map }
@@ -583,7 +589,7 @@ export async function POST(req: NextRequest) {
       date,
       time,
       description: description || "",
-      map: map || "",
+      map: map || null,
       premier_week: premier_week || null
     }
   });
