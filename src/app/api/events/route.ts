@@ -146,10 +146,38 @@ async function ensureWeeklyEvents(teamId: string) {
       const dateStr = tempDate.toISOString().split('T')[0];
       const day = tempDate.getDay();
 
+      let matchingSchedule = conferenceSchedules.find((se: any) => {
+        if (!se.starts_at || !se.ends_at) return false;
+        const sDate = se.starts_at.split('T')[0];
+        const eDate = se.ends_at.split('T')[0];
+        return dateStr >= sDate && dateStr <= eDate;
+      });
+
+      let evMeta = null;
+      if (matchingSchedule?.event_id) {
+        evMeta = activeSeason.events?.find((e: any) => e.id === matchingSchedule.event_id);
+      }
+
+      if (!evMeta) {
+        evMeta = activeSeason.events?.find((m: any) => {
+          if (!m.starts_at || !m.ends_at) return false;
+          const sDate = m.starts_at.split('T')[0];
+          const eDate = m.ends_at.split('T')[0];
+          return dateStr >= sDate && dateStr <= eDate;
+        });
+      }
+
+      const isTournamentDay = dateStr === tournamentDateStr || (tempDate.getTime() === limitDate.getTime() && tournamentEvent);
+      
+      if (!isTournamentDay && !matchingSchedule && !evMeta) {
+        tempDate.setDate(tempDate.getDate() + 1);
+        continue;
+      }
+
       let evConfig: any = null;
 
       // Prioridad 1: Playoffs (Si es el día del torneo o el último día de la generación si hay torneo planeado)
-      if (dateStr === tournamentDateStr || (tempDate.getTime() === limitDate.getTime() && tournamentEvent)) {
+      if (isTournamentDay) {
         evConfig = { title: "Playoffs Premier", type: "playoffs", time: "17:00" };
       } else if (day === 3 || day === 5) {
         evConfig = { title: "Práctica de Equipo", type: "practice", time: "17:00" };
@@ -163,31 +191,6 @@ async function ensureWeeklyEvents(teamId: string) {
         // 2. Usar su event_id para encontrar el evento padre con map_selection
         // 3. Fallback: buscar directamente en events por rango de fecha
 
-        let evMeta: any = null;
-        let matchingSchedule: any = null;
-
-        // Paso 1: Buscar via scheduled_events (más preciso, filtra por conferencia)
-        matchingSchedule = conferenceSchedules.find((se: any) => {
-          if (!se.starts_at || !se.ends_at) return false;
-          const sDate = se.starts_at.split('T')[0];
-          const eDate = se.ends_at.split('T')[0];
-          return dateStr >= sDate && dateStr <= eDate;
-        });
-
-        if (matchingSchedule?.event_id) {
-          evMeta = activeSeason.events?.find((e: any) => e.id === matchingSchedule.event_id);
-        }
-
-        // Paso 2: Fallback directo en events por rango de fecha
-        if (!evMeta) {
-          evMeta = activeSeason.events?.find((m: any) => {
-            if (!m.starts_at || !m.ends_at) return false;
-            const sDate = m.starts_at.split('T')[0];
-            const eDate = m.ends_at.split('T')[0];
-            return dateStr >= sDate && dateStr <= eDate;
-          });
-        }
-
         let mapId: string | null = null;
         let mapLabel = "Por decidir";
         let premierWeek = undefined;
@@ -196,8 +199,8 @@ async function ensureWeeklyEvents(teamId: string) {
           mapId = null;
           mapLabel = "Pick & Ban";
         } else if (evMeta) {
-          const apiMapName = evMeta.map_selection?.maps?.[0]?.name?.toLowerCase();
-          mapId = mapNameToId.get(apiMapName) || null;
+          const apiMapName = evMeta.map_selection?.maps?.[0]?.name?.toLowerCase() || "";
+          mapId = apiMapName ? (mapNameToId.get(apiMapName) || null) : null;
           
           if (evMeta.map_selection?.type === 'PICKBAN') {
             mapLabel = "Pick & Ban";
