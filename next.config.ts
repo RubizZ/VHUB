@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  turbopack: {},
+
   // Forzar polling para Hot Reload en Docker/Windows (Webpack fallback)
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
