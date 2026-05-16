@@ -7,18 +7,18 @@ datasource db {
 }
 
 model Team {
-  id                  String            @id @default(cuid())
+  id                  String            @id @default(cuid(2))
   name                String
   slug                String            @unique
   logo_url            String?
-  inviteCode          String?           @unique @default(cuid())
+  inviteCode          String?           @unique @default(cuid(2))
   created_at          DateTime          @default(now())
   updated_at          DateTime          @updatedAt
   conference          String
   matchHistoryConsent Boolean           @default(false)
   division            Int?
   tag                 String?
-  calendarToken       String?           @unique @default(cuid())
+  calendarToken       String?           @unique @default(cuid(2))
   compositions        Composition[]
   events              Event[]
   matches             Match[]
@@ -29,16 +29,16 @@ model Team {
 }
 
 model User {
-  id            String            @id @default(cuid())
+  id            String            @id @default(cuid(2))
   name          String?
   email         String?           @unique
   emailVerified DateTime?
   image         String?
   password      String?
   role          String            @default("member")
-  playerId      Int?              @unique
+  playerId      String?           @unique
   teamId        String?
-  calendarToken String?           @unique @default(cuid())
+  calendarToken String?           @unique @default(cuid(2))
   dataConsent   Boolean           @default(false)
   accounts      Account[]
   sessions      Session[]
@@ -48,7 +48,7 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(cuid(2))
   userId            String
   type              String
   provider          String
@@ -66,7 +66,7 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid(2))
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -82,7 +82,7 @@ model VerificationToken {
 }
 
 model Player {
-  id           Int                @id @default(autoincrement())
+  id           String             @id @default(cuid(2))
   teamId       String?
   puuid        String?            @unique
   name         String
@@ -180,7 +180,7 @@ model Event {
 model Availability {
   id         Int      @id @default(autoincrement())
   event_id   Int
-  player_id  Int
+  player_id  String
   status     String   @default("pending")
   note       String?
   updated_at DateTime @default(now())
@@ -194,7 +194,7 @@ model Message {
   id         Int      @id @default(autoincrement())
   teamId     String?
   channel    String   @default("general")
-  player_id  Int
+  player_id  String
   content    String
   created_at DateTime @default(now())
   player     Player   @relation(fields: [player_id], references: [id])
@@ -229,7 +229,7 @@ model MatchPlayerStats {
   id               Int     @id @default(autoincrement())
   match_id         Int
   puuid            String
-  player_id        Int?
+  player_id        String?
   character_id     String
   team_id          String
   kills            Int     @default(0)
@@ -246,7 +246,7 @@ model MatchPlayerStats {
 }
 
 model TeamJoinRequest {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid(2))
   userId     String
   teamId     String
   status     String   @default("pending")

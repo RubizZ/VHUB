@@ -1,13 +1,15 @@
 import { execSync } from "child_process";
+import { loadEnvConfig } from "@next/env";
 
-const DB_USER = "postgres.zwjoqlaipvxfhiaxebkg";
-const DB_PASS = "i96KOvwLmnDW9Aj5";
-const DB_HOST = "aws-0-eu-west-1.pooler.supabase.com";
-const DB_PORT = "5432";
-const DB_NAME = "postgres";
+// Load environment variables from .env / .env.local
+loadEnvConfig(process.cwd());
 
-const encodedPass = encodeURIComponent(DB_PASS);
-const databaseUrl = `postgresql://${DB_USER}:${encodedPass}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+const databaseUrl = process.env.DATABASE_URL_PROD;
+
+if (!databaseUrl) {
+    console.error("❌ Error: DATABASE_URL_PROD must be defined in your .env file.");
+    process.exit(1);
+}
 
 console.log("🛡️  Iniciando seeding directo en PRODUCCIÓN...");
 

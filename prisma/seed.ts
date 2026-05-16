@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import * as bcrypt from "bcryptjs";
 import { ValorantApi } from "@valpro-labs/valorant-api";
+import { createId } from "@paralleldrive/cuid2";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -67,6 +68,21 @@ async function main() {
     }
     console.log(`✅ ${mapsData.length} maps processed.`);
 
+    const generateCuid = createId;
+
+    let adminPlayerId = generateCuid();
+    try {
+        const existingUser = await prisma.user.findUnique({
+            where: { email: "admin@vhub.com" },
+            select: { playerId: true }
+        });
+        if (existingUser?.playerId) {
+            adminPlayerId = existingUser.playerId;
+        }
+    } catch (e) {
+        // Safe to ignore if DB or tables don't exist yet
+    }
+
     // 2. Essential Admin Data
     const randomPassword =
         Math.random().toString(36).slice(-8) +
@@ -116,7 +132,7 @@ async function main() {
         });
 
         const player = await prisma.player.upsert({
-            where: { id: 1 },
+            where: { id: adminPlayerId },
             update: {
                 teamId: team.id,
                 puuid,
@@ -124,7 +140,7 @@ async function main() {
                 riot_tag: riotTag,
             },
             create: {
-                id: 1,
+                id: adminPlayerId,
                 name: "Administrador",
                 teamId: team.id,
                 role: "flex",
@@ -167,12 +183,12 @@ async function main() {
         });
 
         const player = await prisma.player.upsert({
-            where: { id: 1 },
+            where: { id: adminPlayerId },
             update: {
                 teamId: team.id,
             },
             create: {
-                id: 1,
+                id: adminPlayerId,
                 name: "Administrador",
                 teamId: team.id,
                 role: "flex",
