@@ -697,13 +697,13 @@ export default function AvailabilityPage() {
               const isToday = (ev as any).localDate === todayStr;
 
               // Original logic for "PRÓXIMO" tag
-              const isViableUpcoming = isMounted && !isPast && !isCancelled && !isImpossible;
+              const isViableUpcoming = isMounted && !isPast && !isCancelled && !isImpossible && ev.status === 'scheduled';
               const isFirstUpcoming = isViableUpcoming && (idx === 0 || events.slice(0, idx).every(prev => {
                 const prevEA = avail[prev.id] || [];
                 const prevUnavail = prevEA.filter(a => a.status === "unavailable").length;
                 const prevIsPast = isMounted && (prev as any).localDate < todayStr;
                 const prevIsImpossible = isMounted && !prevIsPast && players.length >= 5 && (players.length - prevUnavail < 5);
-                return prevIsPast || prev.status === 'cancelled' || prevIsImpossible;
+                return prevIsPast || prevIsImpossible || prev.status !== 'scheduled';
               }));
 
               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
