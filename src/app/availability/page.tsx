@@ -787,32 +787,81 @@ export default function AvailabilityPage() {
                     }}
                   >
                     <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                      <div style={{ flex: "1 1 300px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                          <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>
-                            {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
-                          </span>
-                          <h3 style={{ fontSize: 18, fontWeight: 700, textDecoration: (isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) ? 'line-through' : undefined }}>{ev.title}</h3>
-                          {isFirstUpcoming && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
-                          {ev.status === 'completed' && <span className="tag tag-neutral">Jugado</span>}
+                      {/* Columna Izquierda: Información de Evento */}
+                      <div style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>
+                              {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
+                            </span>
+                            {isFirstUpcoming && <span className="tag" style={{ background: "var(--val-red)", color: "white", fontSize: 10, fontWeight: 900, boxShadow: "0 0 12px var(--val-red-glow)", letterSpacing: 0.5 }}>PRÓXIMO</span>}
+                            {ev.status === 'completed' && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>JUGADO</span>}
+                          </div>
+                          <h3 style={{
+                            fontSize: 22,
+                            fontWeight: 800,
+                            color: "white",
+                            margin: 0,
+                            letterSpacing: "-0.5px",
+                            textDecoration: (isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) ? 'line-through' : undefined,
+                            textShadow: "0 2px 10px rgba(0,0,0,0.3)"
+                          }}>
+                            {ev.title}
+                          </h3>
                         </div>
 
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, color: "var(--text-secondary)", fontSize: 13 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                            {ev.localTime} {ev.localEndTime && `— ${ev.localEndTime}`}
+                        {/* Cybernetic Slot Capsules */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(255, 255, 255, 0.06)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "var(--text-primary)"
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--val-cyan)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                            <span>{ev.localTime} {ev.localEndTime && `— ${ev.localEndTime}`}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                            <span>Mapa: <strong style={{ color: 'white' }}>{ev.map ? (maps.find(m => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}</strong></span>
+
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(255, 255, 255, 0.06)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "var(--text-primary)"
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--val-red)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            <span>{ev.map ? (maps.find(m => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}</span>
                           </div>
                         </div>
 
-                        {ev.description && <p style={{ marginTop: 12, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>{ev.description}</p>}
+                        {ev.description && (
+                          <p style={{
+                            fontSize: 13,
+                            color: "var(--text-muted)",
+                            lineHeight: 1.6,
+                            background: "rgba(255,255,255,0.01)",
+                            padding: "10px 14px",
+                            borderRadius: 8,
+                            borderLeft: "2px solid rgba(255,255,255,0.1)",
+                            margin: 0
+                          }}>
+                            {ev.description}
+                          </p>
+                        )}
 
                         {(isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) && (
                           <div style={{
-                            marginTop: 12,
                             padding: "10px 14px",
                             borderRadius: 8,
                             background: "rgba(255, 70, 85, 0.06)",
@@ -837,7 +886,7 @@ export default function AvailabilityPage() {
 
                         {/* Linked Matches */}
                         {matches.length > 0 && (
-                          <div style={{ marginTop: 16 }}>
+                          <div style={{ marginTop: 8 }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Partidos Jugados</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                               {matches.map((m: LinkedMatch) => {
@@ -870,18 +919,33 @@ export default function AvailabilityPage() {
                         )}
                       </div>
 
-                      <div style={{ flex: "1 1 400px", display: "flex", flexDirection: "column", gap: 16 }}>
-                        <div className="glass-card" style={{ background: "rgba(255,255,255,0.01)", borderRadius: 12, padding: 16, border: "1px solid var(--border-color)" }}>
+                      {/* Columna Derecha: Asistencia, Mapa y Controles */}
+                      <div style={{ flex: "1 1 380px", display: "flex", flexDirection: "column", gap: 16 }}>
+                        {/* Attendance Card */}
+                        <div className="glass-card" style={{ 
+                          background: "rgba(255,255,255,0.01)", 
+                          borderRadius: 12, 
+                          padding: 16, 
+                          border: confirmed >= 5 ? "1px solid rgba(0, 212, 170, 0.25)" : "1px solid var(--border-color)",
+                          boxShadow: confirmed >= 5 ? "0 4px 20px rgba(0, 212, 170, 0.03)" : "none",
+                          transition: "border-color 0.3s, box-shadow 0.3s"
+                        }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Asistencia</span>
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                              <div className={`progress-bar ${updatingEventId === ev.id ? 'animate-pulse' : ''}`} style={{ width: 120, height: 10 }}>
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Asistencia</span>
+                              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                                {confirmed >= 5 ? "¡Escuadra Completa!" : "Buscando jugadores..."}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                              <div className={`progress-bar ${updatingEventId === ev.id ? 'animate-pulse' : ''}`} style={{ width: 100, height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.05)" }}>
                                 <div className="progress-fill progress-fill-cyan transition-smooth" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
                                 <div className="progress-fill progress-fill-maybe transition-smooth" style={{ width: `${Math.min((maybeCount / 5) * 100, Math.max(0, 100 - (confirmed / 5) * 100))}%` }} />
                               </div>
                               <span style={{ fontSize: 13, fontWeight: 800, color: confirmed >= 5 ? "var(--val-cyan)" : "var(--text-secondary)" }}>{confirmed}/5</span>
                             </div>
                           </div>
+                          
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(44px, 1fr))", gap: 12 }}>
                             {players.map(p => {
                               const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
@@ -906,36 +970,154 @@ export default function AvailabilityPage() {
                           </div>
                         </div>
 
+                        {/* Map Preview Card */}
+                        {(() => {
+                          const mapObj = ev.map ? maps.find((m: any) => m.id === ev.map) : null;
+                          if (!mapObj) return null;
+                          return (
+                            <div className="glass-card" style={{
+                              position: "relative",
+                              borderRadius: 12,
+                              height: 80,
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              border: "1px solid rgba(255, 255, 255, 0.08)",
+                              background: "rgba(0,0,0,0.4)"
+                            }}>
+                              <div style={{
+                                position: "absolute",
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: "60%",
+                                backgroundImage: `url(${mapObj.splash})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                                maskImage: "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                opacity: 0.5,
+                                pointerEvents: "none"
+                              }} />
+                              <div style={{ padding: "12px 16px", zIndex: 1, position: "relative" }}>
+                                <div style={{ fontSize: 9, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Mapa Seleccionado</div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: "white" }}>{mapObj.name}</div>
+                                {mapObj.tacticalDescription && (
+                                  <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{mapObj.tacticalDescription}</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Actions Panel */}
                         {myPlayerId && !isInactive && (
-                          <div className="glass-card" style={{ padding: 12, borderRadius: 12, display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.02)" }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Confirmar:</div>
+                          <div style={{ 
+                            padding: "6px 12px", 
+                            borderRadius: 12, 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: 16, 
+                            background: "rgba(255,255,255,0.02)",
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            backdropFilter: "blur(5px)"
+                          }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Mi Estado:</div>
                             <div style={{ display: "flex", gap: 8, flex: 1 }}>
                               <button
-                                className={`btn btn-sm ${myStatus === 'available' ? 'btn-primary' : 'btn-secondary'} transition-smooth`}
                                 onClick={() => setAvailability(ev.id, 'available')}
-                                style={{ flex: 1, fontSize: 10 }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                className="transition-smooth"
+                                style={{
+                                  flex: 1,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding: "8px 12px",
+                                  borderRadius: 8,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 6,
+                                  border: myStatus === 'available' ? "1px solid var(--val-cyan)" : "1px solid rgba(0, 212, 170, 0.15)",
+                                  background: myStatus === 'available' ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.03)",
+                                  color: myStatus === 'available' ? "white" : "rgba(0, 212, 170, 0.85)",
+                                  boxShadow: myStatus === 'available' ? "0 0 15px rgba(0, 212, 170, 0.3)" : "none",
+                                  transform: "scale(1)"
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.background = myStatus === 'available' ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.1)";
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                  e.currentTarget.style.background = myStatus === 'available' ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.03)";
+                                }}
                               >
-                                SÍ ✅
+                                <span>SÍ</span> <span>✅</span>
                               </button>
+                              
                               <button
-                                className={`btn btn-sm ${myStatus === 'maybe' ? 'btn-primary' : 'btn-secondary'} transition-smooth`}
                                 onClick={() => setAvailability(ev.id, 'maybe')}
-                                style={{ flex: 1, fontSize: 10 }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                className="transition-smooth"
+                                style={{
+                                  flex: 1,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding: "8px 12px",
+                                  borderRadius: 8,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 6,
+                                  border: myStatus === 'maybe' ? "1px solid var(--val-yellow)" : "1px solid rgba(245, 158, 11, 0.15)",
+                                  background: myStatus === 'maybe' ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.03)",
+                                  color: myStatus === 'maybe' ? "black" : "rgba(245, 158, 11, 0.85)",
+                                  boxShadow: myStatus === 'maybe' ? "0 0 15px rgba(245, 158, 11, 0.3)" : "none",
+                                  transform: "scale(1)"
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.background = myStatus === 'maybe' ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.1)";
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                  e.currentTarget.style.background = myStatus === 'maybe' ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.03)";
+                                }}
                               >
-                                DUDA ⚠️
+                                <span>DUDA</span> <span>⚠️</span>
                               </button>
+
                               <button
-                                className={`btn btn-sm ${myStatus === 'unavailable' ? 'btn-primary' : 'btn-secondary'} transition-smooth`}
                                 onClick={() => setAvailability(ev.id, 'unavailable')}
-                                style={{ flex: 1, fontSize: 10 }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                className="transition-smooth"
+                                style={{
+                                  flex: 1,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding: "8px 12px",
+                                  borderRadius: 8,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 6,
+                                  border: myStatus === 'unavailable' ? "1px solid var(--val-red)" : "1px solid rgba(255, 70, 85, 0.15)",
+                                  background: myStatus === 'unavailable' ? "var(--val-red)" : "rgba(255, 70, 85, 0.03)",
+                                  color: myStatus === 'unavailable' ? "white" : "rgba(255, 70, 85, 0.85)",
+                                  boxShadow: myStatus === 'unavailable' ? "0 0 15px rgba(255, 70, 85, 0.3)" : "none",
+                                  transform: "scale(1)"
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.background = myStatus === 'unavailable' ? "var(--val-red)" : "rgba(255, 70, 85, 0.1)";
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                  e.currentTarget.style.background = myStatus === 'unavailable' ? "var(--val-red)" : "rgba(255, 70, 85, 0.03)";
+                                }}
                               >
-                                NO ❌
+                                <span>NO</span> <span>❌</span>
                               </button>
                             </div>
                           </div>
