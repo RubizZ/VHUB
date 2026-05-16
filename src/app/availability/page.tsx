@@ -353,7 +353,7 @@ export default function AvailabilityPage() {
                           const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
                           const isCancelled = ev.status === 'cancelled';
                           const unavailable = ea.filter(a => a.status === "unavailable").length;
-                          const isImpossible = isMounted && (ev as any).localDate >= todayStr && (unavailable > 2);
+                          const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
                           const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
                           const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
 
@@ -395,7 +395,7 @@ export default function AvailabilityPage() {
               const confirmed = ea.filter(a => a.status === "available").length;
               const maybeCount = ea.filter(a => a.status === "maybe").length;
               const unavailable = ea.filter(a => a.status === "unavailable").length;
-              const isImpossible = isMounted && !isPast && (unavailable > 2);
+              const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
               const isConfirmed = confirmed >= 5;
 
               // Logic for day grouping (visual only)
