@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import { URL } from 'url';
 import "dotenv/config"; // Nos aseguramos de que lea el .env local en desarrollo
 
 // Lógica para obtener la URL correcta en cualquier entorno
@@ -25,7 +26,32 @@ const globalForPrisma = globalThis as unknown as {
   pool: pg.Pool | undefined;
 };
 
-const pool = globalForPrisma.pool ?? new pg.Pool({ connectionString: getDatabaseUrl() });
+const dbUrl = getDatabaseUrl();
+const isLocalDb = !dbUrl || dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1') || dbUrl.includes('@db:');
+
+let poolConfig: pg.PoolConfig = { connectionString: dbUrl };
+
+if (dbUrl && !isLocalDb) {
+  try {
+    const parsedUrl = new URL(dbUrl);
+    // Para evitar que pg-connection-string sobrescriba nuestra configuración ssl personalizada,
+    // eliminamos sslmode del query string y activamos la compatibilidad con libpq de node-postgres
+    parsedUrl.searchParams.delete('sslmode');
+    parsedUrl.searchParams.set('uselibpqcompat', 'true');
+    
+    poolConfig = {
+      connectionString: parsedUrl.toString(),
+      ssl: { rejectUnauthorized: false }
+    };
+  } catch {
+    poolConfig = {
+      connectionString: dbUrl,
+      ssl: { rejectUnauthorized: false }
+    };
+  }
+}
+
+const pool = globalForPrisma.pool ?? new pg.Pool(poolConfig);
 if (process.env.NODE_ENV !== 'production') globalForPrisma.pool = pool;
 
 const adapter = new PrismaPg(pool);

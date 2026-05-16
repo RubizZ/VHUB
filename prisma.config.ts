@@ -23,7 +23,8 @@ if (!databaseUrl) {
 }
 
 // ✅ CONFIGURACIÓN TLS ADAPTADA AL LOG DE ERROR
-if (databaseUrl && process.env.NODE_ENV === "production") {
+const isLocalDb = !databaseUrl || databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1") || databaseUrl.includes("@db:");
+if (databaseUrl && (process.env.NODE_ENV === "production" || !isLocalDb)) {
     // 1. uselibpqcompat=true -> Activa la compatibilidad estándar de Postgres y evita que Node fuerce 'verify-full'
     // 2. sslmode=require     -> Fuerza cifrado TLS
     // 3. sslaccept=accept_invalid_certs -> Permite el certificado del pooler de Supabase
