@@ -8,14 +8,20 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { teamId } = body;
+    const { teamId, slug } = body;
 
-    if (!teamId) {
-      return NextResponse.json({ error: "Se requiere el ID del equipo" }, { status: 400 });
+    if (!teamId && !slug) {
+      return NextResponse.json({ error: "Se requiere el ID o identificador (slug) del equipo" }, { status: 400 });
     }
 
-    // Check if the team exists
-    const team = await db.team.findUnique({ where: { id: teamId } });
+    let team = null;
+    if (slug) {
+      const cleanSlug = slug.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      team = await db.team.findUnique({ where: { slug: cleanSlug } });
+    } else if (teamId) {
+      team = await db.team.findUnique({ where: { id: teamId } });
+    }
+
     if (!team) {
       return NextResponse.json({ error: "Equipo no encontrado" }, { status: 404 });
     }

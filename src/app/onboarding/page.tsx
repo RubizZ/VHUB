@@ -12,10 +12,8 @@ export default function OnboardingPage() {
 
   // Form states
   const [teamName, setTeamName] = useState("");
-  const [teamSlug, setTeamSlug] = useState("");
   const [conference, setConference] = useState("EU_IBIT");
-  const [teams, setTeams] = useState<any[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [joinSlug, setJoinSlug] = useState("");
 
   useEffect(() => {
     // If the user already has a pending request, switch to pending mode
@@ -29,19 +27,6 @@ export default function OnboardingPage() {
       .catch(() => {});
   }, []);
 
-  const fetchTeams = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/teams");
-      const data = await res.json();
-      if (data.teams) setTeams(data.teams);
-    } catch (err) {
-      setError("Error al cargar los equipos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -51,7 +36,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: teamName, slug: teamSlug, conference })
+        body: JSON.stringify({ name: teamName, conference })
       });
       const data = await res.json();
 
@@ -67,7 +52,7 @@ export default function OnboardingPage() {
       } else {
         setError(data.error || "Error al crear el equipo");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión");
     } finally {
       setLoading(false);
@@ -76,7 +61,7 @@ export default function OnboardingPage() {
 
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTeamId) return;
+    if (!joinSlug.trim()) return;
     
     setLoading(true);
     setError("");
@@ -85,7 +70,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/teams/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: selectedTeamId })
+        body: JSON.stringify({ slug: joinSlug.trim() })
       });
       const data = await res.json();
 
@@ -94,7 +79,7 @@ export default function OnboardingPage() {
       } else {
         setError(data.error || "Error al enviar la solicitud");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión");
     } finally {
       setLoading(false);
@@ -129,7 +114,7 @@ export default function OnboardingPage() {
             </button>
             <button 
               className="btn" 
-              onClick={() => { setMode("join"); fetchTeams(); }}
+              onClick={() => setMode("join")}
               style={{ width: "100%", padding: "16px", background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
             >
               Unirme a un Equipo existente
@@ -151,15 +136,28 @@ export default function OnboardingPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>IDENTIFICADOR CORTO (SLUG)</label>
-              <input 
-                type="text" 
-                value={teamSlug} 
-                onChange={(e) => setTeamSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} 
-                placeholder="ej. g2" 
-                required 
-                style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
-              />
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>IDENTIFICADOR CORTO (SLUG AUTOGENERADO)</label>
+              <div 
+                style={{ 
+                  width: "100%", 
+                  padding: "12px 16px", 
+                  borderRadius: 8, 
+                  background: "rgba(255, 255, 255, 0.05)", 
+                  border: "1px dashed var(--border-color)", 
+                  color: "var(--text-muted)",
+                  fontFamily: "monospace",
+                  fontSize: 14,
+                  minHeight: 45,
+                  display: "flex",
+                  alignItems: "center"
+                }}
+              >
+                {teamName ? (
+                  teamName.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+                ) : (
+                  <span style={{ fontStyle: "italic", opacity: 0.5 }}>Se generará a partir del nombre...</span>
+                )}
+              </div>
             </div>
             <div className="form-group" style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>REGIÓN DE COMPETICIÓN (VALORANT PREMIER)</label>
@@ -195,22 +193,22 @@ export default function OnboardingPage() {
         {mode === "join" && (
           <form onSubmit={handleJoinTeam} style={{ marginTop: 24 }}>
             <div className="form-group" style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>SELECCIONA UN EQUIPO</label>
-              <select 
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-                required
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>IDENTIFICADOR DEL EQUIPO (SLUG)</label>
+              <input 
+                type="text" 
+                value={joinSlug} 
+                onChange={(e) => setJoinSlug(e.target.value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))} 
+                placeholder="ej. g2-esports" 
+                required 
                 style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
-              >
-                <option value="">-- Elige un equipo --</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              />
+              <span style={{ display: "block", marginTop: 8, fontSize: 11, color: "var(--text-muted)", lineHeight: "1.4" }}>
+                Pídele el identificador corto (slug) al administrador de tu equipo para poder unirte.
+              </span>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <button type="button" className="btn" onClick={() => setMode("choice")} style={{ flex: 1, background: "var(--bg-glass)" }}>Volver</button>
-              <button type="submit" disabled={loading || !selectedTeamId} className="btn btn-primary" style={{ flex: 2 }}>{loading ? "Enviando..." : "Solicitar Unión"}</button>
+              <button type="submit" disabled={loading || !joinSlug.trim()} className="btn btn-primary" style={{ flex: 2 }}>{loading ? "Enviando..." : "Solicitar Unión"}</button>
             </div>
           </form>
         )}

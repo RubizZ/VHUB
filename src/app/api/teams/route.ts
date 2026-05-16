@@ -3,25 +3,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
 export async function GET() {
-  try {
-    const session = await auth();
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const teams = await db.team.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        logo_url: true
-      },
-      orderBy: { name: 'asc' }
-    });
-
-    return NextResponse.json({ teams });
-  } catch (error) {
-    console.error("[GET /api/teams] Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
+  return NextResponse.json({ error: "Acceso no permitido" }, { status: 403 });
 }
 
 export async function POST(req: Request) {
@@ -30,16 +12,27 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { name, slug, conference } = body;
+    const { name, conference } = body;
 
-    if (!name || !slug || !conference) {
-      return NextResponse.json({ error: "Nombre, slug y región son requeridos" }, { status: 400 });
+    if (!name || !conference) {
+      return NextResponse.json({ error: "Nombre y región son requeridos" }, { status: 400 });
+    }
+
+    // Generate slug automatically based on the team name
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/[^a-z0-9-]/g, ""); // Remove any other non-alphanumeric character (except hyphens)
+
+    if (!slug) {
+      return NextResponse.json({ error: "El nombre del equipo debe contener al menos caracteres alfanuméricos para generar un identificador" }, { status: 400 });
     }
 
     // Check if slug is taken
     const existingTeam = await db.team.findUnique({ where: { slug } });
     if (existingTeam) {
-      return NextResponse.json({ error: "El slug (identificador) ya está en uso" }, { status: 400 });
+      return NextResponse.json({ error: `El identificador autogenerado "${slug}" ya está en uso. Por favor, elige un nombre de equipo diferente.` }, { status: 400 });
     }
 
     // Create Team and update User in a transaction to ensure data consistency
