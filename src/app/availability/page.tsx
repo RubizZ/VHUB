@@ -570,7 +570,7 @@ export default function AvailabilityPage() {
                                 <div
                                   key={ev.id}
                                   onClick={() => setSelectedEventId(ev.id)}
-                                  className={`event-card ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
+                                  className={`calendar-event-hover ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
                                   style={{
                                     fontSize: 10, padding: "4px 6px", borderRadius: 4,
                                     background: isRed 
@@ -590,7 +590,8 @@ export default function AvailabilityPage() {
                                     boxShadow: isFirstUpcoming
                                       ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
                                       : 'none',
-                                    zIndex: isFirstUpcoming ? 5 : undefined
+                                    zIndex: isFirstUpcoming ? 5 : undefined,
+                                    ["--hover-color" as any]: evColor
                                   }}
                                   title={`${ev.localTime} - ${ev.title} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
                                 >
@@ -721,7 +722,7 @@ export default function AvailabilityPage() {
                               <div
                                 key={ev.id}
                                 onClick={() => setSelectedEventId(ev.id)}
-                                className={isFirstUpcoming ? "upcoming-highlight-mini" : ""}
+                                className={`calendar-event-hover ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
                                 style={{
                                   position: "absolute", top: top, left: 4, right: 4, height: height,
                                   fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
@@ -742,7 +743,8 @@ export default function AvailabilityPage() {
                                   border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
                                   display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
                                   opacity: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? 0.4 : 1,
-                                  textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none'
+                                  textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none',
+                                  ["--hover-color" as any]: evColor
                                 }}
                               >
                                 {isFirstUpcoming && (
