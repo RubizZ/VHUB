@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -53,6 +53,8 @@ export default function AvailabilityPage() {
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
   const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
   const weekScrollRef = useRef<HTMLDivElement>(null);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<"above" | "below" | "in-view">("in-view");
 
   useEffect(() => {
     setIsMounted(true);
@@ -284,6 +286,33 @@ export default function AvailabilityPage() {
     return idx !== -1 ? events[idx].id : null;
   }, [events, avail, isMounted, players, todayStr]);
 
+  const checkUpcomingScrollPosition = useCallback(() => {
+    if (!firstUpcomingId || !listContainerRef.current) return;
+    const card = eventRefsMap.current[firstUpcomingId];
+    const container = listContainerRef.current;
+    if (!card) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+
+    if (cardRect.bottom < containerRect.top + 10) {
+      setUpcomingScrollPosition("above");
+    } else if (cardRect.top > containerRect.bottom - 10) {
+      setUpcomingScrollPosition("below");
+    } else {
+      setUpcomingScrollPosition("in-view");
+    }
+  }, [firstUpcomingId]);
+
+  useEffect(() => {
+    if (viewMode === "list") {
+      const timer = setTimeout(() => {
+        checkUpcomingScrollPosition();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, firstUpcomingId, checkUpcomingScrollPosition]);
+
   const canManage = (session?.user as any)?.role === "team_admin" || (session?.user as any)?.role === "super_admin";
 
   const { dayNames, days, weekDays, monthLabel } = useMemo(() => {
@@ -473,6 +502,23 @@ export default function AvailabilityPage() {
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => changeDate(-1)}>◀</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setCurrentDate(new Date())}>Hoy</button>
+                {firstUpcomingId && (() => {
+                  const upcomingEv = events.find(e => e.id === firstUpcomingId);
+                  if (!upcomingEv) return null;
+                  return (
+                    <button 
+                      className="btn btn-ghost btn-sm" 
+                      onClick={() => {
+                        if (upcomingEv.date) {
+                          setCurrentDate(new Date(`${upcomingEv.date}T00:00:00`));
+                        }
+                      }}
+                      style={{ color: "var(--val-cyan)", fontWeight: 800 }}
+                    >
+                      🚀 Próximo
+                    </button>
+                  );
+                })()}
                 <button className="btn btn-ghost btn-sm" onClick={() => changeDate(1)}>▶</button>
               </div>
             </div>
@@ -729,7 +775,13 @@ export default function AvailabilityPage() {
             </div>
           </div>
         )})() : (
-          <div className="events-list-container" style={{ display: "flex", flexDirection: "column", gap: 40, flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
+          <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div 
+              ref={listContainerRef}
+              onScroll={checkUpcomingScrollPosition}
+              className="events-list-container" 
+              style={{ display: "flex", flexDirection: "column", gap: 40, flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}
+            >
             {events.length === 0 && <p style={{ color: "var(--text-muted)", textAlign: "center", padding: 40 }}>No hay eventos programados.</p>}
             {events.map((ev, idx) => {
               const isPast = isMounted && (ev as any).localDate < todayStr;
@@ -1206,6 +1258,45 @@ export default function AvailabilityPage() {
                 </div>
               );
             })}
+            </div>
+
+            {/* Floating Quick Navigation Indicators */}
+            {upcomingScrollPosition !== "in-view" && firstUpcomingId && (
+              <div 
+                onClick={() => {
+                  const card = eventRefsMap.current[firstUpcomingId];
+                  if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(checkUpcomingScrollPosition, 600);
+                  }
+                }}
+                className="glass-card hover-lift transition-smooth"
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  top: upcomingScrollPosition === "above" ? 20 : "auto",
+                  bottom: upcomingScrollPosition === "below" ? 20 : "auto",
+                  padding: "10px 20px",
+                  borderRadius: 30,
+                  border: "1px solid rgba(0, 212, 170, 0.3)",
+                  background: "rgba(10, 11, 20, 0.9)",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 212, 170, 0.15)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  zIndex: 100,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "var(--val-cyan)",
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                }}
+              >
+                {upcomingScrollPosition === "above" ? "⬆️ Ver Próximo Evento" : "⬇️ Ver Próximo Evento"}
+              </div>
+            )}
           </div>
         )}
       </div>
