@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, slug, logo_url, conference } = body;
+  const { name, slug, logo_url, conference, tag } = body;
 
   if (!name || !slug || !conference) {
     return NextResponse.json({ error: "Name, slug and conference are required" }, { status: 400 });
@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
         name,
         slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
         logo_url,
-        conference
+        conference,
+        tag: tag?.toUpperCase() || null
       }
     });
 

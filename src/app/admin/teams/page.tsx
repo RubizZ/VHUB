@@ -1,11 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Team {
   id: string;
   name: string;
   slug: string;
+  conference: string;
+  tag?: string;
+  logo_url?: string;
+  division?: number;
   _count: {
     players: number;
     users: number;
@@ -17,8 +22,11 @@ export default function AdminTeamsPage() {
   const { data: session } = useSession();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [newTeam, setNewTeam] = useState({ name: "", slug: "" });
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [formData, setFormData] = useState({ name: "", slug: "", conference: "EMEA", tag: "" });
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeams();
@@ -36,113 +44,228 @@ export default function AdminTeamsPage() {
     }
   };
 
-  const createTeam = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingTeam(null);
+    setFormData({ name: "", slug: "", conference: "EMEA", tag: "" });
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (team: Team) => {
+    setEditingTeam(team);
+    setFormData({ 
+      name: team.name, 
+      slug: team.slug, 
+      conference: team.conference || "EMEA", 
+      tag: team.tag || "" 
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const method = editingTeam ? "PUT" : "POST";
+    const url = editingTeam ? `/api/admin/teams/${editingTeam.id}` : "/api/admin/teams";
+
     try {
-      const res = await fetch("/api/admin/teams", {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTeam),
+        body: JSON.stringify(formData),
       });
       if (res.ok) {
         setShowModal(false);
-        setNewTeam({ name: "", slug: "" });
         fetchTeams();
       }
     } catch (error) {
-      console.error("Error creating team:", error);
+      console.error("Error saving team:", error);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este equipo? Esta acción es irreversible y eliminará todos los datos asociados.")) return;
+    
+    setIsDeleting(id);
+    try {
+      const res = await fetch(`/api/admin/teams/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setTeams(teams.filter(t => t.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting team:", error);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const filteredTeams = teams.filter(t => 
+    t.name.toLowerCase().includes(search.toLowerCase()) || 
+    t.slug.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (session?.user?.role !== "super_admin") {
-    return <div className="p-20 text-center">No tienes permiso para ver esta página.</div>;
+    return <div className="p-20 text-center">Acceso restringido.</div>;
   }
 
   return (
-    <div className="page-container">
-      <header className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="admin-wrapper">
+      <header className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 40 }}>
         <div>
-          <h1>Gestión de Equipos</h1>
-          <p style={{ color: "var(--text-secondary)" }}>Administra los equipos y organizaciones de la plataforma</p>
+          <span className="badge" style={{ background: "rgba(0, 212, 170, 0.1)", color: "var(--val-cyan)", marginBottom: 8 }}>PLATFORM MANAGEMENT</span>
+          <h1 className="gradient-text" style={{ fontSize: 42, fontWeight: 900, letterSpacing: "-1px" }}>Organizaciones</h1>
+          <p style={{ fontSize: 16, color: "var(--text-secondary)", marginTop: 4 }}>Control de equipos y entidades competitivas</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          + Crear Equipo
-        </button>
+        <div style={{ display: "flex", gap: 16 }}>
+           <div style={{ position: "relative" }}>
+             <input 
+               type="text" 
+               className="input-field" 
+               placeholder="Buscar por nombre o slug..." 
+               style={{ width: 320, paddingLeft: 40, height: 48, borderRadius: 12, background: "rgba(255,255,255,0.03)" }}
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+             />
+             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ position: "absolute", left: 14, top: 15, color: "var(--text-muted)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+           </div>
+           <button className="btn btn-primary" style={{ height: 48, padding: "0 24px", borderRadius: 12, fontWeight: 800 }} onClick={handleOpenCreate}>
+             + Nueva Organización
+           </button>
+        </div>
       </header>
 
       {loading ? (
-        <div className="loading-state">Cargando equipos...</div>
+        <div className="grid grid-3" style={{ gap: 24 }}>
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} width="100%" height={280} style={{ borderRadius: 24 }} />)}
+        </div>
       ) : (
-        <div className="grid grid-3">
-          {teams.map((team) => (
-            <div key={team.id} className="card team-card" style={{ padding: 24, position: "relative" }}>
-              <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20 }}>
+        <div className="grid grid-3" style={{ gap: 32 }}>
+          {filteredTeams.map((team) => (
+            <div key={team.id} className="team-premium-card card glass-card">
+              <div className="card-top-glow" />
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, position: "relative" }}>
                 <div style={{ 
-                  width: 48, 
-                  height: 48, 
-                  background: "var(--val-red)", 
-                  borderRadius: 8, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontSize: 20,
-                  fontWeight: 800
+                  width: 60, height: 60, borderRadius: 16, background: "linear-gradient(135deg, var(--val-red) 0%, #991b1b 100%)", 
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, color: "#fff",
+                  boxShadow: "0 10px 20px rgba(255, 70, 85, 0.3)", border: "1px solid rgba(255,255,255,0.1)"
                 }}>
                   {team.name[0]}
                 </div>
-                <div>
-                  <h3 style={{ margin: 0 }}>{team.name}</h3>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>/{team.slug}</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                   <button className="icon-action-btn" onClick={() => handleOpenEdit(team)}>✏️</button>
                 </div>
               </div>
 
-              <div className="grid grid-2" style={{ gap: 12 }}>
-                <div className="stat-box" style={{ background: "var(--bg-secondary)", padding: "12px", borderRadius: 8, textAlign: "center" }}>
-                  <div style={{ fontSize: "1.2rem", fontWeight: 700 }}>{team._count.players}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>JUGADORES</div>
-                </div>
-                <div className="stat-box" style={{ background: "var(--bg-secondary)", padding: "12px", borderRadius: 8, textAlign: "center" }}>
-                  <div style={{ fontSize: "1.2rem", fontWeight: 700 }}>{team._count.users}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>USUARIOS</div>
+              <div style={{ marginBottom: 24, position: "relative" }}>
+                <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: "-0.5px" }}>{team.name}</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace" }}>/{team.slug}</span>
+                  {team.tag && <span className="tag-badge">#{team.tag}</span>}
                 </div>
               </div>
 
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border-color)", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                Creado el {new Date(team.created_at).toLocaleDateString()}
+              <div className="team-stats-grid">
+                <div className="team-stat-item">
+                  <div className="value" style={{ color: "var(--val-cyan)" }}>{team._count.players}</div>
+                  <div className="label">JUGADORES</div>
+                </div>
+                <div className="team-stat-item">
+                  <div className="value" style={{ color: "var(--val-purple)" }}>{team._count.users}</div>
+                  <div className="label">USUARIOS</div>
+                </div>
+              </div>
+
+              <div className="team-card-footer">
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-cyan)" }} />
+                   <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", letterSpacing: 1 }}>{team.conference.toUpperCase()}</span>
+                </div>
+                <button 
+                  className="delete-btn" 
+                  onClick={() => handleDelete(team.id)}
+                  disabled={isDeleting === team.id}
+                >
+                  {isDeleting === team.id ? "BORRANDO..." : "ELIMINAR"}
+                </button>
               </div>
             </div>
           ))}
+          {filteredTeams.length === 0 && (
+             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 100 }}>
+                <div style={{ fontSize: 48, marginBottom: 20 }}>🔍</div>
+                <h3 style={{ fontSize: 20, fontWeight: 800 }}>No se encontraron resultados</h3>
+                <p style={{ color: "var(--text-muted)" }}>Intenta con otro término de búsqueda</p>
+             </div>
+          )}
         </div>
       )}
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content card" style={{ maxWidth: 400 }}>
-            <h2>Nuevo Equipo</h2>
-            <form onSubmit={createTeam}>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label>Nombre del Equipo</label>
+          <div className="modal-content card glass-card premium-modal" style={{ maxWidth: 500, width: "95%" }}>
+            <div style={{ marginBottom: 32 }}>
+               <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>{editingTeam ? "Editar Equipo" : "Nueva Organización"}</h2>
+               <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>Completa la información técnica de la entidad</p>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Nombre Comercial</label>
                 <input 
                   className="input-field"
                   placeholder="Ej: KRÜ Esports" 
-                  value={newTeam.name}
-                  onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })}
+                  style={{ height: 48, borderRadius: 12 }}
+                  value={formData.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setFormData({ 
+                      ...formData, 
+                      name, 
+                      slug: editingTeam ? formData.slug : name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") 
+                    });
+                  }}
                   required
                 />
               </div>
-              <div className="form-group" style={{ marginBottom: 24 }}>
-                <label>Slug (Identificador)</label>
+              
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Identificador URL (Slug)</label>
                 <input 
                   className="input-field"
                   placeholder="kru-esports" 
-                  value={newTeam.slug}
-                  onChange={(e) => setNewTeam({ ...newTeam, slug: e.target.value })}
+                  style={{ height: 48, borderRadius: 12 }}
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                   required
                 />
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Crear</button>
+              
+              <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Región / Conf.</label>
+                  <select className="input-field" style={{ height: 48, borderRadius: 12 }} value={formData.conference} onChange={(e) => setFormData({ ...formData, conference: e.target.value })}>
+                    <option value="EMEA">EMEA</option>
+                    <option value="Americas">Americas</option>
+                    <option value="Pacific">Pacific</option>
+                    <option value="CN">China</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Tag Oficial</label>
+                  <input 
+                    className="input-field"
+                    placeholder="Ej: KRU" 
+                    style={{ height: 48, borderRadius: 12 }}
+                    value={formData.tag}
+                    onChange={(e) => setFormData({ ...formData, tag: e.target.value.toUpperCase() })}
+                  />
+                </div>
+              </div>
+              
+              <div style={{ display: "flex", gap: 16 }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }}>
+                   {editingTeam ? "Actualizar" : "Crear Entidad"}
+                </button>
               </div>
             </form>
           </div>
@@ -150,22 +273,103 @@ export default function AdminTeamsPage() {
       )}
 
       <style jsx>{`
+        .admin-wrapper {
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        .team-premium-card {
+          padding: 32px;
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.08);
+          position: relative;
+          overflow: hidden;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .team-premium-card:hover {
+          transform: translateY(-10px);
+          border-color: var(--val-red);
+          background: rgba(255, 70, 85, 0.02);
+          box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 20px rgba(255, 70, 85, 0.1);
+        }
+        .card-top-glow {
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 100px;
+          background: linear-gradient(to bottom, rgba(255, 70, 85, 0.05), transparent);
+          pointer-events: none;
+        }
+        .tag-badge {
+          background: rgba(255,255,255,0.05);
+          padding: 2px 8px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-secondary);
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+        .team-stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+        .team-stat-item {
+          background: rgba(255,255,255,0.02);
+          padding: 16px;
+          border-radius: 16px;
+          text-align: center;
+          border: 1px solid rgba(255,255,255,0.03);
+        }
+        .team-stat-item .value { font-size: 24px; font-weight: 900; margin-bottom: 4px; }
+        .team-stat-item .label { font-size: 10px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; }
+        
+        .team-card-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 24px;
+          border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .delete-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255, 70, 85, 0.5);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .delete-btn:hover { color: var(--val-red); }
+        
+        .icon-action-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.05);
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .icon-action-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+        
         .modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.8);
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.9);
+          backdrop-filter: blur(10px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
         }
-        .team-card:hover {
-          transform: translateY(-4px);
-          border-color: var(--val-red);
-          transition: all 0.3s ease;
+        .premium-modal {
+          padding: 40px;
+          border-radius: 32px;
+          box-shadow: 0 40px 100px rgba(0,0,0,0.8);
         }
       `}</style>
     </div>

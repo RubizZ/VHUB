@@ -18,6 +18,7 @@ const Icons = {
   Logout: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   Profile: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   Riot: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>,
+  Org: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
 };
 
 const playerLinks = [
@@ -92,7 +93,10 @@ export function Sidebar() {
               <span className="nav-link-icon"><Icons.Admin /></span> Panel Global
             </Link>
             <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`}>
-              <span className="nav-link-icon"><Icons.Stats /></span> Equipos
+              <span className="nav-link-icon"><Icons.Org /></span> Equipos
+            </Link>
+            <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`}>
+              <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
             </Link>
           </>
         )}
