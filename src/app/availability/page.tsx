@@ -795,7 +795,6 @@ export default function AvailabilityPage() {
                               {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                             </span>
                             {isFirstUpcoming && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
-                            {ev.status === 'completed' && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>JUGADO</span>}
                           </div>
                           <h3 style={{
                             fontSize: 22,
