@@ -954,19 +954,101 @@ export default function AvailabilityPage() {
                                   <div
                                     className={`transition-smooth ${updatingEventId === ev.id && Number(p.id) === Number(myPlayerId) ? 'animate-status-update' : ''}`}
                                     style={{
-                                      width: 36, height: 36, borderRadius: "50%", background: p.avatar_color,
-                                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white",
-                                      border: `2px solid ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'}`,
-                                      boxShadow: ps !== 'pending' ? `0 0 10px ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` : 'none',
-                                      transform: ps !== 'pending' ? 'scale(1)' : 'scale(0.9)',
-                                      opacity: ps !== 'pending' ? 1 : 0.6
+                                      position: "relative",
+                                      width: 38,
+                                      height: 38,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center"
+                                    }}
+                                  >
+                                    {/* Circular Avatar */}
+                                    <div
+                                      className="transition-smooth"
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        borderRadius: "50%",
+                                        background: p.avatar_color,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 14,
+                                        fontWeight: 900,
+                                        color: "white",
+                                        border: `2px solid ${
+                                          ps === 'available' ? 'var(--val-cyan)' : 
+                                          ps === 'maybe' ? 'var(--val-yellow)' : 
+                                          ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'
+                                        }`,
+                                        boxShadow: ps !== 'pending' 
+                                          ? `0 0 12px ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` 
+                                          : 'none',
+                                        opacity: ps !== 'pending' ? 1 : 0.45
+                                      }}
+                                    >
+                                      {p.name[0]}
+                                    </div>
+                                    {/* Status Emblem Indicator */}
+                                    <div style={{
+                                      position: "absolute",
+                                      bottom: -2,
+                                      right: -2,
+                                      width: 14,
+                                      height: 14,
+                                      borderRadius: "50%",
+                                      background: 
+                                        ps === 'available' ? 'var(--val-cyan)' : 
+                                        ps === 'maybe' ? 'var(--val-yellow)' : 
+                                        ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.15)',
+                                      border: "2px solid #11141b",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 8,
+                                      fontWeight: 900,
+                                      color: ps === 'maybe' ? 'black' : 'white',
+                                      boxShadow: "0 2px 4px rgba(0,0,0,0.5)"
                                     }}>
-                                    {p.name[0]}
+                                      {ps === 'available' ? '✓' : ps === 'maybe' ? '?' : ps === 'unavailable' ? '✗' : '•'}
+                                    </div>
                                   </div>
                                   <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>{p.name.split(' ')[0]}</div>
                                 </div>
                               );
                             })}
+                          </div>
+
+                          {/* Dynamic Detailed Stats Row */}
+                          <div style={{
+                            display: "flex",
+                            gap: 8,
+                            marginTop: 14,
+                            paddingTop: 12,
+                            borderTop: "1px solid rgba(255,255,255,0.05)",
+                            justifyContent: "space-between",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "var(--text-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 6px var(--val-cyan)" }} />
+                              <span>{confirmed} Sí</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-yellow)", boxShadow: "0 0 6px var(--val-yellow)" }} />
+                              <span>{maybeCount} Duda</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-red)", boxShadow: "0 0 6px var(--val-red)" }} />
+                              <span>{unavailable} No</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.25)" }} />
+                              <span>{players.length - confirmed - maybeCount - unavailable} Pendiente</span>
+                            </div>
                           </div>
                         </div>
 
