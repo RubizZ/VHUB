@@ -773,7 +773,7 @@ export default function AvailabilityPage() {
 
                   <div
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                    className={`card glass-card animate-in ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
+                    className={`card glass-card animate-card-in ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
                     style={{
                       marginBottom: 12,
                       borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,

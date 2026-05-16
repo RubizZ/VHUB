@@ -836,6 +836,10 @@ select option {
   animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.animate-card-in {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out both;
 }
