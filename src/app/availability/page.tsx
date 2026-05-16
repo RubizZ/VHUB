@@ -271,6 +271,19 @@ export default function AvailabilityPage() {
 
   const todayStr = formatDateLocal(new Date());
 
+  const firstUpcomingId = useMemo(() => {
+    if (!isMounted || events.length === 0) return null;
+    const idx = events.findIndex((e) => {
+      const pIsPast = isMounted && (e as any).localDate < todayStr;
+      const pIsCancelled = e.status === 'cancelled';
+      const pEA = avail[e.id] || [];
+      const pUnavailable = pEA.filter(a => a.status === "unavailable").length;
+      const pIsImpossible = isMounted && !pIsPast && players.length >= 5 && (players.length - pUnavailable < 5);
+      return isMounted && !pIsPast && !pIsCancelled && !pIsImpossible && e.status === 'scheduled';
+    });
+    return idx !== -1 ? events[idx].id : null;
+  }, [events, avail, isMounted, players, todayStr]);
+
   const canManage = (session?.user as any)?.role === "team_admin" || (session?.user as any)?.role === "super_admin";
 
   const { dayNames, days, weekDays, monthLabel } = useMemo(() => {
@@ -505,6 +518,7 @@ export default function AvailabilityPage() {
                               const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
                               const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
                               const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                              const isFirstUpcoming = ev.id === firstUpcomingId;
 
                               return (
                                 <div
@@ -525,10 +539,28 @@ export default function AvailabilityPage() {
                                     fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
                                     textDecoration: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
                                     opacity: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
-                                    border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `1px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)'
+                                    border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `1px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
+                                    boxShadow: isFirstUpcoming
+                                      ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                      : 'none',
+                                    zIndex: isFirstUpcoming ? 5 : undefined
                                   }}
                                   title={`${ev.localTime} - ${ev.title} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
                                 >
+                                  {isFirstUpcoming && (
+                                    <span style={{
+                                      marginRight: 4,
+                                      background: ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)",
+                                      color: ev.type === "playoffs" ? "black" : "white",
+                                      padding: "1px 3px",
+                                      borderRadius: 3,
+                                      fontSize: 7,
+                                      fontWeight: 900,
+                                      boxShadow: "0 0 8px rgba(255,255,255,0.2)"
+                                    }}>
+                                      PRÓXIMO
+                                    </span>
+                                  )}
                                   {ev.localTime} {ev.title}
                                 </div>
                               );
@@ -636,6 +668,7 @@ export default function AvailabilityPage() {
                             const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
                             const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
                             const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                            const isFirstUpcoming = ev.id === firstUpcomingId;
 
                             return (
                               <div
@@ -643,7 +676,7 @@ export default function AvailabilityPage() {
                                 onClick={() => setSelectedEventId(ev.id)}
                                 style={{
                                   position: "absolute", top: top, left: 4, right: 4, height: height,
-                                  fontSize: 10, padding: "6px", borderRadius: 8, zIndex: 10,
+                                  fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
                                   background: isRed 
                                     ? 'transparent' 
                                     : myStatus === 'unavailable'
@@ -655,13 +688,30 @@ export default function AvailabilityPage() {
                                           : evColor,
                                   color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
                                   fontWeight: 700, cursor: "pointer",
-                                  boxShadow: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
+                                  boxShadow: isFirstUpcoming 
+                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                    : (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
                                   border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
                                   display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
                                   opacity: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? 0.4 : 1,
                                   textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none'
                                 }}
                               >
+                                {isFirstUpcoming && (
+                                  <div style={{
+                                    background: "rgba(255,255,255,0.18)",
+                                    color: "white",
+                                    padding: "1px 4px",
+                                    borderRadius: 4,
+                                    fontSize: 7,
+                                    fontWeight: 900,
+                                    textTransform: "uppercase",
+                                    letterSpacing: 0.5,
+                                    marginBottom: height < 40 ? 0 : 2
+                                  }}>
+                                    PRÓXIMO
+                                  </div>
+                                )}
                                 <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{ev.title}</div>
                                  <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>
                                    {ev.map ? (maps.find((m: any) => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}
@@ -697,15 +747,8 @@ export default function AvailabilityPage() {
               const isToday = (ev as any).localDate === todayStr;
 
               // Logic for "PRÓXIMO" tag and preceding items
-              const firstUpcomingIdx = events.findIndex((e) => {
-                const pIsPast = isMounted && (e as any).localDate < todayStr;
-                const pIsCancelled = e.status === 'cancelled';
-                const pEA = avail[e.id] || [];
-                const pUnavailable = pEA.filter(a => a.status === "unavailable").length;
-                const pIsImpossible = isMounted && !pIsPast && players.length >= 5 && (players.length - pUnavailable < 5);
-                return isMounted && !pIsPast && !pIsCancelled && !pIsImpossible && e.status === 'scheduled';
-              });
-              const isFirstUpcoming = idx === firstUpcomingIdx;
+              const isFirstUpcoming = ev.id === firstUpcomingId;
+              const firstUpcomingIdx = events.findIndex(e => e.id === firstUpcomingId);
               const isBeforeUpcoming = firstUpcomingIdx !== -1 && idx < firstUpcomingIdx;
               const isInactive = isPast || isCancelled || isImpossible || ev.status === 'completed' || ev.status === 'no_players' || ev.status === 'not_played' || isBeforeUpcoming;
 
