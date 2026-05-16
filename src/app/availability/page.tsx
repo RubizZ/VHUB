@@ -44,7 +44,9 @@ export default function AvailabilityPage() {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [calendarToken, setCalendarToken] = useState<string | null>(null);
+  const [userCalendarToken, setUserCalendarToken] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [exportTab, setExportTab] = useState<"team" | "personal">("team");
 
   const myPlayerId = (session?.user as any)?.playerId;
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,8 @@ export default function AvailabilityPage() {
       } else {
         setViewMode("calendar");
       }
-    loadToken();
+      loadToken();
+      loadUserToken();
   }, [isMounted]);
 
   useEffect(() => {
@@ -225,13 +228,25 @@ export default function AvailabilityPage() {
     }
   };
 
-  const regenerateToken = async () => {
+  const loadUserToken = async () => {
+    try {
+      const res = await fetch("/api/users/calendar-token");
+      const d = await res.json();
+      if (d.token) setUserCalendarToken(d.token);
+    } catch (e) {
+      console.error("Error loading user calendar token", e);
+    }
+  };
+
+  const regenerateToken = async (type: "team" | "personal") => {
     if (!confirm("¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.")) return;
     try {
       setIsRegenerating(true);
-      const res = await fetch("/api/teams/calendar-token", { method: "POST" });
+      const url = type === "team" ? "/api/teams/calendar-token" : "/api/users/calendar-token";
+      const res = await fetch(url, { method: "POST" });
       const d = await res.json();
-      if (d.token) setCalendarToken(d.token);
+      if (type === "team") setCalendarToken(d.token);
+      else setUserCalendarToken(d.token);
     } catch (e) {
       console.error("Error regenerating token", e);
     } finally {
@@ -475,10 +490,15 @@ export default function AvailabilityPage() {
                               const ea = avail[ev.id] || [];
                               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
                               const isCancelled = ev.status === 'cancelled';
+                              const isNoPlayers = ev.status === 'no_players';
+                              const isNotPlayed = ev.status === 'not_played';
+                              
                               const unavailable = ea.filter(a => a.status === "unavailable").length;
                               const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
-                              const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
-                              const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                              
+                              const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
+                              const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                              const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
 
                               return (
                                 <div
@@ -486,16 +506,22 @@ export default function AvailabilityPage() {
                                   onClick={() => setSelectedEventId(ev.id)}
                                   style={{
                                     fontSize: 10, padding: "4px 6px", borderRadius: 4,
-                                    background: myStatus === 'maybe'
-                                      ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                      : evColor,
-                                    color: isCancelled ? 'var(--text-muted)' : "white",
+                                    background: isRed 
+                                      ? 'transparent' 
+                                      : myStatus === 'unavailable'
+                                        ? 'transparent'
+                                        : myStatus === 'pending'
+                                          ? 'transparent'
+                                          : myStatus === 'maybe'
+                                            ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                            : evColor,
+                                    color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
                                     fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
-                                    textDecoration: (isCancelled || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
-                                    opacity: (isCancelled || isImpossible || myStatus === 'unavailable') ? 0.5 : myStatus === 'pending' ? 0.8 : 1,
-                                    border: myStatus === 'pending' ? '1px dashed rgba(255,255,255,0.3)' : '1px solid transparent'
+                                    textDecoration: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
+                                    opacity: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
+                                    border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `1px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)'
                                   }}
-                                  title={`${ev.localTime} - ${ev.title}`}
+                                  title={`${ev.localTime} - ${ev.title} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
                                 >
                                   {ev.localTime} {ev.title}
                                 </div>
@@ -570,10 +596,14 @@ export default function AvailabilityPage() {
                             const ea = avail[ev.id] || [];
                             const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
                             const isCancelled = ev.status === 'cancelled';
+                            const isNoPlayers = ev.status === 'no_players';
+                            const isNotPlayed = ev.status === 'not_played';
                             const unavailable = ea.filter(a => a.status === "unavailable").length;
                             const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
-                            const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
-                            const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                            
+                            const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
+                            const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                            const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
 
                             return (
                               <div
@@ -582,14 +612,22 @@ export default function AvailabilityPage() {
                                 style={{
                                   position: "absolute", top: top, left: 4, right: 4, height: height,
                                   fontSize: 10, padding: "6px", borderRadius: 8, zIndex: 10,
-                                  background: myStatus === 'maybe'
-                                    ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                    : evColor,
-                                  color: isCancelled ? 'var(--text-muted)' : "white",
+                                  background: isRed 
+                                    ? 'transparent' 
+                                    : myStatus === 'unavailable'
+                                      ? 'transparent'
+                                      : myStatus === 'pending'
+                                        ? 'transparent'
+                                        : myStatus === 'maybe'
+                                          ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                          : evColor,
+                                  color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
                                   fontWeight: 700, cursor: "pointer",
-                                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                                  border: myStatus === 'pending' ? '1px dashed rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.1)',
-                                  display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden"
+                                  boxShadow: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
+                                  border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
+                                  display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
+                                  opacity: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? 0.4 : 1,
+                                  textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none'
                                 }}
                               >
                                 <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{ev.title}</div>
@@ -658,8 +696,8 @@ export default function AvailabilityPage() {
                     className={`card glass-card animate-in ${isPast || isCancelled || isImpossible ? '' : 'hover-lift'}`}
                     style={{
                       marginBottom: 12,
-                      opacity: isPast || isCancelled || isImpossible ? 0.4 : 1,
-                      borderLeft: `4px solid ${isCancelled || isImpossible ? 'var(--val-red)' : isFirstUpcoming ? 'var(--val-cyan)' : isConfirmed ? 'var(--val-cyan)' : 'var(--border-color)'}`,
+                      opacity: (isPast || isCancelled || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
+                      borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
                       scrollMarginTop: "100px",
                       animationDelay: `${Math.min(idx, 5) * 0.1}s`
                     }}
@@ -670,10 +708,13 @@ export default function AvailabilityPage() {
                           <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>
                             {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                           </span>
-                          <h3 style={{ fontSize: 18, fontWeight: 700, textDecoration: (isCancelled || isImpossible) ? 'line-through' : undefined }}>{ev.title}</h3>
+                          <h3 style={{ fontSize: 18, fontWeight: 700, textDecoration: (isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) ? 'line-through' : undefined }}>{ev.title}</h3>
                           {isFirstUpcoming && <span className="tag tag-cyan" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
                           {isCancelled && <span className="tag tag-red">Cancelado</span>}
-                          {isImpossible && <span className="tag tag-red">Sin asistencia</span>}
+                          {ev.status === 'completed' && <span className="tag tag-cyan">Jugado</span>}
+                          {ev.status === 'no_players' && <span className="tag tag-red">Sin suficientes jugadores</span>}
+                          {ev.status === 'not_played' && <span className="tag tag-red">No jugado</span>}
+                          {(isImpossible && ev.status === 'scheduled') && <span className="tag tag-red">Imposible (sin 5)</span>}
                         </div>
 
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, color: "var(--text-secondary)", fontSize: 13 }}>
@@ -837,25 +878,47 @@ export default function AvailabilityPage() {
               <h3 className="card-title">Sincronizar Calendario</h3>
               <button className="btn-icon" onClick={() => setShowExport(false)} style={{ background: "none", border: "none", color: "white", fontSize: 20 }}>✕</button>
             </div>
+            
+            <div style={{ display: "flex", gap: 12, marginBottom: 20, borderBottom: "1px solid var(--border-color)", paddingBottom: 12 }}>
+              <button 
+                className={`btn btn-sm ${exportTab === 'team' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExportTab("team")}
+              >
+                👥 Equipo
+              </button>
+              <button 
+                className={`btn btn-sm ${exportTab === 'personal' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExportTab("personal")}
+              >
+                👤 Mi Calendario
+              </button>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                Copia este enlace para suscribirte al calendario de tu equipo desde aplicaciones externas como <strong>Google Calendar</strong>, <strong>Outlook</strong> o <strong>Apple Calendar</strong>.
+                {exportTab === 'team' 
+                  ? "Copia este enlace para ver todos los eventos del equipo en tu calendario."
+                  : "Este calendario incluye tus estados (✅, ⚠️, ❌) y está personalizado para ti."}
               </p>
               
               <div className="form-group">
-                <label>Enlace iCal Dinámico</label>
+                <label>{exportTab === 'team' ? "Enlace del Equipo" : "Mi Enlace Personal"}</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input 
                     readOnly 
-                    value={!isMounted || !calendarToken ? "Cargando enlace..." : `${window.location.origin}/api/calendar/${calendarToken}`} 
-                    style={{ flex: 1, background: "rgba(0,0,0,0.3)", color: calendarToken ? "var(--val-cyan)" : "var(--text-muted)", fontWeight: 600 }}
+                    value={!isMounted || (exportTab === 'team' ? !calendarToken : !userCalendarToken) 
+                      ? "Cargando enlace..." 
+                      : `${window.location.origin}/api/calendar/${exportTab === 'team' ? '' : 'user/'}${exportTab === 'team' ? calendarToken : userCalendarToken}`} 
+                    style={{ flex: 1, background: "rgba(0,0,0,0.3)", color: (exportTab === 'team' ? calendarToken : userCalendarToken) ? "var(--val-cyan)" : "var(--text-muted)", fontWeight: 600 }}
                   />
                   <button 
                     className="btn btn-primary" 
-                    disabled={!calendarToken}
+                    disabled={exportTab === 'team' ? !calendarToken : !userCalendarToken}
                     onClick={() => {
-                      if (calendarToken) {
-                        navigator.clipboard.writeText(`${window.location.origin}/api/calendar/${calendarToken}`);
+                      const token = exportTab === 'team' ? calendarToken : userCalendarToken;
+                      const path = exportTab === 'team' ? '' : 'user/';
+                      if (token) {
+                        navigator.clipboard.writeText(`${window.location.origin}/api/calendar/${path}${token}`);
                         alert("¡Enlace copiado!");
                       }
                     }}
@@ -874,21 +937,19 @@ export default function AvailabilityPage() {
                 </ul>
               </div>
 
-              {canManage && (
-                <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                   <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    Si crees que tu enlace se ha filtrado, puedes regenerarlo. El enlace anterior dejará de funcionar inmediatamente.
-                  </p>
-                  <button 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ color: "var(--val-red)", alignSelf: "flex-start" }}
-                    onClick={regenerateToken}
-                    disabled={isRegenerating}
-                  >
-                    {isRegenerating ? "Regenerando..." : "Regenerar Enlace de Seguridad"}
-                  </button>
-                </div>
-              )}
+              <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                 <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  Puedes regenerar tu enlace personal si crees que alguien más lo tiene.
+                </p>
+                <button 
+                  className="btn btn-ghost btn-sm" 
+                  style={{ color: "var(--val-red)", alignSelf: "flex-start" }}
+                  onClick={() => regenerateToken(exportTab)}
+                  disabled={isRegenerating}
+                >
+                  {isRegenerating ? "Regenerando..." : "Regenerar Enlace de Seguridad"}
+                </button>
+              </div>
               
               <button className="btn btn-secondary" onClick={() => setShowExport(false)}>Cerrar</button>
             </div>
@@ -904,26 +965,30 @@ export default function AvailabilityPage() {
         const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
         const isPast = isMounted && (ev as any).localDate < todayStr;
         const isCancelled = ev.status === 'cancelled';
+        const isNoPlayers = ev.status === 'no_players';
+        const isNotPlayed = ev.status === 'not_played';
         const unavailable = ea.filter(a => a.status === "unavailable").length;
         const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
 
-        const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+        const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
+        const evColorBase = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+        const evColor = isRed || myStatus === 'unavailable' ? 'rgba(255,255,255,0.05)' : evColorBase;
         const mapObj = ev.map_obj;
 
         return (
           <div className="modal-overlay" onClick={() => setSelectedEventId(null)}>
-            <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: `1px solid ${isRed || myStatus === 'unavailable' ? 'rgba(255,255,255,0.1)' : evColorBase}` }}>
               <div style={{ 
                 position: 'relative', 
                 height: 160, 
-                background: mapObj?.premierBackground ? `url(${mapObj.premierBackground})` : evColor,
+                background: mapObj?.premierBackground ? `url(${mapObj.premierBackground})` : (isRed || myStatus === 'unavailable' ? 'rgba(0,0,0,0.5)' : evColorBase),
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 display: 'flex', 
                 alignItems: 'end', 
                 padding: 24,
-                boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${evColor}44`,
-                borderBottom: `2px solid ${evColor}`
+                boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${evColorBase}44`,
+                borderBottom: `2px solid ${evColorBase}`
               }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(to top, #0a0b14 0%, transparent 100%), radial-gradient(circle at center, ${evColor}22 0%, transparent 70%)` }} />
                 <button 
@@ -936,7 +1001,10 @@ export default function AvailabilityPage() {
                       {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                      </span>
                      {isCancelled && <span className="tag tag-red">Cancelado</span>}
-                     {isImpossible && <span className="tag tag-red">Sin asistencia</span>}
+                     {ev.status === 'completed' && <span className="tag tag-cyan">Jugado</span>}
+                     {isNoPlayers && <span className="tag tag-red">Sin asistencia</span>}
+                     {isNotPlayed && <span className="tag tag-red">No jugado</span>}
+                     {(isImpossible && ev.status === 'scheduled') && <span className="tag tag-red">Imposible (sin 5)</span>}
                    </div>
                    <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ev.title}</h2>
                 </div>
@@ -967,6 +1035,34 @@ export default function AvailabilityPage() {
                 {ev.description && (
                   <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>
                     {ev.description}
+                  </div>
+                )}
+
+                {ev.linkedMatches && ev.linkedMatches.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Partidas Vinculadas ({ev.linkedMatches.length}):</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {ev.linkedMatches.map((m: any) => {
+                        const isWin = m.team_blue_won; // Simplificado, idealmente chequear side
+                        return (
+                          <div key={m.id} style={{ 
+                            padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', 
+                            border: `1px solid ${isWin ? 'rgba(0,255,163,0.2)' : 'rgba(255,70,85,0.2)'}`,
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: isWin ? 'var(--val-cyan)' : 'var(--val-red)' }} />
+                              <span style={{ fontWeight: 700, fontSize: 13 }}>{m.map_name}</span>
+                            </div>
+                            <div style={{ fontWeight: 800, fontSize: 14 }}>
+                              <span style={{ color: 'var(--val-cyan)' }}>{m.team_blue_score}</span>
+                              <span style={{ margin: '0 4px', opacity: 0.3 }}>—</span>
+                              <span style={{ color: 'var(--val-red)' }}>{m.team_red_score}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -1020,7 +1116,7 @@ export default function AvailabilityPage() {
                   </div>
                 )}
                 
-                {canManage && (
+                {canManage && ev.type === 'custom' && (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <button className="btn btn-ghost btn-sm" style={{ color: 'var(--val-red)', opacity: 0.6, fontSize: 11 }} onClick={() => { if(confirm('¿Estás seguro de borrar este evento?')) { deleteEvent(ev.id); setSelectedEventId(null); } }}>
                       🗑️ Eliminar Evento

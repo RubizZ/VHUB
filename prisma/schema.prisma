@@ -38,6 +38,7 @@ model User {
   role          String            @default("member")
   playerId      Int?              @unique
   teamId        String?
+  calendarToken String?           @unique @default(cuid())
   dataConsent   Boolean           @default(false)
   accounts      Account[]
   sessions      Session[]

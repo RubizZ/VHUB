@@ -430,6 +430,43 @@ export async function GET(req: NextRequest) {
       console.log(`[GET /api/events] Auto-cancelados ${eventIdsToCancel.length} eventos de partido (2+ ya jugados esa semana)`);
     }
 
+    // 2d. Auto-actualizar estados para eventos pasados (no_players, not_played)
+    const nowDt = new Date();
+    const eventIdsNoPlayers: number[] = [];
+    const eventIdsNotPlayed: number[] = [];
+    const eventIdsCompleted: number[] = [];
+
+    for (const ev of events) {
+      const startDt = new Date(`${ev.date}T${ev.time}:00Z`);
+      const isPast = startDt < nowDt;
+      // Consideramos "tiempo prudente" como 4 horas después del inicio
+      const isWayPast = new Date(startDt.getTime() + 4 * 60 * 60 * 1000) < nowDt;
+
+      const confirmedCount = ev.availability.filter((a: any) => a.status === 'available').length;
+      const matches = matchesByEvent[ev.id] || [];
+
+      if (isPast) {
+        if (matches.length > 0) {
+          if (ev.status !== 'completed') {
+            eventIdsCompleted.push(ev.id);
+            ev.status = 'completed';
+          }
+        } else if (isWayPast && ev.status === 'scheduled') {
+          if (confirmedCount < 5) {
+            eventIdsNoPlayers.push(ev.id);
+            ev.status = 'no_players';
+          } else {
+            eventIdsNotPlayed.push(ev.id);
+            ev.status = 'not_played';
+          }
+        }
+      }
+    }
+
+    if (eventIdsCompleted.length > 0) await db.event.updateMany({ where: { id: { in: eventIdsCompleted } }, data: { status: 'completed' } });
+    if (eventIdsNoPlayers.length > 0) await db.event.updateMany({ where: { id: { in: eventIdsNoPlayers } }, data: { status: 'no_players' } });
+    if (eventIdsNotPlayed.length > 0) await db.event.updateMany({ where: { id: { in: eventIdsNotPlayed } }, data: { status: 'not_played' } });
+
     // 2d. Obtener todos los mapas para vincular manualmente (fallback si el include falla)
     const maps = await db.map.findMany();
     const mapsMap = new Map(maps.map(m => [m.id, m]));
@@ -459,6 +496,51 @@ export async function GET(req: NextRequest) {
       },
       select: { id: true }
     });
+
+    // 2e. Auto-corregir disponibilidad para jugadores que jugaron partidas vinculadas
+    for (const ev of events) {
+      if (ev.status === 'completed') {
+        const matches = matchesByEvent[ev.id] || [];
+        if (matches.length > 0) {
+          // Extraer todos los player_id que participaron en estas partidas
+          const playerIdsInMatches = new Set<number>();
+          for (const m of matches) {
+            if (m.player_stats) {
+              for (const ps of m.player_stats) {
+                if (ps.player_id) playerIdsInMatches.add(ps.player_id);
+              }
+            }
+          }
+
+          for (const pId of playerIdsInMatches) {
+            const currentAvail = ev.availability.find((a: any) => a.player_id === pId);
+            if (!currentAvail || currentAvail.status !== 'available') {
+              console.log(`[GET /api/events] Auto-corrigiendo disponibilidad para player ${pId} en evento ${ev.id} (jugó partida)`);
+              // Actualizamos en DB
+              await db.availability.upsert({
+                where: { event_id_player_id: { event_id: ev.id, player_id: pId } },
+                update: { status: 'available' },
+                create: { event_id: ev.id, player_id: pId, status: 'available' }
+              });
+              // Actualizamos en memoria para la respuesta inmediata
+              if (currentAvail) {
+                currentAvail.status = 'available';
+              } else {
+                ev.availability.push({ 
+                  id: 0, 
+                  event_id: ev.id, 
+                  player_id: pId, 
+                  status: 'available', 
+                  note: null, 
+                  updated_at: new Date(),
+                  player: { id: pId, name: "Auto", avatar_color: "#999" } 
+                });
+              }
+            }
+          }
+        }
+      }
+    }
 
     console.log(`[GET /api/events] Devolviendo ${enrichedEvents.length} eventos para equipo ${teamId}`);
 
