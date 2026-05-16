@@ -20,6 +20,7 @@ interface Ev {
   localEndDate?: string; localEndTime?: string;
   linkedMatches?: LinkedMatch[];
   map_obj?: any;
+  premier_season_id?: string;
 }
 interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
 
@@ -56,6 +57,68 @@ export default function AvailabilityPage() {
   const weekScrollRef = useRef<HTMLDivElement>(null);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<"above" | "below" | "in-view">("in-view");
+
+  // Helper to get unique maps of the same season for playoffs
+  const getSeasonMaps = (ev: Ev) => {
+    if (!ev.premier_season_id) return [];
+    // Get all events in the same season
+    const seasonEvents = events.filter(e => e.premier_season_id === ev.premier_season_id);
+    // Get all map IDs from these events (unique ones)
+    const mapIds = Array.from(new Set(seasonEvents.map(e => e.map).filter(Boolean)));
+    // Get corresponding map objects
+    return mapIds.map(id => maps.find(m => m.id === id)).filter(Boolean);
+  };
+
+  // Helper to render diagonal map collage
+  const renderDiagonalMapSplash = (seasonMaps: any[], opacity: number = 0.5) => {
+    if (!seasonMaps || seasonMaps.length === 0) return null;
+    const X = seasonMaps.length;
+    const skewOffset = Math.min(10, 50 / X);
+
+    return (
+      <div style={{
+        position: "absolute",
+        right: 0,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        pointerEvents: "none",
+        display: "flex"
+      }}>
+        {seasonMaps.map((map: any, i: number) => {
+          const T_left = i === 0 ? 0 : i * (100 / X) - skewOffset;
+          const T_right = i === X - 1 ? 100 : (i + 1) * (100 / X) - skewOffset;
+          const B_left = i === 0 ? 0 : i * (100 / X) + skewOffset;
+          const B_right = i === X - 1 ? 100 : (i + 1) * (100 / X) + skewOffset;
+
+          const clipPath = `polygon(${T_left}% 0%, ${T_right}% 0%, ${B_right}% 100%, ${B_left}% 100%)`;
+
+          return (
+            <div
+              key={map.id || i}
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundImage: `url(${map.splash || map.premierBackground})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                clipPath: clipPath,
+                WebkitClipPath: clipPath,
+                opacity: opacity,
+                transition: "opacity 0.3s ease"
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -1145,6 +1208,48 @@ export default function AvailabilityPage() {
 
                         {/* Map Preview Card */}
                         {(() => {
+                          if (ev.type === "playoffs") {
+                            const seasonMaps = getSeasonMaps(ev);
+                            if (seasonMaps.length === 0) return null;
+                            return (
+                              <div 
+                                onClick={() => router.push(`/strategies`)}
+                                className="glass-card hover-lift transition-smooth" 
+                                style={{
+                                  position: "relative",
+                                  borderRadius: 12,
+                                  height: 80,
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                                  background: "rgba(0,0,0,0.4)",
+                                  cursor: "pointer",
+                                  ["--hover-color" as any]: "var(--val-yellow)",
+                                  ["--hover-glow-color" as any]: "rgba(245, 158, 11, 0.2)"
+                                }}
+                              >
+                                <div style={{
+                                  position: "absolute",
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: "70%",
+                                  maskImage: "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                  WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                  pointerEvents: "none",
+                                  height: "100%"
+                                }}>
+                                  {renderDiagonalMapSplash(seasonMaps, 0.6)}
+                                </div>
+                                <div style={{ padding: "12px 16px", zIndex: 1, position: "relative" }}>
+                                  <div style={{ fontSize: 9, fontWeight: 800, color: "var(--val-yellow)", textTransform: "uppercase", letterSpacing: 1 }}>Map Pool de la Season</div>
+                                  <div style={{ fontSize: 16, fontWeight: 800, color: "white" }}>{seasonMaps.length} Mapas</div>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           const mapObj = ev.map ? maps.find((m: any) => m.id === ev.map) : null;
                           if (!mapObj) return null;
                           return (
@@ -1160,7 +1265,9 @@ export default function AvailabilityPage() {
                                 alignItems: "center",
                                 border: "1px solid rgba(255, 255, 255, 0.08)",
                                 background: "rgba(0,0,0,0.4)",
-                                cursor: "pointer"
+                                cursor: "pointer",
+                                ["--hover-color" as any]: ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)",
+                                ["--hover-glow-color" as any]: ev.type === "match" ? "rgba(255, 70, 85, 0.2)" : "rgba(0, 212, 170, 0.2)"
                               }}
                             >
                               <div style={{
@@ -1509,16 +1616,58 @@ export default function AvailabilityPage() {
               <div style={{ 
                 position: 'relative', 
                 height: 160, 
-                background: mapObj?.premierBackground ? `url(${mapObj.premierBackground})` : (isRed || myStatus === 'unavailable' ? 'rgba(0,0,0,0.5)' : evColorBase),
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundColor: isRed || myStatus === 'unavailable' 
+                  ? 'rgba(0,0,0,0.5)' 
+                  : myStatus === 'pending'
+                    ? 'rgba(10, 11, 20, 0.6)'
+                    : evColorBase,
                 display: 'flex', 
                 alignItems: 'end', 
                 padding: 24,
-                boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${evColorBase}44`,
-                borderBottom: `2px solid ${evColorBase}`
+                boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${
+                  isRed || myStatus === 'unavailable' || myStatus === 'pending'
+                    ? 'transparent'
+                    : evColorBase
+                }44`,
+                borderBottom: `2px solid ${
+                  myStatus === 'pending' ? 'rgba(255,255,255,0.1)' : evColorBase
+                }`,
+                overflow: 'hidden'
               }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(to top, #0a0b14 0%, transparent 100%), radial-gradient(circle at center, ${evColor}22 0%, transparent 70%)` }} />
+                {/* Playoffs Collage Background */}
+                {ev.type === "playoffs" && (() => {
+                  const seasonMaps = getSeasonMaps(ev);
+                  return renderDiagonalMapSplash(
+                    seasonMaps, 
+                    isRed || myStatus === 'unavailable' 
+                      ? 0.2 
+                      : myStatus === 'pending'
+                        ? 0.75
+                        : 0.45
+                  );
+                })()}
+
+                {/* Match or Practice Splash Background */}
+                {ev.type !== "playoffs" && mapObj?.splash && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: `url(${mapObj.splash})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    opacity: isRed || myStatus === 'unavailable'
+                      ? 0.25
+                      : myStatus === 'pending'
+                        ? 0.8
+                        : 0.45,
+                    pointerEvents: 'none',
+                    zIndex: 0
+                  }} />
+                )}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(to top, #0a0b14 0%, transparent 100%), radial-gradient(circle at center, ${evColor}22 0%, transparent 70%)`, zIndex: 1 }} />
                 <button 
                   onClick={() => setSelectedEventId(null)}
                   style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
@@ -1617,8 +1766,9 @@ export default function AvailabilityPage() {
                 <div className="glass-card" style={{ background: "rgba(255,255,255,0.01)", borderRadius: 16, padding: 20, border: "1px solid var(--border-color)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, color: 'var(--text-muted)' }}>Asistencia ({confirmed}/5)</span>
-                    <div className="progress-bar" style={{ width: 80, height: 6 }}>
-                      <div className="progress-fill progress-fill-cyan" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                    <div className="progress-bar" style={{ width: 80, height: 6, display: 'flex', overflow: 'hidden' }}>
+                      <div className="progress-fill progress-fill-cyan transition-smooth" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                      <div className="progress-fill progress-fill-maybe transition-smooth" style={{ width: `${Math.min((maybeCount / 5) * 100, Math.max(0, 100 - (confirmed / 5) * 100))}%` }} />
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(36px, 1fr))", gap: 12 }}>
