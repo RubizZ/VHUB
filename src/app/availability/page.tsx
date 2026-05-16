@@ -794,7 +794,7 @@ export default function AvailabilityPage() {
                             <span className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}>
                               {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                             </span>
-                            {isFirstUpcoming && <span className="tag" style={{ background: "var(--val-red)", color: "white", fontSize: 10, fontWeight: 900, boxShadow: "0 0 12px var(--val-red-glow)", letterSpacing: 0.5 }}>PRÓXIMO</span>}
+                            {isFirstUpcoming && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
                             {ev.status === 'completed' && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>JUGADO</span>}
                           </div>
                           <h3 style={{
@@ -824,7 +824,7 @@ export default function AvailabilityPage() {
                             fontWeight: 700,
                             color: "var(--text-primary)"
                           }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--val-cyan)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
                             <span>{ev.localTime} {ev.localEndTime && `— ${ev.localEndTime}`}</span>
                           </div>
 
@@ -840,7 +840,7 @@ export default function AvailabilityPage() {
                             fontWeight: 700,
                             color: "var(--text-primary)"
                           }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--val-red)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                             <span>{ev.map ? (maps.find(m => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}</span>
                           </div>
                         </div>
@@ -931,22 +931,17 @@ export default function AvailabilityPage() {
                           transition: "border-color 0.3s, box-shadow 0.3s"
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                            <div style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Asistencia</span>
-                              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
-                                {confirmed >= 5 ? "¡Escuadra Completa!" : "Buscando jugadores..."}
-                              </span>
-                            </div>
-                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                              <div className={`progress-bar ${updatingEventId === ev.id ? 'animate-pulse' : ''}`} style={{ width: 100, height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.05)" }}>
-                                <div className="progress-fill progress-fill-cyan transition-smooth" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
-                                <div className="progress-fill progress-fill-maybe transition-smooth" style={{ width: `${Math.min((maybeCount / 5) * 100, Math.max(0, 100 - (confirmed / 5) * 100))}%` }} />
-                              </div>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: confirmed >= 5 ? "var(--val-cyan)" : "var(--text-secondary)" }}>{confirmed}/5</span>
-                            </div>
-                          </div>
+                             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Asistencia</span>
+                             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                               <div className={`progress-bar ${updatingEventId === ev.id ? 'animate-pulse' : ''}`} style={{ width: 100, height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.05)" }}>
+                                 <div className="progress-fill progress-fill-cyan transition-smooth" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                                 <div className="progress-fill progress-fill-maybe transition-smooth" style={{ width: `${Math.min((maybeCount / 5) * 100, Math.max(0, 100 - (confirmed / 5) * 100))}%` }} />
+                               </div>
+                               <span style={{ fontSize: 13, fontWeight: 800, color: confirmed >= 5 ? "var(--val-cyan)" : "var(--text-secondary)" }}>{confirmed}/5</span>
+                             </div>
+                           </div>
                           
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(44px, 1fr))", gap: 12 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12 }}>
                             {players.map(p => {
                               const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
                               return (
@@ -1057,16 +1052,21 @@ export default function AvailabilityPage() {
                           const mapObj = ev.map ? maps.find((m: any) => m.id === ev.map) : null;
                           if (!mapObj) return null;
                           return (
-                            <div className="glass-card" style={{
-                              position: "relative",
-                              borderRadius: 12,
-                              height: 80,
-                              overflow: "hidden",
-                              display: "flex",
-                              alignItems: "center",
-                              border: "1px solid rgba(255, 255, 255, 0.08)",
-                              background: "rgba(0,0,0,0.4)"
-                            }}>
+                            <div 
+                              onClick={() => router.push(`/strategies?map=${encodeURIComponent(mapObj.id)}`)}
+                              className="glass-card hover-lift transition-smooth" 
+                              style={{
+                                position: "relative",
+                                borderRadius: 12,
+                                height: 80,
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                border: "1px solid rgba(255, 255, 255, 0.08)",
+                                background: "rgba(0,0,0,0.4)",
+                                cursor: "pointer"
+                              }}
+                            >
                               <div style={{
                                 position: "absolute",
                                 right: 0,
@@ -1082,11 +1082,8 @@ export default function AvailabilityPage() {
                                 pointerEvents: "none"
                               }} />
                               <div style={{ padding: "12px 16px", zIndex: 1, position: "relative" }}>
-                                <div style={{ fontSize: 9, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Mapa Seleccionado</div>
+                                <div style={{ fontSize: 9, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Mapa</div>
                                 <div style={{ fontSize: 16, fontWeight: 800, color: "white" }}>{mapObj.name}</div>
-                                {mapObj.tacticalDescription && (
-                                  <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{mapObj.tacticalDescription}</div>
-                                )}
                               </div>
                             </div>
                           );

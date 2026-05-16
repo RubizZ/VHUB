@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { getCompetitiveMaps, type ValorantMap } from "@/lib/maps";
 import { AGENTS, getAgentsByRole, findAgentById, ROLE_COLORS, type ValorantAgent } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
@@ -12,6 +13,7 @@ type View = "maps" | "compositions" | "strategies" | "editor";
 const competitiveMaps = getCompetitiveMaps();
 
 export default function StrategiesPage() {
+  const searchParams = useSearchParams();
   const [view, setView] = useState<View>("maps");
   const [selectedMap, setSelectedMap] = useState<ValorantMap | null>(null);
   const [compositions, setCompositions] = useState<Composition[]>([]);
@@ -62,6 +64,16 @@ export default function StrategiesPage() {
     else if (view === "strategies") { setSelectedComp(null); setView("compositions"); }
     else if (view === "compositions") { setSelectedMap(null); setView("maps"); }
   };
+
+  useEffect(() => {
+    const mapParam = searchParams.get("map");
+    if (mapParam) {
+      const foundMap = competitiveMaps.find(m => m.id.toLowerCase() === mapParam.toLowerCase() || m.name.toLowerCase() === mapParam.toLowerCase());
+      if (foundMap) {
+        goToMap(foundMap);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!selectedMap?.displayIcon) return;
