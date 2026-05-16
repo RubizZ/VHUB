@@ -208,7 +208,7 @@ export default function MatchesPage() {
         {success && <div className="card" style={{ background: "rgba(0,212,170,0.1)", border: "1px solid var(--val-cyan)", color: "var(--val-cyan)", marginBottom: 16 }}>{success}</div>}
 
         {!selected ? (
-          <div className="grid grid-2" style={{ gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {loading && matches.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 40, color: "var(--text-muted)" }}>Cargando...</div>
             ) : (

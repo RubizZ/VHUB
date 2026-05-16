@@ -12,7 +12,7 @@ async function ensureWeeklyEvents(teamId: string) {
 
   try {
     let seasons = await getPremierSeasons('eu');
-    
+
     if (!seasons || seasons.length === 0) {
       console.warn("[ensureWeeklyEvents] API de temporadas vacía, buscando en DB...");
       const dbSeasons = await db.season.findMany();
@@ -31,7 +31,7 @@ async function ensureWeeklyEvents(teamId: string) {
     for (const s of seasons) {
       const starts = s.starts_at ? new Date(s.starts_at) : null;
       const ends = s.ends_at ? new Date(s.ends_at) : null;
-      
+
       await db.season.upsert({
         where: { id: s.id },
         update: {
@@ -92,10 +92,10 @@ async function ensureWeeklyEvents(teamId: string) {
     // 4. Configurar fechas del bucle
     const seasonStart = (activeSeason.starts_at && !isNaN(new Date(activeSeason.starts_at).getTime())) ? new Date(activeSeason.starts_at) : new Date(now.getFullYear(), now.getMonth(), 1);
     // Forzar seasonEnd a ser válido (mínimo 60 días desde hoy si no hay dato)
-    const seasonEnd = (activeSeason.ends_at && !isNaN(new Date(activeSeason.ends_at).getTime()) && new Date(activeSeason.ends_at).getFullYear() > 2000) 
-      ? new Date(activeSeason.ends_at) 
+    const seasonEnd = (activeSeason.ends_at && !isNaN(new Date(activeSeason.ends_at).getTime()) && new Date(activeSeason.ends_at).getFullYear() > 2000)
+      ? new Date(activeSeason.ends_at)
       : new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-    
+
     const tournamentEvent = activeSeason.events?.find(e => e.type === 'TOURNAMENT');
 
     // FALLBACK INTELIGENTE: Si la API da fechas basura (año 0001), 
@@ -124,7 +124,7 @@ async function ensureWeeklyEvents(teamId: string) {
     // El límite de generación es el día del torneo (inclusive)
     const limitDate = new Date(tournamentDateStr);
     limitDate.setUTCHours(0, 0, 0, 0);
-    
+
     console.log(`[ensureWeeklyEvents] Generando hasta Playoffs: ${tournamentDateStr}`);
     console.log(`[ensureWeeklyEvents] Generando desde ${tempDate.toISOString()} hasta ${limitDate.toISOString()}`);
 
@@ -135,13 +135,13 @@ async function ensureWeeklyEvents(teamId: string) {
     const conferenceSchedules = activeSeason.scheduled_events?.filter(
       (se: any) => se.conference?.toLowerCase() === teamConference
     ) || [];
-    
+
     console.log(`[ensureWeeklyEvents] Conferencia del equipo: ${teamConference}, scheduled_events encontrados: ${conferenceSchedules.length}`);
 
     while (tempDate <= limitDate) {
       const dateStr = tempDate.toISOString().split('T')[0];
-      const day = tempDate.getDay(); 
-      
+      const day = tempDate.getDay();
+
       let evConfig: any = null;
 
       // Prioridad 1: Playoffs (Si es el día del torneo o el último día de la generación si hay torneo planeado)
@@ -448,10 +448,10 @@ export async function GET(req: NextRequest) {
 
     console.log(`[GET /api/events] Devolviendo ${enrichedEvents.length} eventos para equipo ${teamId}`);
 
-    return NextResponse.json({ 
-      events: enrichedEvents, 
-      seasons, 
-      activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : "") 
+    return NextResponse.json({
+      events: enrichedEvents,
+      seasons,
+      activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : "")
     });
   } catch (error: any) {
     console.error("[GET /api/events] ❌ CRITICAL ERROR:", error);

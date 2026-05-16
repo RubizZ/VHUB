@@ -10,7 +10,7 @@ interface Event { id: number; title: string; type: string; date: string; time: s
 export default function Dashboard() {
   const { data: session } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Ev[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [msgCount, setMsgCount] = useState(0);
   const [stratCount, setStratCount] = useState(0);
@@ -77,10 +77,10 @@ export default function Dashboard() {
 
         {/* Quick Stats Row */}
         <div className="grid grid-4" style={{ marginBottom: 32, gap: 16 }}>
-          <QuickStatCard value={players.length} label="Integrantes" icon="👥" color="var(--val-cyan)" />
-          <QuickStatCard value={stratCount} label="Estrategias" icon="🗺️" color="var(--val-purple)" />
-          <QuickStatCard value={upcomingEvents.length} label="Próximos Eventos" icon="📅" color="var(--val-yellow)" />
-          <QuickStatCard value={msgCount} label="Mensajes" icon="💬" color="var(--val-blue)" />
+          <QuickStatCard value={players.length} label="Integrantes" icon="👥" color="var(--val-cyan)" href="/team/roster" />
+          <QuickStatCard value={stratCount} label="Estrategias" icon="🗺️" color="var(--val-purple)" href="/strategies" />
+          <QuickStatCard value={upcomingEvents.length} label="Próximos Eventos" icon="📅" color="var(--val-yellow)" href="/availability" />
+          <QuickStatCard value={msgCount} label="Mensajes" icon="💬" color="var(--val-blue)" href="/chat" />
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", gap: 24 }}>
@@ -155,7 +155,7 @@ export default function Dashboard() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {players.slice(0, 6).map(p => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 0" }}>
+                  <Link href="/team/roster" key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
                     <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       {p.name.charAt(0)}
                     </div>
@@ -164,7 +164,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>{p.role}</div>
                     </div>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 10px var(--val-cyan)" }} />
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -178,20 +178,20 @@ export default function Dashboard() {
 
 // --- Helper Components ---
 
-function QuickStatCard({ value, label, icon, color }: any) {
+function QuickStatCard({ value, label, icon, color, href }: any) {
   return (
-    <div className="card hover-lift stat-card" style={{ '--glow-color': color } as any}>
+    <Link href={href} className="card hover-lift stat-card" style={{ '--glow-color': color, textDecoration: "none", color: "inherit" } as any}>
       <div style={{ fontSize: 24, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{value}</div>
       <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{label}</div>
-    </div>
+    </Link>
   );
 }
 
 function MatchRow({ match }: { match: any }) {
   const isWin = match.team_blue_won === (match.our_team_side === 'Blue');
   return (
-    <div className="hover-lift" style={{ 
+    <Link href={`/matches?id=${match.id}`} className="hover-lift" style={{ 
       display: "flex", 
       alignItems: "center", 
       gap: 16, 
@@ -200,7 +200,9 @@ function MatchRow({ match }: { match: any }) {
       background: "rgba(255,255,255,0.03)",
       border: "1px solid var(--border-color)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      textDecoration: "none",
+      color: "inherit"
     }}>
       <div style={{ 
         position: "absolute", 
@@ -221,16 +223,16 @@ function MatchRow({ match }: { match: any }) {
 
       <div style={{ textAlign: "right" }}>
         <div style={{ fontSize: 12, fontWeight: 600 }}>{match.queue_id === 'Competitive' ? 'Premier' : match.queue_id}</div>
-        <Link href={`/matches?id=${match.id}`} style={{ fontSize: 11, color: "var(--val-red)", fontWeight: 700 }}>DETALLES →</Link>
+        <div style={{ fontSize: 11, color: "var(--val-red)", fontWeight: 700 }}>DETALLES →</div>
       </div>
-    </div>
+    </Link>
   );
 }
 
 function EventItem({ event }: { event: any }) {
   const isMatch = event.type === 'match' || event.type === 'playoffs';
   return (
-    <div style={{ display: "flex", gap: 12, padding: "8px 0" }}>
+    <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
       <div style={{ 
         width: 36, height: 36, borderRadius: 8, 
         background: isMatch ? "rgba(255, 70, 85, 0.1)" : "rgba(0, 212, 170, 0.1)",
@@ -243,7 +245,7 @@ function EventItem({ event }: { event: any }) {
         <div style={{ fontSize: 13, fontWeight: 600 }}>{event.title}</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(event.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} • {event.time}</div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -322,7 +324,7 @@ function PremierStats() {
 
   return (
     <div className="grid grid-3" style={{ marginBottom: 32, gap: 20 }}>
-      <div className="card stat-card" style={{ background: "linear-gradient(135deg, rgba(255, 70, 85, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-red)", '--glow-color': 'var(--val-red)' } as any}>
+      <Link href="/team/settings" className="card stat-card hover-lift" style={{ background: "linear-gradient(135deg, rgba(255, 70, 85, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-red)", '--glow-color': 'var(--val-red)', textDecoration: "none", color: "inherit" } as any}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Puntos de Temporada</div>
@@ -335,9 +337,9 @@ function PremierStats() {
         <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-secondary)" }}>
           {details?.placement?.points >= 600 ? "🏆 Clasificados para Playoffs" : `${600 - (details?.placement?.points || 0)} pts para clasificar`}
         </div>
-      </div>
+      </Link>
 
-      <div className="card stat-card" style={{ background: "linear-gradient(135deg, rgba(0, 212, 170, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-cyan)", '--glow-color': 'var(--val-cyan)' } as any}>
+      <Link href="/matches" className="card stat-card hover-lift" style={{ background: "linear-gradient(135deg, rgba(0, 212, 170, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-cyan)", '--glow-color': 'var(--val-cyan)', textDecoration: "none", color: "inherit" } as any}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Rendimiento</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 }}>
           <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-cyan)" }}>{winRate}%</div>
@@ -348,9 +350,9 @@ function PremierStats() {
           <div style={{ fontSize: 12 }}><span style={{ color: "var(--val-red)" }}>{details?.stats?.losses || 0}</span> L</div>
           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{details?.stats?.matches || 0} Jugados</div>
         </div>
-      </div>
+      </Link>
 
-      <div className="card stat-card" style={{ background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-gold)", '--glow-color': 'var(--val-gold)' } as any}>
+      <Link href="/team/settings" className="card stat-card hover-lift" style={{ background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-gold)", '--glow-color': 'var(--val-gold)', textDecoration: "none", color: "inherit" } as any}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Clasificación División</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 }}>
           <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-gold)" }}>#{details?.placement?.place || myRank?.ranking || "---"}</div>
@@ -359,7 +361,7 @@ function PremierStats() {
         <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-secondary)" }}>
            En <span style={{ color: "white" }}>{details?.placement?.conference || config.conference}</span>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }
