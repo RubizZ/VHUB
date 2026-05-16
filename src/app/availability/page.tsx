@@ -31,7 +31,7 @@ export default function AvailabilityPage() {
   const [showNew, setShowNew] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", type: "custom", date: "", time: "19:00", description: "", map: "" });
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "week" | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
   const [maps, setMaps] = useState<any[]>([]);
@@ -40,10 +40,12 @@ export default function AvailabilityPage() {
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
   const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
   const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
   const myPlayerId = (session?.user as any)?.playerId;
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
   const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
+  const weekScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -51,8 +53,8 @@ export default function AvailabilityPage() {
     fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
 
     const saved = localStorage.getItem("vhub_avail_view_mode");
-    if (saved === "list" || saved === "calendar") {
-      setViewMode(saved as "list" | "calendar");
+    if (saved === "list" || saved === "calendar" || saved === "week") {
+      setViewMode(saved as any);
     } else {
       setViewMode("calendar");
     }
@@ -60,7 +62,7 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem("vhub_avail_view_mode", viewMode);
+      localStorage.setItem("vhub_avail_view_mode", viewMode || "calendar");
     }
   }, [viewMode, isMounted]);
 
@@ -92,6 +94,8 @@ export default function AvailabilityPage() {
       }
     }
   }, [viewMode, isMounted, events, hasInitialScrolled, scrollToEventId, players, avail]);
+
+
 
   const loadEvents = async (seasonId?: string | null) => {
     try {
@@ -219,7 +223,7 @@ export default function AvailabilityPage() {
 
   const canManage = (session?.user as any)?.role === "team_admin" || (session?.user as any)?.role === "super_admin";
 
-  const { dayNames, days, monthLabel } = useMemo(() => {
+  const { dayNames, days, weekDays, monthLabel } = useMemo(() => {
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -230,6 +234,7 @@ export default function AvailabilityPage() {
     startDayOffset -= 1;
 
     const days: any[] = [];
+    const weekDays: any[] = [];
     const todayStr = formatDateLocal(new Date());
 
     for (let i = 0; i < startDayOffset; i++) days.push({ empty: true });
@@ -237,18 +242,66 @@ export default function AvailabilityPage() {
       const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
       const dateStr = formatDateLocal(d);
       const isToday = isMounted && dateStr === todayStr;
-      days.push({ day: i, date: dateStr, isToday, events: events.filter(e => (e as any).localDate === dateStr) });
+      const isPast = isMounted && dateStr < todayStr;
+      days.push({ day: i, date: dateStr, isToday, isPast, events: events.filter(e => (e as any).localDate === dateStr) });
     }
-    return { dayNames, days, monthLabel };
-  }, [events, isMounted, currentDate]);
 
-  const changeMonth = (offset: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+    // Weekly View Logic
+    const startOfWeek = new Date(currentDate);
+    let day = startOfWeek.getDay();
+    let diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const dateStr = formatDateLocal(d);
+      const isToday = isMounted && dateStr === todayStr;
+      const isPast = isMounted && dateStr < todayStr;
+      weekDays.push({ 
+        day: d.getDate(), 
+        date: dateStr, 
+        isToday, 
+        isPast, 
+        events: events.filter(e => (e as any).localDate === dateStr),
+        month: d.toLocaleDateString("es-ES", { month: 'short' })
+      });
+    }
+
+    return { dayNames, days, weekDays, monthLabel };
+  }, [events, isMounted, currentDate, viewMode]);
+
+  useEffect(() => {
+    if (viewMode === "week" && weekScrollRef.current) {
+      const allEvents = weekDays.flatMap(d => d.events);
+      let targetMinutes = 16 * 60; // Por defecto 4 PM
+      
+      if (allEvents.length > 0) {
+        const totalMinutes = allEvents.reduce((acc: number, ev: any) => {
+          const [h, m] = ev.localTime.split(':').map(Number);
+          return acc + (h * 60 + m);
+        }, 0);
+        targetMinutes = totalMinutes / allEvents.length;
+      }
+      
+      const containerHeight = weekScrollRef.current.clientHeight || 600;
+      weekScrollRef.current.scrollTop = targetMinutes - (containerHeight / 2);
+    }
+  }, [viewMode, weekDays]);
+
+  const changeDate = (offset: number) => {
+    if (viewMode === "calendar") {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+    } else if (viewMode === "week") {
+      const newDate = new Date(currentDate);
+      newDate.setDate(currentDate.getDate() + (offset * 7));
+      setCurrentDate(newDate);
+    }
   };
 
   return (
-    <div className="availability-wrapper">
-      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent" }}>
+    <div className="availability-wrapper" style={{ height: "100vh", display: "flex", flexDirection: "column", padding: "0 24px 0" }}>
+      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent", padding: "24px 0", flexShrink: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Agenda y Disponibilidad</h1>
@@ -257,18 +310,25 @@ export default function AvailabilityPage() {
           <div style={{ display: "flex", gap: 12 }}>
             <div className="glass-card" style={{ display: "flex", padding: 4, borderRadius: 10 }}>
               <button
-                className={`btn btn-sm ${viewMode === 'calendar' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => { setViewMode("calendar"); setHasInitialScrolled(false); }}
-                style={{ borderRadius: 8 }}
-              >
-                📅 Calendario
-              </button>
-              <button
                 className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => { setViewMode("list"); setHasInitialScrolled(false); }}
                 style={{ borderRadius: 8 }}
               >
                 📋 Lista
+              </button>
+              <button
+                className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => { setViewMode("week"); setHasInitialScrolled(false); }}
+                style={{ borderRadius: 8 }}
+              >
+                📅 Semana
+              </button>
+              <button
+                className={`btn btn-sm ${viewMode === 'calendar' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => { setViewMode("calendar"); setHasInitialScrolled(false); }}
+                style={{ borderRadius: 8 }}
+              >
+                📅 Mes
               </button>
             </div>
             {canManage && (
@@ -287,8 +347,8 @@ export default function AvailabilityPage() {
         </div>
       </div>
 
-      <div className="page-content animate-in" style={{ paddingTop: 0, minHeight: '60vh' }}>
-        {error && <div className="card" style={{ background: "rgba(255, 70, 85, 0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 20, padding: 12, borderRadius: 8 }}>⚠️ {error}</div>}
+      <div className="page-content animate-in" style={{ paddingTop: 0, paddingBottom: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+        {error && <div className="card" style={{ background: "rgba(255, 70, 85, 0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 20, padding: 12, borderRadius: 8, flexShrink: 0 }}>⚠️ {error}</div>}
 
         {viewMode === null ? (
           <div className="animate-fade-in">
@@ -319,74 +379,180 @@ export default function AvailabilityPage() {
               </div>
             </div>
           </div>
-        ) : viewMode === "calendar" ? (
-          <div className="card glass-card" style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid var(--border-color)" }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, textTransform: "capitalize" }}>{monthLabel}</h3>
+        ) : (viewMode === "calendar" || viewMode === "week") ? (
+          <div className="card glass-card" style={{ padding: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, textTransform: "capitalize" }}>
+                {viewMode === 'calendar' ? monthLabel : `Semana del ${weekDays[0]?.day} de ${weekDays[0]?.month}`}
+              </h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => changeMonth(-1)}>◀</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => changeDate(-1)}>◀</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setCurrentDate(new Date())}>Hoy</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => changeMonth(1)}>▶</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => changeDate(1)}>▶</button>
               </div>
             </div>
-            <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "rgba(255,255,255,0.01)" }}>
-              {dayNames.map(name => (
-                <div key={name} style={{ padding: "12px 0", textAlign: "center", fontSize: 11, fontWeight: 800, color: "var(--text-muted)", borderBottom: "1px solid var(--border-color)" }}>{name}</div>
-              ))}
-              {days.map((d, i) => (
-                <div key={i} className={`animate-scale-in`} style={{
-                  height: 120, padding: 10, borderRight: "1px solid var(--border-color)", borderBottom: "1px solid var(--border-color)",
-                  background: d.empty ? "rgba(0,0,0,0.1)" : d.isToday ? "rgba(255,70,85,0.02)" : "transparent",
-                  position: "relative",
-                  animationDelay: `${(i % 7) * 0.05}s`
-                }}>
-                  {!d.empty && (
-                    <>
-                      <span style={{
-                        fontSize: 12, fontWeight: d.isToday ? 800 : 500, color: d.isToday ? "var(--val-red)" : "var(--text-primary)",
-                        background: d.isToday ? "rgba(255,70,85,0.1)" : "transparent",
-                        width: 24, height: 24, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center"
-                      }}>{d.day}</span>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
-                        {d.events.map((ev: any) => {
-                          const ea = avail[ev.id] || [];
-                          const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
-                          const isCancelled = ev.status === 'cancelled';
-                          const unavailable = ea.filter(a => a.status === "unavailable").length;
-                          const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
-                          const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
-                          const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+            <div className="calendar-grid-container" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+              {viewMode === "calendar" ? (
+                <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "rgba(255,255,255,0.01)", gap: 0, padding: 0, flex: 1 }}>
+                  {dayNames.map(name => (
+                    <div key={name} style={{ padding: "12px 0", textAlign: "center", fontSize: 11, fontWeight: 800, color: "var(--text-muted)", borderBottom: "1px solid var(--border-color)" }}>{name}</div>
+                  ))}
+                  {days.map((d, i) => (
+                    <div key={i} className={`animate-scale-in`} style={{
+                      flex: 1, minHeight: 80, padding: 10, borderRight: "1px solid var(--border-color)", borderBottom: "1px solid var(--border-color)",
+                      background: d.empty ? "rgba(0,0,0,0.1)" : d.isToday ? "rgba(255,70,85,0.06)" : d.isPast ? "rgba(0,0,0,0.4)" : "transparent",
+                      position: "relative",
+                      opacity: d.isPast ? 0.25 : 1,
+                      filter: d.isPast ? "grayscale(0.8) contrast(0.8)" : "none",
+                      animationDelay: `${(i % 7) * 0.05}s`,
+                      boxShadow: d.isToday ? "inset 0 0 20px rgba(255,70,85,0.1)" : "none",
+                      zIndex: d.isToday ? 2 : 1
+                    }}>
+                      {!d.empty && (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{
+                              fontSize: 12, fontWeight: d.isToday ? 800 : 500, color: d.isToday ? "white" : "var(--text-primary)",
+                              background: d.isToday ? "var(--val-red)" : "transparent",
+                              width: 24, height: 24, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: d.isToday ? "0 0 10px var(--val-red-glow)" : "none"
+                            }}>{d.day}</span>
+                            {d.isToday && <span style={{ fontSize: 8, fontWeight: 900, color: "var(--val-red)", letterSpacing: 1, textTransform: "uppercase" }}>Hoy</span>}
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                            {d.events.map((ev: any) => {
+                              const ea = avail[ev.id] || [];
+                              const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                              const isCancelled = ev.status === 'cancelled';
+                              const unavailable = ea.filter(a => a.status === "unavailable").length;
+                              const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
+                              const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                              const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
 
-                          return (
-                            <div
-                              key={ev.id}
-                              onClick={() => { setScrollToEventId(ev.id); setViewMode("list"); }}
-                              style={{
-                                fontSize: 10, padding: "4px 6px", borderRadius: 4,
-                                background: myStatus === 'maybe'
-                                  ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                  : evColor,
-                                color: isCancelled ? 'var(--text-muted)' : "white",
-                                fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
-                                textDecoration: (isCancelled || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
-                                opacity: (isCancelled || isImpossible || myStatus === 'unavailable') ? 0.5 : myStatus === 'pending' ? 0.8 : 1,
-                                border: myStatus === 'pending' ? '1px dashed rgba(255,255,255,0.3)' : '1px solid transparent'
-                              }}
-                              title={`${ev.localTime} - ${ev.title}`}
-                            >
-                              {ev.localTime} {ev.title}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
+                              return (
+                                <div
+                                  key={ev.id}
+                                  onClick={() => setSelectedEventId(ev.id)}
+                                  style={{
+                                    fontSize: 10, padding: "4px 6px", borderRadius: 4,
+                                    background: myStatus === 'maybe'
+                                      ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                      : evColor,
+                                    color: isCancelled ? 'var(--text-muted)' : "white",
+                                    fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
+                                    textDecoration: (isCancelled || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
+                                    opacity: (isCancelled || isImpossible || myStatus === 'unavailable') ? 0.5 : myStatus === 'pending' ? 0.8 : 1,
+                                    border: myStatus === 'pending' ? '1px dashed rgba(255,255,255,0.3)' : '1px solid transparent'
+                                  }}
+                                  title={`${ev.localTime} - ${ev.title}`}
+                                >
+                                  {ev.localTime} {ev.title}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="week-view" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+                  <div ref={weekScrollRef} style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "scroll", position: "relative" }}>
+                  <div style={{ position: "sticky", top: 0, zIndex: 30, display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderBottom: "1px solid var(--border-color)", background: "#0a0b14" }}>
+                    <div style={{ borderRight: "1px solid var(--border-color)" }} />
+                    {weekDays.map((d: any, idx: number) => (
+                      <div key={idx} style={{ padding: "12px 8px", textAlign: "center", borderRight: idx < 6 ? "1px solid var(--border-color)" : "none" }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>{dayNames[idx]}</div>
+                        <div style={{ 
+                          fontSize: 16, fontWeight: 800, 
+                          color: d.isToday ? "var(--val-red)" : "white",
+                          display: "inline-block", padding: "2px 8px", borderRadius: 6,
+                          background: d.isToday ? "rgba(255,70,85,0.1)" : "transparent"
+                        }}>{d.day}</div>
+                      </div>
+                    ))}
+                  </div>
+                    <div style={{ display: "flex", flex: 1, position: "relative" }}>
+                    {/* Time Column */}
+                    <div style={{ width: 60, flexShrink: 0, borderRight: "1px solid var(--border-color)", background: "rgba(0,0,0,0.2)" }}>
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const hour = i;
+                        return (
+                          <div key={hour} style={{ height: 60, padding: "4px 8px", fontSize: 10, color: "var(--text-muted)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
+                            {hour.toString().padStart(2, '0')}:00
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Day Columns */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", flex: 1, position: "relative" }}>
+                      {weekDays.map((d: any, idx: number) => (
+                        <div key={idx} className="animate-scale-in" style={{ 
+                          position: "relative", borderRight: idx < 6 ? "1px solid var(--border-color)" : "none",
+                          background: d.isToday ? "rgba(255,70,85,0.02)" : d.isPast ? "rgba(0,0,0,0.2)" : "transparent",
+                          opacity: d.isPast ? 0.6 : 1,
+                          animationDelay: `${idx * 0.05}s`
+                        }}>
+                          {/* Grid Lines */}
+                          {Array.from({ length: 24 }).map((_, i) => (
+                            <div key={i} style={{ height: 60, borderBottom: "1px solid rgba(255,255,255,0.03)" }} />
+                          ))}
+
+                          {/* Events */}
+                          {d.events.map((ev: any) => {
+                            const [h, m] = ev.localTime.split(':').map(Number);
+                            
+                            const top = h * 60 + m;
+                            let duration = 1.5;
+                            if (ev.localEndTime) {
+                              const [eh, em] = ev.localEndTime.split(':').map(Number);
+                              duration = (eh - h) + (em - m) / 60;
+                            }
+                            const height = duration * 60;
+
+                            const ea = avail[ev.id] || [];
+                            const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                            const isCancelled = ev.status === 'cancelled';
+                            const unavailable = ea.filter(a => a.status === "unavailable").length;
+                            const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
+                            const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                            const evColorDark = isCancelled ? 'rgba(0,0,0,0.2)' : isImpossible ? "var(--val-red-dark)" : ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+
+                            return (
+                              <div
+                                key={ev.id}
+                                onClick={() => setSelectedEventId(ev.id)}
+                                style={{
+                                  position: "absolute", top: top, left: 4, right: 4, height: height,
+                                  fontSize: 10, padding: "6px", borderRadius: 8, zIndex: 10,
+                                  background: myStatus === 'maybe'
+                                    ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                    : evColor,
+                                  color: isCancelled ? 'var(--text-muted)' : "white",
+                                  fontWeight: 700, cursor: "pointer",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                                  border: myStatus === 'pending' ? '1px dashed rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                                  display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden"
+                                }}
+                              >
+                                <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{ev.title}</div>
+                                 {ev.map && <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>{maps.find((m: any) => m.id === ev.map)?.name || ev.map}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="events-list-container" style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+        </div>
+      ) : (
+          <div className="events-list-container" style={{ display: "flex", flexDirection: "column", gap: 40, flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
             {events.length === 0 && <p style={{ color: "var(--text-muted)", textAlign: "center", padding: 40 }}>No hay eventos programados.</p>}
             {events.map((ev, idx) => {
               const isPast = isMounted && (ev as any).localDate < todayStr;
@@ -437,7 +603,7 @@ export default function AvailabilityPage() {
                     className={`card glass-card animate-in ${isPast || isCancelled || isImpossible ? '' : 'hover-lift'}`}
                     style={{
                       marginBottom: 12,
-                      opacity: isPast || isCancelled || isImpossible ? 0.6 : 1,
+                      opacity: isPast || isCancelled || isImpossible ? 0.4 : 1,
                       borderLeft: `4px solid ${isCancelled || isImpossible ? 'var(--val-red)' : isFirstUpcoming ? 'var(--val-cyan)' : isConfirmed ? 'var(--val-cyan)' : 'var(--border-color)'}`,
                       scrollMarginTop: "100px",
                       animationDelay: `${Math.min(idx, 5) * 0.1}s`
@@ -608,6 +774,131 @@ export default function AvailabilityPage() {
           </div>
         </div>
       )}
+      {selectedEventId && (() => {
+        const ev = events.find(e => e.id === selectedEventId);
+        if (!ev) return null;
+        const ea = avail[ev.id] || [];
+        const confirmed = ea.filter(a => a.status === "available").length;
+        const maybeCount = ea.filter(a => a.status === "maybe").length;
+        const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+        const isPast = isMounted && (ev as any).localDate < todayStr;
+        const isCancelled = ev.status === 'cancelled';
+        const unavailable = ea.filter(a => a.status === "unavailable").length;
+        const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
+
+        const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+
+        return (
+          <div className="modal-overlay" onClick={() => setSelectedEventId(null)}>
+            <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ position: 'relative', height: 140, background: evColor, display: 'flex', alignItems: 'end', padding: 24 }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
+                <button 
+                  onClick={() => setSelectedEventId(null)}
+                  style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
+                >✕</button>
+                <div style={{ zIndex: 1, width: '100%' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                     <span className="tag" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
+                      {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
+                     </span>
+                     {isCancelled && <span className="tag tag-red">Cancelado</span>}
+                     {isImpossible && <span className="tag tag-red">Sin asistencia</span>}
+                   </div>
+                   <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ev.title}</h2>
+                </div>
+              </div>
+
+              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-red)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{new Date(`${ev.date}T00:00:00`).toLocaleDateString("es-ES", { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                      <div style={{ fontSize: 12 }}>{ev.localTime} {ev.localEndTime && `— ${ev.localEndTime}`}</div>
+                    </div>
+                  </div>
+
+                  {ev.map && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-cyan)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                      </div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{maps.find(m => m.id === ev.map)?.name || ev.map}</div>
+                    </div>
+                  )}
+                </div>
+
+                {ev.description && (
+                  <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                    {ev.description}
+                  </div>
+                )}
+
+                <div className="glass-card" style={{ background: "rgba(255,255,255,0.01)", borderRadius: 16, padding: 20, border: "1px solid var(--border-color)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, color: 'var(--text-muted)' }}>Asistencia ({confirmed}/5)</span>
+                    <div className="progress-bar" style={{ width: 80, height: 6 }}>
+                      <div className="progress-fill progress-fill-cyan" style={{ width: `${Math.min((confirmed / 5) * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(36px, 1fr))", gap: 12 }}>
+                    {players.map(p => {
+                      const ps = ea.find(a => a.player_id === p.id)?.status || "pending";
+                      return (
+                        <div key={p.id} title={p.name} style={{ 
+                          width: 36, height: 36, borderRadius: "50%", background: p.avatar_color, 
+                          display: "flex", alignItems: "center", justifyContent: "center", 
+                          fontSize: 14, fontWeight: 800, color: "white", 
+                          border: `2px solid ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'}`, 
+                          boxShadow: ps !== 'pending' ? `0 0 10px ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` : 'none',
+                          opacity: ps !== 'pending' ? 1 : 0.4,
+                          transition: 'all 0.3s ease'
+                        }}>
+                          {p.name[0]}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {myPlayerId && !isPast && (
+                  <div style={{ display: "flex", flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Tu disponibilidad:</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        className={`btn btn-sm ${myStatus === 'available' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setAvailability(ev.id, 'available')}
+                        style={{ flex: 1, borderRadius: 10 }}
+                      >SÍ ✅</button>
+                      <button
+                        className={`btn btn-sm ${myStatus === 'maybe' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setAvailability(ev.id, 'maybe')}
+                        style={{ flex: 1, borderRadius: 10 }}
+                      >DUDA ⚠️</button>
+                      <button
+                        className={`btn btn-sm ${myStatus === 'unavailable' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setAvailability(ev.id, 'unavailable')}
+                        style={{ flex: 1, borderRadius: 10 }}
+                      >NO ❌</button>
+                    </div>
+                  </div>
+                )}
+                
+                {canManage && (
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--val-red)', opacity: 0.6, fontSize: 11 }} onClick={() => { if(confirm('¿Estás seguro de borrar este evento?')) { deleteEvent(ev.id); setSelectedEventId(null); } }}>
+                      🗑️ Eliminar Evento
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
