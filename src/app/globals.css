@@ -268,6 +268,17 @@ body::before {
   color: var(--val-red);
 }
 
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 180px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
 .bottom-nav-link-icon {
   font-size: 20px;
 }
@@ -312,6 +323,10 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.hover-lift {
+  transition: var(--transition);
+}
+
 .hover-lift:hover {
   transform: translateY(-4px);
   border-color: var(--val-red);
@@ -321,6 +336,7 @@ body::before {
 .gradient-text {
   background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -527,74 +543,137 @@ select option {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 48px);
+  height: calc(100vh - 200px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.channel-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 32px 0;
+  margin-top: 16px;
+}
+
+.channel-tab {
+  padding: 10px 20px;
+  border-radius: 12px 12px 0 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.channel-tab:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.channel-tab.active {
+  background: var(--bg-card);
+  color: var(--val-red);
+  border-top: 2px solid var(--val-red);
+  height: calc(100% + 1px);
+  z-index: 2;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
+  background: radial-gradient(circle at center, rgba(255, 70, 85, 0.02) 0%, transparent 70%);
 }
 
 .chat-message {
   display: flex;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
+  gap: 16px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
   transition: var(--transition);
+  max-width: 85%;
 }
 
 .chat-message:hover {
-  background: var(--bg-glass);
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateX(4px);
+}
+
+.chat-message.is-me {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  text-align: right;
 }
 
 .chat-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 16px;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 .chat-msg-header {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-bottom: 2px;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.is-me .chat-msg-header {
+  flex-direction: row-reverse;
 }
 
 .chat-msg-name {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
+  letter-spacing: 0.5px;
 }
 
 .chat-msg-time {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
 .chat-msg-content {
   font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  color: var(--text-primary);
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 16px;
+  border-radius: 0 16px 16px 16px;
+  border: 1px solid var(--border-color);
+}
+
+.is-me .chat-msg-content {
+  border-radius: 16px 0 16px 16px;
+  background: rgba(255, 70, 85, 0.05);
+  border-color: rgba(255, 70, 85, 0.2);
 }
 
 .chat-input-bar {
-  padding: 16px;
+  padding: 20px 24px;
+  background: rgba(10, 10, 15, 0.5);
   border-top: 1px solid var(--border-color);
   display: flex;
-  gap: 8px;
-}
-
-.chat-input-bar input {
-  flex: 1;
+  gap: 12px;
+  align-items: center;
 }
 
 /* ── Strategy Board ── */

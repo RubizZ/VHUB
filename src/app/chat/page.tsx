@@ -83,18 +83,18 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="page-header" style={{ paddingBottom: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="page-header" style={{ paddingBottom: 0, borderBottom: "none" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <h2>💬 Chat</h2>
-            <p>Comunicación del equipo {isSupabaseConfigured ? "(Tiempo Real ⚡)" : "(Modo Dev 🕒)"}</p>
+            <h2 className="gradient-text">💬 Chat de Equipo</h2>
+            <p>Canal de comunicación {isSupabaseConfigured ? "en tiempo real ⚡" : "modo polling 🕒"}</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="card glass-card" style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{session?.user?.name}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{session?.user?.role?.toUpperCase()}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--val-red)" }}>{session?.user?.name}</div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{session?.user?.role?.toUpperCase()}</div>
             </div>
-            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 36, height: 36 }}>
+            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 32, height: 32, borderRadius: "8px" }}>
               {session?.user?.name?.[0]}
             </div>
           </div>
@@ -102,13 +102,14 @@ export default function ChatPage() {
         <div className="channel-tabs">
           {CHANNELS.map(c => (
             <button key={c} className={`channel-tab ${channel === c ? "active" : ""}`} onClick={() => setChannel(c)}>
-              # {c}
+              <span style={{ opacity: 0.5, marginRight: 4 }}>#</span>{c}
             </button>
           ))}
         </div>
       </div>
-      <div className="chat-container" style={{ margin: "0 32px" }}>
-        <div className="chat-messages">
+      <div className="page-content animate-in" style={{ paddingTop: 0 }}>
+        <div className="chat-container">
+          <div className="chat-messages">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="chat-message">
@@ -129,29 +130,44 @@ export default function ChatPage() {
                   No hay mensajes en #{channel}. ¡Sé el primero!
                 </div>
               )}
-              {messages.map(m => (
-                <div key={m.id} className="chat-message">
-                  <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff" }}>
-                    {m.player_name?.[0] || "?"}
-                  </div>
-                  <div>
-                    <div className="chat-msg-header">
-                      <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
-                      <span className="chat-msg-time">{formatTime(m.created_at)}</span>
+              {messages.map(m => {
+                const isMe = m.player_id === (session?.user as any)?.playerId;
+                return (
+                  <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
+                    <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff" }}>
+                      {m.player_name?.[0] || "?"}
                     </div>
-                    <div className="chat-msg-content">{m.content}</div>
+                    <div>
+                      <div className="chat-msg-header">
+                        <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
+                        <span className="chat-msg-time">{formatTime(m.created_at)}</span>
+                      </div>
+                      <div className="chat-msg-content">{m.content}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </>
           )}
           <div ref={bottomRef} />
         </div>
         <div className="chat-input-bar">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={`Mensaje en #${channel}...`} />
-          <button className="btn btn-primary" onClick={send} disabled={!input.trim()}>Enviar</button>
+          <input 
+            value={input} 
+            onChange={e => setInput(e.target.value)} 
+            onKeyDown={e => e.key === "Enter" && send()} 
+            placeholder={`Escribe un mensaje en #${channel}...`} 
+            autoComplete="off"
+          />
+          <button className="btn btn-primary btn-icon" onClick={send} disabled={!input.trim()} title="Enviar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
         </div>
       </div>
+    </div>
     </>
   );
 }

@@ -67,18 +67,35 @@ export default function StatsPage() {
       </div>
       <div className="page-content animate-in">
         {/* Selector de Jugador */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-          {players.map(p => (
-            <button 
-              key={p.id} 
-              className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"}`} 
-              onClick={() => loadStats(p)} 
-              style={{ borderColor: selected?.id === p.id ? p.avatar_color : undefined }}
-            >
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 700 }}>{p.name[0]}</div>
-              {p.name}
-            </button>
-          ))}
+        <div className="card glass-card" style={{ marginBottom: 24, padding: "16px" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {players.map(p => (
+              <button 
+                key={p.id} 
+                className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`} 
+                onClick={() => loadStats(p)} 
+                style={{ 
+                  borderColor: selected?.id === p.id ? p.avatar_color : undefined,
+                  boxShadow: selected?.id === p.id ? `0 0 15px ${p.avatar_color}44` : undefined
+                }}
+              >
+                <div style={{ 
+                  width: 24, 
+                  height: 24, 
+                  borderRadius: "50%", 
+                  background: p.avatar_color, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontSize: 12, 
+                  color: "#fff", 
+                  fontWeight: 800,
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
+                }}>{p.name[0]}</div>
+                {p.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {!selected && (
@@ -153,85 +170,149 @@ export default function StatsPage() {
               </div>
             )}
 
-            {/* Tarjeta de Rango (MMR) */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 60, height: 60, borderRadius: "50%", background: selected.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", fontWeight: 800 }}>{selected.name[0]}</div>
+            {/* Tarjeta de Perfil y Rango */}
+            <div className="card glass-card animate-in" style={{ marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div className="hero-gradient" style={{ position: "absolute", inset: 0, opacity: 0.5 }}></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 24, position: "relative", zIndex: 1 }}>
+                <div style={{ 
+                  width: 80, 
+                  height: 80, 
+                  borderRadius: "24px", 
+                  background: `linear-gradient(135deg, ${selected.avatar_color}, #000)`, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontSize: 32, 
+                  color: "#fff", 
+                  fontWeight: 900,
+                  boxShadow: `0 10px 20px ${selected.avatar_color}44`,
+                  border: `2px solid ${selected.avatar_color}`
+                }}>{selected.name[0]}</div>
                 <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{selected.name}</h3>
-                  <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-                    {data.mmr ? `${data.mmr.currenttierpatched} · ${data.mmr.ranking_in_tier} RR` : "Sin rango clasificado"}
+                  <h3 className="gradient-text" style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>{selected.name}</h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(255,255,255,0.05)", fontSize: 14, fontWeight: 600, color: "var(--text-primary)", border: "1px solid var(--border-color)" }}>
+                      {data.mmr ? data.mmr.currenttierpatched : "Sin Rango"}
+                    </div>
+                    {data.mmr && (
+                      <div style={{ fontSize: 14, color: "var(--text-secondary)", fontWeight: 500 }}>
+                        {data.mmr.ranking_in_tier} RR
+                      </div>
+                    )}
                   </div>
                 </div>
                 {data.mmr && (
                   <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: (data.mmr?.mmr_change_to_last_game ?? 0) >= 0 ? "var(--val-cyan)" : "var(--val-red)" }}>
-                      {(data.mmr?.mmr_change_to_last_game ?? 0) >= 0 ? "+" : ""}{data.mmr?.mmr_change_to_last_game} RR
+                    <div className="stat-value" style={{ 
+                      fontSize: 24, 
+                      color: (data.mmr?.mmr_change_to_last_game ?? 0) >= 0 ? "var(--val-cyan)" : "var(--val-red)",
+                      background: "none",
+                      WebkitTextFillColor: "initial"
+                    }}>
+                      {(data.mmr?.mmr_change_to_last_game ?? 0) >= 0 ? "+" : ""}{data.mmr?.mmr_change_to_last_game}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Última partida</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Última Partida</div>
                   </div>
                 )}
               </div>
+            </div>
 
             {/* Estadísticas Clave */}
-            <div className="grid grid-4" style={{ marginBottom: 16 }}>
+            <div className="grid grid-4 animate-in" style={{ marginBottom: 24, animationDelay: "0.1s" }}>
               {[
-                { label: "K/D", value: data.stats?.kdRatio || "0.0" },
-                { label: "Win Rate", value: `${data.stats?.winRate || 0}%` },
-                { label: "ACS", value: data.stats?.avgACS || 0 },
-                { label: "HS%", value: `${data.stats?.headshotPct || 0}%` },
+                { label: "K/D Ratio", value: data.stats?.kdRatio || "0.0", color: "var(--val-red)" },
+                { label: "Win Rate", value: `${data.stats?.winRate || 0}%`, color: "var(--val-cyan)" },
+                { label: "Avg Score", value: data.stats?.avgACS || 0, color: "var(--val-purple)" },
+                { label: "HS Percentage", value: `${data.stats?.headshotPct || 0}%`, color: "var(--val-yellow)" },
               ].map(s => (
-                <div key={s.label} className="card" style={{ textAlign: "center" }}>
-                  <div className="stat-value">{s.value}</div>
-                  <div className="stat-label">{s.label}</div>
+                <div key={s.label} className="card glass-card stat-card hover-lift" style={{ textAlign: "center", "--glow-color": s.color } as any}>
+                  <div className="stat-value" style={{ fontSize: 32 }}>{s.value}</div>
+                  <div className="stat-label" style={{ fontWeight: 600 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-2" style={{ marginBottom: 16 }}>
+            <div className="grid grid-2 animate-in" style={{ marginBottom: 24, animationDelay: "0.2s" }}>
               {/* Resumen */}
-              <div className="card">
-                <h4 className="card-title" style={{ marginBottom: 12 }}>Resumen de Temporada</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 14 }}>
-                  <div><span style={{ color: "var(--text-muted)" }}>Partidas:</span> {data.stats?.gamesPlayed || 0}</div>
-                  <div><span style={{ color: "var(--text-muted)" }}>W/L:</span> <span style={{ color: "var(--val-cyan)" }}>{data.stats?.wins || 0}W</span> / <span style={{ color: "var(--val-red)" }}>{data.stats?.losses || 0}L</span></div>
-                  <div><span style={{ color: "var(--text-muted)" }}>Avg Kills:</span> {data.stats?.avgKills || 0}</div>
-                  <div><span style={{ color: "var(--text-muted)" }}>KDA:</span> {data.stats?.kdaRatio || 0}</div>
-                  <div><span style={{ color: "var(--text-muted)" }}>ADR:</span> {data.stats?.avgADR || 0}</div>
-                  <div><span style={{ color: "var(--text-muted)" }}>Top Agente:</span> {data.stats?.mostPlayedAgent || "N/A"}</div>
+              <div className="card glass-card">
+                <div className="card-header">
+                  <h4 className="card-title">Resumen de Temporada</h4>
+                  <div className="nav-badge" style={{ background: "rgba(255,255,255,0.1)", color: "var(--text-secondary)" }}>{data.stats?.gamesPlayed || 0} Games</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, fontSize: 14 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase" }}>W/L Ratio</span>
+                    <div style={{ fontWeight: 700 }}>
+                      <span style={{ color: "var(--val-cyan)" }}>{data.stats?.wins || 0}W</span> / <span style={{ color: "var(--val-red)" }}>{data.stats?.losses || 0}L</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase" }}>Avg Kills</span>
+                    <div style={{ fontWeight: 700 }}>{data.stats?.avgKills || 0}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase" }}>KDA Ratio</span>
+                    <div style={{ fontWeight: 700 }}>{data.stats?.kdaRatio || 0}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase" }}>ADR</span>
+                    <div style={{ fontWeight: 700 }}>{data.stats?.avgADR || 0}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "span 2" }}>
+                    <span style={{ color: "var(--text-muted)", fontSize: 11, textTransform: "uppercase" }}>Top Agente</span>
+                    <div style={{ fontWeight: 700, color: "var(--val-red)", fontSize: 16 }}>{data.stats?.mostPlayedAgent || "N/A"}</div>
+                  </div>
                 </div>
               </div>
 
               {/* Forma Reciente */}
-              <div className="card">
-                <h4 className="card-title" style={{ marginBottom: 12 }}>Forma Reciente</h4>
-                <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              <div className="card glass-card">
+                <div className="card-header">
+                  <h4 className="card-title">Rendimiento Reciente</h4>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
                   {data.stats?.recentForm?.map((f, i) => (
-                    <span key={i} className={`form-indicator form-${f.toLowerCase()}`} style={{ width: 24, height: 24, fontSize: 10 }}>{f}</span>
+                    <span key={i} className={`form-indicator form-${f.toLowerCase()}`} style={{ 
+                      width: 32, 
+                      height: 32, 
+                      fontSize: 12, 
+                      fontWeight: 800,
+                      borderRadius: "8px",
+                      boxShadow: f === 'W' ? '0 0 10px rgba(0, 212, 170, 0.2)' : '0 0 10px rgba(255, 70, 85, 0.2)'
+                    }}>{f}</span>
                   )) || <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Sin datos</span>}
                 </div>
-                <h4 className="card-title" style={{ marginBottom: 8, marginTop: 16, fontSize: 13 }}>Top 3 Agentes</h4>
-                {Object.values(data.stats?.agentStats || {}).sort((a, b) => b.games - a.games).slice(0, 3).map(a => (
-                  <div key={a.agent} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: "1px solid var(--border-color)" }}>
-                    <span>{a.agent}</span>
-                    <span style={{ color: a.winRate >= 50 ? "var(--val-cyan)" : "var(--val-red)", fontWeight: 600 }}>{a.winRate}% WR</span>
-                  </div>
-                ))}
+                
+                <h4 className="card-title" style={{ marginBottom: 12, fontSize: 13, opacity: 0.8 }}>Top 3 Agentes</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {Object.values(data.stats?.agentStats || {}).sort((a, b) => b.games - a.games).slice(0, 3).map(a => (
+                    <div key={a.agent} className="hover-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, padding: "10px 12px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                      <span style={{ fontWeight: 600 }}>{a.agent}</span>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{a.games} games</span>
+                        <span style={{ color: a.winRate >= 50 ? "var(--val-cyan)" : "var(--val-red)", fontWeight: 700 }}>{a.winRate}% WR</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Historial de Partidas */}
-            <div className="card">
-              <h4 className="card-title" style={{ marginBottom: 16 }}>Historial de Partidas</h4>
+            <div className="card glass-card animate-in" style={{ animationDelay: "0.3s" }}>
+              <div className="card-header">
+                <h4 className="card-title">Historial de Partidas</h4>
+              </div>
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px" }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid var(--border-color)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: 11 }}>
-                      <th style={{ padding: "12px 8px", textAlign: "left" }}>Resultado</th>
-                      <th style={{ padding: "12px 8px", textAlign: "left" }}>Mapa</th>
-                      <th style={{ padding: "12px 8px", textAlign: "left" }}>Agente</th>
-                      <th style={{ padding: "12px 8px", textAlign: "center" }}>K/D/A</th>
-                      <th style={{ padding: "12px 8px", textAlign: "center" }}>ACS</th>
-                      <th style={{ padding: "12px 8px", textAlign: "right" }}>Fecha</th>
+                    <tr style={{ color: "var(--text-muted)", textTransform: "uppercase", fontSize: 11, letterSpacing: 1 }}>
+                      <th style={{ padding: "8px 16px", textAlign: "left" }}>Resultado</th>
+                      <th style={{ padding: "8px 16px", textAlign: "left" }}>Mapa</th>
+                      <th style={{ padding: "8px 16px", textAlign: "left" }}>Agente</th>
+                      <th style={{ padding: "8px 16px", textAlign: "center" }}>KDA</th>
+                      <th style={{ padding: "8px 16px", textAlign: "center" }}>ACS</th>
+                      <th style={{ padding: "8px 16px", textAlign: "right" }}>Fecha</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -244,21 +325,35 @@ export default function StatsPage() {
                       const rl = m.teams[team]?.rounds_lost || 0;
                       const acs = m.metadata.rounds_played > 0 ? Math.round(me.stats.score / m.metadata.rounds_played) : 0;
                       return (
-                        <tr key={i} style={{ borderBottom: "1px solid var(--border-color)", transition: "background 0.2s" }} className="hover-row">
-                          <td style={{ padding: "12px 8px" }}>
-                            <span className={`form-indicator ${won ? "form-w" : "form-l"}`} style={{ marginRight: 8 }}>{won ? "W" : "L"}</span>
-                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{rw}-{rl}</span>
+                        <tr key={i} className="hover-row" style={{ background: "rgba(255,255,255,0.03)", transition: "var(--transition)" }}>
+                          <td style={{ padding: "12px 16px", borderRadius: "8px 0 0 8px", borderLeft: `4px solid ${won ? "var(--val-cyan)" : "var(--val-red)"}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              <span className={`form-indicator ${won ? "form-w" : "form-l"}`} style={{ width: 24, height: 24, fontSize: 10 }}>{won ? "W" : "L"}</span>
+                              <span style={{ fontFamily: "var(--font-valorant)", fontWeight: 700, fontSize: 14 }}>{rw}-{rl}</span>
+                            </div>
                           </td>
-                          <td style={{ padding: "12px 8px" }}>{m.metadata.map}</td>
-                          <td style={{ padding: "12px 8px" }}>{me.character}</td>
-                          <td style={{ padding: "12px 8px", textAlign: "center" }}>
-                            <span style={{ color: "var(--val-cyan)" }}>{me.stats.kills}</span>/
-                            <span style={{ color: "var(--val-red)" }}>{me.stats.deaths}</span>/
-                            <span>{me.stats.assists}</span>
+                          <td style={{ padding: "12px 16px", fontWeight: 500 }}>{m.metadata.map}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontWeight: 600 }}>{me.character}</span>
+                            </div>
                           </td>
-                          <td style={{ padding: "12px 8px", textAlign: "center", fontWeight: 600 }}>{acs}</td>
-                          <td style={{ padding: "12px 8px", textAlign: "right", color: "var(--text-muted)", fontSize: 12 }}>
-                            {new Date(m.metadata.game_start_patched).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <div style={{ display: "flex", justifyContent: "center", gap: 4, fontFamily: "var(--font-valorant)", fontSize: 13 }}>
+                              <span style={{ color: "var(--val-cyan)" }}>{me.stats.kills}</span>
+                              <span style={{ opacity: 0.3 }}>/</span>
+                              <span style={{ color: "var(--val-red)" }}>{me.stats.deaths}</span>
+                              <span style={{ opacity: 0.3 }}>/</span>
+                              <span style={{ color: "var(--text-secondary)" }}>{me.stats.assists}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <span style={{ fontWeight: 800, color: acs >= 250 ? "var(--val-yellow)" : "inherit" }}>{acs}</span>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "right", borderRadius: "0 8px 8px 0" }}>
+                            <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                              {new Date(m.metadata.game_start_patched).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                            </span>
                           </td>
                         </tr>
                       );
