@@ -370,6 +370,7 @@ export async function GET(req: NextRequest) {
         queue_id: true,
         player_stats: {
           select: {
+            player_id: true,
             team_id: true,
             player: { select: { teamId: true } }
           },
@@ -477,12 +478,6 @@ export async function GET(req: NextRequest) {
     const maps = await db.map.findMany();
     const mapsMap = new Map(maps.map(m => [m.id, m]));
 
-    // Enriquecer eventos con partidos vinculados y objeto de mapa
-    const enrichedEvents = events.map(ev => ({
-      ...ev,
-      linkedMatches: matchesByEvent[ev.id] || [],
-      map_obj: ev.map ? mapsMap.get(ev.map) : null
-    }));
 
     // 3. Obtener IDs de temporadas presentes en los eventos para el filtro del frontend
     const seasonsData = await db.event.findMany({
@@ -547,6 +542,12 @@ export async function GET(req: NextRequest) {
         }
       }
     }
+    // Enriquecer eventos con partidos vinculados y objeto de mapa
+    const enrichedEvents = events.map(ev => ({
+      ...ev,
+      linkedMatches: matchesByEvent[ev.id] || [],
+      map_obj: ev.map ? mapsMap.get(ev.map) : null
+    }));
 
     console.log(`[GET /api/events] Devolviendo ${enrichedEvents.length} eventos para equipo ${teamId}`);
 

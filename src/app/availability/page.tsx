@@ -773,6 +773,9 @@ export default function AvailabilityPage() {
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                               {matches.map((m: LinkedMatch) => {
                                 const ourWin = (m.our_team_side === "Blue" ? m.team_blue_won : !m.team_blue_won);
+                                const isBlue = m.our_team_side === "Blue";
+                                const ourScore = isBlue ? m.team_blue_score : m.team_red_score;
+                                const rivalScore = isBlue ? m.team_red_score : m.team_blue_score;
                                 return (
                                   <div
                                     key={m.id}
@@ -783,7 +786,12 @@ export default function AvailabilityPage() {
                                       background: "rgba(255,255,255,0.02)", cursor: "pointer", border: `1px solid ${ourWin ? 'rgba(0,212,170,0.2)' : 'rgba(255,70,85,0.2)'}`
                                     }}>
                                     <div style={{ width: 24, height: 24, borderRadius: 4, background: ourWin ? "var(--val-cyan)" : "var(--val-red)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "white" }}>{ourWin ? "W" : "L"}</div>
-                                    <div style={{ flex: 1, fontSize: 12 }}><span style={{ fontWeight: 700 }}>{m.map_name}</span> <span style={{ color: "var(--text-muted)", marginLeft: 8 }}>{m.team_blue_score} - {m.team_red_score}</span></div>
+                                    <div style={{ flex: 1, fontSize: 12 }}>
+                                      <span style={{ fontWeight: 700 }}>{m.map_name}</span> 
+                                      <span style={{ marginLeft: 8, fontWeight: 800, color: ourWin ? "var(--val-cyan)" : "var(--val-red)" }}>{ourScore}</span>
+                                      <span style={{ margin: "0 4px", opacity: 0.3 }}>-</span>
+                                      <span style={{ color: "var(--text-muted)" }}>{rivalScore}</span>
+                                    </div>
                                     <span style={{ fontSize: 10, color: "var(--text-muted)" }}>ANALÍTICA →</span>
                                   </div>
                                 );
@@ -1073,7 +1081,10 @@ export default function AvailabilityPage() {
                     <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Partidas Vinculadas ({ev.linkedMatches.length}):</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {ev.linkedMatches.map((m: any) => {
-                        const isWin = m.team_blue_won; // Simplificado, idealmente chequear side
+                        const isBlue = m.our_team_side === "Blue";
+                        const isWin = isBlue ? m.team_blue_won : !m.team_blue_won;
+                        const ourScore = isBlue ? m.team_blue_score : m.team_red_score;
+                        const rivalScore = isBlue ? m.team_red_score : m.team_blue_score;
                         return (
                           <div key={m.id} style={{ 
                             padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', 
@@ -1085,9 +1096,9 @@ export default function AvailabilityPage() {
                               <span style={{ fontWeight: 700, fontSize: 13 }}>{m.map_name}</span>
                             </div>
                             <div style={{ fontWeight: 800, fontSize: 14 }}>
-                              <span style={{ color: 'var(--val-cyan)' }}>{m.team_blue_score}</span>
+                              <span style={{ color: isWin ? 'var(--val-cyan)' : 'var(--val-red)' }}>{ourScore}</span>
                               <span style={{ margin: '0 4px', opacity: 0.3 }}>—</span>
-                              <span style={{ color: 'var(--val-red)' }}>{m.team_red_score}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{rivalScore}</span>
                             </div>
                           </div>
                         );
