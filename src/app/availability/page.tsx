@@ -500,8 +500,6 @@ export default function AvailabilityPage() {
                   {viewMode === 'calendar' ? monthLabel : `Semana del ${weekDays[0]?.day} de ${weekDays[0]?.month}`}
                 </h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => changeDate(-1)}>◀</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setCurrentDate(new Date())}>Hoy</button>
                 {firstUpcomingId && (() => {
                   const upcomingEv = events.find(e => e.id === firstUpcomingId);
                   if (!upcomingEv) return null;
@@ -515,10 +513,12 @@ export default function AvailabilityPage() {
                       }}
                       style={{ color: "var(--val-cyan)", fontWeight: 800 }}
                     >
-                      🚀 Próximo
+                      Próximo
                     </button>
                   );
                 })()}
+                <button className="btn btn-ghost btn-sm" onClick={() => changeDate(-1)}>◀</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setCurrentDate(new Date())}>Hoy</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => changeDate(1)}>▶</button>
               </div>
             </div>
@@ -1294,7 +1294,18 @@ export default function AvailabilityPage() {
                   textTransform: "uppercase",
                 }}
               >
-                {upcomingScrollPosition === "above" ? "⬆️ Ver Próximo Evento" : "⬇️ Ver Próximo Evento"}
+                {upcomingScrollPosition === "above" ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <polyline points="19 12 12 19 5 12"></polyline>
+                  </svg>
+                )}
+                <span>Ver Próximo Evento</span>
               </div>
             )}
           </div>
