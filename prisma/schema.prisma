@@ -107,6 +107,7 @@ model Map {
   mapUrl              String?
   tacticalDescription String?
   compositions        Composition[]
+  events              Event[]
 }
 
 model Composition {
@@ -160,6 +161,7 @@ model Event {
   end_time          String?
   description       String?
   map               String?
+  map_obj           Map?           @relation(fields: [map], references: [id])
   premier_week      String?
   premier_season_id String?
   match_id          String?

@@ -19,6 +19,7 @@ interface Ev {
   localDate?: string; localTime?: string;
   localEndDate?: string; localEndTime?: string;
   linkedMatches?: LinkedMatch[];
+  map_obj?: any;
 }
 interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
 
@@ -318,14 +319,14 @@ export default function AvailabilityPage() {
               </button>
               <button
                 className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => { setViewMode("week"); setHasInitialScrolled(false); }}
+                onClick={() => { setViewMode("week"); setHasInitialScrolled(false); setCurrentDate(new Date()); }}
                 style={{ borderRadius: 8 }}
               >
                 📅 Semana
               </button>
               <button
                 className={`btn btn-sm ${viewMode === 'calendar' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => { setViewMode("calendar"); setHasInitialScrolled(false); }}
+                onClick={() => { setViewMode("calendar"); setHasInitialScrolled(false); setCurrentDate(new Date()); }}
                 style={{ borderRadius: 8 }}
               >
                 📅 Mes
@@ -339,12 +340,6 @@ export default function AvailabilityPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 24, overflowX: "auto", paddingBottom: 4 }}>
-          <SeasonTab active={selectedSeason === null} label="Todas las Temporadas" onClick={() => setSelectedSeason(null)} />
-          {seasons.map(s => (
-            <SeasonTab key={s} active={selectedSeason === s} label={`Temporada ${s.substring(0, 8)}...`} onClick={() => setSelectedSeason(s)} />
-          ))}
-        </div>
       </div>
 
       <div className="page-content animate-in" style={{ paddingTop: 0, paddingBottom: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
@@ -379,19 +374,44 @@ export default function AvailabilityPage() {
               </div>
             </div>
           </div>
-        ) : (viewMode === "calendar" || viewMode === "week") ? (
-          <div className="card glass-card" style={{ padding: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, textTransform: "capitalize" }}>
-                {viewMode === 'calendar' ? monthLabel : `Semana del ${weekDays[0]?.day} de ${weekDays[0]?.month}`}
-              </h3>
+        ) : (viewMode === "calendar" || viewMode === "week") ? (() => {
+          const weekMap = viewMode === 'week' ? weekDays.flatMap(d => d.events).find(e => e.map_obj)?.map_obj : null;
+          
+          return (
+            <div className="card glass-card" style={{ 
+              padding: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, height: "100%", maxHeight: "100%", marginBottom: 24,
+              position: 'relative',
+              background: "#0a0b14"
+            }}>
+              {weekMap && (
+                <div style={{ 
+                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+                  backgroundImage: `url(${weekMap.premierBackground})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  opacity: 0.15,
+                  zIndex: 0,
+                  pointerEvents: 'none'
+                }} />
+              )}
+              <div style={{ 
+                display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, 
+                borderBottom: "1px solid var(--border-color)", flexShrink: 0,
+                zIndex: 1, position: 'relative',
+                background: "rgba(10, 11, 20, 0.5)",
+                backdropFilter: "blur(4px)"
+              }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, textTransform: "capitalize" }}>
+                  {viewMode === 'calendar' ? monthLabel : `Semana del ${weekDays[0]?.day} de ${weekDays[0]?.month}`}
+                </h3>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => changeDate(-1)}>◀</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setCurrentDate(new Date())}>Hoy</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => changeDate(1)}>▶</button>
               </div>
             </div>
-            <div className="calendar-grid-container" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+            <div className="calendar-grid-container" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden", zIndex: 1 }}>
               {viewMode === "calendar" ? (
                 <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "rgba(255,255,255,0.01)", gap: 0, padding: 0, flex: 1 }}>
                   {dayNames.map(name => (
@@ -457,7 +477,11 @@ export default function AvailabilityPage() {
                   ))}
                 </div>
               ) : (
-                <div className="week-view" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+                <div className="week-view" style={{ 
+                  display: "flex", flexDirection: "column", flex: 1, minHeight: 0,
+                  position: 'relative',
+                  background: "transparent"
+                }}>
                   <div ref={weekScrollRef} style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "scroll", position: "relative" }}>
                   <div style={{ position: "sticky", top: 0, zIndex: 30, display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderBottom: "1px solid var(--border-color)", background: "#0a0b14" }}>
                     <div style={{ borderRight: "1px solid var(--border-color)" }} />
@@ -549,9 +573,9 @@ export default function AvailabilityPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
-      ) : (
+        )})() : (
           <div className="events-list-container" style={{ display: "flex", flexDirection: "column", gap: 40, flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
             {events.length === 0 && <p style={{ color: "var(--text-muted)", textAlign: "center", padding: 40 }}>No hay eventos programados.</p>}
             {events.map((ev, idx) => {
@@ -787,12 +811,24 @@ export default function AvailabilityPage() {
         const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
 
         const evColor = isCancelled ? 'rgba(255,255,255,0.1)' : isImpossible ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+        const mapObj = ev.map_obj;
 
         return (
           <div className="modal-overlay" onClick={() => setSelectedEventId(null)}>
             <div className="card glass-card modal-content animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ position: 'relative', height: 140, background: evColor, display: 'flex', alignItems: 'end', padding: 24 }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
+              <div style={{ 
+                position: 'relative', 
+                height: 160, 
+                background: mapObj?.premierBackground ? `url(${mapObj.premierBackground})` : evColor,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex', 
+                alignItems: 'end', 
+                padding: 24,
+                boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${evColor}44`,
+                borderBottom: `2px solid ${evColor}`
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(to top, #0a0b14 0%, transparent 100%), radial-gradient(circle at center, ${evColor}22 0%, transparent 70%)` }} />
                 <button 
                   onClick={() => setSelectedEventId(null)}
                   style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
@@ -826,7 +862,7 @@ export default function AvailabilityPage() {
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-cyan)' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                       </div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{maps.find(m => m.id === ev.map)?.name || ev.map}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.map_obj?.name || ev.map}</div>
                     </div>
                   )}
                 </div>

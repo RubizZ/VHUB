@@ -137,6 +137,10 @@ async function ensureWeeklyEvents(teamId: string) {
     ) || [];
 
     console.log(`[ensureWeeklyEvents] Conferencia del equipo: ${teamConference}, scheduled_events encontrados: ${conferenceSchedules.length}`);
+    
+    // Cache de mapas para evitar queries en el bucle
+    const allMaps = await db.map.findMany();
+    const mapNameToId = new Map(allMaps.map(m => [m.name.toLowerCase(), m.id]));
 
     while (tempDate <= limitDate) {
       const dateStr = tempDate.toISOString().split('T')[0];
@@ -191,7 +195,8 @@ async function ensureWeeklyEvents(teamId: string) {
           if (evMeta.map_selection?.type === 'PICKBAN') {
             mapName = "Pick & Ban";
           } else {
-            mapName = evMeta.map_selection?.maps?.[0]?.name || "Por decidir";
+            const apiMapName = evMeta.map_selection?.maps?.[0]?.name?.toLowerCase();
+            mapName = mapNameToId.get(apiMapName) || evMeta.map_selection?.maps?.[0]?.name || "Por decidir";
           }
           if (evMeta.type === 'LEAGUE') premierWeek = "Semana de Liga";
         }
@@ -240,14 +245,18 @@ async function ensureWeeklyEvents(teamId: string) {
       // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
       // (para prácticas y partidos, no playoffs)
       for (const ev of eventsToCreate) {
-        if (ev.map && ev.map !== "Por decidir" && ev.type !== "playoffs") {
+        if (ev.map && ev.map !== "Por decidir" && ev.map !== "Pick & Ban" && ev.type !== "playoffs") {
           await db.event.updateMany({
             where: {
               teamId,
               date: ev.date,
               time: ev.time,
               type: ev.type,
-              map: "Por decidir"
+              OR: [
+                { map: "Por decidir" },
+                { map: "" },
+                { map: null }
+              ]
             },
             data: { map: ev.map }
           });
@@ -421,10 +430,15 @@ export async function GET(req: NextRequest) {
       console.log(`[GET /api/events] Auto-cancelados ${eventIdsToCancel.length} eventos de partido (2+ ya jugados esa semana)`);
     }
 
-    // Enriquecer eventos con partidos vinculados
+    // 2d. Obtener todos los mapas para vincular manualmente (fallback si el include falla)
+    const maps = await db.map.findMany();
+    const mapsMap = new Map(maps.map(m => [m.id, m]));
+
+    // Enriquecer eventos con partidos vinculados y objeto de mapa
     const enrichedEvents = events.map(ev => ({
       ...ev,
-      linkedMatches: matchesByEvent[ev.id] || []
+      linkedMatches: matchesByEvent[ev.id] || [],
+      map_obj: ev.map ? mapsMap.get(ev.map) : null
     }));
 
     // 3. Obtener IDs de temporadas presentes en los eventos para el filtro del frontend

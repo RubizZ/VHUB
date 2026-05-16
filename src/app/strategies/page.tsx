@@ -236,7 +236,7 @@ export default function StrategiesPage() {
       <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>🗺️ Centro Táctico</h1>
+            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Centro Táctico</h1>
             <p style={{ fontSize: 14, marginTop: 4 }}>
               {view === "maps" ? "Selecciona un mapa para ver sus estrategias" : 
                view === "compositions" ? `${selectedMap?.name} — Gestiona tus composiciones` : 
