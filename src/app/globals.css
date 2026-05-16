@@ -847,7 +847,7 @@ select option {
 }
 
 .upcoming-highlight-mini {
-  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both, upcomingPulseMini 0.6s ease-out 0.4s;
+  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards, upcomingPulseMini 0.6s ease-out 0.4s;
   position: relative;
   z-index: 50;
 }
@@ -913,9 +913,9 @@ select option {
 }
 
 .calendar-event-hover:hover {
-  transform: scale(1.03);
-  filter: brightness(1.25) contrast(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 10px var(--hover-color, rgba(255, 255, 255, 0.2));
+  transform: scale(1.03) !important;
+  filter: brightness(1.15) contrast(1.03) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 10px var(--hover-color, rgba(255, 255, 255, 0.2)) !important;
   z-index: 50 !important;
 }
 
