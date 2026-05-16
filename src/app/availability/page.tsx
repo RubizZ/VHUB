@@ -696,15 +696,18 @@ export default function AvailabilityPage() {
               const showDayHeader = !prevEv || prevEv.date !== ev.date;
               const isToday = (ev as any).localDate === todayStr;
 
-              // Original logic for "PRÓXIMO" tag
-              const isViableUpcoming = isMounted && !isPast && !isCancelled && !isImpossible && ev.status === 'scheduled';
-              const isFirstUpcoming = isViableUpcoming && (idx === 0 || events.slice(0, idx).every(prev => {
-                const prevEA = avail[prev.id] || [];
-                const prevUnavail = prevEA.filter(a => a.status === "unavailable").length;
-                const prevIsPast = isMounted && (prev as any).localDate < todayStr;
-                const prevIsImpossible = isMounted && !prevIsPast && players.length >= 5 && (players.length - prevUnavail < 5);
-                return prevIsPast || prevIsImpossible || prev.status !== 'scheduled';
-              }));
+              // Logic for "PRÓXIMO" tag and preceding items
+              const firstUpcomingIdx = events.findIndex((e) => {
+                const pIsPast = isMounted && (e as any).localDate < todayStr;
+                const pIsCancelled = e.status === 'cancelled';
+                const pEA = avail[e.id] || [];
+                const pUnavailable = pEA.filter(a => a.status === "unavailable").length;
+                const pIsImpossible = isMounted && !pIsPast && players.length >= 5 && (players.length - pUnavailable < 5);
+                return isMounted && !pIsPast && !pIsCancelled && !pIsImpossible && e.status === 'scheduled';
+              });
+              const isFirstUpcoming = idx === firstUpcomingIdx;
+              const isBeforeUpcoming = firstUpcomingIdx !== -1 && idx < firstUpcomingIdx;
+              const isInactive = isPast || isCancelled || isImpossible || ev.status === 'completed' || ev.status === 'no_players' || ev.status === 'not_played' || isBeforeUpcoming;
 
               const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
               const matches = ev.linkedMatches || [];
@@ -712,7 +715,7 @@ export default function AvailabilityPage() {
               return (
                 <div key={ev.id}>
                   {showDayHeader && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, opacity: isInactive ? 0.45 : 1 }}>
                       <div style={{
                         padding: "8px 16px", borderRadius: 12, background: isToday ? "var(--val-red)" : "rgba(255,255,255,0.05)",
                         color: isToday ? "white" : "var(--text-primary)", fontWeight: 800, fontSize: 14, textTransform: "uppercase", letterSpacing: 1,
@@ -727,13 +730,17 @@ export default function AvailabilityPage() {
 
                   <div
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                    className={`card glass-card animate-in ${isPast || isCancelled || isImpossible ? '' : 'hover-lift'}`}
+                    className={`card glass-card animate-in ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
                     style={{
                       marginBottom: 12,
-                      opacity: (isPast || isCancelled || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
                       borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
                       scrollMarginTop: "100px",
-                      animationDelay: `${Math.min(idx, 5) * 0.1}s`
+                      animationDelay: `${Math.min(idx, 5) * 0.1}s`,
+                      boxShadow: isFirstUpcoming 
+                        ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.25)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.25)" : "rgba(0, 212, 170, 0.25)"}`
+                        : undefined,
+                      ["--hover-color" as any]: ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)",
+                      ["--hover-glow-color" as any]: ev.type === "match" ? "rgba(255, 70, 85, 0.3)" : ev.type === "playoffs" ? "rgba(245, 158, 11, 0.3)" : "rgba(0, 212, 170, 0.3)"
                     }}
                   >
                     <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -743,12 +750,8 @@ export default function AvailabilityPage() {
                             {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                           </span>
                           <h3 style={{ fontSize: 18, fontWeight: 700, textDecoration: (isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) ? 'line-through' : undefined }}>{ev.title}</h3>
-                          {isFirstUpcoming && <span className="tag tag-cyan" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
-                          {isCancelled && <span className="tag tag-red">Cancelado</span>}
-                          {ev.status === 'completed' && <span className="tag tag-cyan">Jugado</span>}
-                          {ev.status === 'no_players' && <span className="tag tag-red">Sin suficientes jugadores</span>}
-                          {ev.status === 'not_played' && <span className="tag tag-red">No jugado</span>}
-                          {(isImpossible && ev.status === 'scheduled') && <span className="tag tag-red">Imposible (sin 5)</span>}
+                          {isFirstUpcoming && <span className="tag tag-neutral" style={{ fontSize: 10, fontWeight: 800 }}>PRÓXIMO</span>}
+                          {ev.status === 'completed' && <span className="tag tag-neutral">Jugado</span>}
                         </div>
 
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, color: "var(--text-secondary)", fontSize: 13 }}>
@@ -763,8 +766,31 @@ export default function AvailabilityPage() {
                         </div>
 
                         {ev.description && <p style={{ marginTop: 12, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>{ev.description}</p>}
-                        {isCancelled && <div style={{ fontSize: 12, color: "var(--val-red)", marginTop: 8 }}>⚠️ Ya se jugaron 2 partidos esta semana.</div>}
-                        {isImpossible && <div style={{ fontSize: 12, color: "var(--val-red)", marginTop: 8 }}>⚠️ No hay suficientes jugadores (mínimo 5).</div>}
+
+                        {(isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) && (
+                          <div style={{
+                            marginTop: 12,
+                            padding: "10px 14px",
+                            borderRadius: 8,
+                            background: "rgba(255, 70, 85, 0.06)",
+                            border: "1px solid rgba(255, 70, 85, 0.2)",
+                            color: "var(--val-red)",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            boxShadow: "0 4px 20px rgba(255, 70, 85, 0.05)"
+                          }}>
+                            <span style={{ fontSize: 14 }}>⚠️</span>
+                            <span>
+                              {isCancelled && "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                              {ev.status === 'no_players' && "Sin asistencia: No hay suficientes jugadores confirmados."}
+                              {ev.status === 'not_played' && "No jugado: Evento cancelado/no disputado."}
+                              {(isImpossible && ev.status === 'scheduled') && "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Linked Matches */}
                         {matches.length > 0 && (
@@ -837,7 +863,7 @@ export default function AvailabilityPage() {
                           </div>
                         </div>
 
-                        {myPlayerId && !isPast && (
+                        {myPlayerId && !isInactive && (
                           <div className="glass-card" style={{ padding: 12, borderRadius: 12, display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.02)" }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1 }}>Confirmar:</div>
                             <div style={{ display: "flex", gap: 8, flex: 1 }}>
@@ -1009,6 +1035,7 @@ export default function AvailabilityPage() {
         const isNotPlayed = ev.status === 'not_played';
         const unavailable = ea.filter(a => a.status === "unavailable").length;
         const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
+        const isInactiveModal = isPast || isCancelled || isNoPlayers || isNotPlayed || isImpossible || ev.status === 'completed';
 
         const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
         const evColorBase = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
@@ -1040,17 +1067,36 @@ export default function AvailabilityPage() {
                      <span className="tag" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
                       {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                      </span>
-                     {isCancelled && <span className="tag tag-red">Cancelado</span>}
-                     {ev.status === 'completed' && <span className="tag tag-cyan">Jugado</span>}
-                     {isNoPlayers && <span className="tag tag-red">Sin asistencia</span>}
-                     {isNotPlayed && <span className="tag tag-red">No jugado</span>}
-                     {(isImpossible && ev.status === 'scheduled') && <span className="tag tag-red">Imposible (sin 5)</span>}
+                     {ev.status === 'completed' && <span className="tag tag-neutral">Jugado</span>}
                    </div>
                    <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ev.title}</h2>
                 </div>
               </div>
 
               <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {(isCancelled || isNoPlayers || isNotPlayed || isImpossible) && (
+                  <div style={{
+                    padding: "12px 16px",
+                    borderRadius: 8,
+                    background: "rgba(255, 70, 85, 0.06)",
+                    border: "1px solid rgba(255, 70, 85, 0.2)",
+                    color: "var(--val-red)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    boxShadow: "0 4px 20px rgba(255, 70, 85, 0.05)"
+                  }}>
+                    <span style={{ fontSize: 16 }}>⚠️</span>
+                    <span>
+                      {isCancelled && "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                      {isNoPlayers && "Sin asistencia: No hay suficientes jugadores confirmados."}
+                      {isNotPlayed && "No jugado: Evento cancelado/no disputado."}
+                      {(isImpossible && ev.status === 'scheduled') && "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: "var(--text-secondary)", fontSize: 14 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--val-red)' }}>
@@ -1134,7 +1180,7 @@ export default function AvailabilityPage() {
                   </div>
                 </div>
 
-                {myPlayerId && !isPast && (
+                {myPlayerId && !isInactiveModal && (
                   <div style={{ display: "flex", flexDirection: 'column', gap: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Tu disponibilidad:</div>
                     <div style={{ display: "flex", gap: 8 }}>

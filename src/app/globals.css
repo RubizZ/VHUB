@@ -329,8 +329,8 @@ body::before {
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  border-color: var(--val-red);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--val-red-glow);
+  border-color: var(--hover-color, var(--val-red)) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--hover-glow-color, var(--val-red-glow)) !important;
 }
 
 .gradient-text {
@@ -954,6 +954,27 @@ select option {
 .tag-red {
   background: rgba(255, 70, 85, 0.15);
   color: var(--val-red);
+}
+
+.tag-neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.card.faded-card {
+  opacity: 0.3 !important;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card.faded-card:hover {
+  opacity: 0.75 !important;
+  transform: translateY(-2px);
+  cursor: pointer;
+}
+
+.card.unavailable-card {
+  opacity: 0.4 !important;
 }
 
 .tag-green {
