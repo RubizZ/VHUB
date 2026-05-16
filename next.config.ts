@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Forzar polling para Hot Reload en Docker/Windows
+
+  // Forzar polling para Hot Reload en Docker/Windows (Webpack fallback)
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
