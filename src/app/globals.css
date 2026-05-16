@@ -841,33 +841,33 @@ select option {
 }
 
 .upcoming-highlight {
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards, upcomingPulse 2.5s ease-out 0.6s;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards, upcomingPulse 1.2s ease-out 0.5s;
+  position: relative;
+  z-index: 50;
 }
 
 .upcoming-highlight-mini {
-  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both, upcomingPulseMini 2.5s ease-out 0.5s;
+  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both, upcomingPulseMini 1.2s ease-out 0.4s;
+  position: relative;
+  z-index: 50;
 }
 
 @keyframes upcomingPulse {
   0% {
-    box-shadow: 0 0 0 rgba(0, 212, 170, 0);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
     filter: brightness(1);
   }
-  15% {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 30px var(--hover-color, var(--val-cyan));
-    filter: brightness(1.15);
+  25% {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 15px var(--hover-color, var(--val-cyan));
+    filter: brightness(1.08);
   }
-  30% {
-    box-shadow: 0 0 0 rgba(0, 212, 170, 0);
+  50% {
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
     filter: brightness(1);
   }
-  45% {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 30px var(--hover-color, var(--val-cyan));
-    filter: brightness(1.15);
-  }
-  60% {
-    box-shadow: 0 0 0 rgba(0, 212, 170, 0);
-    filter: brightness(1);
+  75% {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 15px var(--hover-color, var(--val-cyan));
+    filter: brightness(1.08);
   }
   100% {
   }
@@ -878,23 +878,19 @@ select option {
     filter: brightness(1);
     transform: scale(1);
   }
-  15% {
-    filter: brightness(1.5);
-    transform: scale(1.12);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  25% {
+    filter: brightness(1.25);
+    transform: scale(1.04);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
   }
-  30% {
+  50% {
     filter: brightness(1);
     transform: scale(1);
   }
-  45% {
-    filter: brightness(1.5);
-    transform: scale(1.12);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-  }
-  60% {
-    filter: brightness(1);
-    transform: scale(1);
+  75% {
+    filter: brightness(1.25);
+    transform: scale(1.04);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
   }
   100% {
     transform: scale(1);
