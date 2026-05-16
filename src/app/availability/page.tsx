@@ -42,6 +42,7 @@ export default function AvailabilityPage() {
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
   const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
   const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
+  const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [calendarToken, setCalendarToken] = useState<string | null>(null);
@@ -509,6 +510,10 @@ export default function AvailabilityPage() {
                       onClick={() => {
                         if (upcomingEv.date) {
                           setCurrentDate(new Date(`${upcomingEv.date}T00:00:00`));
+                          setActiveHighlightId(firstUpcomingId);
+                          setTimeout(() => {
+                            setActiveHighlightId(null);
+                          }, 1200);
                         }
                       }}
                       style={{ color: "var(--val-cyan)", fontWeight: 800 }}
@@ -566,11 +571,23 @@ export default function AvailabilityPage() {
                               const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
                               const isFirstUpcoming = ev.id === firstUpcomingId;
 
+                              const hoverBorderColor = myStatus === 'available'
+                                ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
+                                : evColor;
+
+                              const hoverSheenActive = myStatus === 'available'
+                                ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
+                                : "rgba(255, 255, 255, 0.12)";
+
+                              const hoverInsetShadow = myStatus === 'available'
+                                ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
+                                : `inset 0 0 5px ${evColor}`;
+
                               return (
                                 <div
                                   key={ev.id}
                                   onClick={() => setSelectedEventId(ev.id)}
-                                  className={`calendar-event-hover ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
+                                  className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
                                   style={{
                                     fontSize: 10, padding: "4px 6px", borderRadius: 4,
                                     background: isRed 
@@ -591,6 +608,9 @@ export default function AvailabilityPage() {
                                       ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
                                       : 'none',
                                     zIndex: isFirstUpcoming ? 5 : undefined,
+                                    ["--hover-border-color" as any]: hoverBorderColor,
+                                    ["--hover-sheen-active" as any]: hoverSheenActive,
+                                    ["--hover-inset-shadow" as any]: hoverInsetShadow,
                                     ["--hover-color" as any]: evColor
                                   }}
                                   title={`${ev.localTime} - ${ev.title} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
@@ -718,11 +738,23 @@ export default function AvailabilityPage() {
                             const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
                             const isFirstUpcoming = ev.id === firstUpcomingId;
 
+                            const hoverBorderColor = myStatus === 'available'
+                               ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
+                               : evColor;
+
+                            const hoverSheenActive = myStatus === 'available'
+                               ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
+                               : "rgba(255, 255, 255, 0.12)";
+
+                            const hoverInsetShadow = myStatus === 'available'
+                               ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
+                               : `inset 0 0 5px ${evColor}`;
+
                             return (
                               <div
                                 key={ev.id}
                                 onClick={() => setSelectedEventId(ev.id)}
-                                className={`calendar-event-hover ${isFirstUpcoming ? "upcoming-highlight-mini" : ""}`}
+                                className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
                                 style={{
                                   position: "absolute", top: top, left: 4, right: 4, height: height,
                                   fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
@@ -744,6 +776,9 @@ export default function AvailabilityPage() {
                                   display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
                                   opacity: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? 0.4 : 1,
                                   textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none',
+                                  ["--hover-border-color" as any]: hoverBorderColor,
+                                  ["--hover-sheen-active" as any]: hoverSheenActive,
+                                  ["--hover-inset-shadow" as any]: hoverInsetShadow,
                                   ["--hover-color" as any]: evColor
                                 }}
                               >
@@ -829,7 +864,13 @@ export default function AvailabilityPage() {
 
                   <div
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                    className={`card glass-card ${isFirstUpcoming ? "upcoming-highlight" : "animate-card-in"} ${isInactive ? "faded-card" : myStatus === "unavailable" ? "unavailable-card hover-lift" : "hover-lift"}`}
+                    className={`card glass-card ${ev.id === activeHighlightId ? "upcoming-highlight" : "animate-card-in"} ${
+                      isInactive 
+                        ? "faded-card" 
+                        : myStatus === "unavailable" 
+                          ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}` 
+                          : (ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice")
+                    }`}
                     style={{
                       marginBottom: 12,
                       borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
@@ -1278,6 +1319,10 @@ export default function AvailabilityPage() {
                     if (card) {
                       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       setTimeout(checkUpcomingScrollPosition, 600);
+                      setActiveHighlightId(firstUpcomingId);
+                      setTimeout(() => {
+                        setActiveHighlightId(null);
+                      }, 1200);
                     }
                   }}
                   className="glass-card hover-lift transition-smooth"

@@ -333,6 +333,30 @@ body::before {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--hover-glow-color, var(--val-red-glow)) !important;
 }
 
+.hover-lift-match,
+.hover-lift-playoffs,
+.hover-lift-practice {
+  transition: var(--transition);
+}
+
+.hover-lift-match:hover {
+  transform: translateY(-4px);
+  border-color: var(--val-red) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 70, 85, 0.35) !important;
+}
+
+.hover-lift-playoffs:hover {
+  transform: translateY(-4px);
+  border-color: var(--val-yellow) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.35) !important;
+}
+
+.hover-lift-practice:hover {
+  transform: translateY(-4px);
+  border-color: var(--val-cyan) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 212, 170, 0.35) !important;
+}
+
 .gradient-text {
   background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%);
   -webkit-background-clip: text;
@@ -841,13 +865,13 @@ select option {
 }
 
 .upcoming-highlight {
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards, upcomingPulse 0.6s ease-out 0.5s;
+  animation: upcomingPulse 0.8s ease-out;
   position: relative;
   z-index: 50;
 }
 
 .upcoming-highlight-mini {
-  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards, upcomingPulseMini 0.6s ease-out 0.4s;
+  animation: upcomingPulseMini 0.8s ease-out;
   position: relative;
   z-index: 50;
 }
@@ -909,14 +933,31 @@ select option {
 }
 
 .calendar-event-hover {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-image 0.15s ease, z-index 0s;
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, z-index 0s;
 }
 
 .calendar-event-hover:hover {
-  border-color: var(--hover-color, rgba(255, 255, 255, 0.45)) !important;
-  box-shadow: inset 0 0 8px var(--hover-color, rgba(255, 255, 255, 0.2)) !important;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)) !important;
+  border-color: var(--hover-border-color, rgba(255, 255, 255, 0.6)) !important;
+  box-shadow: var(--hover-inset-shadow, inset 0 0 4px rgba(255, 255, 255, 0.3)) !important;
   z-index: 15 !important;
+}
+
+.calendar-event-hover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0);
+  transition: background-color 0.15s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.calendar-event-hover:hover::after {
+  background: var(--hover-sheen-active, rgba(255, 255, 255, 0.12)) !important;
 }
 
 .skeleton {
