@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
 
   // VALIDACIÓN ESTRICTA: ¿Existe este jugador, es del usuario y del mismo equipo?
   const userPlayerId = session.user.playerId;
-  if (Number(player_id) !== Number(userPlayerId)) {
+  if (String(player_id) !== String(userPlayerId)) {
     return NextResponse.json({ error: "Intento de suplantación: ID de jugador no válido" }, { status: 403 });
   }
 
-  const playerExists = await db.player.findUnique({ where: { id: Number(player_id) } });
+  const playerExists = await db.player.findUnique({ where: { id: String(player_id) } });
   if (!playerExists || playerExists.teamId !== teamId) {
     return NextResponse.json({ error: "El perfil de jugador no existe o pertenece a otro equipo" }, { status: 404 });
   }
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     data: {
       teamId,
       channel: channel || "general",
-      player_id: Number(player_id),
+      player_id: String(player_id),
       content
     }
   });

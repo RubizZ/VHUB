@@ -10,7 +10,7 @@ export async function GET() {
   if (!playerId) return NextResponse.json({ error: "No player linked" }, { status: 404 });
 
   const player = await db.player.findUnique({
-    where: { id: Number(playerId) },
+    where: { id: String(playerId) },
     include: { user: { select: { dataConsent: true } } }
   });
 
@@ -33,14 +33,14 @@ export async function PUT(req: NextRequest) {
   const { role, avatar_color, dataConsent } = body;
 
   try {
-    const existingPlayer = await db.player.findUnique({ where: { id: Number(playerId) } });
+    const existingPlayer = await db.player.findUnique({ where: { id: String(playerId) } });
     if (!existingPlayer) {
       console.error(`[PUT /api/players/me] Player not found with ID: ${playerId} (Type: ${typeof playerId})`);
       return NextResponse.json({ error: "Player not found in database" }, { status: 404 });
     }
 
     const player = await db.player.update({
-      where: { id: Number(playerId) },
+      where: { id: String(playerId) },
       data: {
         ...(role !== undefined && { role }),
         ...(avatar_color !== undefined && { avatar_color }),

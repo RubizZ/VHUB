@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/Skeleton";
 
-interface Player { id: number; name: string; avatar_color: string; }
+interface Player { id: string; name: string; avatar_color: string; }
 interface LinkedMatch {
   id: number; riot_match_id: string; map_name: string;
   game_start: string; game_length_ms: number;
@@ -22,7 +22,7 @@ interface Ev {
   map_obj?: any;
   premier_season_id?: string;
 }
-interface Avail { player_id: number; player_name: string; status: string; avatar_color: string; }
+interface Avail { player_id: string; player_name: string; status: string; avatar_color: string; }
 
 export default function AvailabilityPage() {
   const { data: session } = useSession();
@@ -621,7 +621,7 @@ export default function AvailabilityPage() {
                           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
                             {d.events.map((ev: any) => {
                               const ea = avail[ev.id] || [];
-                              const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                              const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
                               const isCancelled = ev.status === 'cancelled';
                               const isNoPlayers = ev.status === 'no_players';
                               const isNotPlayed = ev.status === 'not_played';
@@ -789,7 +789,7 @@ export default function AvailabilityPage() {
                             const height = duration * 60;
 
                             const ea = avail[ev.id] || [];
-                            const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+                            const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
                             const isCancelled = ev.status === 'cancelled';
                             const isNoPlayers = ev.status === 'no_players';
                             const isNotPlayed = ev.status === 'not_played';
@@ -906,7 +906,7 @@ export default function AvailabilityPage() {
               const isBeforeUpcoming = firstUpcomingIdx !== -1 && idx < firstUpcomingIdx;
               const isInactive = isPast || isCancelled || isImpossible || ev.status === 'completed' || ev.status === 'no_players' || ev.status === 'not_played' || isBeforeUpcoming;
 
-              const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+              const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
               const matches = ev.linkedMatches || [];
 
               return (
@@ -1106,7 +1106,7 @@ export default function AvailabilityPage() {
                               return (
                                 <div key={p.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                                   <div
-                                    className={`transition-smooth ${updatingEventId === ev.id && Number(p.id) === Number(myPlayerId) ? 'animate-status-update' : ''}`}
+                                    className={`transition-smooth ${updatingEventId === ev.id && String(p.id) === String(myPlayerId) ? 'animate-status-update' : ''}`}
                                     style={{
                                       position: "relative",
                                       width: 38,
@@ -1596,7 +1596,7 @@ export default function AvailabilityPage() {
         const ea = avail[ev.id] || [];
         const confirmed = ea.filter(a => a.status === "available").length;
         const maybeCount = ea.filter(a => a.status === "maybe").length;
-        const myStatus = ea.find(a => Number(a.player_id) === Number(myPlayerId))?.status || "pending";
+        const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
         const isPast = isMounted && (ev as any).localDate < todayStr;
         const isCancelled = ev.status === 'cancelled';
         const isNoPlayers = ev.status === 'no_players';

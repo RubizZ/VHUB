@@ -96,13 +96,13 @@ export async function PUT(req: NextRequest) {
   const { id, role: playerRole, avatar_color } = body;
 
   // Validar que el jugador pertenezca al equipo del admin
-  const existingPlayer = await db.player.findUnique({ where: { id: Number(id) } });
+  const existingPlayer = await db.player.findUnique({ where: { id: String(id) } });
   if (!existingPlayer || existingPlayer.teamId !== teamId) {
     return NextResponse.json({ error: "No autorizado o jugador no encontrado" }, { status: 403 });
   }
 
   const player = await db.player.update({
-    where: { id: Number(id) },
+    where: { id: String(id) },
     data: {
       role: playerRole || undefined,
       avatar_color: avatar_color || undefined
@@ -123,11 +123,11 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
   
-  const existingPlayer = await db.player.findUnique({ where: { id: Number(id) } });
+  const existingPlayer = await db.player.findUnique({ where: { id: String(id) } });
   if (!existingPlayer || existingPlayer.teamId !== teamId) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  await db.player.delete({ where: { id: Number(id) } });
+  await db.player.delete({ where: { id: String(id) } });
   return NextResponse.json({ ok: true });
 }

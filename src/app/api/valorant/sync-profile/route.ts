@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Update player profile in DB
     await db.player.update({
-      where: { id: Number(playerId) },
+      where: { id: String(playerId) },
       data: {
         riot_name: account.gameName,
         riot_tag: account.tagLine,

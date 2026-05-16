@@ -5,14 +5,14 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string; // super_admin, team_admin, member
-      playerId?: number | null;
+      playerId?: string | null;
       teamId?: string | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: string;
-    playerId?: number | null;
+    playerId?: string | null;
     teamId?: string | null;
   }
 }
@@ -21,7 +21,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: string;
-    playerId?: number | null;
+    playerId?: string | null;
     teamId?: string | null;
   }
 }

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // VALIDACIÓN DE EQUIPO: El jugador debe ser del equipo del usuario
   const player = await db.player.findUnique({
-    where: { id: Number(player_id) }
+    where: { id: String(player_id) }
   });
 
   if (!player) {
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   const userPlayerId = session.user.playerId;
   const isPrivileged = role === "team_admin" || role === "super_admin";
   
-  if (!isPrivileged && Number(player_id) !== Number(userPlayerId)) {
+  if (!isPrivileged && String(player_id) !== String(userPlayerId)) {
     console.log(`[API AVAILABILITY] POST 403 - No Privilegiado y ID Mismatch. Solicitado: ${player_id}, Sesion: ${userPlayerId}`);
     return NextResponse.json({ error: "No puedes marcar disponibilidad para otro jugador" }, { status: 403 });
   }
@@ -99,13 +99,13 @@ export async function POST(req: NextRequest) {
     where: {
       event_id_player_id: {
         event_id: Number(event_id),
-        player_id: Number(player_id)
+        player_id: String(player_id)
       }
     },
     update: { status, note, updated_at: new Date() },
     create: {
       event_id: Number(event_id),
-      player_id: Number(player_id),
+      player_id: String(player_id),
       status,
       note
     }

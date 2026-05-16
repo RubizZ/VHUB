@@ -507,7 +507,7 @@ export async function GET(req: NextRequest) {
         const matches = matchesByEvent[ev.id] || [];
         if (matches.length > 0) {
           // Extraer todos los player_id que participaron en estas partidas
-          const playerIdsInMatches = new Set<number>();
+          const playerIdsInMatches = new Set<string>();
           for (const m of matches) {
             if (m.player_stats) {
               for (const ps of m.player_stats) {

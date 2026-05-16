@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
 
-interface Message { id: number; channel: string; player_id: number; player_name: string; avatar_color: string; content: string; created_at: string; }
+interface Message { id: number; channel: string; player_id: string; player_name: string; avatar_color: string; content: string; created_at: string; }
 
 const CHANNELS = ["general", "estrategias", "disponibilidad", "off-topic"];
 
@@ -131,7 +131,7 @@ export default function ChatPage() {
                 </div>
               )}
               {messages.map(m => {
-                const isMe = m.player_id === (session?.user as any)?.playerId;
+                const isMe = String(m.player_id) === String((session?.user as any)?.playerId);
                 return (
                   <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
                     <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff" }}>
