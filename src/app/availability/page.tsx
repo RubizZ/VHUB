@@ -42,6 +42,9 @@ export default function AvailabilityPage() {
   const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
   const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [calendarToken, setCalendarToken] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const myPlayerId = (session?.user as any)?.playerId;
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
@@ -56,10 +59,11 @@ export default function AvailabilityPage() {
     const saved = localStorage.getItem("vhub_avail_view_mode");
     if (saved === "list" || saved === "calendar" || saved === "week") {
       setViewMode(saved as any);
-    } else {
-      setViewMode("calendar");
-    }
-  }, []);
+      } else {
+        setViewMode("calendar");
+      }
+    loadToken();
+  }, [isMounted]);
 
   useEffect(() => {
     if (isMounted) {
@@ -211,6 +215,30 @@ export default function AvailabilityPage() {
     loadEvents();
   };
 
+  const loadToken = async () => {
+    try {
+      const res = await fetch("/api/teams/calendar-token");
+      const d = await res.json();
+      if (d.token) setCalendarToken(d.token);
+    } catch (e) {
+      console.error("Error loading calendar token", e);
+    }
+  };
+
+  const regenerateToken = async () => {
+    if (!confirm("¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.")) return;
+    try {
+      setIsRegenerating(true);
+      const res = await fetch("/api/teams/calendar-token", { method: "POST" });
+      const d = await res.json();
+      if (d.token) setCalendarToken(d.token);
+    } catch (e) {
+      console.error("Error regenerating token", e);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const statusIcon = (s: string) => s === "available" ? "✅" : s === "maybe" ? "⚠️" : s === "unavailable" ? "❌" : "⏳";
 
   const formatDateLocal = (date: Date) => {
@@ -337,6 +365,9 @@ export default function AvailabilityPage() {
                 + Nuevo Evento
               </button>
             )}
+            <button className="btn btn-ghost" onClick={() => setShowExport(true)} title="Exportar a Google Calendar, Apple, etc.">
+              🔗 Exportar
+            </button>
           </div>
         </div>
 
@@ -794,6 +825,72 @@ export default function AvailabilityPage() {
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowNew(false)}>Cancelar</button>
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={createEvent}>Crear Evento</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExport && (
+        <div className="modal-overlay" onClick={() => setShowExport(false)}>
+          <div className="card glass-card modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="card-header">
+              <h3 className="card-title">Sincronizar Calendario</h3>
+              <button className="btn-icon" onClick={() => setShowExport(false)} style={{ background: "none", border: "none", color: "white", fontSize: 20 }}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                Copia este enlace para suscribirte al calendario de tu equipo desde aplicaciones externas como <strong>Google Calendar</strong>, <strong>Outlook</strong> o <strong>Apple Calendar</strong>.
+              </p>
+              
+              <div className="form-group">
+                <label>Enlace iCal Dinámico</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input 
+                    readOnly 
+                    value={!isMounted || !calendarToken ? "Cargando enlace..." : `${window.location.origin}/api/calendar/${calendarToken}`} 
+                    style={{ flex: 1, background: "rgba(0,0,0,0.3)", color: calendarToken ? "var(--val-cyan)" : "var(--text-muted)", fontWeight: 600 }}
+                  />
+                  <button 
+                    className="btn btn-primary" 
+                    disabled={!calendarToken}
+                    onClick={() => {
+                      if (calendarToken) {
+                        navigator.clipboard.writeText(`${window.location.origin}/api/calendar/${calendarToken}`);
+                        alert("¡Enlace copiado!");
+                      }
+                    }}
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              <div className="glass-card" style={{ padding: 16, background: "rgba(255,255,255,0.02)", borderRadius: 12 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: "var(--text-primary)" }}>Instrucciones rápidas:</h4>
+                <ul style={{ fontSize: 12, color: "var(--text-muted)", paddingLeft: 20, lineHeight: 1.8 }}>
+                  <li><strong>Google Calendar:</strong> Añadir → "Desde URL".</li>
+                  <li><strong>Apple Calendar:</strong> Archivo → "Nueva suscripción a calendario".</li>
+                  <li><strong>Outlook:</strong> Añadir calendario → "Desde Internet".</li>
+                </ul>
+              </div>
+
+              {canManage && (
+                <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                   <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                    Si crees que tu enlace se ha filtrado, puedes regenerarlo. El enlace anterior dejará de funcionar inmediatamente.
+                  </p>
+                  <button 
+                    className="btn btn-ghost btn-sm" 
+                    style={{ color: "var(--val-red)", alignSelf: "flex-start" }}
+                    onClick={regenerateToken}
+                    disabled={isRegenerating}
+                  >
+                    {isRegenerating ? "Regenerando..." : "Regenerar Enlace de Seguridad"}
+                  </button>
+                </div>
+              )}
+              
+              <button className="btn btn-secondary" onClick={() => setShowExport(false)}>Cerrar</button>
             </div>
           </div>
         </div>
