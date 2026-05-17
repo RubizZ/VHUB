@@ -637,9 +637,21 @@ export default function AvailabilityPage() {
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
                             {isLoadingEvents ? (
-                              (i % 5 === 2 || i % 7 === 4) && (
-                                <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />
-                              )
+                              (() => {
+                                const hash = (i * 37 + d.day * 13) % 10;
+                                if (hash < 3) {
+                                  return null;
+                                } else if (hash < 7) {
+                                  return <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />;
+                                } else {
+                                  return (
+                                    <>
+                                      <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />
+                                      <Skeleton width="80%" height={16} style={{ borderRadius: 4 }} />
+                                    </>
+                                  );
+                                }
+                              })()
                             ) : (
                               d.events.map((ev: any) => {
                                 const ea = avail[ev.id] || [];
@@ -801,40 +813,39 @@ export default function AvailabilityPage() {
 
                           {/* Events */}
                           {isLoadingEvents ? (
-                            ((idx === 1 && (
-                              <div style={{
-                                position: "absolute",
-                                top: 17 * 60, // 17:00
-                                height: 90, // 1.5 horas
-                                left: 4,
-                                right: 4,
-                                zIndex: 10
-                              }}>
-                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
-                              </div>
-                            )) || (idx === 3 && (
-                              <div style={{
-                                position: "absolute",
-                                top: 19 * 60, // 19:00
-                                height: 90, // 1.5 horas
-                                left: 4,
-                                right: 4,
-                                zIndex: 10
-                              }}>
-                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
-                              </div>
-                            )) || (idx === 5 && (
-                              <div style={{
-                                position: "absolute",
-                                top: 16 * 60, // 16:00
-                                height: 90, // 1.5 horas
-                                left: 4,
-                                right: 4,
-                                zIndex: 10
-                              }}>
-                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
-                              </div>
-                            )))
+                            (() => {
+                              const skeletons = [];
+                              if (idx === 0) {
+                                skeletons.push({ top: 19 * 60, height: 90 });
+                              } else if (idx === 1) {
+                                skeletons.push({ top: 17 * 60, height: 90 });
+                                skeletons.push({ top: 21 * 60, height: 90 });
+                              } else if (idx === 2) {
+                                skeletons.push({ top: 18 * 60, height: 90 });
+                              } else if (idx === 3) {
+                                skeletons.push({ top: 19 * 60, height: 120 });
+                              } else if (idx === 4) {
+                                skeletons.push({ top: 16 * 60, height: 90 });
+                                skeletons.push({ top: 20 * 60, height: 90 });
+                              } else if (idx === 5) {
+                                skeletons.push({ top: 15 * 60, height: 120 });
+                              }
+                              return skeletons.map((sk, sIdx) => (
+                                <div 
+                                  key={sIdx}
+                                  style={{
+                                    position: "absolute",
+                                    top: sk.top,
+                                    height: sk.height,
+                                    left: 4,
+                                    right: 4,
+                                    zIndex: 10
+                                  }}
+                                >
+                                  <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
+                                </div>
+                              ));
+                            })()
                           ) : (
                             d.events.map((ev: any) => {
                               const [h, m] = ev.localTime.split(':').map(Number);
