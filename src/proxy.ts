@@ -1,3 +1,4 @@
+/* global Headers, URL */
 import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
@@ -32,5 +33,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json|logo\\.png|icon-.*\\.png).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json|riot\\.txt|logo\\.png|icon-.*\\.png).*)"],
 };
