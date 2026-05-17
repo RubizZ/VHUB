@@ -53,12 +53,16 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 1. Obtener Historial de partidas de Henrik (20 partidas para tener un buen volumen de sincronización)
-        let matches: HenrikMatch[] = [];
+        // 1. Obtener Historial de partidas de Henrik (sincronizamos las últimas 3 páginas para tener un total de 30 partidas)
+        const matches: HenrikMatch[] = [];
         try {
-          const fetchedMatches = await getMatches(region, name, tag, undefined, 20);
-          if (fetchedMatches) {
-            matches = fetchedMatches;
+          for (let pageNum = 1; pageNum <= 3; pageNum++) {
+            const fetched = await getMatches(region, name, tag, undefined, 10, pageNum);
+            if (fetched && fetched.length > 0) {
+              matches.push(...fetched);
+            } else {
+              break;
+            }
           }
         } catch (e) {
           console.error("[API Stats] Error fetching matches from Henrik:", e);

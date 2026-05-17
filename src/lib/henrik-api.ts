@@ -69,13 +69,11 @@ export async function getMMRHistory(region: string, name: string, tag: string) {
   }
 }
 
-/**
- * Get Match History (V3)
- */
-export async function getMatches(region: string, name: string, tag: string, mode?: string, size: number = 10) {
+export async function getMatches(region: string, name: string, tag: string, mode?: string, size: number = 10, page?: number) {
   try {
     const params: any = { size };
     if (mode) params.mode = mode;
+    if (page) params.page = page;
 
     const res = await henrikAxiosInstance<HenrikResponse<HenrikMatch[]>>({
       url: `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`,
