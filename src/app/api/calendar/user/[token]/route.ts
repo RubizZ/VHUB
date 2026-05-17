@@ -70,13 +70,9 @@ export async function GET(
 
       const myAvail = ev.availability.find(a => a.player_id === playerId);
       const myStatus = myAvail?.status || "pending";
-      
-      let statusPrefix = "";
-      if (myStatus === "available") statusPrefix = "✅ ";
-      else if (myStatus === "played") statusPrefix = "💜 ";
-      else if (myStatus === "maybe") statusPrefix = "⚠️ ";
-      else if (myStatus === "unavailable") statusPrefix = "❌ ";
-      else statusPrefix = "⏳ ";
+
+      const confirmedCount = ev.availability.filter((a) => a.status === "available" || a.status === "played").length;
+      const statusPrefix = confirmedCount < 5 ? "⏳ " : "";
 
       let duration: ics.DurationObject = { hours: 1, minutes: 30 };
       if (ev.end_date && ev.end_time) {
