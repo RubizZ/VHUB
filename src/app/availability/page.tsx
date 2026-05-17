@@ -21,6 +21,14 @@ interface Ev {
   linkedMatches?: LinkedMatch[];
   map_obj?: any;
   premier_season_id?: string;
+  availability?: {
+    player_id: string;
+    status: string;
+    player: {
+      name: string;
+      avatar_color: string;
+    }
+  }[];
 }
 interface Avail { player_id: string; player_name: string; status: string; avatar_color: string; }
 
@@ -293,7 +301,72 @@ export default function AvailabilityPage() {
         throw new Error(d.error || "Error al actualizar disponibilidad");
       }
 
-      await loadEvents();
+      // Local state updates to avoid refetching all events
+      const currentPlayer = players.find(p => String(p.id) === String(myPlayerId));
+      const playerName = currentPlayer?.name || "Desconocido";
+      const playerAvatarColor = currentPlayer?.avatar_color || "#999";
+
+      setAvail(prev => {
+        const currentAvails = prev[eventId] || [];
+        const exists = currentAvails.some(a => String(a.player_id) === String(myPlayerId));
+        let newAvails;
+        if (exists) {
+          newAvails = currentAvails.map(a => {
+            if (String(a.player_id) === String(myPlayerId)) {
+              return { ...a, status };
+            }
+            return a;
+          });
+        } else {
+          newAvails = [
+            ...currentAvails,
+            {
+              player_id: String(myPlayerId),
+              player_name: playerName,
+              status: status,
+              avatar_color: playerAvatarColor
+            }
+          ];
+        }
+        return {
+          ...prev,
+          [eventId]: newAvails
+        };
+      });
+
+      setEvents(prev => prev.map(ev => {
+        if (ev.id === eventId) {
+          const currentAvailability = ev.availability || [];
+          const exists = currentAvailability.some(a => String(a.player_id) === String(myPlayerId));
+          let newAvailability;
+          if (exists) {
+            newAvailability = currentAvailability.map(a => {
+              if (String(a.player_id) === String(myPlayerId)) {
+                return { ...a, status };
+              }
+              return a;
+            });
+          } else {
+            newAvailability = [
+              ...currentAvailability,
+              {
+                player_id: String(myPlayerId),
+                status: status,
+                player: {
+                  name: playerName,
+                  avatar_color: playerAvatarColor
+                }
+              }
+            ];
+          }
+          return {
+            ...ev,
+            availability: newAvailability
+          };
+        }
+        return ev;
+      }));
+
       setTimeout(() => setUpdatingEventId(null), 1000);
     } catch (err: any) {
       console.error("Error al marcar disponibilidad:", err);
