@@ -845,7 +845,7 @@ export default function AvailabilityPage() {
                                     : (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
                                   border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
                                   display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
-                                  opacity: (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? 0.4 : 1,
+                                  opacity: (myStatus === 'unavailable' || isRed) ? 0.4 : 1,
                                   textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none',
                                   ["--hover-border-color" as any]: hoverBorderColor,
                                   ["--hover-sheen-active" as any]: hoverSheenActive,
