@@ -91,8 +91,6 @@ export default function AvailabilityPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isMounted, setIsMounted] = useState(false);
     const [maps, setMaps] = useState<any[]>([]);
-    const [seasons, setSeasons] = useState<string[]>([]);
-    const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
     const [now, setNow] = useState(new Date());
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
     const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
@@ -242,7 +240,7 @@ export default function AvailabilityPage() {
     useEffect(() => {
         // Cargar eventos una sola vez al montar la página para evitar el doble fetch
         // y prevenir la pérdida de autoscroll y parpadeos del skeleton.
-        loadEvents(null);
+        loadEvents();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -290,29 +288,17 @@ export default function AvailabilityPage() {
         avail,
     ]);
 
-    const loadEvents = async (seasonId?: string | null) => {
+    const loadEvents = async () => {
         try {
             setIsLoadingEvents(true);
             setError(null);
-            const url =
-                seasonId !== null && seasonId !== undefined
-                    ? `/api/events?season=${encodeURIComponent(seasonId)}`
-                    : "/api/events";
-            const res = await fetch(url);
+            const res = await fetch("/api/events");
             if (res.status === 401) {
                 window.location.href = "/login";
                 return;
             }
             const d = await res.json();
 
-            if (d.seasons) setSeasons(d.seasons);
-            if (
-                d.activeSeasonId &&
-                seasonId === null &&
-                selectedSeason === null
-            ) {
-                setSelectedSeason(d.activeSeasonId);
-            }
             if (!res.ok)
                 throw new Error(d.error || `Events API failed: ${res.status}`);
 
@@ -5962,18 +5948,3 @@ export default function AvailabilityPage() {
     );
 }
 
-function SeasonTab({ active, label, onClick }: any) {
-    return (
-        <button
-            onClick={onClick}
-            className={`btn btn-sm ${active ? "btn-primary" : "btn-ghost"}`}
-            style={{
-                whiteSpace: "nowrap",
-                padding: "8px 16px",
-                borderRadius: 8,
-            }}
-        >
-            {label}
-        </button>
-    );
-}
