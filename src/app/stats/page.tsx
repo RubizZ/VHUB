@@ -209,9 +209,9 @@ export default function StatsPage() {
                                         boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
                                     }}
                                 >
-                                    {(p.riot_name || p.name)[0]}
+                                    {p.name[0]}
                                 </div>
-                                {p.riot_name ? `${p.riot_name}#${p.riot_tag}` : p.name}
+                                {p.name}
                             </button>
                         ))}
                     </div>
