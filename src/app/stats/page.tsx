@@ -451,7 +451,11 @@ export default function StatsPage() {
                         {error.includes("consentimiento") && (
                             <>
                                 <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 420, margin: "0 auto", marginBottom: 8 }}>
-                                    El jugador puede habilitar el uso compartido de sus estadísticas activando el consentimiento en su pestaña de <strong>Perfil</strong>.
+                                    {selected && session?.user?.playerId && String(selected.id) === String(session.user.playerId) ? (
+                                        <>No has dado tu consentimiento para compartir tus estadísticas. Puedes habilitarlo activando el consentimiento en tu pestaña de <strong>Ajustes</strong>.</>
+                                    ) : (
+                                        <>El jugador puede habilitar el uso compartido de sus estadísticas activando el consentimiento en su pestaña de <strong>Perfil</strong>.</>
+                                    )}
                                 </p>
                                 {selected && session?.user?.playerId && String(selected.id) === String(session.user.playerId) && (
                                     <div style={{ marginTop: 20 }}>
