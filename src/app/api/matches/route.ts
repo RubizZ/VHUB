@@ -69,16 +69,27 @@ export async function GET(req: NextRequest) {
         const isConsenting = teamPlayer?.user?.dataConsent === true;
 
         let displayName = s.puuid.substring(0, 8);
-        if (pData?.name && pData?.tag) {
-          displayName = `${pData.name}#${pData.tag}`;
-        } else if (isConsenting && teamPlayer?.riot_name && teamPlayer?.riot_tag) {
-          displayName = `${teamPlayer.riot_name}#${teamPlayer.riot_tag}`;
-        } else if (isConsenting && teamPlayer?.name) {
-          displayName = teamPlayer.name;
+        const isTeamMember = !!teamPlayer;
+
+        if (isTeamMember) {
+          if (isConsenting) {
+            if (pData?.name && pData?.tag) {
+              displayName = `${pData.name}#${pData.tag}`;
+            } else if (teamPlayer.riot_name && teamPlayer.riot_tag) {
+              displayName = `${teamPlayer.riot_name}#${teamPlayer.riot_tag}`;
+            } else if (teamPlayer.name) {
+              displayName = teamPlayer.name;
+            }
+          }
+        } else {
+          if (pData?.name && pData?.tag) {
+            displayName = `${pData.name}#${pData.tag}`;
+          }
         }
 
         return {
           ...s,
+          puuid: isConsenting ? s.puuid : s.puuid.substring(0, 8),
           player_name: displayName,
           avatar_color: isConsenting ? teamPlayer?.avatar_color : undefined,
           player_id: isConsenting ? teamPlayer?.id : null
