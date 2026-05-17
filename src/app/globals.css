@@ -1864,3 +1864,34 @@ input:checked+.slider:before {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ── Riot Games Disclaimer Button ── */
+.disclaimer-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 8px 12px 0;
+  text-align: left;
+  margin-top: 8px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.7;
+  align-self: center;
+}
+
+.disclaimer-btn:hover {
+  color: var(--val-red) !important;
+  opacity: 1 !important;
+}
+
+.disclaimer-btn svg {
+  transition: stroke 0.2s ease;
+}
+
+.disclaimer-btn:hover svg {
+  stroke: var(--val-red);
+}
