@@ -54,6 +54,7 @@ export default function AvailabilityPage() {
   const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [isEntryAnimationDone, setIsEntryAnimationDone] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [showExport, setShowExport] = useState(false);
   const [calendarToken, setCalendarToken] = useState<string | null>(null);
   const [userCalendarToken, setUserCalendarToken] = useState<string | null>(null);
@@ -192,6 +193,7 @@ export default function AvailabilityPage() {
 
   const loadEvents = async (seasonId?: string | null) => {
     try {
+      setIsLoadingEvents(true);
       setError(null);
       const url = (seasonId !== null && seasonId !== undefined) ? `/api/events?season=${encodeURIComponent(seasonId)}` : "/api/events";
       const res = await fetch(url);
@@ -241,6 +243,8 @@ export default function AvailabilityPage() {
     } catch (err: any) {
       console.error("Error cargando eventos:", err);
       setError(err.message);
+    } finally {
+      setIsLoadingEvents(false);
     }
   };
 
@@ -897,8 +901,74 @@ export default function AvailabilityPage() {
               className="events-list-container" 
               style={{ display: "flex", flexDirection: "column", gap: 40, flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}
             >
-            {events.length === 0 && <p style={{ color: "var(--text-muted)", textAlign: "center", padding: 40 }}>No hay eventos programados.</p>}
-            {events.map((ev, idx) => {
+            {isLoadingEvents ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Cabecera de día simulada */}
+                  {idx === 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                      <div style={{ padding: "8px 16px", borderRadius: 12, background: "rgba(255,255,255,0.05)" }}>
+                        <Skeleton width={180} height={16} />
+                      </div>
+                      <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+                    </div>
+                  )}
+                  {idx === 2 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                      <div style={{ padding: "8px 16px", borderRadius: 12, background: "rgba(255,255,255,0.05)" }}>
+                        <Skeleton width={180} height={16} />
+                      </div>
+                      <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+                    </div>
+                  )}
+
+                  {/* Tarjeta de Skeleton */}
+                  <div 
+                    className="card glass-card" 
+                    style={{ 
+                      marginBottom: 12, 
+                      borderLeft: `4px solid rgba(255, 255, 255, 0.1)`,
+                      padding: "24px"
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                      {/* Columna Izquierda */}
+                      <div style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <Skeleton width={60} height={18} style={{ borderRadius: 10 }} />
+                          <Skeleton width="70%" height={26} />
+                        </div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <Skeleton width={120} height={28} style={{ borderRadius: 8 }} />
+                          <Skeleton width={150} height={28} style={{ borderRadius: 8 }} />
+                        </div>
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Partidos Jugados</div>
+                          <Skeleton width="100%" height={40} style={{ borderRadius: 8 }} />
+                        </div>
+                      </div>
+                      {/* Columna Derecha */}
+                      <div style={{ flex: "1 1 380px", display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div className="glass-card" style={{ background: "rgba(255,255,255,0.01)", borderRadius: 12, padding: 16 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <Skeleton width={80} height={14} />
+                            <Skeleton width={40} height={14} />
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Skeleton key={i} width={70} height={26} style={{ borderRadius: 20 }} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <>
+                {events.length === 0 && <p style={{ color: "var(--text-muted)", textAlign: "center", padding: 40 }}>No hay eventos programados.</p>}
+                {events.map((ev, idx) => {
               const isPast = isMounted && (ev as any).localDate < todayStr;
               const isCancelled = ev.status === 'cancelled';
               const ea = avail[ev.id] || [];
@@ -1443,7 +1513,9 @@ export default function AvailabilityPage() {
                   </div>
                 </div>
               );
-            })}
+                })}
+              </>
+            )}
             </div>
 
             {/* Floating Quick Navigation Indicators */}
