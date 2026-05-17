@@ -27,7 +27,7 @@ interface Avail { player_id: string; player_name: string; status: string; avatar
 const getEventDisplayName = (ev: { title?: string | null; type: string }) => {
   if (ev.title && ev.title.trim()) return ev.title;
   if (ev.type === 'match') return 'Partido Premier';
-  if (ev.type === 'practice') return 'Práctica de Equipo';
+  if (ev.type === 'practice') return 'Práctica Premier';
   if (ev.type === 'playoffs') return 'Playoffs Premier';
   return 'Evento';
 };

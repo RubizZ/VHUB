@@ -287,7 +287,7 @@ function EventItem({ event }: { event: any }) {
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600 }}>
-          {event.title || (event.type === 'match' ? 'Partido Premier' : event.type === 'practice' ? 'Práctica de Equipo' : event.type === 'playoffs' ? 'Playoffs Premier' : 'Evento')}
+          {event.title || (event.type === 'match' ? 'Partido Premier' : event.type === 'practice' ? 'Práctica Premier' : event.type === 'playoffs' ? 'Playoffs Premier' : 'Evento')}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(event.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} • {event.time}</div>
       </div>
