@@ -240,8 +240,11 @@ export default function AvailabilityPage() {
     }, [viewMode, isMounted]);
 
     useEffect(() => {
-        loadEvents(selectedSeason);
-    }, [selectedSeason]);
+        // Cargar eventos una sola vez al montar la página para evitar el doble fetch
+        // y prevenir la pérdida de autoscroll y parpadeos del skeleton.
+        loadEvents(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (
