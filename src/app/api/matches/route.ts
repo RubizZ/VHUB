@@ -6,6 +6,7 @@ import { findMapByUrl, MAPS } from "@/lib/maps";
 import { auth } from "@/auth";
 import { getMatches, getMatchById, getPremierSeasons } from "@/lib/henrik-api";
 import { findAgentByName } from "@/lib/agents";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -100,13 +101,28 @@ export async function GET(req: NextRequest) {
     }
 
     // Case 2: Match List
-    const whereClause: any = {
+    const whereClause: Prisma.MatchWhereInput = {
       teamId
     };
 
     // If a season is specified, we filter by it (which implies it's a Premier match)
     if (seasonParam && seasonParam !== 'all' && seasonParam !== "") {
       whereClause.premier_season_id = seasonParam;
+    } else {
+      // Filtrar sólo partidas de Premier y prácticas (asociadas a eventos del equipo)
+      whereClause.OR = [
+        { premier_season_id: { not: null } },
+        { queue_id: { equals: "Premier", mode: "insensitive" } },
+        { game_mode: { equals: "Premier", mode: "insensitive" } },
+        { event_id: { not: null } },
+        {
+          events: {
+            some: {
+              type: { in: ["match", "practice", "playoffs"] }
+            }
+          }
+        }
+      ];
     }
 
     const [matches, seasonsData, teamPlayers, teamEvents] = await Promise.all([

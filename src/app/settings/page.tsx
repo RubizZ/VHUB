@@ -1,7 +1,7 @@
 /* global fetch, console, setTimeout */
 "use client";
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Skeleton } from "@/components/Skeleton";
 
 interface PlayerData {
@@ -415,6 +415,7 @@ export default function AccountSettingsPage() {
         }
         input:checked + .slider:before {
           transform: translateX(22px);
+          background-color: white;
         }
         .slider.round {
           border-radius: 28px;
