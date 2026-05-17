@@ -865,14 +865,32 @@ export default function AvailabilityPage() {
                       {weekDays.map((d: any, idx: number) => (
                         <div key={idx} className="animate-scale-in" style={{ 
                           position: "relative", borderRight: idx < 6 ? "1px solid var(--border-color)" : "none",
-                          background: d.isToday ? "rgba(255,70,85,0.02)" : d.isPast ? "rgba(0,0,0,0.2)" : "transparent",
-                          opacity: d.isPast ? 0.6 : 1,
+                          background: d.isToday ? "rgba(255,70,85,0.02)" : d.isPast ? "rgba(0,0,0,0.4)" : "transparent",
+                          opacity: d.isPast ? 0.25 : 1,
+                          filter: d.isPast ? "grayscale(0.8) contrast(0.8)" : "none",
                           animationDelay: `${idx * 0.05}s`
                         }}>
                           {/* Grid Lines */}
                           {Array.from({ length: 24 }).map((_, i) => (
                             <div key={i} style={{ height: 60, borderBottom: "1px solid rgba(255,255,255,0.03)" }} />
                           ))}
+
+                          {/* Shading overlay for hours in the past today */}
+                          {d.isToday && (
+                            <div style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: now.getHours() * 60 + now.getMinutes(),
+                              background: "rgba(0,0,0,0.4)",
+                              opacity: 0.75,
+                              backdropFilter: "grayscale(0.8) contrast(0.8)",
+                              WebkitBackdropFilter: "grayscale(0.8) contrast(0.8)",
+                              pointerEvents: "none",
+                              zIndex: 15
+                            }} />
+                          )}
 
                           {/* Current Time Indicator */}
                           {d.isToday && (
