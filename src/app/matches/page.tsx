@@ -14,6 +14,13 @@ interface Match {
   our_team_side?: "Blue" | "Red";
   isHidden?: boolean;
   reason?: string;
+  event?: {
+    id: number;
+    title: string;
+    type: string;
+    date: string;
+    time: string;
+  } | null;
 }
 interface PlayerStat {
   id: number; puuid: string; player_name: string; avatar_color: string;
@@ -156,6 +163,83 @@ export default function MatchesPage() {
     if (matches.length === 0) return 0;
     const wins = matches.filter(m => (m.our_team_side === 'Blue' ? m.team_blue_won : !m.team_blue_won)).length;
     return Math.round((wins / matches.length) * 100);
+  }, [matches]);
+
+  const groupedEvents = useMemo(() => {
+    interface EventGroup {
+      id: string;
+      event_id: number | null;
+      title: string;
+      type: string;
+      date: string;
+      time: string;
+      dateObj: Date;
+      matches: Match[];
+    }
+
+    const groups: EventGroup[] = [];
+    const eventMap = new Map<number, EventGroup>();
+    const independentMatches: Match[] = [];
+
+    matches.forEach(m => {
+      if (m.event) {
+        if (!eventMap.has(m.event.id)) {
+          const eventDate = new Date(`${m.event.date.replace(/-/g, "/")}T${m.event.time || "00:00"}`);
+          const newGroup: EventGroup = {
+            id: `event-${m.event.id}`,
+            event_id: m.event.id,
+            title: m.event.title,
+            type: m.event.type,
+            date: m.event.date,
+            time: m.event.time,
+            dateObj: eventDate,
+            matches: []
+          };
+          groups.push(newGroup);
+          eventMap.set(m.event.id, newGroup);
+        }
+        eventMap.get(m.event.id)!.matches.push(m);
+      } else {
+        independentMatches.push(m);
+      }
+    });
+
+    // Ordenar los eventos reales por fecha descendente (más nuevos primero)
+    groups.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+
+    // Ordenar partidos dentro de cada evento por hora/comienzo de juego descendente
+    groups.forEach(g => {
+      g.matches.sort((a, b) => new Date(b.game_start).getTime() - new Date(a.game_start).getTime());
+    });
+
+    // Agrupar los partidos independientes por fecha (YYYY-MM-DD)
+    const independentGroupsByDate = new Map<string, Match[]>();
+    independentMatches.forEach(m => {
+      const matchDateStr = m.game_start.split("T")[0];
+      if (!independentGroupsByDate.has(matchDateStr)) {
+        independentGroupsByDate.set(matchDateStr, []);
+      }
+      independentGroupsByDate.get(matchDateStr)!.push(m);
+    });
+
+    independentGroupsByDate.forEach((mList, dateStr) => {
+      const dateObj = new Date(dateStr.replace(/-/g, "/"));
+      groups.push({
+        id: `independent-${dateStr}`,
+        event_id: null,
+        title: "Partidos Individuales",
+        type: "individual",
+        date: dateStr,
+        time: "",
+        dateObj,
+        matches: mList.sort((a, b) => new Date(b.game_start).getTime() - new Date(a.game_start).getTime())
+      });
+    });
+
+    // Ordenar la lista final de grupos (tanto eventos reales como grupos de fechas independientes) por fecha descendente
+    groups.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+
+    return groups;
   }, [matches]);
 
   const blueTeam = stats.filter(s => s.team_id === "Blue");
@@ -325,33 +409,46 @@ export default function MatchesPage() {
         )}
 
         {!selected ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {loading && matches.length === 0 ? (
               <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="card glass-card" style={{ padding: 20, borderLeft: '4px solid var(--border-color)' }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <Skeleton width={120} height={20} />
-                        <Skeleton width={80} height={12} />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="card glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16, borderRadius: "16px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <Skeleton width={120} height={16} />
+                        <Skeleton width={180} height={24} style={{ marginTop: 4 }} />
                       </div>
-                      <Skeleton width={80} height={24} />
+                      <Skeleton width={140} height={16} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Skeleton width={40} height={32} />
-                      <Skeleton width={10} height={12} />
-                      <Skeleton width={40} height={32} />
-                      <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                        <Skeleton width={60} height={12} />
-                        <Skeleton width={80} height={12} />
-                      </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+                      {Array.from({ length: 2 }).map((_, j) => (
+                        <div key={j} className="card glass-card" style={{ padding: 20, borderLeft: '4px solid var(--border-color)' }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <Skeleton width={120} height={20} />
+                              <Skeleton width={80} height={12} />
+                            </div>
+                            <Skeleton width={80} height={24} />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <Skeleton width={40} height={32} />
+                            <Skeleton width={10} height={12} />
+                            <Skeleton width={40} height={32} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </>
             ) : (
-              matches.map(m => (
-                <MatchCard key={m.id} match={m} onClick={() => loadMatch(m)} />
+              groupedEvents.map(group => (
+                <EventGroupCard 
+                  key={group.id} 
+                  group={group} 
+                  onMatchClick={(m: Match) => loadMatch(m)} 
+                />
               ))
             )}
             {matches.length === 0 && !loading && (
@@ -409,6 +506,162 @@ export default function MatchesPage() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface EventGroup {
+  id: string;
+  event_id: number | null;
+  title: string;
+  type: string;
+  date: string;
+  time: string;
+  matches: Match[];
+}
+
+function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchClick: (m: Match) => void }) {
+  const getEventBadge = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "match":
+        return {
+          label: "PARTIDO PREMIER",
+          color: "var(--val-cyan)",
+          bg: "rgba(0, 212, 170, 0.08)",
+          border: "rgba(0, 212, 170, 0.25)",
+          icon: (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          )
+        };
+      case "practice":
+        return {
+          label: "ENTRENAMIENTO",
+          color: "rgba(255, 180, 0, 0.95)",
+          bg: "rgba(255, 180, 0, 0.08)",
+          border: "rgba(255, 180, 0, 0.25)",
+          icon: (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M22 10v6M2 10v6M4 10h16M12 4v16" />
+            </svg>
+          )
+        };
+      case "playoffs":
+        return {
+          label: "PLAYOFFS",
+          color: "rgba(168, 85, 247, 0.95)",
+          bg: "rgba(168, 85, 247, 0.08)",
+          border: "rgba(168, 85, 247, 0.25)",
+          icon: (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          )
+        };
+      default:
+        return {
+          label: "PARTIDO INDIVIDUAL",
+          color: "rgba(255, 255, 255, 0.6)",
+          bg: "rgba(255, 255, 255, 0.03)",
+          border: "rgba(255, 255, 255, 0.1)",
+          icon: (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          )
+        };
+    }
+  };
+
+  const badge = getEventBadge(group.type);
+  
+  // Parse event date and time as a UTC timestamp to show them in browser local time
+  const eventDateObj = new Date(`${group.date}T${group.time || "00:00"}:00Z`);
+
+  const formattedEventDate = eventDateObj.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  const formattedEventTime = group.time ? eventDateObj.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }) : "";
+
+  return (
+    <div 
+      className="card glass-card animate-in" 
+      style={{ 
+        padding: "24px", 
+        border: "1px solid rgba(255, 255, 255, 0.05)",
+        background: "rgba(15, 15, 20, 0.35)",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 16,
+        borderRadius: "16px",
+        position: "relative",
+        overflow: "hidden"
+      }}
+    >
+      <div 
+        style={{
+          position: "absolute",
+          top: -40,
+          right: -40,
+          width: 120,
+          height: 120,
+          background: badge.color,
+          filter: "blur(60px)",
+          opacity: 0.08,
+          pointerEvents: "none"
+        }}
+      />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span 
+              style={{ 
+                display: "inline-flex", 
+                alignItems: "center", 
+                gap: 6, 
+                fontSize: 10, 
+                fontWeight: 900, 
+                color: badge.color, 
+                background: badge.bg, 
+                border: `1px solid ${badge.border}`,
+                padding: "4px 10px", 
+                borderRadius: "9999px",
+                letterSpacing: 1
+              }}
+            >
+              {badge.icon}
+              {badge.label}
+            </span>
+            {formattedEventTime && (
+              <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 700 }}>
+                {formattedEventTime} HS
+              </span>
+            )}
+          </div>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px", marginTop: 4 }}>
+            {group.title}
+          </h3>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500, textTransform: "capitalize" }}>
+          {formattedEventDate}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+        {group.matches.map(m => (
+          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} />
+        ))}
       </div>
     </div>
   );
@@ -517,7 +770,18 @@ function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
            <div style={{ fontWeight: 800, fontSize: 18 }}>{match.map_name}</div>
-           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{new Date(match.game_start).toLocaleDateString()}</div>
+           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+             {new Date(match.game_start).toLocaleDateString("es-ES", {
+               day: "2-digit",
+               month: "short",
+               year: "numeric"
+             })}
+             {" • "}
+             {new Date(match.game_start).toLocaleTimeString("es-ES", {
+               hour: "2-digit",
+               minute: "2-digit"
+             })}
+           </div>
         </div>
         <div className={`tag ${isWin ? 'tag-green' : 'tag-red'}`} style={{ height: "fit-content" }}>
           {isWin ? 'VICTORIA' : 'DERROTA'}

@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
       whereClause.premier_season_id = seasonParam;
     }
 
-    const [matches, seasonsData, teamPlayers] = await Promise.all([
+    const [matches, seasonsData, teamPlayers, teamEvents] = await Promise.all([
       db.match.findMany({
         where: whereClause,
         include: {
@@ -125,11 +125,16 @@ export async function GET(req: NextRequest) {
       db.player.findMany({
         where: { teamId },
         include: { user: { select: { dataConsent: true } } }
+      }),
+      db.event.findMany({
+        where: { teamId }
       })
     ]);
 
     const seasons = seasonsData.map(s => ({ id: s.id, name: s.name }));
     const playerMap = new Map(teamPlayers.map(p => [p.puuid, p]));
+    const eventMapById = new Map(teamEvents.map(e => [e.id, e]));
+    const eventMapByMatchId = new Map(teamEvents.filter(e => e.match_id).map(e => [e.match_id!, e]));
 
     const formattedMatches = matches.map(m => {
       const hasConsent = m.player_stats.some(s => {
@@ -137,13 +142,30 @@ export async function GET(req: NextRequest) {
         return p?.user?.dataConsent === true;
       });
 
+      // Find associated event
+      let linkedEventObj = null;
+      if (m.event_id && eventMapById.has(m.event_id)) {
+        linkedEventObj = eventMapById.get(m.event_id);
+      } else if (eventMapByMatchId.has(m.riot_match_id)) {
+        linkedEventObj = eventMapByMatchId.get(m.riot_match_id);
+      }
+
+      const linkedEvent = linkedEventObj ? {
+        id: linkedEventObj.id,
+        title: linkedEventObj.title,
+        type: linkedEventObj.type,
+        date: linkedEventObj.date,
+        time: linkedEventObj.time
+      } : null;
+
       if (!hasConsent) {
         return {
           id: m.id,
           riot_match_id: m.riot_match_id,
           game_start: m.game_start,
           isHidden: true,
-          reason: "Privacidad: Sin consentimiento"
+          reason: "Privacidad: Sin consentimiento",
+          event: linkedEvent
         };
       }
 
@@ -167,7 +189,8 @@ export async function GET(req: NextRequest) {
         event_id: m.event_id,
         premier_season_id: m.premier_season_id,
         our_team_side: ourSide,
-        isHidden: false
+        isHidden: false,
+        event: linkedEvent
       };
     });
 
