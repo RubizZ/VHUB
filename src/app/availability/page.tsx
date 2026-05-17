@@ -4669,8 +4669,8 @@ export default function AvailabilityPage() {
 
                                             {/* Google Calendar (Web subscription link) */}
                                             <a
-                                                href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(
-                                                    `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`,
+                                                href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
+                                                    `${origin.replace(/^https?:/, "webcal:")}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`,
                                                 )}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
