@@ -343,7 +343,7 @@ export default function AvailabilityPage() {
     }
   };
 
-  const statusIcon = (s: string) => s === "available" ? "✅" : s === "maybe" ? "⚠️" : s === "unavailable" ? "❌" : "⏳";
+  const statusIcon = (s: string) => s === "played" ? "🎮" : s === "available" ? "✅" : s === "maybe" ? "⚠️" : s === "unavailable" ? "❌" : "⏳";
 
   const formatDateLocal = (date: Date) => {
     const year = date.getFullYear();
@@ -1049,7 +1049,7 @@ export default function AvailabilityPage() {
               const isPast = isMounted && (ev as any).localDate < todayStr;
               const isCancelled = ev.status === 'cancelled';
               const ea = avail[ev.id] || [];
-              const confirmed = ea.filter(a => a.status === "available").length;
+              const confirmed = ea.filter(a => a.status === "available" || a.status === "played").length;
               const maybeCount = ea.filter(a => a.status === "maybe").length;
               const unavailable = ea.filter(a => a.status === "unavailable").length;
               const isImpossible = isMounted && !isPast && players.length >= 5 && (players.length - unavailable < 5);
@@ -1312,12 +1312,13 @@ export default function AvailabilityPage() {
                                         fontWeight: 900,
                                         color: "white",
                                         border: `2px solid ${
+                                          ps === 'played' ? 'var(--val-purple)' :
                                           ps === 'available' ? 'var(--val-cyan)' : 
                                           ps === 'maybe' ? 'var(--val-yellow)' : 
                                           ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'
                                         }`,
                                         boxShadow: ps !== 'pending' 
-                                          ? `0 0 12px ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` 
+                                          ? `0 0 12px ${ps === 'played' ? 'var(--val-purple)' : ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` 
                                           : 'none',
                                         opacity: ps !== 'pending' ? 1 : 0.45
                                       }}
@@ -1333,6 +1334,7 @@ export default function AvailabilityPage() {
                                       height: 14,
                                       borderRadius: "50%",
                                       background: 
+                                        ps === 'played' ? 'var(--val-purple)' :
                                         ps === 'available' ? 'var(--val-cyan)' : 
                                         ps === 'maybe' ? 'var(--val-yellow)' : 
                                         ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.15)',
@@ -1345,7 +1347,7 @@ export default function AvailabilityPage() {
                                       color: ps === 'maybe' ? 'black' : 'white',
                                       boxShadow: "0 2px 4px rgba(0,0,0,0.5)"
                                     }}>
-                                      {ps === 'available' ? '✓' : ps === 'maybe' ? '?' : ps === 'unavailable' ? '✗' : '•'}
+                                      {ps === 'played' ? '🎮' : ps === 'available' ? '✓' : ps === 'maybe' ? '?' : ps === 'unavailable' ? '✗' : '•'}
                                     </div>
                                   </div>
                                   <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>{p.name.split(' ')[0]}</div>
@@ -1777,7 +1779,7 @@ export default function AvailabilityPage() {
         const ev = events.find(e => e.id === selectedEventId);
         if (!ev) return null;
         const ea = avail[ev.id] || [];
-        const confirmed = ea.filter(a => a.status === "available").length;
+        const confirmed = ea.filter(a => a.status === "available" || a.status === "played").length;
         const maybeCount = ea.filter(a => a.status === "maybe").length;
         const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
         const isPast = isMounted && (ev as any).localDate < todayStr;
@@ -1961,8 +1963,15 @@ export default function AvailabilityPage() {
                           width: 36, height: 36, borderRadius: "50%", background: p.avatar_color, 
                           display: "flex", alignItems: "center", justifyContent: "center", 
                           fontSize: 14, fontWeight: 800, color: "white", 
-                          border: `2px solid ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'}`, 
-                          boxShadow: ps !== 'pending' ? `0 0 10px ${ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` : 'none',
+                          border: `2px solid ${
+                             ps === 'played' ? 'var(--val-purple)' :
+                             ps === 'available' ? 'var(--val-cyan)' : 
+                             ps === 'maybe' ? 'var(--val-yellow)' : 
+                             ps === 'unavailable' ? 'var(--val-red)' : 'rgba(255,255,255,0.1)'
+                           }`, 
+                           boxShadow: ps !== 'pending' 
+                             ? `0 0 10px ${ps === 'played' ? 'var(--val-purple)' : ps === 'available' ? 'var(--val-cyan)' : ps === 'maybe' ? 'var(--val-yellow)' : 'var(--val-red)'}44` 
+                             : 'none',
                           opacity: ps !== 'pending' ? 1 : 0.4,
                           transition: 'all 0.3s ease'
                         }}>

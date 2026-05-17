@@ -530,23 +530,23 @@ export async function GET(req: NextRequest) {
 
           for (const pId of playerIdsInMatches) {
             const currentAvail = ev.availability.find((a: any) => a.player_id === pId);
-            if (!currentAvail || currentAvail.status !== 'available') {
-              console.log(`[GET /api/events] Auto-corrigiendo disponibilidad para player ${pId} en evento ${ev.id} (jugó partida)`);
+            if (!currentAvail || currentAvail.status !== 'played') {
+              console.log(`[GET /api/events] Auto-corrigiendo disponibilidad para player ${pId} en evento ${ev.id} (jugó partida a 'played')`);
               // Actualizamos en DB
               await db.availability.upsert({
                 where: { event_id_player_id: { event_id: ev.id, player_id: pId } },
-                update: { status: 'available' },
-                create: { event_id: ev.id, player_id: pId, status: 'available' }
+                update: { status: 'played' },
+                create: { event_id: ev.id, player_id: pId, status: 'played' }
               });
               // Actualizamos en memoria para la respuesta inmediata
               if (currentAvail) {
-                currentAvail.status = 'available';
+                currentAvail.status = 'played';
               } else {
                 ev.availability.push({ 
                   id: 0, 
                   event_id: ev.id, 
                   player_id: pId, 
-                  status: 'available', 
+                  status: 'played', 
                   note: null, 
                   updated_at: new Date(),
                   player: { id: pId, name: "Auto", avatar_color: "#999" } 
