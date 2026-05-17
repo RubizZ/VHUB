@@ -155,7 +155,7 @@ model Season {
 model Event {
   id                Int            @id @default(autoincrement())
   teamId            String?
-  title             String
+  title             String?
   type              String         @default("match")
   date              String
   time              String

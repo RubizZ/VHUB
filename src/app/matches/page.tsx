@@ -592,20 +592,12 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
     minute: "2-digit"
   }) : "";
 
-  // Check if the title is a redundant default one
-  const lowercaseTitle = group.title.toLowerCase();
+  // Check if this is a standard system event (redundant default title)
   const isDefaultTitle = 
-    lowercaseTitle === "partido premier" || 
-    lowercaseTitle === "práctica de equipo" || 
-    lowercaseTitle === "playoffs premier" ||
-    lowercaseTitle === "partidos individuales" ||
-    lowercaseTitle.startsWith("jornada de liga") ||
-    lowercaseTitle.startsWith("sesión de scrim") ||
-    lowercaseTitle.startsWith("fase de eliminatorias") ||
-    lowercaseTitle.startsWith("eliminatorias playoffs") ||
-    lowercaseTitle.startsWith("entrenamiento") ||
-    lowercaseTitle.startsWith("playoffs:") ||
-    lowercaseTitle.startsWith("sesión de entrenamiento");
+    group.type === "match" || 
+    group.type === "practice" || 
+    group.type === "playoffs" || 
+    group.type === "individual";
 
   return (
     <div 

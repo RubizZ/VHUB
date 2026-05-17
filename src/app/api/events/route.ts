@@ -178,11 +178,11 @@ async function ensureWeeklyEvents(teamId: string) {
 
       // Prioridad 1: Playoffs (Si es el día del torneo o el último día de la generación si hay torneo planeado)
       if (isTournamentDay) {
-        evConfig = { title: "Playoffs Premier", type: "playoffs", time: "17:00" };
+        evConfig = { title: "", type: "playoffs", time: "17:00" };
       } else if (day === 3 || day === 5) {
-        evConfig = { title: "Práctica de Equipo", type: "practice", time: "17:00" };
+        evConfig = { title: "", type: "practice", time: "17:00" };
       } else if (day === 4 || day === 6 || day === 0) {
-        evConfig = { title: "Partido Premier", type: "match", time: "17:00" };
+        evConfig = { title: "", type: "match", time: "17:00" };
       }
 
       if (evConfig) {
@@ -222,19 +222,9 @@ async function ensureWeeklyEvents(teamId: string) {
           }
         }
 
-        // Generar un título dinámico no duplicado que aporte información de mapa/fase
-        let dynamicTitle = evConfig.title;
-        if (evConfig.type === 'playoffs') {
-          dynamicTitle = "Playoffs: Pick & Ban";
-        } else if (evConfig.type === 'practice') {
-          dynamicTitle = mapLabel !== "Por decidir" && mapLabel !== "Pick & Ban" ? `Entrenamiento: ${mapLabel}` : "Sesión de Entrenamiento";
-        } else if (evConfig.type === 'match') {
-          dynamicTitle = mapLabel !== "Por decidir" && mapLabel !== "Pick & Ban" ? `Jornada de Liga: ${mapLabel}` : "Jornada de Liga Premier";
-        }
-
         eventsToCreate.push({
           teamId,
-          title: dynamicTitle,
+          title: null,
           type: evConfig.type,
           date: dateStr,
           time: evConfig.time,
@@ -261,7 +251,7 @@ async function ensureWeeklyEvents(teamId: string) {
         skipDuplicates: true
       });
 
-      // Actualizar mapas y títulos en eventos existentes que todavía tienen "Por decidir"
+      // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
       // (para prácticas y partidos, no playoffs)
       for (const ev of eventsToCreate) {
         if (ev.map && ev.map !== "Por decidir" && ev.map !== "Pick & Ban" && ev.type !== "playoffs") {
@@ -278,8 +268,7 @@ async function ensureWeeklyEvents(teamId: string) {
               ]
             },
             data: { 
-              map: ev.map,
-              title: ev.title
+              map: ev.map
             }
           });
         }

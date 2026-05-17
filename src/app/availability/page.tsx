@@ -24,6 +24,14 @@ interface Ev {
 }
 interface Avail { player_id: string; player_name: string; status: string; avatar_color: string; }
 
+const getEventDisplayName = (ev: { title?: string | null; type: string }) => {
+  if (ev.title && ev.title.trim()) return ev.title;
+  if (ev.type === 'match') return 'Partido Premier';
+  if (ev.type === 'practice') return 'Práctica de Equipo';
+  if (ev.type === 'playoffs') return 'Playoffs Premier';
+  return 'Evento';
+};
+
 export default function AvailabilityPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -676,7 +684,7 @@ export default function AvailabilityPage() {
                                     ["--hover-inset-shadow" as any]: hoverInsetShadow,
                                     ["--hover-color" as any]: evColor
                                   }}
-                                  title={`${ev.localTime} - ${ev.title} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
+                                  title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
                                 >
                                   {isFirstUpcoming && (
                                     <span style={{
@@ -692,7 +700,7 @@ export default function AvailabilityPage() {
                                       PRÓXIMO
                                     </span>
                                   )}
-                                  {ev.localTime} {ev.title}
+                                  {ev.localTime} {getEventDisplayName(ev)}
                                 </div>
                               );
                             })}
@@ -860,7 +868,7 @@ export default function AvailabilityPage() {
                                     PRÓXIMO
                                   </div>
                                 )}
-                                <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{ev.title}</div>
+                                <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{getEventDisplayName(ev)}</div>
                                  <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>
                                    {ev.map ? (maps.find((m: any) => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}
                                  </div>
@@ -965,7 +973,7 @@ export default function AvailabilityPage() {
                             textDecoration: (isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) ? 'line-through' : undefined,
                             textShadow: "0 2px 10px rgba(0,0,0,0.3)"
                           }}>
-                            {ev.title}
+                            {getEventDisplayName(ev)}
                           </h3>
                         </div>
 
@@ -1678,7 +1686,7 @@ export default function AvailabilityPage() {
                       {ev.type === "match" ? "Partido" : ev.type === "playoffs" ? "Playoffs" : "Práctica"}
                      </span>
                    </div>
-                   <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ev.title}</h2>
+                   <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{getEventDisplayName(ev)}</h2>
                 </div>
               </div>
 

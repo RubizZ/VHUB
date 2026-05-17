@@ -286,7 +286,9 @@ function EventItem({ event }: { event: any }) {
         <span style={{ fontSize: 16 }}>{isMatch ? "🔥" : "🎯"}</span>
       </div>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{event.title}</div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          {event.title || (event.type === 'match' ? 'Partido Premier' : event.type === 'practice' ? 'Práctica de Equipo' : event.type === 'playoffs' ? 'Playoffs Premier' : 'Evento')}
+        </div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(event.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} • {event.time}</div>
       </div>
     </Link>
