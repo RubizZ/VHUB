@@ -173,13 +173,36 @@ export async function GET(
       };
     });
 
-  const { error, value } = ics.createEvents(calendarEvents, {
+  const { error, value: rawValue } = ics.createEvents(calendarEvents, {
     calName: `VHUB Personal - ${user.player?.name || user.email}`
   });
+  let value = rawValue;
 
   if (error) {
     console.error("Error creating iCal events:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
+  }
+
+  // Inyectar imágenes de cabecera y adjuntos (IMAGE y ATTACH) en el archivo .ics
+  if (value) {
+    const parts = value.split("BEGIN:VEVENT");
+    const processedParts = parts.map((part, idx) => {
+      if (idx === 0) return part;
+
+      const eventIdMatch = part.match(/eventId=([^&\s\r\n\\]+)/);
+      if (eventIdMatch) {
+        const eventId = eventIdMatch[1];
+        const ev = user.team!.events.find((e) => e.id === Number(eventId));
+        const splashUrl = ev?.map_obj?.premierBackground || ev?.map_obj?.splash;
+        if (splashUrl) {
+          const imageProp = `IMAGE;VALUE=URI;DISPLAY=FULLSIZE;FMTTYPE=image/png:${splashUrl}`;
+          const attachProp = `ATTACH;FMTTYPE=image/png:${splashUrl}`;
+          return part.replace("END:VEVENT", `${imageProp}\r\n${attachProp}\r\nEND:VEVENT`);
+        }
+      }
+      return part;
+    });
+    value = processedParts.join("BEGIN:VEVENT");
   }
 
   return new NextResponse(value, {
