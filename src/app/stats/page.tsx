@@ -117,7 +117,6 @@ export default function StatsPage() {
     const [data, setData] = useState<PlayerData | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [currentSyncPage, setCurrentSyncPage] = useState<number>(1);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"competitive" | "premier" | "standard" | "others" | "deathmatch">("competitive");
     const [seasons, setSeasons] = useState<Array<{ id: string; name: string }>>([]);
@@ -139,7 +138,6 @@ export default function StatsPage() {
             if (season === "all") {
                 setData(null);
                 setSeasons([]);
-                setCurrentSyncPage(1);
             }
         }
         const name = p.riot_name || p.name;
@@ -172,9 +170,7 @@ export default function StatsPage() {
             if (d.seasons) {
                 setSeasons(d.seasons);
             }
-            if (syncPage > 1) {
-                setCurrentSyncPage(syncPage);
-            }
+
             if (d.stats && syncPage === 1) {
                 if (d.stats.competitive && d.stats.competitive.gamesPlayed > 0) {
                     setActiveTab("competitive");
@@ -1314,7 +1310,12 @@ export default function StatsPage() {
                                             {/* Botón Cargar Más */}
                                             <div style={{ display: "flex", justifyContent: "center", marginTop: 24, paddingBottom: 8 }}>
                                                 <button
-                                                    onClick={() => loadStats(selected!, selectedSeason, currentSyncPage + 1)}
+                                                    onClick={() => {
+                                                        const nextPage = filteredMatches.length < 10
+                                                            ? 2
+                                                            : Math.floor(filteredMatches.length / 10) + 1;
+                                                        loadStats(selected!, selectedSeason, nextPage);
+                                                    }}
                                                     disabled={loadingMore}
                                                     style={{
                                                         display: "flex",
@@ -1353,7 +1354,7 @@ export default function StatsPage() {
                                                         </>
                                                     ) : (
                                                         <>
-                                                            🔄 Cargar más partidas antiguas (Página {currentSyncPage + 1})
+                                                            🔄 Cargar más partidas antiguas (Página {filteredMatches.length < 10 ? 2 : Math.floor(filteredMatches.length / 10) + 1})
                                                         </>
                                                     )}
                                                 </button>
