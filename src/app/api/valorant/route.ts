@@ -74,16 +74,20 @@ export async function GET(req: NextRequest) {
           console.error("[API Stats] Error fetching matches from Henrik:", e);
         }
 
-        // Filtrar duplicados por match ID
+        // Filtrar duplicados por match ID con validación defensiva estricta
         const uniqueMatchesMap = new Map<string, HenrikMatch>();
         for (const m of fetchedMatches) {
-          uniqueMatchesMap.set(m.metadata.matchid, m);
+          if (m && m.metadata && m.metadata.matchid) {
+            uniqueMatchesMap.set(m.metadata.matchid, m);
+          }
         }
         const matches = Array.from(uniqueMatchesMap.values());
 
         // 2. Guardar y sincronizar las partidas en nuestra base de datos local
         if (matches && matches.length > 0) {
           for (const matchData of matches) {
+            if (!matchData || !matchData.metadata || !matchData.metadata.matchid) continue;
+
             const existing = await db.match.findUnique({
               where: { riot_match_id: matchData.metadata.matchid }
             });
