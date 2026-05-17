@@ -144,9 +144,13 @@ export default function StatsPage() {
         }
         const name = p.riot_name || p.name;
         const tag = p.riot_tag || "EUW";
+        let apiMode = activeTab as string;
+        if (activeTab === "standard") {
+            apiMode = "unrated";
+        }
         try {
             const res = await fetch(
-                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}&syncPage=${syncPage}`,
+                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}&syncPage=${syncPage}&mode=${apiMode}`,
             );
             const d = await res.json();
 
