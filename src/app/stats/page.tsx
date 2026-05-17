@@ -317,7 +317,13 @@ export default function StatsPage() {
                   </thead>
                   <tbody>
                     {data.matches.map((m, i) => {
-                      const me = m.players.all_players[0];
+                      const me = m.players.all_players.find(p => 
+                        p.name.toLowerCase() === (selected.riot_name || selected.name).toLowerCase() &&
+                        p.tag.toLowerCase() === (selected.riot_tag || "EUW").toLowerCase()
+                      ) || m.players.all_players.find(p => 
+                        p.name.toLowerCase() === (selected.riot_name || selected.name).toLowerCase()
+                      ) || m.players.all_players[0];
+                      
                       if (!me) return null;
                       const team = me.team.toLowerCase() as "red" | "blue";
                       const won = m.teams[team]?.has_won;
