@@ -357,6 +357,15 @@ export async function GET(req: NextRequest) {
     });
 
     // 2b. Obtener partidos vinculados a estos eventos (via Match.event_id)
+    // Fetch all players on the team to resolve player IDs by PUUID dynamically
+    const teamPlayers = await db.player.findMany({
+      where: { teamId: teamId },
+      select: { id: true, puuid: true }
+    });
+    const playerMapByPuuid = new Map(
+      teamPlayers.filter(p => p.puuid).map(p => [p.puuid!, p.id])
+    );
+
     const eventIds = events.map(e => e.id);
     const linkedMatches = eventIds.length > 0 ? await db.match.findMany({
       where: {
@@ -376,10 +385,10 @@ export async function GET(req: NextRequest) {
         player_stats: {
           select: {
             player_id: true,
+            puuid: true,
             team_id: true,
             player: { select: { teamId: true } }
-          },
-          where: { player_id: { not: null } }
+          }
         }
       },
       orderBy: { game_start: 'asc' }
@@ -387,7 +396,7 @@ export async function GET(req: NextRequest) {
 
     // Enriquecer partidos con our_team_side
     const processedLinkedMatches = (linkedMatches as any[]).map(m => {
-      const ourSide = m.player_stats.find((s: any) => s.player?.teamId === teamId)?.team_id || "Blue";
+      const ourSide = m.player_stats.find((s: any) => s.player?.teamId === teamId || playerMapByPuuid.has(s.puuid))?.team_id || "Blue";
       return { ...m, our_team_side: ourSide };
     });
 
@@ -513,7 +522,8 @@ export async function GET(req: NextRequest) {
           for (const m of matches) {
             if (m.player_stats) {
               for (const ps of m.player_stats) {
-                if (ps.player_id) playerIdsInMatches.add(ps.player_id);
+                const resolvedPlayerId = ps.player_id || playerMapByPuuid.get(ps.puuid);
+                if (resolvedPlayerId) playerIdsInMatches.add(resolvedPlayerId);
               }
             }
           }
