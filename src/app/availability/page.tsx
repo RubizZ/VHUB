@@ -986,7 +986,7 @@ export default function AvailabilityPage() {
                           <Skeleton width={150} height={28} style={{ borderRadius: 8 }} />
                         </div>
                         <div style={{ marginTop: 8 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Partidos Jugados</div>
+                          <Skeleton width={110} height={12} style={{ marginBottom: 8 }} />
                           <Skeleton width="100%" height={40} style={{ borderRadius: 8 }} />
                         </div>
                       </div>
