@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/Skeleton";
+import { useSession } from "next-auth/react";
 
 interface Player {
     id: number;
@@ -112,6 +113,7 @@ interface PlayerData {
 }
 
 export default function StatsPage() {
+    const { data: session } = useSession();
     const [players, setPlayers] = useState<Player[]>([]);
     const [selected, setSelected] = useState<Player | null>(null);
     const [data, setData] = useState<PlayerData | null>(null);
@@ -447,9 +449,37 @@ export default function StatsPage() {
                             {error}
                         </p>
                         {error.includes("consentimiento") && (
-                            <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 420, margin: "0 auto" }}>
-                                El jugador puede habilitar el uso compartido de sus estadísticas activando el consentimiento en su pestaña de <strong>Perfil</strong>.
-                            </p>
+                            <>
+                                <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 420, margin: "0 auto", marginBottom: 8 }}>
+                                    El jugador puede habilitar el uso compartido de sus estadísticas activando el consentimiento en su pestaña de <strong>Perfil</strong>.
+                                </p>
+                                {selected && session?.user?.playerId && String(selected.id) === String(session.user.playerId) && (
+                                    <div style={{ marginTop: 20 }}>
+                                        <button
+                                            className="btn btn-primary hover-lift"
+                                            onClick={() => window.location.href = "/settings"}
+                                            style={{
+                                                margin: "0 auto",
+                                                padding: "12px 24px",
+                                                borderRadius: "12px",
+                                                fontWeight: 800,
+                                                fontSize: "14px",
+                                                background: "var(--val-red)",
+                                                border: "none",
+                                                color: "white",
+                                                cursor: "pointer",
+                                                boxShadow: "0 4px 15px rgba(255, 70, 85, 0.3)",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                                justifyContent: "center"
+                                            }}
+                                        >
+                                            ⚙️ Ir a Ajustes de Privacidad
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                         {error.includes("Key") && (
                             <p style={{ fontSize: 12, opacity: 0.7, color: "var(--text-muted)" }}>

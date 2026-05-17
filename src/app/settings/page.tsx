@@ -141,14 +141,14 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleSavePrivacy = async () => {
+  const handleSavePrivacy = async (consent: boolean) => {
     setSavingPrivacy(true);
     setPrivacyMessage({ text: "Guardando cambios...", type: "info" });
     try {
       const res = await fetch("/api/players/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataConsent: localConsent })
+        body: JSON.stringify({ dataConsent: consent })
       });
       if (res.ok) {
         const data = await res.json();
@@ -353,23 +353,18 @@ export default function AccountSettingsPage() {
                   <input
                     type="checkbox"
                     checked={localConsent}
-                    onChange={(e) => setLocalConsent(e.target.checked)}
+                    disabled={savingPrivacy}
+                    onChange={(e) => {
+                      const nextVal = e.target.checked;
+                      setLocalConsent(nextVal);
+                      handleSavePrivacy(nextVal);
+                    }}
                   />
                   <span className="slider round"></span>
                 </label>
               </div>
 
               {renderLocalMessage(privacyMessage)}
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900, letterSpacing: 0.5 }}
-                onClick={handleSavePrivacy}
-                disabled={savingPrivacy}
-              >
-                {savingPrivacy ? "Guardando..." : "Guardar Privacidad"}
-              </button>
             </div>
           )}
 
