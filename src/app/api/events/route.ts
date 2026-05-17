@@ -222,9 +222,19 @@ async function ensureWeeklyEvents(teamId: string) {
           }
         }
 
+        // Generar un título dinámico no duplicado que aporte información de mapa/fase
+        let dynamicTitle = evConfig.title;
+        if (evConfig.type === 'playoffs') {
+          dynamicTitle = "Playoffs: Pick & Ban";
+        } else if (evConfig.type === 'practice') {
+          dynamicTitle = mapLabel !== "Por decidir" && mapLabel !== "Pick & Ban" ? `Entrenamiento: ${mapLabel}` : "Sesión de Entrenamiento";
+        } else if (evConfig.type === 'match') {
+          dynamicTitle = mapLabel !== "Por decidir" && mapLabel !== "Pick & Ban" ? `Jornada de Liga: ${mapLabel}` : "Jornada de Liga Premier";
+        }
+
         eventsToCreate.push({
           teamId,
-          title: evConfig.title,
+          title: dynamicTitle,
           type: evConfig.type,
           date: dateStr,
           time: evConfig.time,
@@ -251,7 +261,7 @@ async function ensureWeeklyEvents(teamId: string) {
         skipDuplicates: true
       });
 
-      // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
+      // Actualizar mapas y títulos en eventos existentes que todavía tienen "Por decidir"
       // (para prácticas y partidos, no playoffs)
       for (const ev of eventsToCreate) {
         if (ev.map && ev.map !== "Por decidir" && ev.map !== "Pick & Ban" && ev.type !== "playoffs") {
@@ -267,7 +277,10 @@ async function ensureWeeklyEvents(teamId: string) {
                 { map: "Pick & Ban" }
               ]
             },
-            data: { map: ev.map }
+            data: { 
+              map: ev.map,
+              title: ev.title
+            }
           });
         }
         // Actualizar end_date/end_time en eventos existentes que no los tengan
