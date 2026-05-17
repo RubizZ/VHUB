@@ -58,11 +58,18 @@ export function analyzeHenrikPlayerStats(matches: HenrikMatch[], name: string, t
   const agentCount: Record<string, number> = {};
   const mapCount: Record<string, number> = {};
 
+  const cleanName = name.trim().toLowerCase();
+  const cleanTag = tag.trim().toLowerCase().replace(/^#/, '');
+
   for (const match of matches) {
-    const player = match.players.all_players.find(p => 
-      p.name.toLowerCase() === name.toLowerCase() && 
-      p.tag.toLowerCase() === tag.toLowerCase()
-    );
+    const player = match.players.all_players.find(p => {
+      const pName = p.name.trim().toLowerCase();
+      const pTag = p.tag.trim().toLowerCase().replace(/^#/, '');
+      return pName === cleanName && pTag === cleanTag;
+    }) || match.players.all_players.find(p => {
+      const pName = p.name.trim().toLowerCase();
+      return pName === cleanName;
+    }) || match.players.all_players[0];
 
     if (!player) continue;
 
@@ -119,7 +126,8 @@ export function analyzeHenrikPlayerStats(matches: HenrikMatch[], name: string, t
     stats.headshotPct = totalHits > 0 ? Math.round((totalHeadshots / totalHits) * 100) : 0;
   }
 
-  stats.recentForm = stats.recentForm.slice(-5);
+  // Get the 5 most recent matches (first 5 in descending list) and show oldest to newest (left to right)
+  stats.recentForm = stats.recentForm.slice(0, 5).reverse();
   stats.mostPlayedAgent = Object.entries(agentCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
   stats.mostPlayedMap = Object.entries(mapCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
