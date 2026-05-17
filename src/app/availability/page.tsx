@@ -1052,7 +1052,7 @@ export default function AvailabilityPage() {
                         )}
 
                         {/* Linked Matches */}
-                        {matches.length > 0 && (
+                        {matches.length > 0 ? (
                           <div style={{ marginTop: 8 }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Partidos Jugados</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1083,6 +1083,27 @@ export default function AvailabilityPage() {
                               })}
                             </div>
                           </div>
+                        ) : (
+                          !(isCancelled || ev.status === 'no_players' || ev.status === 'not_played' || isImpossible) && (
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Partidos Jugados</div>
+                              <div style={{
+                                padding: "12px 16px",
+                                borderRadius: 8,
+                                background: "rgba(255, 255, 255, 0.02)",
+                                border: "1px dashed rgba(255, 255, 255, 0.08)",
+                                color: "var(--text-muted)",
+                                fontSize: 12,
+                                fontStyle: "italic",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10
+                              }}>
+                                <span style={{ fontSize: 14, opacity: 0.6 }}>📡</span>
+                                <span>Aquí se mostrarán los partidos que se jueguen durante este evento.</span>
+                              </div>
+                            </div>
+                          )
                         )}
                       </div>
 
