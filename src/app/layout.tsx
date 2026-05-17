@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -6,6 +7,7 @@ import { SessionGuard } from "@/components/SessionGuard";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "V-HUB — Valorant Premier Platform",
@@ -29,7 +31,7 @@ export const viewport: Viewport = {
   themeColor: "#0A0A0F",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await auth();
   
   const { headers } = await import("next/headers");
@@ -60,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </ClientLayout>
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
