@@ -80,13 +80,10 @@ export async function GET(
     const eventUrl = `${origin}/availability?eventId=${ev.id}`;
     const mapName = ev.map_obj?.name || ev.map || "Por definir";
 
-    let description = `🏆 Evento: ${titleText}\n`;
-    description += `📅 Fecha: ${ev.date} a las ${ev.time}\n`;
-    description += `🗺️ Mapa: ${mapName}\n`;
+    let description = `🗺️ Mapa: ${mapName}\n`;
     if (ev.description) {
       description += `📝 Notas: ${ev.description}\n`;
     }
-    description += `🔗 Ver en VHUB: ${eventUrl}`;
 
     if (available.length > 0) description += `\n\n✅ Confirmados (${available.length}): ${available.join(", ")}`;
     if (played.length > 0) description += `\n\n💜 Jugaron (${played.length}): ${played.join(", ")}`;
@@ -97,11 +94,8 @@ export async function GET(
 
     // Rich HTML Content
     let htmlContent = `<div>
-      <h2>🏆 ${titleText}</h2>
-      <p><strong>📅 Fecha y Hora:</strong> ${ev.date} a las ${ev.time}</p>
       <p><strong>🗺️ Mapa:</strong> ${mapName}</p>
       ${ev.description ? `<p><strong>📝 Notas:</strong> ${ev.description}</p>` : ""}
-      <p><a href="${eventUrl}">🔗 Ver en VHUB y gestionar asistencia</a></p>
       <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
     `;
 
@@ -156,12 +150,18 @@ export async function GET(
       if (eventIdMatch) {
         const eventId = eventIdMatch[1];
         const ev = team.events.find((e) => e.id === Number(eventId));
+        
+        let extraProps = "";
+        const eventUrl = `${origin}/availability?eventId=${eventId}`;
+        extraProps += `ATTACH;VALUE=URI:${eventUrl}\r\n`;
+
         const splashUrl = ev?.map_obj?.premierBackground || ev?.map_obj?.splash;
         if (splashUrl) {
           const imageProp = `IMAGE;VALUE=URI;DISPLAY=FULLSIZE;FMTTYPE=image/png:${splashUrl}`;
           const attachProp = `ATTACH;FMTTYPE=image/png:${splashUrl}`;
-          return part.replace("END:VEVENT", `${imageProp}\r\n${attachProp}\r\nEND:VEVENT`);
+          extraProps += `${imageProp}\r\n${attachProp}\r\n`;
         }
+        return part.replace("END:VEVENT", `${extraProps}END:VEVENT`);
       }
       return part;
     });
