@@ -233,7 +233,7 @@ async function ensureWeeklyEvents(teamId: string) {
           description: evConfig.description || (mapLabel !== "Por decidir" && !mapId ? mapLabel : ""),
           map: mapId,
           premier_week: premierWeek || null,
-          premier_season_id: activeSeason.id,
+          premier_season_id: activeSeason?.id || "",
           status: 'scheduled'
         });
 
@@ -251,40 +251,69 @@ async function ensureWeeklyEvents(teamId: string) {
         skipDuplicates: true
       });
 
-      // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
-      // (para prácticas y partidos, no playoffs)
+      // 1. Obtener eventos existentes del equipo en esta temporada en una sola consulta
+      const existingEvents = await db.event.findMany({
+        where: {
+          teamId,
+          premier_season_id: activeSeason?.id || ""
+        }
+      });
+
+      // 2. Mapear en memoria para búsqueda O(1)
+      const existingEventsMap = new Map(
+        existingEvents.map(e => [`${e.type}_${e.date}_${e.time}`, e])
+      );
+
+      // 3. Evaluar qué eventos existentes necesitan actualizarse realmente
+      const updatePromises: Promise<unknown>[] = [];
+
       for (const ev of eventsToCreate) {
-        if (ev.map && ev.map !== "Por decidir" && ev.map !== "Pick & Ban" && ev.type !== "playoffs") {
-          await db.event.updateMany({
-            where: {
-              teamId,
-              date: ev.date,
-              time: ev.time,
-              type: ev.type,
-              OR: [
-                { map: "" },
-                { map: "Por decidir" },
-                { map: "Pick & Ban" }
-              ]
-            },
-            data: { 
-              map: ev.map
-            }
-          });
+        const key = `${ev.type}_${ev.date}_${ev.time}`;
+        const existingEvent = existingEventsMap.get(key);
+
+        if (existingEvent) {
+          const updates: Record<string, string | null> = {};
+
+          // Actualizar mapas en eventos existentes que todavía tienen "Por decidir"
+          // (para prácticas y partidos, no playoffs)
+          const needsMapUpdate = ev.map && 
+            ev.map !== "Por decidir" && 
+            ev.map !== "Pick & Ban" && 
+            ev.type !== "playoffs" &&
+            (!existingEvent.map || 
+             existingEvent.map === "" || 
+             existingEvent.map === "Por decidir" || 
+             existingEvent.map === "Pick & Ban");
+
+          if (needsMapUpdate) {
+            updates.map = ev.map;
+          }
+
+          // Actualizar end_date/end_time en eventos existentes que no los tengan
+          const needsEndDateUpdate = ev.end_date && 
+            ev.end_time && 
+            !existingEvent.end_date;
+
+          if (needsEndDateUpdate) {
+            updates.end_date = ev.end_date;
+            updates.end_time = ev.end_time;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updatePromises.push(
+              db.event.update({
+                where: { id: existingEvent.id },
+                data: updates
+              })
+            );
+          }
         }
-        // Actualizar end_date/end_time en eventos existentes que no los tengan
-        if (ev.end_date && ev.end_time) {
-          await db.event.updateMany({
-            where: {
-              teamId,
-              date: ev.date,
-              time: ev.time,
-              type: ev.type,
-              end_date: null
-            },
-            data: { end_date: ev.end_date, end_time: ev.end_time }
-          });
-        }
+      }
+
+      // 4. Ejecutar todas las actualizaciones necesarias en paralelo
+      if (updatePromises.length > 0) {
+        console.log(`[ensureWeeklyEvents] Actualizando ${updatePromises.length} eventos existentes con nuevos mapas/horarios en paralelo...`);
+        await Promise.all(updatePromises);
       }
 
       // Limpiar descripciones hardcodeadas de playoffs
