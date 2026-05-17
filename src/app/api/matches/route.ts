@@ -28,9 +28,6 @@ export async function GET(req: NextRequest) {
         },
         include: {
           player_stats: {
-            include: {
-              player: { select: { teamId: true, name: true, riot_name: true, riot_tag: true, avatar_color: true } }
-            },
             orderBy: { score: 'desc' }
           }
         }
@@ -38,8 +35,18 @@ export async function GET(req: NextRequest) {
 
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
-      // Check for at least one player consent
-      const hasConsent = match.player_stats.some(s => s.player_id !== null);
+      // Fetch all team players to check consent dynamically
+      const teamPlayers = await db.player.findMany({
+        where: { teamId },
+        include: { user: { select: { dataConsent: true } } }
+      });
+      const playerMap = new Map(teamPlayers.map(p => [p.puuid, p]));
+
+      // Check for at least one player consent dynamically
+      const hasConsent = match.player_stats.some(s => {
+        const p = playerMap.get(s.puuid);
+        return p?.user?.dataConsent === true;
+      });
 
       if (!hasConsent) {
         return NextResponse.json({
@@ -58,24 +65,30 @@ export async function GET(req: NextRequest) {
         // Intentar obtener el Riot ID de los datos brutos de la partida (Henrik API)
         const rawData = match.raw_data as any;
         const pData = rawData?.players?.all_players?.find((p: any) => p.puuid === s.puuid);
+        const teamPlayer = playerMap.get(s.puuid);
+        const isConsenting = teamPlayer?.user?.dataConsent === true;
 
         let displayName = s.puuid.substring(0, 8);
         if (pData?.name && pData?.tag) {
           displayName = `${pData.name}#${pData.tag}`;
-        } else if (s.player?.riot_name && s.player?.riot_tag) {
-          displayName = `${s.player.riot_name}#${s.player.riot_tag}`;
-        } else if (s.player?.name) {
-          displayName = s.player.name;
+        } else if (isConsenting && teamPlayer?.riot_name && teamPlayer?.riot_tag) {
+          displayName = `${teamPlayer.riot_name}#${teamPlayer.riot_tag}`;
+        } else if (isConsenting && teamPlayer?.name) {
+          displayName = teamPlayer.name;
         }
 
         return {
           ...s,
           player_name: displayName,
-          avatar_color: s.player?.avatar_color
+          avatar_color: isConsenting ? teamPlayer?.avatar_color : undefined,
+          player_id: isConsenting ? teamPlayer?.id : null
         };
       });
 
-      const ourSide = match.player_stats.find(s => s.player?.teamId === teamId)?.team_id || "Blue";
+      const ourSide = match.player_stats.find(s => {
+        const p = playerMap.get(s.puuid);
+        return p?.teamId === teamId;
+      })?.team_id || "Blue";
 
       return NextResponse.json({ match: { ...match, our_team_side: ourSide }, playerStats });
     }
@@ -90,16 +103,15 @@ export async function GET(req: NextRequest) {
       whereClause.premier_season_id = seasonParam;
     }
 
-    const [matches, seasonsData] = await Promise.all([
+    const [matches, seasonsData, teamPlayers] = await Promise.all([
       db.match.findMany({
         where: whereClause,
         include: {
           player_stats: {
             select: { 
               team_id: true,
-              player: { select: { teamId: true } }
-            },
-            where: { player_id: { not: null } }
+              puuid: true
+            }
           },
           season: true // Traer info de la temporada
         },
@@ -109,13 +121,22 @@ export async function GET(req: NextRequest) {
       db.season.findMany({
         where: { matches: { some: { teamId } } },
         orderBy: { starts_at: 'desc' }
+      }),
+      db.player.findMany({
+        where: { teamId },
+        include: { user: { select: { dataConsent: true } } }
       })
     ]);
 
     const seasons = seasonsData.map(s => ({ id: s.id, name: s.name }));
+    const playerMap = new Map(teamPlayers.map(p => [p.puuid, p]));
 
     const formattedMatches = matches.map(m => {
-      const hasConsent = m.player_stats.length > 0;
+      const hasConsent = m.player_stats.some(s => {
+        const p = playerMap.get(s.puuid);
+        return p?.user?.dataConsent === true;
+      });
+
       if (!hasConsent) {
         return {
           id: m.id,
@@ -127,7 +148,10 @@ export async function GET(req: NextRequest) {
       }
 
       // Determinar qué bando es el nuestro (el que tiene jugadores que pertenecen a nuestro equipo)
-      const ourSide = m.player_stats.find((s: any) => s.player?.teamId === teamId)?.team_id || "Blue";
+      const ourSide = m.player_stats.find((s: any) => {
+        const p = playerMap.get(s.puuid);
+        return p?.teamId === teamId;
+      })?.team_id || "Blue";
 
       return {
         id: m.id,
@@ -297,20 +321,18 @@ export async function POST(req: NextRequest) {
             });
 
             for (const playerStats of matchData.players.all_players) {
-              // Solo vinculamos estadísticas si el jugador existe en nuestro sistema Y ha dado su consentimiento
+              // Vinculamos el player_id incondicionalmente si el jugador existe en nuestro sistema
               const ourPlayer = await tx.player.findUnique({
-                where: { puuid: playerStats.puuid },
-                include: { user: true }
+                where: { puuid: playerStats.puuid }
               });
 
-              const hasConsent = ourPlayer?.user?.dataConsent === true;
               const agent = findAgentByName(playerStats.character);
 
               await tx.matchPlayerStats.create({
                 data: {
                   match_id: m.id,
                   puuid: playerStats.puuid,
-                  player_id: hasConsent ? ourPlayer?.id : null,
+                  player_id: ourPlayer?.id || null, // Link incondicional
                   character_id: agent?.id || playerStats.character,
                   team_id: playerStats.team,
                   kills: playerStats.stats?.kills || 0,

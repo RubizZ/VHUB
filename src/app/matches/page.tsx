@@ -1,5 +1,6 @@
+/* global fetch, setTimeout, clearTimeout */
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import { findAgentById, ROLE_COLORS } from "@/lib/agents";
 import Link from "next/link";
@@ -32,6 +33,24 @@ export default function MatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const fetchMatches = async (season?: string) => {
     setLoading(true);
@@ -205,8 +224,105 @@ export default function MatchesPage() {
       </div>
 
       <div className="page-content animate-in" style={{ paddingTop: 0 }}>
-        {error && <div className="card" style={{ background: "rgba(255,70,85,0.1)", border: "1px solid var(--val-red)", color: "var(--val-red)", marginBottom: 16 }}>{error}</div>}
-        {success && <div className="card" style={{ background: "rgba(0,212,170,0.1)", border: "1px solid var(--val-cyan)", color: "var(--val-cyan)", marginBottom: 16 }}>{success}</div>}
+        {error && (
+          <div 
+            className="card animate-in" 
+            style={{ 
+              background: "rgba(255, 70, 85, 0.05)", 
+              border: "1px solid rgba(255, 70, 85, 0.25)", 
+              boxShadow: "0 8px 32px rgba(255, 70, 85, 0.05)",
+              color: "var(--val-red)", 
+              marginBottom: 20,
+              padding: "16px 20px",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              animation: "fadeIn 0.3s ease"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>{error}</span>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                color: "var(--val-red)", 
+                cursor: "pointer", 
+                padding: 4, 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                opacity: 0.7,
+                transition: "opacity 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {success && (
+          <div 
+            className="card animate-in" 
+            style={{ 
+              background: "rgba(0, 212, 170, 0.05)", 
+              border: "1px solid rgba(0, 212, 170, 0.25)", 
+              boxShadow: "0 8px 32px rgba(0, 212, 170, 0.05)",
+              color: "var(--val-cyan)", 
+              marginBottom: 20,
+              padding: "16px 20px",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              animation: "fadeIn 0.3s ease"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>{success}</span>
+            </div>
+            <button 
+              onClick={() => setSuccess(null)}
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                color: "var(--val-cyan)", 
+                cursor: "pointer", 
+                padding: 4, 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                opacity: 0.7,
+                transition: "opacity 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {!selected ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -299,9 +415,105 @@ export default function MatchesPage() {
 }
 
 function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
+  if (match.isHidden) {
+    return (
+      <div 
+        className="card glass-card" 
+        style={{ 
+          padding: "20px 24px", 
+          borderLeft: "4px solid rgba(255, 255, 255, 0.15)", 
+          background: "rgba(20, 20, 26, 0.4)",
+          opacity: 0.85,
+          cursor: "default"
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ 
+              width: 40, 
+              height: 40, 
+              borderRadius: 12, 
+              background: "rgba(255, 255, 255, 0.03)", 
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center" 
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 70, 85, 0.8)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                Partido Oculto
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                {new Date(match.game_start).toLocaleDateString("es-ES", { 
+                  day: "2-digit", 
+                  month: "short", 
+                  year: "numeric", 
+                  hour: "2-digit", 
+                  minute: "2-digit" 
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="tag" style={{ height: "fit-content", background: "rgba(255,255,255,0.05)", color: "var(--text-muted)", border: "1px solid rgba(255,255,255,0.1)", fontSize: 10, fontWeight: 800 }}>
+            PRIVADO
+          </div>
+        </div>
+
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          marginTop: 20, 
+          paddingTop: 16, 
+          borderTop: "1px solid rgba(255, 255, 255, 0.03)" 
+        }}>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+            <span>Motivo: </span>
+            <span style={{ color: "rgba(255, 255, 255, 0.7)", fontWeight: 600 }}>{match.reason || "Falta de consentimiento de datos"}</span>
+          </div>
+          <Link 
+            href="/profile" 
+            style={{ 
+              fontSize: 12, 
+              color: "var(--val-cyan)", 
+              fontWeight: 800, 
+              textDecoration: "none", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4,
+              transition: "color 0.2s" 
+            }}
+            className="hover-cyan"
+          >
+            Configurar Perfil
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const isWin = match.team_blue_won === (match.our_team_side === 'Blue');
   return (
-    <div className="card glass-card hover-lift" onClick={onClick} style={{ cursor: "pointer", padding: 20, borderLeft: `4px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}` }}>
+    <div 
+      className="card glass-card hover-lift" 
+      onClick={onClick} 
+      style={{ 
+        cursor: "pointer", 
+        padding: 20, 
+        borderLeft: `4px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
+        '--hover-color': isWin ? 'var(--val-cyan)' : 'var(--val-red)',
+        '--hover-glow-color': isWin ? 'rgba(0, 212, 170, 0.15)' : 'rgba(255, 70, 85, 0.15)'
+      } as CSSProperties}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
            <div style={{ fontWeight: 800, fontSize: 18 }}>{match.map_name}</div>
