@@ -93,9 +93,7 @@ export async function GET(
     if (maybe.length > 0) description += `\n⚠️ Duda (${maybe.length}): ${maybe.join(", ")}`;
     if (unavailable.length > 0) description += `\n❌ No asisten (${unavailable.length}): ${unavailable.join(", ")}`;
 
-    if (ev.map_obj?.splash) {
-      description += `\n\n🖼️ Imagen de fondo del mapa: ${ev.map_obj.splash}`;
-    }
+
 
     // Rich HTML Content
     let htmlContent = `<div>
