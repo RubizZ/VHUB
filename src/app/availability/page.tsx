@@ -638,16 +638,30 @@ export default function AvailabilityPage() {
                           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
                             {isLoadingEvents ? (
                               (() => {
-                                const hash = (i * 37 + d.day * 13) % 10;
+                                const hash = (i * 43 + d.day * 17) % 12;
                                 if (hash < 3) {
                                   return null;
                                 } else if (hash < 7) {
-                                  return <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />;
-                                } else {
+                                  const width = 70 + (hash * 7) % 31;
+                                  return <Skeleton width={`${width}%`} height={16} style={{ borderRadius: 4 }} />;
+                                } else if (hash < 10) {
+                                  const w1 = 80 + (hash * 3) % 21;
+                                  const w2 = 60 + (hash * 9) % 21;
                                   return (
                                     <>
-                                      <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />
-                                      <Skeleton width="80%" height={16} style={{ borderRadius: 4 }} />
+                                      <Skeleton width={`${w1}%`} height={16} style={{ borderRadius: 4 }} />
+                                      <Skeleton width={`${w2}%`} height={16} style={{ borderRadius: 4 }} />
+                                    </>
+                                  );
+                                } else {
+                                  const w1 = 90 + (hash * 2) % 11;
+                                  const w2 = 75 + (hash * 5) % 16;
+                                  const w3 = 50 + (hash * 8) % 21;
+                                  return (
+                                    <>
+                                      <Skeleton width={`${w1}%`} height={16} style={{ borderRadius: 4 }} />
+                                      <Skeleton width={`${w2}%`} height={16} style={{ borderRadius: 4 }} />
+                                      <Skeleton width={`${w3}%`} height={16} style={{ borderRadius: 4 }} />
                                     </>
                                   );
                                 }
@@ -815,21 +829,30 @@ export default function AvailabilityPage() {
                           {isLoadingEvents ? (
                             (() => {
                               const skeletons = [];
-                              if (idx === 0) {
-                                skeletons.push({ top: 19 * 60, height: 90 });
-                              } else if (idx === 1) {
-                                skeletons.push({ top: 17 * 60, height: 90 });
-                                skeletons.push({ top: 21 * 60, height: 90 });
-                              } else if (idx === 2) {
-                                skeletons.push({ top: 18 * 60, height: 90 });
-                              } else if (idx === 3) {
-                                skeletons.push({ top: 19 * 60, height: 120 });
-                              } else if (idx === 4) {
-                                skeletons.push({ top: 16 * 60, height: 90 });
-                                skeletons.push({ top: 20 * 60, height: 90 });
-                              } else if (idx === 5) {
-                                skeletons.push({ top: 15 * 60, height: 120 });
+                              // Organically calculate quantity of skeletons: 1, 2, or 3 per column
+                              const numEvents = ((idx * 11 + 17) % 3) + 1;
+                              
+                              for (let s = 0; s < numEvents; s++) {
+                                // Event start hours completely dispersed using non-overlapping slots:
+                                // s=0 (Morning: 9:00 - 12:00)
+                                // s=1 (Afternoon: 14:00 - 17:00)
+                                // s=2 (Evening/Night: 19:00 - 22:00)
+                                let startHour = 9;
+                                if (s === 0) {
+                                  startHour = 9 + (idx * 7) % 4;
+                                } else if (s === 1) {
+                                  startHour = 14 + (idx * 13) % 4;
+                                } else if (s === 2) {
+                                  startHour = 19 + (idx * 17) % 4;
+                                }
+                                
+                                // Randomize duration: 1h, 1.5h, or 2h
+                                const durationSeed = (idx * 5 + s * 13) % 3;
+                                const height = 60 + durationSeed * 30; // 60px, 90px, or 120px
+                                
+                                skeletons.push({ top: startHour * 60, height });
                               }
+                              
                               return skeletons.map((sk, sIdx) => (
                                 <div 
                                   key={sIdx}
