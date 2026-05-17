@@ -20,14 +20,19 @@ export default function AccountSettingsPage() {
   const { data: session, status } = useSession();
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingRiot, setSavingRiot] = useState(false);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [riotName, setRiotName] = useState("");
   const [riotTag, setRiotTag] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
   });
-  const [message, setMessage] = useState({ text: "", type: "" });
+  const [profileMessage, setProfileMessage] = useState({ text: "", type: "" });
+  const [riotMessage, setRiotMessage] = useState({ text: "", type: "" });
+  const [privacyMessage, setPrivacyMessage] = useState({ text: "", type: "" });
+  const [localConsent, setLocalConsent] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -54,6 +59,7 @@ export default function AccountSettingsPage() {
             });
             setRiotName(data.player.riot_name || "");
             setRiotTag(data.player.riot_tag || "");
+            setLocalConsent(data.player.dataConsent || false);
           }
           setLoading(false);
         })
@@ -61,10 +67,24 @@ export default function AccountSettingsPage() {
     }
   }, [session]);
 
+  const renderLocalMessage = (msg: { text: string; type: string }) => {
+    if (!msg.text) return null;
+    return (
+      <div className="animate-in" style={{
+        padding: "12px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, textAlign: "left", marginBottom: 24,
+        background: msg.type === "success" ? "rgba(0,212,170,0.06)" : msg.type === "info" ? "rgba(59,130,246,0.06)" : "rgba(255,70,85,0.06)",
+        color: msg.type === "success" ? "var(--val-cyan)" : msg.type === "info" ? "#3B82F6" : "var(--val-red)",
+        border: `1px solid ${msg.type === "success" ? "rgba(0,212,170,0.15)" : msg.type === "info" ? "rgba(59,130,246,0.15)" : "rgba(255,70,85,0.15)"}`
+      }}>
+        {msg.text}
+      </div>
+    );
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setMessage({ text: "Guardando cambios...", type: "info" });
+    setSavingProfile(true);
+    setProfileMessage({ text: "Guardando cambios...", type: "info" });
     try {
       const res = await fetch("/api/players/me", {
         method: "PUT",
@@ -76,24 +96,27 @@ export default function AccountSettingsPage() {
         if (data.player) {
           setPlayer(data.player);
         }
-        setMessage({ text: "Configuración de cuenta guardada correctamente", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+        setProfileMessage({ text: "Configuración de cuenta guardada correctamente", type: "success" });
+        setTimeout(() => setProfileMessage({ text: "", type: "" }), 3000);
       } else {
         const d = await res.json();
-        setMessage({ text: d.error || "Error al guardar cambios", type: "error" });
+        setProfileMessage({ text: d.error || "Error al guardar cambios", type: "error" });
       }
     } catch (err) {
       console.error(err);
-      setMessage({ text: "Error al guardar cambios", type: "error" });
+      setProfileMessage({ text: "Error al guardar cambios", type: "error" });
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
     }
   };
 
   const handleSyncRiot = async () => {
-    if (!riotName || !riotTag) return;
-    setSaving(true);
-    setMessage({ text: "Sincronizando con Riot Games...", type: "info" });
+    if (!riotName || !riotTag) {
+      setRiotMessage({ text: "Introduce tu Riot ID y Etiqueta (ej: Nombre#TAG)", type: "error" });
+      return;
+    }
+    setSavingRiot(true);
+    setRiotMessage({ text: "Sincronizando con Riot Games...", type: "info" });
 
     try {
       const res = await fetch("/api/valorant/sync-profile", {
@@ -105,44 +128,45 @@ export default function AccountSettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setPlayer(prev => prev ? { ...prev, puuid: data.puuid, riot_name: riotName, riot_tag: riotTag } : null);
-        setMessage({ text: "¡Cuenta de Riot vinculada correctamente!", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+        setRiotMessage({ text: "¡Cuenta de Riot vinculada correctamente!", type: "success" });
+        setTimeout(() => setRiotMessage({ text: "", type: "" }), 3000);
       } else {
-        setMessage({ text: data.error || "Error al sincronizar", type: "error" });
+        setRiotMessage({ text: data.error || "Error al sincronizar", type: "error" });
       }
     } catch (err) {
       console.error(err);
-      setMessage({ text: "Error de conexión", type: "error" });
+      setRiotMessage({ text: "Error de conexión", type: "error" });
     } finally {
-      setSaving(false);
+      setSavingRiot(false);
     }
   };
 
-  const handleUpdateDataConsent = async (consent: boolean) => {
-    setSaving(true);
-    setMessage({ text: "Guardando cambios...", type: "info" });
+  const handleSavePrivacy = async () => {
+    setSavingPrivacy(true);
+    setPrivacyMessage({ text: "Guardando cambios...", type: "info" });
     try {
       const res = await fetch("/api/players/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataConsent: consent })
+        body: JSON.stringify({ dataConsent: localConsent })
       });
       if (res.ok) {
         const data = await res.json();
         if (data.player) {
           setPlayer(data.player);
+          setLocalConsent(data.player.dataConsent || false);
         }
-        setMessage({ text: "Preferencias de privacidad actualizadas", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+        setPrivacyMessage({ text: "Preferencias de privacidad actualizadas", type: "success" });
+        setTimeout(() => setPrivacyMessage({ text: "", type: "" }), 3000);
       } else {
         const d = await res.json();
-        setMessage({ text: d.error || "Error al actualizar privacidad", type: "error" });
+        setPrivacyMessage({ text: d.error || "Error al actualizar privacidad", type: "error" });
       }
     } catch (err) {
       console.error(err);
-      setMessage({ text: "Error al actualizar privacidad", type: "error" });
+      setPrivacyMessage({ text: "Error al actualizar privacidad", type: "error" });
     } finally {
-      setSaving(false);
+      setSavingPrivacy(false);
     }
   };
 
@@ -165,17 +189,6 @@ export default function AccountSettingsPage() {
         <p style={{ fontSize: 16, color: "var(--text-secondary)", marginTop: 4 }}>Seguridad, preferencias y privacidad de la plataforma</p>
       </header>
 
-      {message.text && (
-        <div className="animate-in" style={{
-          padding: 16, borderRadius: 12, fontSize: 14, fontWeight: 600, textAlign: "center", marginBottom: 32,
-          background: message.type === "success" ? "rgba(0,212,170,0.1)" : message.type === "info" ? "rgba(59,130,246,0.1)" : "rgba(255,70,85,0.1)",
-          color: message.type === "success" ? "var(--val-cyan)" : message.type === "info" ? "#3B82F6" : "var(--val-red)",
-          border: `1px solid ${message.type === "success" ? "rgba(0,212,170,0.2)" : message.type === "info" ? "rgba(59,130,246,0.2)" : "rgba(255,70,85,0.2)"}`
-        }}>
-          {message.text}
-        </div>
-      )}
-
       <div className="grid grid-2" style={{ gap: 32 }}>
         {/* Left Column: Personal Identity & Game Link */}
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -189,6 +202,7 @@ export default function AccountSettingsPage() {
             </div>
             
             <form onSubmit={save}>
+              {renderLocalMessage(profileMessage)}
               <div className="form-group" style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", marginBottom: 8, display: "block", letterSpacing: 1 }}>NOMBRE DE USUARIO</label>
                 <input 
@@ -213,8 +227,8 @@ export default function AccountSettingsPage() {
                 </div>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900 }} disabled={saving}>
-                 {saving ? "Guardando..." : "Guardar Cambios"}
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900 }} disabled={savingProfile}>
+                 {savingProfile ? "Guardando..." : "Guardar Cambios"}
               </button>
             </form>
           </div>
@@ -245,6 +259,8 @@ export default function AccountSettingsPage() {
                 </div>
               </div>
 
+              {renderLocalMessage(riotMessage)}
+
               <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>NOMBRE</label>
@@ -269,17 +285,18 @@ export default function AccountSettingsPage() {
               </div>
 
               <button
+                type="button"
                 className="btn btn-primary"
                 style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900, letterSpacing: 0.5 }}
                 onClick={handleSyncRiot}
-                disabled={saving}
+                disabled={savingRiot}
               >
-                {saving ? "Sincronizando..." : player?.puuid ? "🔄 Actualizar Vínculo" : "🔗 Conectar Valorant"}
+                {savingRiot ? "Sincronizando..." : player?.puuid ? "🔄 Actualizar Vínculo" : "🔗 Conectar Valorant"}
               </button>
 
               {player?.puuid && (
                 <div style={{ marginTop: 24, padding: 16, background: "rgba(0, 212, 170, 0.05)", borderRadius: 12, border: "1px solid rgba(0, 212, 170, 0.1)", fontSize: 12, color: "var(--val-cyan)" }}>
-                  ID único detectado: <strong>{player.puuid.substring(0, 20)}...</strong>
+                  ID único detectado: <strong>{player?.puuid?.substring(0, 20)}...</strong>
                 </div>
               )}
             </div>
@@ -321,10 +338,11 @@ export default function AccountSettingsPage() {
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--val-cyan)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🛡️</div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Privacidad</h3>
-                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>Consiento y tratamiento de datos</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>Consentimiento y tratamiento de datos</p>
                 </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20 }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, marginBottom: 24 }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ margin: "0 0 8px 0", fontSize: 16, fontWeight: 800 }}>Privacidad de Analíticas</h4>
                   <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
@@ -334,12 +352,24 @@ export default function AccountSettingsPage() {
                 <label className="switch" style={{ marginTop: 4 }}>
                   <input
                     type="checkbox"
-                    checked={player.dataConsent}
-                    onChange={(e) => handleUpdateDataConsent(e.target.checked)}
+                    checked={localConsent}
+                    onChange={(e) => setLocalConsent(e.target.checked)}
                   />
                   <span className="slider round"></span>
                 </label>
               </div>
+
+              {renderLocalMessage(privacyMessage)}
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900, letterSpacing: 0.5 }}
+                onClick={handleSavePrivacy}
+                disabled={savingPrivacy}
+              >
+                {savingPrivacy ? "Guardando..." : "Guardar Privacidad"}
+              </button>
             </div>
           )}
 

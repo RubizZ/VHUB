@@ -1,10 +1,9 @@
 /* eslint-disable no-undef */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getRiotClient } from "@/lib/riot/client";
-import { findMapByUrl, MAPS } from "@/lib/maps";
+import { MAPS } from "@/lib/maps";
 import { auth } from "@/auth";
-import { getMatches, getMatchById, getPremierSeasons } from "@/lib/henrik-api";
+import { getMatches, getPremierSeasons } from "@/lib/henrik-api";
 import { findAgentByName } from "@/lib/agents";
 import { Prisma } from "@prisma/client";
 
@@ -102,19 +101,11 @@ export async function GET(req: NextRequest) {
 
     // Case 2: Match List
     const whereClause: Prisma.MatchWhereInput = {
-      teamId
-    };
-
-    // If a season is specified, we filter by it (which implies it's a Premier match)
-    if (seasonParam && seasonParam !== 'all' && seasonParam !== "") {
-      whereClause.premier_season_id = seasonParam;
-    } else {
-      // Filtrar sólo partidas de Premier y prácticas (asociadas a eventos del equipo)
-      whereClause.OR = [
-        { premier_season_id: { not: null } },
+      teamId,
+      // Restrict matches to ONLY Premier matches or team events (practices, matches, playoffs)
+      OR: [
         { queue_id: { equals: "Premier", mode: "insensitive" } },
         { game_mode: { equals: "Premier", mode: "insensitive" } },
-        { event_id: { not: null } },
         {
           events: {
             some: {
@@ -122,7 +113,12 @@ export async function GET(req: NextRequest) {
             }
           }
         }
-      ];
+      ]
+    };
+
+    // If a season is specified, we filter by it (which implies it's a Premier match)
+    if (seasonParam && seasonParam !== 'all' && seasonParam !== "") {
+      whereClause.premier_season_id = seasonParam;
     }
 
     const [matches, seasonsData, teamPlayers, teamEvents] = await Promise.all([
