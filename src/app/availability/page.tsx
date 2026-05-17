@@ -2919,58 +2919,217 @@ export default function AvailabilityPage() {
                                                                             `— ${ev.localEndTime}`}
                                                                     </span>
                                                                 </div>
-
-                                                                <div
-                                                                    style={{
-                                                                        display:
-                                                                            "flex",
-                                                                        alignItems:
-                                                                            "center",
-                                                                        gap: 8,
-                                                                        padding:
-                                                                            "6px 12px",
-                                                                        borderRadius: 8,
-                                                                        background:
-                                                                            "rgba(255, 255, 255, 0.03)",
-                                                                        border: "1px solid rgba(255, 255, 255, 0.06)",
-                                                                        fontSize: 12,
-                                                                        fontWeight: 700,
-                                                                        color: "var(--text-primary)",
-                                                                    }}
-                                                                >
-                                                                    <svg
-                                                                        width="14"
-                                                                        height="14"
-                                                                        viewBox="0 0 24 24"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        strokeWidth="2"
-                                                                    >
-                                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                                                        <circle
-                                                                            cx="12"
-                                                                            cy="10"
-                                                                            r="3"
-                                                                        />
-                                                                    </svg>
-                                                                    <span>
-                                                                        {ev.map
-                                                                            ? maps.find(
-                                                                                  (
-                                                                                      m,
-                                                                                  ) =>
-                                                                                      m.id ===
-                                                                                      ev.map,
-                                                                              )
-                                                                                  ?.name ||
-                                                                              ev.map
-                                                                            : ev.type ===
-                                                                                "playoffs"
-                                                                              ? "Pick & Ban"
-                                                                              : "Por decidir"}
-                                                                    </span>
-                                                                </div>
                                                             </div>
+
+                                                            {/* Map Preview Card */}
+                                                            {(() => {
+                                                                if (
+                                                                    ev.type ===
+                                                                    "playoffs"
+                                                                ) {
+                                                                    const seasonMaps =
+                                                                        getSeasonMaps(
+                                                                            ev,
+                                                                        );
+                                                                    if (
+                                                                        seasonMaps.length ===
+                                                                        0
+                                                                    )
+                                                                        return null;
+                                                                    return (
+                                                                        <div
+                                                                            onClick={() =>
+                                                                                router.push(
+                                                                                    `/strategies`,
+                                                                                )
+                                                                            }
+                                                                            className="glass-card hover-lift transition-smooth"
+                                                                            style={{
+                                                                                position:
+                                                                                    "relative",
+                                                                                borderRadius: 12,
+                                                                                height: 80,
+                                                                                overflow:
+                                                                                    "hidden",
+                                                                                display:
+                                                                                    "flex",
+                                                                                alignItems:
+                                                                                    "center",
+                                                                                border: "1px solid rgba(255, 255, 255, 0.08)",
+                                                                                background:
+                                                                                    "rgba(0,0,0,0.4)",
+                                                                                cursor: "pointer",
+                                                                                ["--hover-color" as any]:
+                                                                                    "var(--val-yellow)",
+                                                                                ["--hover-glow-color" as any]:
+                                                                                    "rgba(245, 158, 11, 0.2)",
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                style={{
+                                                                                    position:
+                                                                                        "absolute",
+                                                                                    right: 0,
+                                                                                    top: 0,
+                                                                                    bottom: 0,
+                                                                                    width: "70%",
+                                                                                    maskImage:
+                                                                                        "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                                                                    WebkitMaskImage:
+                                                                                        "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                                                                    pointerEvents:
+                                                                                        "none",
+                                                                                    height: "100%",
+                                                                                }}
+                                                                            >
+                                                                                {renderDiagonalMapSplash(
+                                                                                    seasonMaps,
+                                                                                    0.6,
+                                                                                )}
+                                                                            </div>
+                                                                            <div
+                                                                                style={{
+                                                                                    padding:
+                                                                                        "12px 16px",
+                                                                                    zIndex: 1,
+                                                                                    position:
+                                                                                        "relative",
+                                                                                }}
+                                                                            >
+                                                                                <div
+                                                                                    style={{
+                                                                                        fontSize: 9,
+                                                                                        fontWeight: 800,
+                                                                                        color: "var(--val-yellow)",
+                                                                                        textTransform:
+                                                                                            "uppercase",
+                                                                                        letterSpacing: 1,
+                                                                                    }}
+                                                                                >
+                                                                                    Map Pool de la Season
+                                                                                </div>
+                                                                                <div
+                                                                                    style={{
+                                                                                        fontSize: 16,
+                                                                                        fontWeight: 800,
+                                                                                        color: "white",
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        seasonMaps.length
+                                                                                    }{" "}
+                                                                                    Mapas
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                }
+
+                                                                const mapObj =
+                                                                    ev.map
+                                                                        ? maps.find(
+                                                                              (
+                                                                                  m: any,
+                                                                              ) =>
+                                                                                  m.id ===
+                                                                                  ev.map,
+                                                                          )
+                                                                        : null;
+                                                                if (!mapObj)
+                                                                    return null;
+                                                                return (
+                                                                    <div
+                                                                        onClick={() =>
+                                                                            router.push(
+                                                                                `/strategies?map=${encodeURIComponent(mapObj.id)}`,
+                                                                            )
+                                                                        }
+                                                                        className="glass-card hover-lift transition-smooth"
+                                                                        style={{
+                                                                            position:
+                                                                                "relative",
+                                                                            borderRadius: 12,
+                                                                            height: 80,
+                                                                            overflow:
+                                                                                "hidden",
+                                                                            display:
+                                                                                "flex",
+                                                                            alignItems:
+                                                                                "center",
+                                                                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                                                                            background:
+                                                                                "rgba(0,0,0,0.4)",
+                                                                            cursor: "pointer",
+                                                                            ["--hover-color" as any]:
+                                                                                ev.type ===
+                                                                                "match"
+                                                                                    ? "var(--val-red)"
+                                                                                    : "var(--val-cyan)",
+                                                                            ["--hover-glow-color" as any]:
+                                                                                ev.type ===
+                                                                                "match"
+                                                                                    ? "rgba(255, 70, 85, 0.2)"
+                                                                                    : "rgba(0, 212, 170, 0.2)",
+                                                                        }}
+                                                                    >
+                                                                        <div
+                                                                            style={{
+                                                                                position:
+                                                                                    "absolute",
+                                                                                right: 0,
+                                                                                top: 0,
+                                                                                bottom: 0,
+                                                                                width: "60%",
+                                                                                backgroundImage: `url(${mapObj.splash})`,
+                                                                                backgroundSize:
+                                                                                    "cover",
+                                                                                backgroundPosition:
+                                                                                    "center",
+                                                                                maskImage:
+                                                                                    "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                                                                WebkitMaskImage:
+                                                                                    "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                                                                                opacity: 0.5,
+                                                                                pointerEvents:
+                                                                                    "none",
+                                                                            }}
+                                                                        />
+                                                                        <div
+                                                                            style={{
+                                                                                padding:
+                                                                                    "12px 16px",
+                                                                                zIndex: 1,
+                                                                                position:
+                                                                                    "relative",
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                style={{
+                                                                                    fontSize: 9,
+                                                                                    fontWeight: 800,
+                                                                                    color: "var(--text-secondary)",
+                                                                                    textTransform:
+                                                                                        "uppercase",
+                                                                                    letterSpacing: 1,
+                                                                                }}
+                                                                            >
+                                                                                Mapa
+                                                                            </div>
+                                                                            <div
+                                                                                style={{
+                                                                                    fontSize: 16,
+                                                                                    fontWeight: 800,
+                                                                                    color: "white",
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    mapObj.name
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
 
                                                             {ev.description && (
                                                                 <p
@@ -3415,6 +3574,7 @@ export default function AvailabilityPage() {
                                                                                     key={
                                                                                         p.id
                                                                                     }
+                                                                                    title={p.name}
                                                                                     style={{
                                                                                         display:
                                                                                             "flex",
@@ -3423,15 +3583,17 @@ export default function AvailabilityPage() {
                                                                                         alignItems:
                                                                                             "center",
                                                                                         gap: 6,
+                                                                                        width: 60,
+                                                                                        textAlign:
+                                                                                            "center",
                                                                                     }}
                                                                                 >
                                                                                     <div
-                                                                                        className={`transition-smooth ${updatingEventId === ev.id && String(p.id) === String(myPlayerId) ? "animate-status-update" : ""}`}
                                                                                         style={{
                                                                                             position:
                                                                                                 "relative",
-                                                                                            width: 38,
-                                                                                            height: 38,
+                                                                                            width: 36,
+                                                                                            height: 36,
                                                                                             display:
                                                                                                 "flex",
                                                                                             alignItems:
@@ -3440,9 +3602,7 @@ export default function AvailabilityPage() {
                                                                                                 "center",
                                                                                         }}
                                                                                     >
-                                                                                        {/* Circular Avatar */}
                                                                                         <div
-                                                                                            className="transition-smooth"
                                                                                             style={{
                                                                                                 width: "100%",
                                                                                                 height: "100%",
@@ -3457,7 +3617,7 @@ export default function AvailabilityPage() {
                                                                                                 justifyContent:
                                                                                                     "center",
                                                                                                 fontSize: 14,
-                                                                                                fontWeight: 900,
+                                                                                                fontWeight: 800,
                                                                                                 color: "white",
                                                                                                 border: `2px solid ${
                                                                                                     ps ===
@@ -3477,13 +3637,15 @@ export default function AvailabilityPage() {
                                                                                                 boxShadow:
                                                                                                     ps !==
                                                                                                     "pending"
-                                                                                                        ? `0 0 12px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
+                                                                                                        ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
                                                                                                         : "none",
                                                                                                 opacity:
                                                                                                     ps !==
                                                                                                     "pending"
                                                                                                         ? 1
-                                                                                                        : 0.45,
+                                                                                                        : 0.4,
+                                                                                                transition:
+                                                                                                    "all 0.3s ease",
                                                                                             }}
                                                                                         >
                                                                                             {
@@ -3556,6 +3718,14 @@ export default function AvailabilityPage() {
                                                                                             fontWeight: 700,
                                                                                             textTransform:
                                                                                                 "uppercase",
+                                                                                            whiteSpace:
+                                                                                                "nowrap",
+                                                                                            overflow:
+                                                                                                "hidden",
+                                                                                            textOverflow:
+                                                                                                "ellipsis",
+                                                                                            width:
+                                                                                                "100%",
                                                                                         }}
                                                                                     >
                                                                                         {
@@ -3744,220 +3914,6 @@ export default function AvailabilityPage() {
                                                                     </div>
                                                                 </div>
                                                             </div>
-
-                                                            {/* Map Preview Card */}
-                                                            {(() => {
-                                                                if (
-                                                                    ev.type ===
-                                                                    "playoffs"
-                                                                ) {
-                                                                    const seasonMaps =
-                                                                        getSeasonMaps(
-                                                                            ev,
-                                                                        );
-                                                                    if (
-                                                                        seasonMaps.length ===
-                                                                        0
-                                                                    )
-                                                                        return null;
-                                                                    return (
-                                                                        <div
-                                                                            onClick={() =>
-                                                                                router.push(
-                                                                                    `/strategies`,
-                                                                                )
-                                                                            }
-                                                                            className="glass-card hover-lift transition-smooth"
-                                                                            style={{
-                                                                                position:
-                                                                                    "relative",
-                                                                                borderRadius: 12,
-                                                                                height: 80,
-                                                                                overflow:
-                                                                                    "hidden",
-                                                                                display:
-                                                                                    "flex",
-                                                                                alignItems:
-                                                                                    "center",
-                                                                                border: "1px solid rgba(255, 255, 255, 0.08)",
-                                                                                background:
-                                                                                    "rgba(0,0,0,0.4)",
-                                                                                cursor: "pointer",
-                                                                                ["--hover-color" as any]:
-                                                                                    "var(--val-yellow)",
-                                                                                ["--hover-glow-color" as any]:
-                                                                                    "rgba(245, 158, 11, 0.2)",
-                                                                            }}
-                                                                        >
-                                                                            <div
-                                                                                style={{
-                                                                                    position:
-                                                                                        "absolute",
-                                                                                    right: 0,
-                                                                                    top: 0,
-                                                                                    bottom: 0,
-                                                                                    width: "70%",
-                                                                                    maskImage:
-                                                                                        "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
-                                                                                    WebkitMaskImage:
-                                                                                        "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
-                                                                                    pointerEvents:
-                                                                                        "none",
-                                                                                    height: "100%",
-                                                                                }}
-                                                                            >
-                                                                                {renderDiagonalMapSplash(
-                                                                                    seasonMaps,
-                                                                                    0.6,
-                                                                                )}
-                                                                            </div>
-                                                                            <div
-                                                                                style={{
-                                                                                    padding:
-                                                                                        "12px 16px",
-                                                                                    zIndex: 1,
-                                                                                    position:
-                                                                                        "relative",
-                                                                                }}
-                                                                            >
-                                                                                <div
-                                                                                    style={{
-                                                                                        fontSize: 9,
-                                                                                        fontWeight: 800,
-                                                                                        color: "var(--val-yellow)",
-                                                                                        textTransform:
-                                                                                            "uppercase",
-                                                                                        letterSpacing: 1,
-                                                                                    }}
-                                                                                >
-                                                                                    Map
-                                                                                    Pool
-                                                                                    de
-                                                                                    la
-                                                                                    Season
-                                                                                </div>
-                                                                                <div
-                                                                                    style={{
-                                                                                        fontSize: 16,
-                                                                                        fontWeight: 800,
-                                                                                        color: "white",
-                                                                                    }}
-                                                                                >
-                                                                                    {
-                                                                                        seasonMaps.length
-                                                                                    }{" "}
-                                                                                    Mapas
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                }
-
-                                                                const mapObj =
-                                                                    ev.map
-                                                                        ? maps.find(
-                                                                              (
-                                                                                  m: any,
-                                                                              ) =>
-                                                                                  m.id ===
-                                                                                  ev.map,
-                                                                          )
-                                                                        : null;
-                                                                if (!mapObj)
-                                                                    return null;
-                                                                return (
-                                                                    <div
-                                                                        onClick={() =>
-                                                                            router.push(
-                                                                                `/strategies?map=${encodeURIComponent(mapObj.id)}`,
-                                                                            )
-                                                                        }
-                                                                        className="glass-card hover-lift transition-smooth"
-                                                                        style={{
-                                                                            position:
-                                                                                "relative",
-                                                                            borderRadius: 12,
-                                                                            height: 80,
-                                                                            overflow:
-                                                                                "hidden",
-                                                                            display:
-                                                                                "flex",
-                                                                            alignItems:
-                                                                                "center",
-                                                                            border: "1px solid rgba(255, 255, 255, 0.08)",
-                                                                            background:
-                                                                                "rgba(0,0,0,0.4)",
-                                                                            cursor: "pointer",
-                                                                            ["--hover-color" as any]:
-                                                                                ev.type ===
-                                                                                "match"
-                                                                                    ? "var(--val-red)"
-                                                                                    : "var(--val-cyan)",
-                                                                            ["--hover-glow-color" as any]:
-                                                                                ev.type ===
-                                                                                "match"
-                                                                                    ? "rgba(255, 70, 85, 0.2)"
-                                                                                    : "rgba(0, 212, 170, 0.2)",
-                                                                        }}
-                                                                    >
-                                                                        <div
-                                                                            style={{
-                                                                                position:
-                                                                                    "absolute",
-                                                                                right: 0,
-                                                                                top: 0,
-                                                                                bottom: 0,
-                                                                                width: "60%",
-                                                                                backgroundImage: `url(${mapObj.splash})`,
-                                                                                backgroundSize:
-                                                                                    "cover",
-                                                                                backgroundPosition:
-                                                                                    "center",
-                                                                                maskImage:
-                                                                                    "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
-                                                                                WebkitMaskImage:
-                                                                                    "linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0))",
-                                                                                opacity: 0.5,
-                                                                                pointerEvents:
-                                                                                    "none",
-                                                                            }}
-                                                                        />
-                                                                        <div
-                                                                            style={{
-                                                                                padding:
-                                                                                    "12px 16px",
-                                                                                zIndex: 1,
-                                                                                position:
-                                                                                    "relative",
-                                                                            }}
-                                                                        >
-                                                                            <div
-                                                                                style={{
-                                                                                    fontSize: 9,
-                                                                                    fontWeight: 800,
-                                                                                    color: "var(--text-secondary)",
-                                                                                    textTransform:
-                                                                                        "uppercase",
-                                                                                    letterSpacing: 1,
-                                                                                }}
-                                                                            >
-                                                                                Mapa
-                                                                            </div>
-                                                                            <div
-                                                                                style={{
-                                                                                    fontSize: 16,
-                                                                                    fontWeight: 800,
-                                                                                    color: "white",
-                                                                                }}
-                                                                            >
-                                                                                {
-                                                                                    mapObj.name
-                                                                                }
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })()}
 
                                                             {/* Actions Panel */}
                                                             {myPlayerId &&
@@ -5093,6 +5049,8 @@ export default function AvailabilityPage() {
                     const ev = events.find((e) => e.id === selectedEventId);
                     if (!ev) return null;
                     const ea = avail[ev.id] || [];
+                    const matches = ev.linkedMatches || [];
+                    const hasPlayed = ev.status === "completed" || matches.length > 0;
                     const confirmed = ea.filter(
                         (a) =>
                             a.status === "available" || a.status === "played",
@@ -5680,9 +5638,9 @@ export default function AvailabilityPage() {
                                         </div>
                                         <div
                                             style={{
-                                                display: "grid",
-                                                gridTemplateColumns:
-                                                    "repeat(auto-fill, minmax(36px, 1fr))",
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                justifyContent: "center",
                                                 gap: 12,
                                             }}
                                         >
@@ -5698,49 +5656,197 @@ export default function AvailabilityPage() {
                                                         key={p.id}
                                                         title={p.name}
                                                         style={{
-                                                            width: 36,
-                                                            height: 36,
-                                                            borderRadius: "50%",
-                                                            background:
-                                                                p.avatar_color,
                                                             display: "flex",
-                                                            alignItems:
-                                                                "center",
-                                                            justifyContent:
-                                                                "center",
-                                                            fontSize: 14,
-                                                            fontWeight: 800,
-                                                            color: "white",
-                                                            border: `2px solid ${
-                                                                ps === "played"
-                                                                    ? "var(--val-purple)"
-                                                                    : ps ===
-                                                                        "available"
-                                                                      ? "var(--val-cyan)"
-                                                                      : ps ===
-                                                                          "maybe"
-                                                                        ? "var(--val-yellow)"
-                                                                        : ps ===
-                                                                            "unavailable"
-                                                                          ? "var(--val-red)"
-                                                                          : "rgba(255,255,255,0.1)"
-                                                            }`,
-                                                            boxShadow:
-                                                                ps !== "pending"
-                                                                    ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
-                                                                    : "none",
-                                                            opacity:
-                                                                ps !== "pending"
-                                                                    ? 1
-                                                                    : 0.4,
-                                                            transition:
-                                                                "all 0.3s ease",
+                                                            flexDirection: "column",
+                                                            alignItems: "center",
+                                                            gap: 6,
+                                                            width: 60,
+                                                            textAlign: "center",
                                                         }}
                                                     >
-                                                        {p.name[0]}
+                                                        <div
+                                                            style={{
+                                                                position: "relative",
+                                                                width: 36,
+                                                                height: 36,
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    width: "100%",
+                                                                    height: "100%",
+                                                                    borderRadius: "50%",
+                                                                    background: p.avatar_color,
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    fontSize: 14,
+                                                                    fontWeight: 800,
+                                                                    color: "white",
+                                                                    border: `2px solid ${
+                                                                        ps === "played"
+                                                                            ? "var(--val-purple)"
+                                                                            : ps === "available"
+                                                                              ? "var(--val-cyan)"
+                                                                              : ps === "maybe"
+                                                                                ? "var(--val-yellow)"
+                                                                                : ps === "unavailable"
+                                                                                  ? "var(--val-red)"
+                                                                                  : "rgba(255,255,255,0.1)"
+                                                                    }`,
+                                                                    boxShadow:
+                                                                        ps !== "pending"
+                                                                            ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
+                                                                            : "none",
+                                                                    opacity: ps !== "pending" ? 1 : 0.4,
+                                                                    transition: "all 0.3s ease",
+                                                                }}
+                                                            >
+                                                                {p.name[0]}
+                                                            </div>
+                                                            {/* Status Emblem Indicator */}
+                                                            <div
+                                                                style={{
+                                                                    position: "absolute",
+                                                                    bottom: -2,
+                                                                    right: -2,
+                                                                    width: 14,
+                                                                    height: 14,
+                                                                    borderRadius: "50%",
+                                                                    background:
+                                                                        ps === "played"
+                                                                            ? "var(--val-purple)"
+                                                                            : ps === "available"
+                                                                              ? "var(--val-cyan)"
+                                                                              : ps === "maybe"
+                                                                                ? "var(--val-yellow)"
+                                                                                : ps === "unavailable"
+                                                                                  ? "var(--val-red)"
+                                                                                  : "rgba(255,255,255,0.15)",
+                                                                    border: "2px solid #11141b",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    fontSize: 8,
+                                                                    fontWeight: 900,
+                                                                    color: ps === "maybe" ? "black" : "white",
+                                                                    boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                                                                }}
+                                                            >
+                                                                {ps === "played"
+                                                                    ? "🎮"
+                                                                    : ps === "available"
+                                                                      ? "✓"
+                                                                      : ps === "maybe"
+                                                                        ? "?"
+                                                                        : ps === "unavailable"
+                                                                          ? "✗"
+                                                                          : "•"}
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            style={{
+                                                                fontSize: 9,
+                                                                color: "var(--text-muted)",
+                                                                fontWeight: 700,
+                                                                textTransform: "uppercase",
+                                                                whiteSpace: "nowrap",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                width: "100%",
+                                                            }}
+                                                        >
+                                                            {p.name.split(" ")[0]}
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+
+                                        {/* Legend Row inside Modal */}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: 8,
+                                                marginTop: 14,
+                                                paddingTop: 12,
+                                                borderTop: "1px solid rgba(255,255,255,0.05)",
+                                                justifyContent: "space-between",
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                                color: "var(--text-muted)",
+                                                textTransform: "uppercase",
+                                                letterSpacing: 0.5,
+                                            }}
+                                        >
+                                            {hasPlayed && (
+                                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <span
+                                                        style={{
+                                                            width: 6,
+                                                            height: 6,
+                                                            borderRadius: "50%",
+                                                            background: "var(--val-purple)",
+                                                            boxShadow: "0 0 6px var(--val-purple)",
+                                                        }}
+                                                    />
+                                                    <span style={{ color: "var(--val-purple)" }}>
+                                                        {ea.filter((a) => a.status === "played").length} Jugaron
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                <span
+                                                    style={{
+                                                        width: 6,
+                                                        height: 6,
+                                                        borderRadius: "50%",
+                                                        background: "var(--val-cyan)",
+                                                        boxShadow: "0 0 6px var(--val-cyan)",
+                                                    }}
+                                                />
+                                                <span>{confirmed} Sí</span>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                <span
+                                                    style={{
+                                                        width: 6,
+                                                        height: 6,
+                                                        borderRadius: "50%",
+                                                        background: "var(--val-yellow)",
+                                                        boxShadow: "0 0 6px var(--val-yellow)",
+                                                    }}
+                                                />
+                                                <span>{maybeCount} Duda</span>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                <span
+                                                    style={{
+                                                        width: 6,
+                                                        height: 6,
+                                                        borderRadius: "50%",
+                                                        background: "var(--val-red)",
+                                                        boxShadow: "0 0 6px var(--val-red)",
+                                                    }}
+                                                />
+                                                <span>{unavailable} No</span>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                <span
+                                                    style={{
+                                                        width: 6,
+                                                        height: 6,
+                                                        borderRadius: "50%",
+                                                        background: "rgba(255,255,255,0.25)",
+                                                    }}
+                                                />
+                                                <span>
+                                                    {players.length - confirmed - maybeCount - unavailable} Pendiente
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
