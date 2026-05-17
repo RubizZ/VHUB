@@ -166,3 +166,57 @@ export async function getPremierLeaderboard(region: string, conference: string, 
     return [];
   }
 }
+
+/**
+ * Stored Match Schema (V1)
+ */
+export interface HenrikStoredMatch {
+  meta: {
+    id: string;
+    map: { id: string; name: string };
+    version: string;
+    mode: string;
+    started_at: string;
+    season: { id: string; short: string };
+    region: string;
+    cluster: string;
+  };
+  stats: {
+    puuid: string;
+    name: string;
+    tag: string;
+    team: string;
+    level: number;
+    character: { id: string; name: string };
+    tier: number;
+    score: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+  };
+  teams: {
+    red: number;
+    blue: number;
+  };
+}
+
+/**
+ * Get Stored Matches (V1)
+ */
+export async function getStoredMatches(region: string, name: string, tag: string, mode?: string, size: number = 10, page?: number) {
+  try {
+    const params: any = { size };
+    if (mode) params.mode = mode;
+    if (page) params.page = page;
+
+    const res = await henrikAxiosInstance<HenrikResponse<HenrikStoredMatch[]>>({
+      url: `/valorant/v1/stored-matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`,
+      method: 'GET',
+      params
+    });
+    return res.data || null;
+  } catch (error) {
+    console.error('[HenrikDev] getStoredMatches error:', error);
+    return null;
+  }
+}

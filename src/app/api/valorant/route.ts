@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import { NextRequest, NextResponse } from "next/server";
-import { getAccount, getMatches, getMMR } from "@/lib/henrik-api";
+import { getAccount, getMatches, getMMR, getStoredMatches, getMatchById } from "@/lib/henrik-api";
 import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
 import { db } from "@/lib/db";
 import { MAPS } from "@/lib/maps";
@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
         const region = searchParams.get("region") || "eu";
         const seasonId = searchParams.get("season") || "all";
         const syncPage = parseInt(searchParams.get("syncPage") || "1", 10);
+        const requestMode = searchParams.get("mode") || null;
         
         if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
 
@@ -54,21 +55,50 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 1. Obtener Historial de partidas por cada modo de juego de Henrik para la página solicitada (syncPage)
-        const modesToSync = ["competitive", "premier", "unrated", "deathmatch"];
+        // 1. Obtener Historial de partidas por cada modo de juego de Henrik
         const fetchedMatches: HenrikMatch[] = [];
 
         try {
-          for (const mode of modesToSync) {
-            try {
-              // Pequeño retardo de 100ms para evitar rate-limit
-              await new Promise(resolve => setTimeout(resolve, 100));
-              const fetched = await getMatches(region, name, tag, mode, 10, syncPage);
-              if (fetched && fetched.length > 0) {
-                fetchedMatches.push(...fetched);
+          if (syncPage === 1) {
+            // Para la página 1, consultamos el V3 matches endpoint para obtener partidas en tiempo real
+            const modesToSync = ["competitive", "premier", "unrated", "deathmatch"];
+            for (const mode of modesToSync) {
+              try {
+                // Pequeño retardo de 100ms para evitar rate-limit
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const fetched = await getMatches(region, name, tag, mode, 10, 1);
+                if (fetched && fetched.length > 0) {
+                  fetchedMatches.push(...fetched);
+                }
+              } catch (err) {
+                console.warn(`[API Stats] Failed to fetch mode ${mode} page 1:`, err);
               }
-            } catch (err) {
-              console.warn(`[API Stats] Failed to fetch mode ${mode} page ${syncPage}:`, err);
+            }
+          } else {
+            // Para páginas > 1, consultamos stored-matches que sí soporta paginación real
+            const apiMode = requestMode === "standard" ? "unrated" : requestMode;
+            const stored = await getStoredMatches(region, name, tag, apiMode || undefined, 10, syncPage);
+            if (stored && stored.length > 0) {
+              for (const sm of stored) {
+                if (!sm.meta?.id) continue;
+                
+                // Verificar si ya tenemos esta partida en DB
+                const existing = await db.match.findUnique({
+                  where: { riot_match_id: sm.meta.id }
+                });
+                
+                if (!existing) {
+                  try {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const fullMatch = await getMatchById(sm.meta.id);
+                    if (fullMatch) {
+                      fetchedMatches.push(fullMatch);
+                    }
+                  } catch (err) {
+                    console.warn(`[API Stats] Failed to fetch match details for ${sm.meta.id}:`, err);
+                  }
+                }
+              }
             }
           }
         } catch (e) {
