@@ -3152,291 +3152,6 @@ export default function AvailabilityPage() {
                                                                     }
                                                                 </p>
                                                             )}
-
-                                                            {(isCancelled ||
-                                                                ev.status ===
-                                                                    "no_players" ||
-                                                                ev.status ===
-                                                                    "not_played" ||
-                                                                isImpossible) && (
-                                                                <div
-                                                                    style={{
-                                                                        padding:
-                                                                            "10px 14px",
-                                                                        borderRadius: 8,
-                                                                        background:
-                                                                            "rgba(255, 70, 85, 0.06)",
-                                                                        border: "1px solid rgba(255, 70, 85, 0.2)",
-                                                                        color: "var(--val-red)",
-                                                                        fontSize: 12,
-                                                                        fontWeight: 600,
-                                                                        display:
-                                                                            "flex",
-                                                                        alignItems:
-                                                                            "center",
-                                                                        gap: 8,
-                                                                        boxShadow:
-                                                                            "0 4px 20px rgba(255, 70, 85, 0.05)",
-                                                                    }}
-                                                                >
-                                                                    <span
-                                                                        style={{
-                                                                            fontSize: 14,
-                                                                        }}
-                                                                    >
-                                                                        ⚠️
-                                                                    </span>
-                                                                    <span>
-                                                                        {isCancelled &&
-                                                                            "Cancelado: Ya se jugaron 2 partidos esta semana."}
-                                                                        {ev.status ===
-                                                                            "no_players" &&
-                                                                            "Sin asistencia: No hay suficientes jugadores confirmados."}
-                                                                        {ev.status ===
-                                                                            "not_played" &&
-                                                                            "No jugado: Evento cancelado/no disputado."}
-                                                                        {isImpossible &&
-                                                                            ev.status ===
-                                                                                "scheduled" &&
-                                                                            "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Linked Matches */}
-                                                            {matches.length >
-                                                            0 ? (
-                                                                <div
-                                                                    style={{
-                                                                        marginTop: 8,
-                                                                    }}
-                                                                >
-                                                                    <div
-                                                                        style={{
-                                                                            fontSize: 11,
-                                                                            fontWeight: 800,
-                                                                            color: "var(--text-muted)",
-                                                                            textTransform:
-                                                                                "uppercase",
-                                                                            letterSpacing: 1,
-                                                                            marginBottom: 8,
-                                                                        }}
-                                                                    >
-                                                                        Partidos
-                                                                        Jugados
-                                                                    </div>
-                                                                    <div
-                                                                        style={{
-                                                                            display:
-                                                                                "flex",
-                                                                            flexDirection:
-                                                                                "column",
-                                                                            gap: 8,
-                                                                        }}
-                                                                    >
-                                                                        {matches.map(
-                                                                            (
-                                                                                m: LinkedMatch,
-                                                                            ) => {
-                                                                                const ourWin =
-                                                                                    m.our_team_side ===
-                                                                                    "Blue"
-                                                                                        ? m.team_blue_won
-                                                                                        : !m.team_blue_won;
-                                                                                const isBlue =
-                                                                                    m.our_team_side ===
-                                                                                    "Blue";
-                                                                                const ourScore =
-                                                                                    isBlue
-                                                                                        ? m.team_blue_score
-                                                                                        : m.team_red_score;
-                                                                                const rivalScore =
-                                                                                    isBlue
-                                                                                        ? m.team_red_score
-                                                                                        : m.team_blue_score;
-                                                                                return (
-                                                                                    <div
-                                                                                        key={
-                                                                                            m.id
-                                                                                        }
-                                                                                        onClick={() =>
-                                                                                            router.push(
-                                                                                                `/matches?id=${m.id}`,
-                                                                                            )
-                                                                                        }
-                                                                                        className="glass-card"
-                                                                                        style={{
-                                                                                            display:
-                                                                                                "flex",
-                                                                                            alignItems:
-                                                                                                "center",
-                                                                                            gap: 12,
-                                                                                            padding:
-                                                                                                "8px 12px",
-                                                                                            borderRadius: 8,
-                                                                                            background:
-                                                                                                "rgba(255,255,255,0.02)",
-                                                                                            cursor: "pointer",
-                                                                                            border: `1px solid ${ourWin ? "rgba(0,212,170,0.2)" : "rgba(255,70,85,0.2)"}`,
-                                                                                        }}
-                                                                                    >
-                                                                                        <div
-                                                                                            style={{
-                                                                                                width: 24,
-                                                                                                height: 24,
-                                                                                                borderRadius: 4,
-                                                                                                background:
-                                                                                                    ourWin
-                                                                                                        ? "var(--val-cyan)"
-                                                                                                        : "var(--val-red)",
-                                                                                                display:
-                                                                                                    "flex",
-                                                                                                alignItems:
-                                                                                                    "center",
-                                                                                                justifyContent:
-                                                                                                    "center",
-                                                                                                fontSize: 10,
-                                                                                                fontWeight: 900,
-                                                                                                color: "white",
-                                                                                            }}
-                                                                                        >
-                                                                                            {ourWin
-                                                                                                ? "W"
-                                                                                                : "L"}
-                                                                                        </div>
-                                                                                        <div
-                                                                                            style={{
-                                                                                                flex: 1,
-                                                                                                fontSize: 12,
-                                                                                            }}
-                                                                                        >
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    fontWeight: 700,
-                                                                                                }}
-                                                                                            >
-                                                                                                {
-                                                                                                    m.map_name
-                                                                                                }
-                                                                                            </span>
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    marginLeft: 8,
-                                                                                                    fontWeight: 800,
-                                                                                                    color: ourWin
-                                                                                                        ? "var(--val-cyan)"
-                                                                                                        : "var(--val-red)",
-                                                                                                }}
-                                                                                            >
-                                                                                                {
-                                                                                                    ourScore
-                                                                                                }
-                                                                                            </span>
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    margin: "0 4px",
-                                                                                                    opacity: 0.3,
-                                                                                                }}
-                                                                                            >
-                                                                                                -
-                                                                                            </span>
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    color: "var(--text-muted)",
-                                                                                                }}
-                                                                                            >
-                                                                                                {
-                                                                                                    rivalScore
-                                                                                                }
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <span
-                                                                                            style={{
-                                                                                                fontSize: 10,
-                                                                                                color: "var(--text-muted)",
-                                                                                            }}
-                                                                                        >
-                                                                                            ANALÍTICA
-                                                                                            →
-                                                                                        </span>
-                                                                                    </div>
-                                                                                );
-                                                                            },
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                !(
-                                                                    isCancelled ||
-                                                                    ev.status ===
-                                                                        "no_players" ||
-                                                                    ev.status ===
-                                                                        "not_played" ||
-                                                                    isImpossible
-                                                                ) && (
-                                                                    <div
-                                                                        style={{
-                                                                            marginTop: 8,
-                                                                        }}
-                                                                    >
-                                                                        <div
-                                                                            style={{
-                                                                                fontSize: 11,
-                                                                                fontWeight: 800,
-                                                                                color: "var(--text-muted)",
-                                                                                textTransform:
-                                                                                    "uppercase",
-                                                                                letterSpacing: 1,
-                                                                                marginBottom: 8,
-                                                                            }}
-                                                                        >
-                                                                            Partidos
-                                                                            Jugados
-                                                                        </div>
-                                                                        <div
-                                                                            style={{
-                                                                                padding:
-                                                                                    "12px 16px",
-                                                                                borderRadius: 8,
-                                                                                background:
-                                                                                    "rgba(255, 255, 255, 0.02)",
-                                                                                border: "1px dashed rgba(255, 255, 255, 0.08)",
-                                                                                color: "var(--text-muted)",
-                                                                                fontSize: 12,
-                                                                                fontStyle:
-                                                                                    "italic",
-                                                                                display:
-                                                                                    "flex",
-                                                                                alignItems:
-                                                                                    "center",
-                                                                                gap: 10,
-                                                                            }}
-                                                                        >
-                                                                            <span
-                                                                                style={{
-                                                                                    fontSize: 14,
-                                                                                    opacity: 0.6,
-                                                                                }}
-                                                                            >
-                                                                                📡
-                                                                            </span>
-                                                                            <span>
-                                                                                Aquí
-                                                                                se
-                                                                                mostrarán
-                                                                                los
-                                                                                partidos
-                                                                                que
-                                                                                se
-                                                                                jueguen
-                                                                                durante
-                                                                                este
-                                                                                evento.
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            )}
                                                         </div>
 
                                                         {/* Columna Derecha: Asistencia, Mapa y Controles */}
@@ -3915,9 +3630,295 @@ export default function AvailabilityPage() {
                                                                 </div>
                                                             </div>
 
+                                                            {(isCancelled ||
+                                                                ev.status ===
+                                                                    "no_players" ||
+                                                                ev.status ===
+                                                                    "not_played" ||
+                                                                isImpossible) && (
+                                                                <div
+                                                                    style={{
+                                                                        padding:
+                                                                            "10px 14px",
+                                                                        borderRadius: 8,
+                                                                        background:
+                                                                            "rgba(255, 70, 85, 0.06)",
+                                                                        border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                                        color: "var(--val-red)",
+                                                                        fontSize: 12,
+                                                                        fontWeight: 600,
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 8,
+                                                                        boxShadow:
+                                                                            "0 4px 20px rgba(255, 70, 85, 0.05)",
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        style={{
+                                                                            fontSize: 14,
+                                                                        }}
+                                                                    >
+                                                                        ⚠️
+                                                                    </span>
+                                                                    <span>
+                                                                        {isCancelled &&
+                                                                            "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                                                                        {ev.status ===
+                                                                            "no_players" &&
+                                                                            "Sin asistencia: No hay suficientes jugadores confirmados."}
+                                                                        {ev.status ===
+                                                                            "not_played" &&
+                                                                            "No jugado: Evento cancelado/no disputado."}
+                                                                        {isImpossible &&
+                                                                            ev.status ===
+                                                                                "scheduled" &&
+                                                                            "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Linked Matches */}
+                                                            {matches.length >
+                                                            0 ? (
+                                                                <div
+                                                                    style={{
+                                                                        marginTop: 8,
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        style={{
+                                                                            fontSize: 11,
+                                                                            fontWeight: 800,
+                                                                            color: "var(--text-muted)",
+                                                                            textTransform:
+                                                                                "uppercase",
+                                                                            letterSpacing: 1,
+                                                                            marginBottom: 8,
+                                                                        }}
+                                                                    >
+                                                                        Partidos
+                                                                        Jugados
+                                                                    </div>
+                                                                    <div
+                                                                        style={{
+                                                                            display:
+                                                                                "flex",
+                                                                            flexDirection:
+                                                                                "column",
+                                                                            gap: 8,
+                                                                        }}
+                                                                    >
+                                                                        {matches.map(
+                                                                            (
+                                                                                m: LinkedMatch,
+                                                                            ) => {
+                                                                                const ourWin =
+                                                                                    m.our_team_side ===
+                                                                                    "Blue"
+                                                                                        ? m.team_blue_won
+                                                                                        : !m.team_blue_won;
+                                                                                const isBlue =
+                                                                                    m.our_team_side ===
+                                                                                    "Blue";
+                                                                                const ourScore =
+                                                                                    isBlue
+                                                                                        ? m.team_blue_score
+                                                                                        : m.team_red_score;
+                                                                                const rivalScore =
+                                                                                    isBlue
+                                                                                        ? m.team_red_score
+                                                                                        : m.team_blue_score;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={
+                                                                                            m.id
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            router.push(
+                                                                                                `/matches?id=${m.id}`,
+                                                                                            )
+                                                                                        }
+                                                                                        className="glass-card"
+                                                                                        style={{
+                                                                                            display:
+                                                                                                "flex",
+                                                                                            alignItems:
+                                                                                                "center",
+                                                                                            gap: 12,
+                                                                                            padding:
+                                                                                                "8px 12px",
+                                                                                            borderRadius: 8,
+                                                                                            background:
+                                                                                                "rgba(255,255,255,0.02)",
+                                                                                            cursor: "pointer",
+                                                                                            border: `1px solid ${ourWin ? "rgba(0,212,170,0.2)" : "rgba(255,70,85,0.2)"}`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            style={{
+                                                                                                width: 24,
+                                                                                                height: 24,
+                                                                                                borderRadius: 4,
+                                                                                                background:
+                                                                                                    ourWin
+                                                                                                        ? "var(--val-cyan)"
+                                                                                                        : "var(--val-red)",
+                                                                                                display:
+                                                                                                    "flex",
+                                                                                                alignItems:
+                                                                                                    "center",
+                                                                                                justifyContent:
+                                                                                                    "center",
+                                                                                                fontSize: 10,
+                                                                                                fontWeight: 900,
+                                                                                                color: "white",
+                                                                                            }}
+                                                                                        >
+                                                                                            {ourWin
+                                                                                                ? "W"
+                                                                                                : "L"}
+                                                                                        </div>
+                                                                                        <div
+                                                                                            style={{
+                                                                                                flex: 1,
+                                                                                                fontSize: 12,
+                                                                                            }}
+                                                                                        >
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    fontWeight: 700,
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    m.map_name
+                                                                                                }
+                                                                                            </span>
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    marginLeft: 8,
+                                                                                                    fontWeight: 800,
+                                                                                                    color: ourWin
+                                                                                                        ? "var(--val-cyan)"
+                                                                                                        : "var(--val-red)",
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    ourScore
+                                                                                                }
+                                                                                            </span>
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    margin: "0 4px",
+                                                                                                    opacity: 0.3,
+                                                                                                }}
+                                                                                            >
+                                                                                                -
+                                                                                            </span>
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    color: "var(--text-muted)",
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    rivalScore
+                                                                                                }
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <span
+                                                                                            style={{
+                                                                                                fontSize: 10,
+                                                                                                color: "var(--text-muted)",
+                                                                                            }}
+                                                                                        >
+                                                                                            ANALÍTICA
+                                                                                            →
+                                                                                        </span>
+                                                                                    </div>
+                                                                                );
+                                                                            },
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                !(
+                                                                    isCancelled ||
+                                                                    ev.status ===
+                                                                        "no_players" ||
+                                                                    ev.status ===
+                                                                        "not_played" ||
+                                                                    isImpossible
+                                                                ) && (
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop: 8,
+                                                                        }}
+                                                                    >
+                                                                        <div
+                                                                            style={{
+                                                                                fontSize: 11,
+                                                                                fontWeight: 800,
+                                                                                color: "var(--text-muted)",
+                                                                                textTransform:
+                                                                                    "uppercase",
+                                                                                letterSpacing: 1,
+                                                                                marginBottom: 8,
+                                                                            }}
+                                                                        >
+                                                                            Partidos
+                                                                            Jugados
+                                                                        </div>
+                                                                        <div
+                                                                            style={{
+                                                                                padding:
+                                                                                    "12px 16px",
+                                                                                borderRadius: 8,
+                                                                                background:
+                                                                                    "rgba(255, 255, 255, 0.02)",
+                                                                                border: "1px dashed rgba(255, 255, 255, 0.08)",
+                                                                                color: "var(--text-muted)",
+                                                                                fontSize: 12,
+                                                                                fontStyle:
+                                                                                    "italic",
+                                                                                display:
+                                                                                    "flex",
+                                                                                alignItems:
+                                                                                    "center",
+                                                                                gap: 10,
+                                                                            }}
+                                                                        >
+                                                                            <span
+                                                                                style={{
+                                                                                    fontSize: 14,
+                                                                                    opacity: 0.6,
+                                                                                }}
+                                                                            >
+                                                                                📡
+                                                                            </span>
+                                                                            <span>
+                                                                                Aquí
+                                                                                se
+                                                                                mostrarán
+                                                                                los
+                                                                                partidos
+                                                                                que
+                                                                                se
+                                                                                jueguen
+                                                                                durante
+                                                                                este
+                                                                                evento.
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            )}
+
                                                             {/* Actions Panel */}
                                                             {myPlayerId &&
-                                                                !isInactive && (
+                                                                !isPast &&
+                                                                ev.status !== "completed" && (
                                                                     <div
                                                                         style={{
                                                                             padding:
@@ -5075,13 +5076,7 @@ export default function AvailabilityPage() {
                         !isPast &&
                         players.length >= 5 &&
                         players.length - unavailable < 5;
-                    const isInactiveModal =
-                        isPast ||
-                        isCancelled ||
-                        isNoPlayers ||
-                        isNotPlayed ||
-                        isImpossible ||
-                        ev.status === "completed";
+
 
                     const isRed =
                         isCancelled ||
@@ -5850,7 +5845,7 @@ export default function AvailabilityPage() {
                                         </div>
                                     </div>
 
-                                    {myPlayerId && !isInactiveModal && (
+                                    {myPlayerId && !isPast && ev.status !== "completed" && (
                                         <div
                                             style={{
                                                 display: "flex",
