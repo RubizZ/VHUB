@@ -3950,7 +3950,7 @@ export default function AvailabilityPage() {
                                                                                 onClick={() =>
                                                                                     setAvailability(
                                                                                         ev.id,
-                                                                                        "available",
+                                                                                        myStatus === "available" ? "pending" : "available",
                                                                                     )
                                                                                 }
                                                                                 className="transition-smooth"
@@ -4027,7 +4027,7 @@ export default function AvailabilityPage() {
                                                                                 onClick={() =>
                                                                                     setAvailability(
                                                                                         ev.id,
-                                                                                        "maybe",
+                                                                                        myStatus === "maybe" ? "pending" : "maybe",
                                                                                     )
                                                                                 }
                                                                                 className="transition-smooth"
@@ -4104,7 +4104,7 @@ export default function AvailabilityPage() {
                                                                                 onClick={() =>
                                                                                     setAvailability(
                                                                                         ev.id,
-                                                                                        "unavailable",
+                                                                                        myStatus === "unavailable" ? "pending" : "unavailable",
                                                                                     )
                                                                                 }
                                                                                 className="transition-smooth"
@@ -5864,7 +5864,7 @@ export default function AvailabilityPage() {
                                                     onClick={() =>
                                                         setAvailability(
                                                             ev.id,
-                                                            "available",
+                                                            myStatus === "available" ? "pending" : "available",
                                                         )
                                                     }
                                                     style={{
@@ -5879,7 +5879,7 @@ export default function AvailabilityPage() {
                                                     onClick={() =>
                                                         setAvailability(
                                                             ev.id,
-                                                            "maybe",
+                                                            myStatus === "maybe" ? "pending" : "maybe",
                                                         )
                                                     }
                                                     style={{
@@ -5894,7 +5894,7 @@ export default function AvailabilityPage() {
                                                     onClick={() =>
                                                         setAvailability(
                                                             ev.id,
-                                                            "unavailable",
+                                                            myStatus === "unavailable" ? "pending" : "unavailable",
                                                         )
                                                     }
                                                     style={{
