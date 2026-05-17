@@ -209,9 +209,9 @@ export default function StatsPage() {
                                         boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
                                     }}
                                 >
-                                    {p.name[0]}
+                                    {(p.riot_name || p.name)[0]}
                                 </div>
-                                {p.name}
+                                {p.riot_name ? `${p.riot_name}#${p.riot_tag}` : p.name}
                             </button>
                         ))}
                     </div>
@@ -455,7 +455,7 @@ export default function StatsPage() {
                                         border: `2px solid ${selected.avatar_color}`,
                                     }}
                                 >
-                                    {selected.name[0]}
+                                    {(selected.riot_name || selected.name)[0]}
                                 </div>
                                 <div>
                                     <h3
@@ -466,7 +466,7 @@ export default function StatsPage() {
                                             marginBottom: 4,
                                         }}
                                     >
-                                        {selected.name}
+                                        {selected.riot_name ? `${selected.riot_name}#${selected.riot_tag}` : selected.name}
                                     </h3>
                                     <div
                                         style={{
