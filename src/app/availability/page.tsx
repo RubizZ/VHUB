@@ -636,83 +636,89 @@ export default function AvailabilityPage() {
                             {d.isToday && <span style={{ fontSize: 8, fontWeight: 900, color: "var(--val-red)", letterSpacing: 1, textTransform: "uppercase" }}>Hoy</span>}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
-                            {d.events.map((ev: any) => {
-                              const ea = avail[ev.id] || [];
-                              const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
-                              const isCancelled = ev.status === 'cancelled';
-                              const isNoPlayers = ev.status === 'no_players';
-                              const isNotPlayed = ev.status === 'not_played';
-                              
-                              const unavailable = ea.filter(a => a.status === "unavailable").length;
-                              const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
-                              
-                              const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
-                              const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
-                              const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
-                              const isFirstUpcoming = ev.id === firstUpcomingId;
+                            {isLoadingEvents ? (
+                              (i % 5 === 2 || i % 7 === 4) && (
+                                <Skeleton width="100%" height={16} style={{ borderRadius: 4 }} />
+                              )
+                            ) : (
+                              d.events.map((ev: any) => {
+                                const ea = avail[ev.id] || [];
+                                const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
+                                const isCancelled = ev.status === 'cancelled';
+                                const isNoPlayers = ev.status === 'no_players';
+                                const isNotPlayed = ev.status === 'not_played';
+                                
+                                const unavailable = ea.filter(a => a.status === "unavailable").length;
+                                const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
+                                
+                                const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
+                                const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                                const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                                const isFirstUpcoming = ev.id === firstUpcomingId;
 
-                              const hoverBorderColor = myStatus === 'available'
-                                ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
-                                : evColor;
+                                const hoverBorderColor = myStatus === 'available'
+                                  ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
+                                  : evColor;
 
-                              const hoverSheenActive = myStatus === 'available'
-                                ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
-                                : "rgba(255, 255, 255, 0.12)";
+                                const hoverSheenActive = myStatus === 'available'
+                                  ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
+                                  : "rgba(255, 255, 255, 0.12)";
 
-                              const hoverInsetShadow = myStatus === 'available'
-                                ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
-                                : `inset 0 0 5px ${evColor}`;
+                                const hoverInsetShadow = myStatus === 'available'
+                                  ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
+                                  : `inset 0 0 5px ${evColor}`;
 
-                              return (
-                                <div
-                                  key={ev.id}
-                                  onClick={() => setSelectedEventId(ev.id)}
-                                  className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
-                                  style={{
-                                    fontSize: 10, padding: "4px 6px", borderRadius: 4,
-                                    background: isRed 
-                                      ? 'transparent' 
-                                      : myStatus === 'unavailable'
-                                        ? 'transparent'
-                                        : myStatus === 'pending'
+                                return (
+                                  <div
+                                    key={ev.id}
+                                    onClick={() => setSelectedEventId(ev.id)}
+                                    className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                    style={{
+                                      fontSize: 10, padding: "4px 6px", borderRadius: 4,
+                                      background: isRed 
+                                        ? 'transparent' 
+                                        : myStatus === 'unavailable'
                                           ? 'transparent'
-                                          : myStatus === 'maybe'
-                                            ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                            : evColor,
-                                    color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
-                                    fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
-                                    textDecoration: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
-                                    opacity: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
-                                    border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `1px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
-                                    boxShadow: isFirstUpcoming
-                                      ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
-                                      : 'none',
-                                    zIndex: isFirstUpcoming ? 5 : undefined,
-                                    ["--hover-border-color" as any]: hoverBorderColor,
-                                    ["--hover-sheen-active" as any]: hoverSheenActive,
-                                    ["--hover-inset-shadow" as any]: hoverInsetShadow,
-                                    ["--hover-color" as any]: evColor
-                                  }}
-                                  title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
-                                >
-                                  {isFirstUpcoming && (
-                                    <span style={{
-                                      marginRight: 4,
-                                      background: ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)",
-                                      color: ev.type === "playoffs" ? "black" : "white",
-                                      padding: "1px 3px",
-                                      borderRadius: 3,
-                                      fontSize: 7,
-                                      fontWeight: 900,
-                                      boxShadow: "0 0 8px rgba(255,255,255,0.2)"
-                                    }}>
-                                      PRÓXIMO
-                                    </span>
-                                  )}
-                                  {ev.localTime} {getEventDisplayName(ev)}
-                                </div>
-                              );
-                            })}
+                                          : myStatus === 'pending'
+                                            ? 'transparent'
+                                            : myStatus === 'maybe'
+                                              ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                              : evColor,
+                                      color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
+                                      fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer",
+                                      textDecoration: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 'line-through' : 'none',
+                                      opacity: (isCancelled || isNoPlayers || isNotPlayed || isImpossible || myStatus === 'unavailable') ? 0.4 : 1,
+                                      border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `1px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
+                                      boxShadow: isFirstUpcoming
+                                        ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                        : 'none',
+                                      zIndex: isFirstUpcoming ? 5 : undefined,
+                                      ["--hover-border-color" as any]: hoverBorderColor,
+                                      ["--hover-sheen-active" as any]: hoverSheenActive,
+                                      ["--hover-inset-shadow" as any]: hoverInsetShadow,
+                                      ["--hover-color" as any]: evColor
+                                    }}
+                                    title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === 'pending' ? 'Pendiente' : ev.status})`}
+                                  >
+                                    {isFirstUpcoming && (
+                                      <span style={{
+                                        marginRight: 4,
+                                        background: ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)",
+                                        color: ev.type === "playoffs" ? "black" : "white",
+                                        padding: "1px 3px",
+                                        borderRadius: 3,
+                                        fontSize: 7,
+                                        fontWeight: 900,
+                                        boxShadow: "0 0 8px rgba(255,255,255,0.2)"
+                                      }}>
+                                        PRÓXIMO
+                                      </span>
+                                    )}
+                                    {ev.localTime} {getEventDisplayName(ev)}
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
                         </>
                       )}
@@ -794,96 +800,133 @@ export default function AvailabilityPage() {
                           )}
 
                           {/* Events */}
-                          {d.events.map((ev: any) => {
-                            const [h, m] = ev.localTime.split(':').map(Number);
-                            
-                            const top = h * 60 + m;
-                            let duration = 1.5;
-                            if (ev.localEndTime) {
-                              const [eh, em] = ev.localEndTime.split(':').map(Number);
-                              duration = (eh - h) + (em - m) / 60;
-                            }
-                            const height = duration * 60;
-
-                            const ea = avail[ev.id] || [];
-                            const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
-                            const isCancelled = ev.status === 'cancelled';
-                            const isNoPlayers = ev.status === 'no_players';
-                            const isNotPlayed = ev.status === 'not_played';
-                            const unavailable = ea.filter(a => a.status === "unavailable").length;
-                            const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
-                            
-                            const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
-                            const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
-                            const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
-                            const isFirstUpcoming = ev.id === firstUpcomingId;
-
-                            const hoverBorderColor = myStatus === 'available'
-                               ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
-                               : evColor;
-
-                            const hoverSheenActive = myStatus === 'available'
-                               ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
-                               : "rgba(255, 255, 255, 0.12)";
-
-                            const hoverInsetShadow = myStatus === 'available'
-                               ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
-                               : `inset 0 0 5px ${evColor}`;
-
-                            return (
-                              <div
-                                key={ev.id}
-                                onClick={() => setSelectedEventId(ev.id)}
-                                className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
-                                style={{
-                                  position: "absolute", top: top, left: 4, right: 4, height: height,
-                                  fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
-                                  background: isRed 
-                                    ? 'transparent' 
-                                    : myStatus === 'unavailable'
-                                      ? 'transparent'
-                                      : myStatus === 'pending'
-                                        ? 'transparent'
-                                        : myStatus === 'maybe'
-                                          ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                          : evColor,
-                                  color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
-                                  fontWeight: 700, cursor: "pointer",
-                                  boxShadow: isFirstUpcoming 
-                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
-                                    : (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
-                                  border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
-                                  display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
-                                  opacity: (myStatus === 'unavailable' || isRed) ? 0.4 : 1,
-                                  textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none',
-                                  ["--hover-border-color" as any]: hoverBorderColor,
-                                  ["--hover-sheen-active" as any]: hoverSheenActive,
-                                  ["--hover-inset-shadow" as any]: hoverInsetShadow,
-                                  ["--hover-color" as any]: evColor
-                                }}
-                              >
-                                {isFirstUpcoming && (
-                                  <div style={{
-                                    background: "rgba(255,255,255,0.18)",
-                                    color: "white",
-                                    padding: "1px 4px",
-                                    borderRadius: 4,
-                                    fontSize: 7,
-                                    fontWeight: 900,
-                                    textTransform: "uppercase",
-                                    letterSpacing: 0.5,
-                                    marginBottom: height < 40 ? 0 : 2
-                                  }}>
-                                    PRÓXIMO
-                                  </div>
-                                )}
-                                <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{getEventDisplayName(ev)}</div>
-                                 <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>
-                                   {ev.map ? (maps.find((m: any) => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}
-                                 </div>
+                          {isLoadingEvents ? (
+                            ((idx === 1 && (
+                              <div style={{
+                                position: "absolute",
+                                top: 17 * 60, // 17:00
+                                height: 90, // 1.5 horas
+                                left: 4,
+                                right: 4,
+                                zIndex: 10
+                              }}>
+                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
                               </div>
-                            );
-                          })}
+                            )) || (idx === 3 && (
+                              <div style={{
+                                position: "absolute",
+                                top: 19 * 60, // 19:00
+                                height: 90, // 1.5 horas
+                                left: 4,
+                                right: 4,
+                                zIndex: 10
+                              }}>
+                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
+                              </div>
+                            )) || (idx === 5 && (
+                              <div style={{
+                                position: "absolute",
+                                top: 16 * 60, // 16:00
+                                height: 90, // 1.5 horas
+                                left: 4,
+                                right: 4,
+                                zIndex: 10
+                              }}>
+                                <Skeleton width="100%" height="100%" style={{ borderRadius: 6 }} />
+                              </div>
+                            )))
+                          ) : (
+                            d.events.map((ev: any) => {
+                              const [h, m] = ev.localTime.split(':').map(Number);
+                              
+                              const top = h * 60 + m;
+                              let duration = 1.5;
+                              if (ev.localEndTime) {
+                                const [eh, em] = ev.localEndTime.split(':').map(Number);
+                                duration = (eh - h) + (em - m) / 60;
+                              }
+                              const height = duration * 60;
+
+                              const ea = avail[ev.id] || [];
+                              const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
+                              const isCancelled = ev.status === 'cancelled';
+                              const isNoPlayers = ev.status === 'no_players';
+                              const isNotPlayed = ev.status === 'not_played';
+                              const unavailable = ea.filter(a => a.status === "unavailable").length;
+                              const isImpossible = isMounted && (ev as any).localDate >= todayStr && players.length >= 5 && (players.length - unavailable < 5);
+                              
+                              const isRed = isCancelled || isNoPlayers || isNotPlayed || isImpossible;
+                              const evColor = ev.type === "playoffs" ? "var(--val-yellow)" : ev.type === "match" ? "var(--val-red)" : "var(--val-cyan)";
+                              const evColorDark = ev.type === "playoffs" ? "var(--val-yellow-dark)" : ev.type === "match" ? "var(--val-red-dark)" : "#008a6e";
+                              const isFirstUpcoming = ev.id === firstUpcomingId;
+
+                              const hoverBorderColor = myStatus === 'available'
+                                 ? (ev.type === "match" ? "rgba(255, 255, 255, 0.65)" : evColorDark)
+                                 : evColor;
+
+                              const hoverSheenActive = myStatus === 'available'
+                                 ? (ev.type === "match" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)")
+                                 : "rgba(255, 255, 255, 0.12)";
+
+                              const hoverInsetShadow = myStatus === 'available'
+                                 ? (ev.type === "match" ? "inset 0 0 4px rgba(255, 255, 255, 0.35)" : "inset 0 0 4px rgba(0, 0, 0, 0.15)")
+                                 : `inset 0 0 5px ${evColor}`;
+
+                              return (
+                                <div
+                                  key={ev.id}
+                                  onClick={() => setSelectedEventId(ev.id)}
+                                  className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                  style={{
+                                    position: "absolute", top: top, left: 4, right: 4, height: height,
+                                    fontSize: 10, padding: "6px", borderRadius: 8, zIndex: isFirstUpcoming ? 25 : 10,
+                                    background: isRed 
+                                      ? 'transparent' 
+                                      : myStatus === 'unavailable'
+                                        ? 'transparent'
+                                        : myStatus === 'pending'
+                                          ? 'transparent'
+                                          : myStatus === 'maybe'
+                                            ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                            : evColor,
+                                    color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
+                                    fontWeight: 700, cursor: "pointer",
+                                    boxShadow: isFirstUpcoming 
+                                      ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                      : (myStatus === 'pending' || myStatus === 'unavailable' || isRed) ? "none" : "0 4px 12px rgba(0,0,0,0.3)",
+                                    border: (isRed || myStatus === 'unavailable') ? `1px solid ${evColor}` : myStatus === 'pending' ? `2px dashed ${evColor}` : '1px solid rgba(255,255,255,0.1)',
+                                    display: "flex", flexDirection: height < 40 ? "row" : "column", alignItems: height < 40 ? "center" : "flex-start", justifyContent: height < 40 ? "center" : "flex-start", gap: height < 40 ? 4 : 2, overflow: "hidden",
+                                    opacity: (myStatus === 'unavailable' || isRed) ? 0.4 : 1,
+                                    textDecoration: (myStatus === 'unavailable' || isRed) ? 'line-through' : 'none',
+                                    ["--hover-border-color" as any]: hoverBorderColor,
+                                    ["--hover-sheen-active" as any]: hoverSheenActive,
+                                    ["--hover-inset-shadow" as any]: hoverInsetShadow,
+                                    ["--hover-color" as any]: evColor
+                                  }}
+                                >
+                                  {isFirstUpcoming && (
+                                    <div style={{
+                                      background: "rgba(255,255,255,0.18)",
+                                      color: "white",
+                                      padding: "1px 4px",
+                                      borderRadius: 4,
+                                      fontSize: 7,
+                                      fontWeight: 900,
+                                      textTransform: "uppercase",
+                                      letterSpacing: 0.5,
+                                      marginBottom: height < 40 ? 0 : 2
+                                    }}>
+                                      PRÓXIMO
+                                    </div>
+                                  )}
+                                  <div style={{ whiteSpace: height < 40 ? "nowrap" : "normal", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{getEventDisplayName(ev)}</div>
+                                   <div style={{ fontSize: 8, opacity: 0.7, fontWeight: 600, textTransform: "uppercase" }}>
+                                     {ev.map ? (maps.find((m: any) => m.id === ev.map)?.name || ev.map) : (ev.type === "playoffs" ? "Pick & Ban" : "Por decidir")}
+                                   </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       ))}
                     </div>
