@@ -116,6 +116,8 @@ export default function StatsPage() {
     const [selected, setSelected] = useState<Player | null>(null);
     const [data, setData] = useState<PlayerData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [currentSyncPage, setCurrentSyncPage] = useState<number>(1);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"competitive" | "premier" | "standard" | "others" | "deathmatch">("competitive");
     const [seasons, setSeasons] = useState<Array<{ id: string; name: string }>>([]);
@@ -127,19 +129,24 @@ export default function StatsPage() {
             .then((d) => setPlayers(d.players || []));
     }, []);
 
-    const loadStats = async (p: Player, season: string = "all") => {
+    const loadStats = async (p: Player, season: string = "all", syncPage: number = 1) => {
         setSelected(p);
-        setLoading(true);
-        setError(null);
-        if (season === "all") {
-            setData(null);
-            setSeasons([]);
+        if (syncPage > 1) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+            setError(null);
+            if (season === "all") {
+                setData(null);
+                setSeasons([]);
+                setCurrentSyncPage(1);
+            }
         }
         const name = p.riot_name || p.name;
         const tag = p.riot_tag || "EUW";
         try {
             const res = await fetch(
-                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}`,
+                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}&syncPage=${syncPage}`,
             );
             const d = await res.json();
 
@@ -161,7 +168,10 @@ export default function StatsPage() {
             if (d.seasons) {
                 setSeasons(d.seasons);
             }
-            if (d.stats) {
+            if (syncPage > 1) {
+                setCurrentSyncPage(syncPage);
+            }
+            if (d.stats && syncPage === 1) {
                 if (d.stats.competitive && d.stats.competitive.gamesPlayed > 0) {
                     setActiveTab("competitive");
                 } else if (d.stats.premier && d.stats.premier.gamesPlayed > 0) {
@@ -185,6 +195,7 @@ export default function StatsPage() {
             );
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
@@ -1010,7 +1021,8 @@ export default function StatsPage() {
                                                 Sin partidas de este tipo registradas en tu historial reciente.
                                             </div>
                                         ) : (
-                                            <div style={{ overflowX: "auto" }}>
+                                            <>
+                                                <div style={{ overflowX: "auto" }}>
                                                 <table
                                                     style={{
                                                         width: "100%",
@@ -1294,7 +1306,55 @@ export default function StatsPage() {
                                                     </tbody>
                                                 </table>
                                             </div>
-                                        )}
+
+                                            {/* Botón Cargar Más */}
+                                            <div style={{ display: "flex", justifyContent: "center", marginTop: 24, paddingBottom: 8 }}>
+                                                <button
+                                                    onClick={() => loadStats(selected!, selectedSeason, currentSyncPage + 1)}
+                                                    disabled={loadingMore}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 8,
+                                                        padding: "10px 24px",
+                                                        borderRadius: "24px",
+                                                        fontSize: 14,
+                                                        fontFamily: "var(--font-valorant), sans-serif",
+                                                        background: "rgba(255, 255, 255, 0.05)",
+                                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                                        color: "var(--text-primary)",
+                                                        cursor: "pointer",
+                                                        transition: "all 0.2s ease",
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                                        e.currentTarget.style.borderColor = "var(--val-cyan)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                                                    }}
+                                                >
+                                                    {loadingMore ? (
+                                                        <>
+                                                            <span className="spinner-border animate-spin" style={{
+                                                                width: 14,
+                                                                height: 14,
+                                                                border: "2px solid var(--text-primary)",
+                                                                borderTopColor: "transparent",
+                                                                borderRadius: "50%",
+                                                                display: "inline-block"
+                                                            }} />
+                                                            Cargando partidas antiguas...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            🔄 Cargar más partidas antiguas (Página {currentSyncPage + 1})
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </>)}
                                     </div>
                                 </>
                             );
