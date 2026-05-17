@@ -53,20 +53,33 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 1. Obtener Historial de partidas de Henrik (sincronizamos las últimas 3 páginas para tener un total de 30 partidas)
-        const matches: HenrikMatch[] = [];
+        // 1. Obtener Historial de partidas por cada modo de juego de Henrik para sortear el límite de 10 por llamada
+        const modesToSync = ["competitive", "premier", "unrated", "deathmatch"];
+        const fetchedMatches: HenrikMatch[] = [];
+
         try {
-          for (let pageNum = 1; pageNum <= 3; pageNum++) {
-            const fetched = await getMatches(region, name, tag, undefined, 10, pageNum);
-            if (fetched && fetched.length > 0) {
-              matches.push(...fetched);
-            } else {
-              break;
+          for (const mode of modesToSync) {
+            try {
+              // Pequeño retardo de 100ms para evitar rate-limit
+              await new Promise(resolve => setTimeout(resolve, 100));
+              const fetched = await getMatches(region, name, tag, mode, 10);
+              if (fetched && fetched.length > 0) {
+                fetchedMatches.push(...fetched);
+              }
+            } catch (err) {
+              console.warn(`[API Stats] Failed to fetch mode ${mode}:`, err);
             }
           }
         } catch (e) {
           console.error("[API Stats] Error fetching matches from Henrik:", e);
         }
+
+        // Filtrar duplicados por match ID
+        const uniqueMatchesMap = new Map<string, HenrikMatch>();
+        for (const m of fetchedMatches) {
+          uniqueMatchesMap.set(m.metadata.matchid, m);
+        }
+        const matches = Array.from(uniqueMatchesMap.values());
 
         // 2. Guardar y sincronizar las partidas en nuestra base de datos local
         if (matches && matches.length > 0) {
