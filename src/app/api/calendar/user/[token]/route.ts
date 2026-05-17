@@ -119,12 +119,15 @@ export async function GET(
         description += `📝 Notas: ${ev.description}\n`;
       }
 
-      if (available.length > 0) description += `\n\n✅ Confirmados (${available.length}): ${available.join(", ")}`;
-      if (played.length > 0) description += `\n\n💜 Jugaron (${played.length}): ${played.join(", ")}`;
-      if (maybe.length > 0) description += `\n⚠️ Duda (${maybe.length}): ${maybe.join(", ")}`;
-      if (unavailable.length > 0) description += `\n❌ No asisten (${unavailable.length}): ${unavailable.join(", ")}`;
+      description += `\n`; // Espacio de separación limpio
 
+      const attendeeLists = [];
+      if (available.length > 0) attendeeLists.push(`✅ Confirmados (${available.length}): ${available.join(", ")}`);
+      if (played.length > 0) attendeeLists.push(`💜 Jugaron (${played.length}): ${played.join(", ")}`);
+      if (maybe.length > 0) attendeeLists.push(`⚠️ Duda (${maybe.length}): ${maybe.join(", ")}`);
+      if (unavailable.length > 0) attendeeLists.push(`❌ No asisten (${unavailable.length}): ${unavailable.join(", ")}`);
 
+      description += attendeeLists.join("\n");
 
       // Rich HTML Content
       let htmlContent = `<div>
