@@ -675,7 +675,7 @@ export default function StatsPage() {
                                             Sin partidas registradas
                                         </h4>
                                         <p style={{ fontSize: 14, maxWidth: 400, margin: "0 auto" }}>
-                                            No hay partidas de este tipo en el historial reciente (últimas 10 partidas sincronizadas).
+                                            No hay partidas de este tipo en el historial reciente de tu base de datos.
                                         </p>
                                     </div>
                                 );

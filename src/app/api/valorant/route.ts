@@ -227,7 +227,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
           stats,
           mmr,
-          matches: matchesToAnalyze.slice(0, 10), // Devolvemos las 10 más recientes para el historial visual
+          matches: matchesToAnalyze, // Devolvemos todas las partidas acumuladas para que el frontend las filtre dinámicamente
           seasons: playedSeasons,
           mock: false,
           configured: true
