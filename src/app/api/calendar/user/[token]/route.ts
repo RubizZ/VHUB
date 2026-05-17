@@ -51,21 +51,18 @@ export async function GET(
     .filter((ev) => {
       const myAvail = ev.availability.find(a => a.player_id === playerId);
       const myStatus = myAvail?.status || "pending";
+      const isInterested = myStatus === "available" || myStatus === "maybe" || myStatus === "played";
       
+      if (!isInterested) return false;
+
       const startDt = new Date(`${ev.date}T${ev.time}:00Z`);
       const isPast = startDt < now;
 
       if (isPast) {
-        // En el pasado, solo mostrar eventos completados si asistió o jugó
-        const wasInterested = myStatus === "available" || myStatus === "maybe" || myStatus === "played";
-        if (!wasInterested) return false;
         return ev.status === 'completed';
       }
 
-      // En el futuro, mostrar todos los eventos programados para su equipo
-      // a menos que haya marcado explícitamente que no asiste ("unavailable").
-      // Esto incluye eventos "pending" para recordar al usuario contestar.
-      return myStatus !== "unavailable";
+      return true;
     })
     .map((ev) => {
       const [year, month, day] = ev.date.split("-").map(Number);
@@ -74,7 +71,12 @@ export async function GET(
       const myAvail = ev.availability.find(a => a.player_id === playerId);
       const myStatus = myAvail?.status || "pending";
       
-      const statusPrefix = myStatus === "pending" ? "⏳ " : "";
+      let statusPrefix = "";
+      if (myStatus === "available") statusPrefix = "✅ ";
+      else if (myStatus === "played") statusPrefix = "💜 ";
+      else if (myStatus === "maybe") statusPrefix = "⚠️ ";
+      else if (myStatus === "unavailable") statusPrefix = "❌ ";
+      else statusPrefix = "⏳ ";
 
       let duration: ics.DurationObject = { hours: 1, minutes: 30 };
       if (ev.end_date && ev.end_time) {
