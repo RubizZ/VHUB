@@ -107,6 +107,7 @@ interface PlayerData {
     stats: PlayerStatsGroup;
     mmr: MMR | null;
     matches: Match[];
+    seasons?: Array<{ id: string; name: string }>;
     mock: boolean;
 }
 
@@ -117,6 +118,8 @@ export default function StatsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"competitive" | "premier" | "standard" | "others" | "deathmatch">("competitive");
+    const [seasons, setSeasons] = useState<Array<{ id: string; name: string }>>([]);
+    const [selectedSeason, setSelectedSeason] = useState<string>("all");
 
     useEffect(() => {
         fetch("/api/players")
@@ -124,16 +127,19 @@ export default function StatsPage() {
             .then((d) => setPlayers(d.players || []));
     }, []);
 
-    const loadStats = async (p: Player) => {
+    const loadStats = async (p: Player, season: string = "all") => {
         setSelected(p);
         setLoading(true);
         setError(null);
-        setData(null);
+        if (season === "all") {
+            setData(null);
+            setSeasons([]);
+        }
         const name = p.riot_name || p.name;
         const tag = p.riot_tag || "EUW";
         try {
             const res = await fetch(
-                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`,
+                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}`,
             );
             const d = await res.json();
 
@@ -152,6 +158,9 @@ export default function StatsPage() {
             }
 
             setData(d);
+            if (d.seasons) {
+                setSeasons(d.seasons);
+            }
             if (d.stats) {
                 if (d.stats.competitive && d.stats.competitive.gamesPlayed > 0) {
                     setActiveTab("competitive");
@@ -176,6 +185,13 @@ export default function StatsPage() {
             );
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSeasonChange = async (seasonId: string) => {
+        setSelectedSeason(seasonId);
+        if (selected) {
+            await loadStats(selected, seasonId);
         }
     };
 
@@ -521,6 +537,34 @@ export default function StatsPage() {
                                                 ? data.mmr.currenttierpatched
                                                 : "Sin Rango"}
                                         </div>
+                                        
+                                        {/* Selector de Temporada */}
+                                        {seasons.length > 0 && (
+                                            <div style={{ marginLeft: 4 }}>
+                                                <select
+                                                    value={selectedSeason}
+                                                    onChange={(e) => handleSeasonChange(e.target.value)}
+                                                    style={{
+                                                        background: "rgba(255,255,255,0.03)",
+                                                        border: "1px solid var(--border-color)",
+                                                        borderRadius: "20px",
+                                                        color: "var(--text-primary)",
+                                                        fontSize: 12,
+                                                        fontWeight: 600,
+                                                        padding: "4px 12px",
+                                                        cursor: "pointer",
+                                                        outline: "none"
+                                                    }}
+                                                >
+                                                    <option value="all" style={{ background: "#0c0d12" }}>📅 Historial de por vida</option>
+                                                    {seasons.map(s => (
+                                                        <option key={s.id} value={s.id} style={{ background: "#0c0d12" }}>
+                                                            🛡️ {s.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                         {data.mmr && (
                                             <div
                                                 style={{
