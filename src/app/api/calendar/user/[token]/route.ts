@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import * as ics from "ics";
@@ -22,6 +23,7 @@ export async function GET(
         include: {
           events: {
             include: {
+              map_obj: true,
               availability: {
                 include: {
                   player: {
@@ -43,12 +45,13 @@ export async function GET(
 
   const playerId = user.playerId;
   const now = new Date();
+  const origin = req.nextUrl.origin;
 
   const calendarEvents: ics.EventAttributes[] = user.team.events
     .filter((ev) => {
       const myAvail = ev.availability.find(a => a.player_id === playerId);
       const myStatus = myAvail?.status || "pending";
-      const isInterested = myStatus === "available" || myStatus === "maybe";
+      const isInterested = myStatus === "available" || myStatus === "maybe" || myStatus === "played";
       
       if (!isInterested) return false;
 
@@ -56,14 +59,6 @@ export async function GET(
       const isPast = startDt < now;
 
       if (isPast) {
-        // Para eventos pasados, solo mostrar si efectivamente se jugaron (vía Match.event_id)
-        // Pero en esta API, team.events no tiene linkedMatches directamente.
-        // Sin embargo, ev.status ya debería estar como 'completed' si se jugaron,
-        // gracias a la lógica que añadimos a /api/events.
-        // Pero espera, /api/events actualiza la DB. Así que podemos confiar en ev.status.
-        
-        // Buscamos si hay algún match en la DB vinculado a este evento
-        // Para ser más precisos, podríamos haber incluido matches en la query inicial.
         return ev.status === 'completed';
       }
 
@@ -71,44 +66,116 @@ export async function GET(
     })
     .map((ev) => {
       const [year, month, day] = ev.date.split("-").map(Number);
-    const [hour, minute] = ev.time.split(":").map(Number);
+      const [hour, minute] = ev.time.split(":").map(Number);
 
-    const myAvail = ev.availability.find(a => a.player_id === playerId);
-    const myStatus = myAvail?.status || "pending";
-    
-    let statusPrefix = "";
-    if (myStatus === "available") statusPrefix = "✅ ";
-    else if (myStatus === "maybe") statusPrefix = "⚠️ ";
-    else if (myStatus === "unavailable") statusPrefix = "❌ ";
-    else statusPrefix = "⏳ ";
+      const myAvail = ev.availability.find(a => a.player_id === playerId);
+      const myStatus = myAvail?.status || "pending";
+      
+      let statusPrefix = "";
+      if (myStatus === "available") statusPrefix = "✅ ";
+      else if (myStatus === "played") statusPrefix = "💜 ";
+      else if (myStatus === "maybe") statusPrefix = "⚠️ ";
+      else if (myStatus === "unavailable") statusPrefix = "❌ ";
+      else statusPrefix = "⏳ ";
 
-    let duration: ics.DurationObject = { hours: 1, minutes: 30 };
-    if (ev.end_date && ev.end_time) {
-      const start = new Date(`${ev.date}T${ev.time}:00Z`);
-      const end = new Date(`${ev.end_date}T${ev.end_time}:00Z`);
-      const diffMs = end.getTime() - start.getTime();
-      const diffMin = Math.floor(diffMs / 60000);
-      duration = { hours: Math.floor(diffMin / 60), minutes: diffMin % 60 };
-    }
+      let duration: ics.DurationObject = { hours: 1, minutes: 30 };
+      if (ev.end_date && ev.end_time) {
+        const start = new Date(`${ev.date}T${ev.time}:00Z`);
+        const end = new Date(`${ev.end_date}T${ev.end_time}:00Z`);
+        const diffMs = end.getTime() - start.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        duration = { hours: Math.floor(diffMin / 60), minutes: diffMin % 60 };
+      }
 
-    const available = ev.availability.filter(a => a.status === "available").map(a => a.player.name);
-    let description = ev.description || "";
-    description += `\n\nTu estado: ${myStatus.toUpperCase()}`;
-    if (available.length > 0) description += `\n\nConfirmados (${available.length}): ${available.join(", ")}`;
-    if (ev.map) description += `\nMapa: ${ev.map}`;
+      // Preparar descripción con disponibilidad
+      const available = ev.availability
+        .filter((a) => a.status === "available")
+        .map((a) => a.player.name);
+      const maybe = ev.availability
+        .filter((a) => a.status === "maybe")
+        .map((a) => a.player.name);
+      const unavailable = ev.availability
+        .filter((a) => a.status === "unavailable")
+        .map((a) => a.player.name);
+      const played = ev.availability
+        .filter((a) => a.status === "played")
+        .map((a) => a.player.name);
 
-    return {
-      start: [year, month, day, hour, minute],
-      duration,
-      title: `${statusPrefix}${ev.title}`,
-      description,
-      status: ev.status === "cancelled" ? "CANCELLED" : "CONFIRMED",
-      categories: [ev.type],
-      productId: "VHUB/PersonalCalendar",
-    };
+      // Resolver título si es null
+      let titleText = ev.title;
+      if (!titleText) {
+        if (ev.type === "practice") titleText = "Entrenamiento";
+        else if (ev.type === "playoffs") titleText = "Playoffs Premier";
+        else if (ev.type === "match") titleText = "Partido Premier";
+        else titleText = "Evento";
+      }
+
+      const eventUrl = `${origin}/availability?eventId=${ev.id}`;
+      const mapName = ev.map_obj?.name || ev.map || "Por definir";
+
+      let description = `🏆 Evento: ${titleText}\n`;
+      description += `📅 Fecha: ${ev.date} a las ${ev.time}\n`;
+      description += `🗺️ Mapa: ${mapName}\n`;
+      description += `👤 Tu Estado: ${myStatus.toUpperCase()}\n`;
+      if (ev.description) {
+        description += `📝 Notas: ${ev.description}\n`;
+      }
+      description += `🔗 Ver en VHUB: ${eventUrl}`;
+
+      if (available.length > 0) description += `\n\n✅ Confirmados (${available.length}): ${available.join(", ")}`;
+      if (played.length > 0) description += `\n\n💜 Jugaron (${played.length}): ${played.join(", ")}`;
+      if (maybe.length > 0) description += `\n⚠️ Duda (${maybe.length}): ${maybe.join(", ")}`;
+      if (unavailable.length > 0) description += `\n❌ No asisten (${unavailable.length}): ${unavailable.join(", ")}`;
+
+      if (ev.map_obj?.splash) {
+        description += `\n\n🖼️ Imagen de fondo del mapa: ${ev.map_obj.splash}`;
+      }
+
+      // Rich HTML Content
+      let htmlContent = `<div>
+        <h2>🏆 ${titleText}</h2>
+        <p><strong>📅 Fecha y Hora:</strong> ${ev.date} a las ${ev.time}</p>
+        <p><strong>🗺️ Mapa:</strong> ${mapName}</p>
+        <p><strong>👤 Tu Estado:</strong> <span style="text-transform: uppercase;">${myStatus}</span></p>
+        ${ev.description ? `<p><strong>📝 Notas:</strong> ${ev.description}</p>` : ""}
+        <p><a href="${eventUrl}">🔗 Ver en VHUB y gestionar asistencia</a></p>
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
+      `;
+
+      if (available.length > 0) {
+        htmlContent += `<p><strong>✅ Confirmados (${available.length}):</strong> ${available.join(", ")}</p>`;
+      }
+      if (played.length > 0) {
+        htmlContent += `<p><strong>💜 Jugaron (${played.length}):</strong> ${played.join(", ")}</p>`;
+      }
+      if (maybe.length > 0) {
+        htmlContent += `<p><strong>⚠️ Duda (${maybe.length}):</strong> ${maybe.join(", ")}</p>`;
+      }
+      if (unavailable.length > 0) {
+        htmlContent += `<p><strong>❌ No asisten (${unavailable.length}):</strong> ${unavailable.join(", ")}</p>`;
+      }
+
+      if (ev.map_obj?.splash) {
+        htmlContent += `<div style="margin-top: 15px;"><img src="${ev.map_obj.splash}" alt="${mapName}" style="max-width: 100%; border-radius: 8px;" /></div>`;
+      }
+      htmlContent += `</div>`;
+
+      return {
+        start: [year, month, day, hour, minute],
+        duration,
+        title: `${statusPrefix}${titleText}`,
+        description,
+        htmlContent,
+        url: eventUrl,
+        status: ev.status === "cancelled" ? "CANCELLED" : "CONFIRMED",
+        categories: [ev.type],
+        productId: "VHUB/PersonalCalendar",
+      };
+    });
+
+  const { error, value } = ics.createEvents(calendarEvents, {
+    calName: `VHUB Personal - ${user.player?.name || user.email}`
   });
-
-  const { error, value } = ics.createEvents(calendarEvents);
 
   if (error) {
     console.error("Error creating iCal events:", error);
