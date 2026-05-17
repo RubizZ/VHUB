@@ -117,6 +117,7 @@ export default function StatsPage() {
     const [data, setData] = useState<PlayerData | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"competitive" | "premier" | "standard" | "others" | "deathmatch">("competitive");
     const [seasons, setSeasons] = useState<Array<{ id: string; name: string }>>([]);
@@ -132,6 +133,7 @@ export default function StatsPage() {
         setSelected(p);
         if (syncPage > 1) {
             setLoadingMore(true);
+            setLoadMoreError(null);
         } else {
             setLoading(true);
             setError(null);
@@ -188,11 +190,17 @@ export default function StatsPage() {
             }
         } catch (err) {
             console.error("Error al cargar estadísticas:", err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Error desconocido al cargar estadísticas",
-            );
+            const msg = err instanceof Error
+                ? err.message
+                : "Error desconocido al cargar estadísticas";
+            if (syncPage > 1) {
+                setLoadMoreError(msg);
+                setTimeout(() => {
+                    setLoadMoreError(null);
+                }, 6000);
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
             setLoadingMore(false);
@@ -1308,7 +1316,7 @@ export default function StatsPage() {
                                             </div>
 
                                             {/* Botón Cargar Más */}
-                                            <div style={{ display: "flex", justifyContent: "center", marginTop: 24, paddingBottom: 8 }}>
+                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 24, gap: 12, paddingBottom: 8 }}>
                                                 <button
                                                     onClick={() => {
                                                         const nextPage = filteredMatches.length < 10
@@ -1354,10 +1362,32 @@ export default function StatsPage() {
                                                         </>
                                                     ) : (
                                                         <>
-                                                            🔄 Cargar más partidas antiguas (Página {filteredMatches.length < 10 ? 2 : Math.floor(filteredMatches.length / 10) + 1})
+                                                            🔄 Cargar más partidas antiguas
                                                         </>
                                                     )}
                                                 </button>
+
+                                                {loadMoreError && (
+                                                    <div
+                                                        className="animate-fade-in"
+                                                        style={{
+                                                            fontSize: 13,
+                                                            color: "var(--val-red)",
+                                                            background: "rgba(255, 70, 85, 0.08)",
+                                                            border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                            padding: "8px 16px",
+                                                            borderRadius: "8px",
+                                                            fontFamily: "sans-serif",
+                                                            textAlign: "center",
+                                                            maxWidth: 450,
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 6
+                                                        }}
+                                                    >
+                                                        ⚠️ {loadMoreError}
+                                                    </div>
+                                                )}
                                             </div>
                                         </>)}
                                     </div>
