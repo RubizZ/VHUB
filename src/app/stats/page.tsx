@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 "use client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/Skeleton";
@@ -125,7 +126,7 @@ export default function StatsPage() {
                         "Demasiadas solicitudes a Riot. Espera un minuto y vuelve a intentarlo.",
                     );
                 }
-                throw new Error(d.error);
+                throw new Error(d.message || d.error);
             }
 
             setData(d);
@@ -345,34 +346,49 @@ export default function StatsPage() {
 
                 {error && (
                     <div
-                        className="card"
+                        className="card glass-card animate-fade-in"
                         style={{
-                            border: "1px solid var(--val-red)",
-                            background: "rgba(255,70,85,0.05)",
+                            border: error.includes("consentimiento") ? "1px solid rgba(168,85,247,0.3)" : "1px solid var(--val-red)",
+                            background: error.includes("consentimiento") ? "rgba(168,85,247,0.03)" : "rgba(255,70,85,0.03)",
                             textAlign: "center",
-                            padding: 32,
+                            padding: "40px 32px",
+                            borderRadius: 16,
+                            boxShadow: error.includes("consentimiento") ? "0 8px 32px rgba(168,85,247,0.05)" : "0 8px 32px rgba(255,70,85,0.05)",
                         }}
                     >
-                        <p style={{ fontSize: 32, marginBottom: 12 }}>⚠️</p>
+                        <p style={{ fontSize: 48, marginBottom: 16 }}>
+                            {error.includes("consentimiento") ? "🔒" : "⚠️"}
+                        </p>
                         <h4
-                            style={{ color: "var(--val-red)", marginBottom: 8 }}
+                            style={{
+                                color: error.includes("consentimiento") ? "var(--val-purple)" : "var(--val-red)",
+                                fontSize: 20,
+                                fontWeight: 700,
+                                marginBottom: 12
+                            }}
                         >
-                            Error al cargar datos
+                            {error.includes("consentimiento") ? "Privacidad de Datos" : "Error al cargar datos"}
                         </h4>
                         <p
                             style={{
-                                color: "var(--text-muted)",
-                                fontSize: 14,
-                                maxWidth: 400,
+                                color: "var(--text-primary)",
+                                fontSize: 15,
+                                lineHeight: 1.6,
+                                maxWidth: 480,
                                 margin: "0 auto 20px",
+                                opacity: 0.9
                             }}
                         >
                             {error}
                         </p>
+                        {error.includes("consentimiento") && (
+                            <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 420, margin: "0 auto" }}>
+                                El jugador puede habilitar el uso compartido de sus estadísticas activando el consentimiento en su pestaña de <strong>Perfil</strong>.
+                            </p>
+                        )}
                         {error.includes("Key") && (
-                            <p style={{ fontSize: 12, opacity: 0.7 }}>
-                                Tip: Si usas una clave de desarrollo, recuerda
-                                que caducan cada 24 horas.
+                            <p style={{ fontSize: 12, opacity: 0.7, color: "var(--text-muted)" }}>
+                                Tip: Si usas una clave de desarrollo, recuerda que caducan cada 24 horas.
                             </p>
                         )}
                     </div>

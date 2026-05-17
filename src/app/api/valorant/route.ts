@@ -1,6 +1,8 @@
+/* eslint-disable no-undef */
 import { NextRequest, NextResponse } from "next/server";
 import { getAccount, getMatches, getMMR } from "@/lib/henrik-api";
 import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
+import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -18,6 +20,22 @@ export async function GET(req: NextRequest) {
         const region = searchParams.get("region") || "eu";
         
         if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
+
+        // Verificar consentimiento en base de datos
+        const dbPlayer = await db.player.findFirst({
+          where: {
+            riot_name: { equals: name, mode: "insensitive" },
+            riot_tag: { equals: tag, mode: "insensitive" }
+          },
+          include: { user: { select: { dataConsent: true } } }
+        });
+
+        if (dbPlayer && dbPlayer.user?.dataConsent !== true) {
+          return NextResponse.json({
+            error: "consent_required",
+            message: "Este jugador no ha dado su consentimiento para procesar y mostrar sus estadísticas de juego en VHUB."
+          }, { status: 403 });
+        }
 
         // 1. Obtener Historial (V3 devuelve el objeto completo de cada partida)
         const matches = await getMatches(region, name, tag, undefined, 10);

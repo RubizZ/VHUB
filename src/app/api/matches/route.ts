@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getRiotClient } from "@/lib/riot/client";
@@ -71,19 +72,13 @@ export async function GET(req: NextRequest) {
         let displayName = s.puuid.substring(0, 8);
         const isTeamMember = !!teamPlayer;
 
-        if (isTeamMember) {
-          if (isConsenting) {
-            if (pData?.name && pData?.tag) {
-              displayName = `${pData.name}#${pData.tag}`;
-            } else if (teamPlayer.riot_name && teamPlayer.riot_tag) {
-              displayName = `${teamPlayer.riot_name}#${teamPlayer.riot_tag}`;
-            } else if (teamPlayer.name) {
-              displayName = teamPlayer.name;
-            }
-          }
-        } else {
-          if (pData?.name && pData?.tag) {
-            displayName = `${pData.name}#${pData.tag}`;
+        if (pData?.name && pData?.tag) {
+          displayName = `${pData.name}#${pData.tag}`;
+        } else if (isTeamMember) {
+          if (teamPlayer.riot_name && teamPlayer.riot_tag) {
+            displayName = `${teamPlayer.riot_name}#${teamPlayer.riot_tag}`;
+          } else if (teamPlayer.name) {
+            displayName = teamPlayer.name;
           }
         }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
@@ -15,7 +16,7 @@ export async function GET() {
   const players = await db.player.findMany({
     where: { teamId: session.user.teamId },
     orderBy: { id: 'asc' },
-    include: { user: { select: { email: true, name: true } } }
+    include: { user: { select: { email: true, name: true, dataConsent: true } } }
   });
   return NextResponse.json({ players });
 }
