@@ -1,3 +1,4 @@
+/* global fetch, console, setTimeout */
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -187,7 +188,7 @@ export default function ProfilePage() {
                 <div style={{ flex: 1, paddingRight: 24 }}>
                   <h3 style={{ margin: "0 0 8px 0", fontSize: 18, fontWeight: 800, color: "var(--val-red)" }}>Privacidad de Analíticas</h3>
                   <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                    Al activar esta opción, permites que V-HUB guarde tus registros de partidas y los procese para mostrar estadísticas avanzadas al equipo.
+                    Al activar esta opción, permites que VHUB guarde tus registros de partidas y los procese para mostrar estadísticas avanzadas. Ten en cuenta que vincular tu cuenta hace que tus datos de juego y rendimiento asociados sean visibles para los miembros de tu equipo en esta plataforma.
                   </p>
                 </div>
                 <label className="switch">
