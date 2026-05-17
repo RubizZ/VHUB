@@ -592,36 +592,20 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
     minute: "2-digit"
   }) : "";
 
-  // Generate a beautiful, informational title
-  const getPremiumTitle = () => {
-    const lowercaseTitle = group.title.toLowerCase();
-    const isDefault = 
-      lowercaseTitle === "partido premier" || 
-      lowercaseTitle === "práctica de equipo" || 
-      lowercaseTitle === "playoffs premier";
-
-    if (!isDefault) {
-      return group.title; // Keep custom titles
-    }
-
-    // Get unique maps from the matches in this event
-    const mapsPlayed = Array.from(new Set(group.matches.map(m => m.map_name).filter(Boolean)));
-    const mapsString = mapsPlayed.join(" & ");
-
-    if (lowercaseTitle === "partido premier") {
-      return mapsString ? `Jornada de Liga: ${mapsString}` : "Jornada de Liga Premier";
-    }
-    if (lowercaseTitle === "práctica de equipo") {
-      return mapsString ? `Sesión de Scrim: ${mapsString}` : "Sesión de Entrenamiento";
-    }
-    if (lowercaseTitle === "playoffs premier") {
-      return mapsString ? `Fase de Eliminatorias: ${mapsString}` : "Fase de Playoffs";
-    }
-
-    return group.title;
-  };
-
-  const premiumTitle = getPremiumTitle();
+  // Check if the title is a redundant default one
+  const lowercaseTitle = group.title.toLowerCase();
+  const isDefaultTitle = 
+    lowercaseTitle === "partido premier" || 
+    lowercaseTitle === "práctica de equipo" || 
+    lowercaseTitle === "playoffs premier" ||
+    lowercaseTitle === "partidos individuales" ||
+    lowercaseTitle.startsWith("jornada de liga") ||
+    lowercaseTitle.startsWith("sesión de scrim") ||
+    lowercaseTitle.startsWith("fase de eliminatorias") ||
+    lowercaseTitle.startsWith("eliminatorias playoffs") ||
+    lowercaseTitle.startsWith("entrenamiento") ||
+    lowercaseTitle.startsWith("playoffs:") ||
+    lowercaseTitle.startsWith("sesión de entrenamiento");
 
   return (
     <div 
@@ -680,9 +664,11 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
               </span>
             )}
           </div>
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px", marginTop: 4 }}>
-            {premiumTitle}
-          </h3>
+          {!isDefaultTitle && (
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px", marginTop: 4 }}>
+              {group.title}
+            </h3>
+          )}
         </div>
         <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500, textTransform: "capitalize" }}>
           {formattedEventDate}
