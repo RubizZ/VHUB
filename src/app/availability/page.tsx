@@ -53,6 +53,7 @@ export default function AvailabilityPage() {
   const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
   const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [isEntryAnimationDone, setIsEntryAnimationDone] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [calendarToken, setCalendarToken] = useState<string | null>(null);
   const [userCalendarToken, setUserCalendarToken] = useState<string | null>(null);
@@ -134,7 +135,11 @@ export default function AvailabilityPage() {
     fetch("/api/maps").then(r => r.json()).then(d => setMaps(d.maps || []));
 
     const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
+    const entryTimer = setTimeout(() => setIsEntryAnimationDone(true), 1500);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(entryTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -935,7 +940,7 @@ export default function AvailabilityPage() {
 
                   <div
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
-                    className={`card glass-card ${ev.id === activeHighlightId ? "upcoming-highlight" : "animate-card-in"} ${
+                    className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${
                       isInactive 
                         ? "faded-card" 
                         : myStatus === "unavailable" 
