@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         const tag = searchParams.get("tag");
         const region = searchParams.get("region") || "eu";
         const seasonId = searchParams.get("season") || "all";
+        const syncPage = parseInt(searchParams.get("syncPage") || "1", 10);
         
         if (!name || !tag) return NextResponse.json({ error: "name and tag required" }, { status: 400 });
 
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 1. Obtener Historial de partidas por cada modo de juego de Henrik para sortear el límite de 10 por llamada
+        // 1. Obtener Historial de partidas por cada modo de juego de Henrik para la página solicitada (syncPage)
         const modesToSync = ["competitive", "premier", "unrated", "deathmatch"];
         const fetchedMatches: HenrikMatch[] = [];
 
@@ -62,12 +63,12 @@ export async function GET(req: NextRequest) {
             try {
               // Pequeño retardo de 100ms para evitar rate-limit
               await new Promise(resolve => setTimeout(resolve, 100));
-              const fetched = await getMatches(region, name, tag, mode, 10);
+              const fetched = await getMatches(region, name, tag, mode, 10, syncPage);
               if (fetched && fetched.length > 0) {
                 fetchedMatches.push(...fetched);
               }
             } catch (err) {
-              console.warn(`[API Stats] Failed to fetch mode ${mode}:`, err);
+              console.warn(`[API Stats] Failed to fetch mode ${mode} page ${syncPage}:`, err);
             }
           }
         } catch (e) {
