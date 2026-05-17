@@ -977,14 +977,14 @@ export default function StatsPage() {
 
                                             if (!me) return null;
                                             const team =
-                                                me.team.toLowerCase() as
+                                                (me.team?.toLowerCase() || "red") as
                                                     | "red"
                                                     | "blue";
-                                            const won = m.teams[team]?.has_won;
+                                            const won = m.teams?.[team]?.has_won || false;
                                             const rw =
-                                                m.teams[team]?.rounds_won || 0;
+                                                m.teams?.[team]?.rounds_won || 0;
                                             const rl =
-                                                m.teams[team]?.rounds_lost || 0;
+                                                m.teams?.[team]?.rounds_lost || 0;
                                             const acs =
                                                 m.metadata.rounds_played > 0
                                                     ? Math.round(

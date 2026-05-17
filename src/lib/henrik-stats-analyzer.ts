@@ -74,8 +74,8 @@ export function analyzeHenrikPlayerStats(matches: HenrikMatch[], name: string, t
     if (!player) continue;
 
     stats.gamesPlayed++;
-    const team = player.team.toLowerCase() as 'red' | 'blue';
-    const won = match.teams[team].has_won;
+    const team = player.team?.toLowerCase() as 'red' | 'blue' || 'red';
+    const won = match.teams?.[team]?.has_won || false;
 
     if (won) {
       stats.wins++;
