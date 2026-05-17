@@ -652,20 +652,20 @@ export default function StatsPage() {
                             }}
                         >
                             {[
-                                { id: "competitive", label: "🏆 Competitivo", exists: !!data.stats.competitive },
-                                { id: "premier", label: "⚔️ Premier", exists: !!data.stats.premier },
-                                { id: "standard", label: "🎮 Standard (Unrated)", exists: !!data.stats.standard },
-                                { id: "others", label: "🎲 Otros Modos", exists: !!data.stats.others },
-                                { id: "deathmatch", label: "💀 Deathmatch", exists: !!data.stats.deathmatch }
+                                { id: "competitive", label: "🏆 Competitivo" },
+                                { id: "premier", label: "⚔️ Premier" },
+                                { id: "standard", label: "🎮 Standard (Unrated)" },
+                                { id: "others", label: "🎲 Otros Modos" },
+                                { id: "deathmatch", label: "💀 Deathmatch" }
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
                                     className={`btn ${activeTab === tab.id ? "btn-primary" : "btn-secondary"}`}
                                     onClick={() => setActiveTab(tab.id as "competitive" | "premier" | "standard" | "others" | "deathmatch")}
                                     style={{
-                                        opacity: tab.exists ? 1 : 0.4,
-                                        cursor: tab.exists ? "pointer" : "not-allowed",
-                                        pointerEvents: tab.exists ? "auto" : "none",
+                                        opacity: 1,
+                                        cursor: "pointer",
+                                        pointerEvents: "auto",
                                         fontSize: 13,
                                         padding: "6px 14px",
                                         borderRadius: "20px"
@@ -680,23 +680,98 @@ export default function StatsPage() {
                             const stats = data.stats[activeTab];
                             if (!stats || stats.gamesPlayed === 0) {
                                 return (
-                                    <div
-                                        className="card glass-card"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "60px 40px",
-                                            color: "var(--text-muted)",
-                                            borderRadius: 16
-                                        }}
-                                    >
-                                        <p style={{ fontSize: 48, marginBottom: 16 }}>📊</p>
-                                        <h4 style={{ color: "var(--text-primary)", marginBottom: 8, fontSize: 18 }}>
-                                            Sin partidas registradas
-                                        </h4>
-                                        <p style={{ fontSize: 14, maxWidth: 400, margin: "0 auto" }}>
-                                            No hay partidas de este tipo en el historial reciente de tu base de datos.
-                                        </p>
-                                    </div>
+                                    <>
+                                        <div
+                                            className="card glass-card"
+                                            style={{
+                                                textAlign: "center",
+                                                padding: "60px 40px",
+                                                color: "var(--text-muted)",
+                                                borderRadius: 16
+                                            }}
+                                        >
+                                            <p style={{ fontSize: 48, marginBottom: 16 }}>📊</p>
+                                            <h4 style={{ color: "var(--text-primary)", marginBottom: 8, fontSize: 18 }}>
+                                                Sin partidas registradas
+                                            </h4>
+                                            <p style={{ fontSize: 14, maxWidth: 400, margin: "0 auto", marginBottom: 24 }}>
+                                                No hay partidas de este tipo en el historial reciente de tu base de datos. Pulsa a continuación para intentar buscar y sincronizar partidas desde el servidor de Henrik.
+                                            </p>
+                                        </div>
+
+                                        {/* Botón Cargar Más */}
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 24, gap: 12, paddingBottom: 8 }}>
+                                            <button
+                                                onClick={() => {
+                                                    // Como hay 0 partidas, solicitamos la página 1 para intentar la sincronización inicial
+                                                    loadStats(selected!, selectedSeason, 1);
+                                                }}
+                                                disabled={loadingMore}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 8,
+                                                    padding: "10px 24px",
+                                                    borderRadius: "24px",
+                                                    fontSize: 14,
+                                                    fontFamily: "var(--font-valorant), sans-serif",
+                                                    background: "rgba(255, 255, 255, 0.05)",
+                                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                                    color: "var(--text-primary)",
+                                                    cursor: "pointer",
+                                                    transition: "all 0.2s ease",
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                                    e.currentTarget.style.borderColor = "var(--val-cyan)";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                                                }}
+                                            >
+                                                {loadingMore ? (
+                                                    <>
+                                                        <span className="spinner-border animate-spin" style={{
+                                                            width: 14,
+                                                            height: 14,
+                                                            border: "2px solid var(--text-primary)",
+                                                            borderTopColor: "transparent",
+                                                            borderRadius: "50%",
+                                                            display: "inline-block"
+                                                        }} />
+                                                        Cargando partidas antiguas...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        🔄 Buscar y sincronizar partidas
+                                                    </>
+                                                )}
+                                            </button>
+
+                                            {loadMoreError && (
+                                                <div
+                                                    className="animate-fade-in"
+                                                    style={{
+                                                        fontSize: 13,
+                                                        color: "var(--val-red)",
+                                                        background: "rgba(255, 70, 85, 0.08)",
+                                                        border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                        padding: "8px 16px",
+                                                        borderRadius: "8px",
+                                                        fontFamily: "sans-serif",
+                                                        textAlign: "center",
+                                                        maxWidth: 450,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 6
+                                                    }}
+                                                >
+                                                    ⚠️ {loadMoreError}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
                                 );
                             }
 
