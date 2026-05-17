@@ -707,6 +707,8 @@ export default function AvailabilityPage() {
                                           ? 'transparent'
                                           : myStatus === 'pending'
                                             ? 'transparent'
+                                            : (ev.status === 'completed' || (ev.linkedMatches && ev.linkedMatches.length > 0))
+                                               ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
                                             : myStatus === 'maybe'
                                               ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
                                               : evColor,
@@ -920,9 +922,11 @@ export default function AvailabilityPage() {
                                         ? 'transparent'
                                         : myStatus === 'pending'
                                           ? 'transparent'
-                                          : myStatus === 'maybe'
-                                            ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                            : evColor,
+                                          : (ev.status === 'completed' || (ev.linkedMatches && ev.linkedMatches.length > 0))
+                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
+                                            : myStatus === 'maybe'
+                                              ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                              : evColor,
                                     color: (isRed || myStatus === 'unavailable' || myStatus === 'pending') ? evColor : "white",
                                     fontWeight: 700, cursor: "pointer",
                                     boxShadow: isFirstUpcoming 
@@ -1068,6 +1072,7 @@ export default function AvailabilityPage() {
 
               const myStatus = ea.find(a => String(a.player_id) === String(myPlayerId))?.status || "pending";
               const matches = ev.linkedMatches || [];
+              const hasPlayed = ev.status === 'completed' || matches.length > 0;
 
               return (
                 <div key={ev.id}>
@@ -1089,7 +1094,7 @@ export default function AvailabilityPage() {
                     ref={(el) => { eventRefsMap.current[ev.id] = el; if (isFirstUpcoming) (firstUpcomingRef as any).current = el; }}
                     className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${
                       isInactive 
-                        ? "faded-card" 
+                        ? (hasPlayed ? "played-card" : "faded-card") 
                         : myStatus === "unavailable" 
                           ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}` 
                           : (ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice")
@@ -1370,6 +1375,12 @@ export default function AvailabilityPage() {
                             textTransform: "uppercase",
                             letterSpacing: 0.5
                           }}>
+                            {hasPlayed && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-purple)", boxShadow: "0 0 6px var(--val-purple)" }} />
+                                <span style={{ color: "var(--val-purple)" }}>{ea.filter(a => a.status === "played").length} Jugaron</span>
+                              </div>
+                            )}
                             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 6px var(--val-cyan)" }} />
                               <span>{confirmed} Sí</span>

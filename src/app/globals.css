@@ -1073,6 +1073,18 @@ select option {
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.05) !important;
 }
 
+.card.played-card {
+  opacity: 0.85 !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card.played-card:hover {
+  opacity: 1.0 !important;
+  transform: translateY(-2px);
+  cursor: pointer;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.05) !important;
+}
+
 .card.unavailable-card {
   opacity: 0.4 !important;
 }
