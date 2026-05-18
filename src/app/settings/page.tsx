@@ -1,6 +1,6 @@
-/* global fetch, console, setTimeout */
+/* global fetch, console, setTimeout, window */
 "use client";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import React, { useState, useEffect } from "react";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -33,6 +33,7 @@ export default function AccountSettingsPage() {
   const [riotMessage, setRiotMessage] = useState({ text: "", type: "" });
   const [privacyMessage, setPrivacyMessage] = useState({ text: "", type: "" });
   const [localConsent, setLocalConsent] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -167,6 +168,38 @@ export default function AccountSettingsPage() {
       setPrivacyMessage({ text: "Error al actualizar privacidad", type: "error" });
     } finally {
       setSavingPrivacy(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "⚠ ATENCIÓN: ¿Estás completamente seguro de que deseas eliminar tu cuenta de forma permanente?\n\nEsta acción es irreversible: se borrarán todos tus datos, disponibilidades, mensajes y estadísticas de equipo. No podrás recuperar tu cuenta."
+    );
+    if (!confirmed) return;
+
+    const secondConfirm = window.confirm(
+      "CONFIRMACIÓN FINAL:\n\n¿Realmente deseas proceder con la eliminación definitiva de tu cuenta?"
+    );
+    if (!secondConfirm) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/players/me", {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        window.alert("Tu cuenta ha sido eliminada correctamente.");
+        await signOut({ callbackUrl: "/" });
+      } else {
+        const d = await res.json();
+        window.alert(d.error || "Hubo un error al eliminar tu cuenta. Por favor, inténtalo de nuevo.");
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Error de conexión al intentar eliminar la cuenta.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -382,8 +415,13 @@ export default function AccountSettingsPage() {
               <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.5 }}>
                 La eliminación de la cuenta es permanente. Se borrarán todos tus datos tácticos, mensajes y estadísticas de equipo.
               </p>
-              <button className="btn btn-ghost" style={{ width: "100%", color: "var(--val-red)", borderColor: "rgba(255, 70, 85, 0.2)", height: 48, borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-                 ELIMINAR MI CUENTA
+              <button 
+                className="btn btn-ghost" 
+                style={{ width: "100%", color: "var(--val-red)", borderColor: "rgba(255, 70, 85, 0.2)", height: 48, borderRadius: 12, fontSize: 12, fontWeight: 800 }}
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+              >
+                 {deleting ? "ELIMINANDO..." : "ELIMINAR MI CUENTA"}
               </button>
             </div>
           </div>
