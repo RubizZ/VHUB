@@ -72,7 +72,6 @@ export async function GET(
       const myStatus = myAvail?.status || "pending";
 
       const confirmedCount = ev.availability.filter((a) => a.status === "available" || a.status === "played").length;
-      const statusPrefix = confirmedCount < 5 ? "⏳ " : "";
 
       let duration: ics.DurationObject = { hours: 1, minutes: 30 };
       if (ev.end_date && ev.end_time) {
@@ -154,11 +153,11 @@ export async function GET(
       return {
         start: [year, month, day, hour, minute],
         duration,
-        title: `${statusPrefix}${titleText}`,
+        title: titleText,
         description,
         htmlContent,
         url: eventUrl,
-        status: ev.status === "cancelled" ? "CANCELLED" : "CONFIRMED",
+        status: ev.status === "cancelled" ? "CANCELLED" : (confirmedCount < 5 ? "TENTATIVE" : "CONFIRMED"),
         categories: [ev.type],
         productId: "VHUB/PersonalCalendar",
       };
