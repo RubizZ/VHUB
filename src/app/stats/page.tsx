@@ -122,6 +122,7 @@ export default function StatsPage() {
     const [selectedSeason, setSelectedSeason] = useState<string>("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+    const [hasInitializedTab, setHasInitializedTab] = useState(false);
 
     // 1. Fetch list of players
     const { data: playersData } = useQuery<{ players: Player[] }>({
@@ -178,7 +179,7 @@ export default function StatsPage() {
 
     // Auto-switch tab based on initial play sessions found on first sync/load
     useEffect(() => {
-        if (statsData?.stats && currentPage === 1) {
+        if (statsData?.stats && currentPage === 1 && !hasInitializedTab) {
             const stats = statsData.stats;
             if (stats.competitive && stats.competitive.gamesPlayed > 0) {
                 setActiveTab("competitive");
@@ -191,8 +192,9 @@ export default function StatsPage() {
             } else if (stats.deathmatch && stats.deathmatch.gamesPlayed > 0) {
                 setActiveTab("deathmatch");
             }
+            setHasInitializedTab(true);
         }
-    }, [statsData, currentPage]);
+    }, [statsData, currentPage, hasInitializedTab]);
 
     // Handle load more flashing errors
     useEffect(() => {
@@ -247,6 +249,7 @@ export default function StatsPage() {
                                         setSelected(p);
                                         setCurrentPage(1);
                                         setSelectedSeason("all");
+                                        setHasInitializedTab(false);
                                     }}
                                     style={{
                                         borderColor:
