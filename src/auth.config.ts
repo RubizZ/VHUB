@@ -12,13 +12,14 @@ export const authConfig = {
     async authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const hasTeam = !!(auth?.user as any)?.teamId;
-      const isLoginPage = nextUrl.pathname === "/login";
+            const isLoginPage = nextUrl.pathname === "/login";
       const isRegisterPage = nextUrl.pathname === "/register";
       const isOnboardingPage = nextUrl.pathname === "/onboarding";
+      const isLandingPage = nextUrl.pathname === "/";
 
-      // Allow public access to login and register pages
+      // Allow public access to login, register, and landing pages
       if (!isLoggedIn) {
-        if (isLoginPage || isRegisterPage) return true;
+        if (isLoginPage || isRegisterPage || isLandingPage) return true;
         return false; // Redirect to login
       }
 

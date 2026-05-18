@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 "use client";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect } from "react";
@@ -8,7 +9,7 @@ export function SessionGuard() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const isPublicPage = pathname === "/login" || pathname === "/register";
+    const isPublicPage = pathname === "/login" || pathname === "/register" || pathname === "/";
 
     // CASO 1: El servidor ha invalidado la sesión (ej: tras un seed)
     // pero el navegador podría tener aún residuos. Limpiamos y mandamos al login.

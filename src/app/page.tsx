@@ -1,15 +1,17 @@
+/* eslint-disable no-undef, @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
+import { LandingPage } from "@/components/LandingPage";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
 
 export default function Dashboard() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
@@ -18,6 +20,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.id) return;
+
     const fetchData = async () => {
       try {
         const [playersRes, eventsRes, chatRes, stratsRes, matchesRes] = await Promise.all([
@@ -41,7 +45,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [status, session]);
 
   const upcomingEvents = useMemo(() => {
     return events
@@ -53,6 +57,19 @@ export default function Dashboard() {
   const recentMatches = useMemo(() => {
     return matches.slice(0, 4);
   }, [matches]);
+
+  if (status === "loading") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: "16px", background: "var(--bg-primary)" }}>
+        <div className="landing-brand-icon" style={{ animation: "pulseGlow 2s infinite ease-in-out", width: "50px", height: "50px", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, var(--val-red), var(--val-red-dark))", borderRadius: "var(--radius-sm)", fontWeight: "900", color: "#fff" }}>V</div>
+        <div style={{ color: "var(--text-secondary)", fontSize: "12px", fontFamily: "var(--font-valorant)", letterSpacing: "1.5px" }}>CARGANDO VHUB...</div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated" || !session?.user?.id) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="dashboard-wrapper">

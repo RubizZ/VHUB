@@ -9,13 +9,14 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
   const isRegisterPage = req.nextUrl.pathname === "/register";
+  const isLandingPage = req.nextUrl.pathname === "/";
   
   // Añadimos la URL actual a los headers para que RootLayout pueda leerla (para el check "en caliente")
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-url', req.nextUrl.pathname);
 
   // 1. Redirección si no está logueado
-  if (!isLoggedIn && !isLoginPage && !isRegisterPage) {
+  if (!isLoggedIn && !isLoginPage && !isRegisterPage && !isLandingPage) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 

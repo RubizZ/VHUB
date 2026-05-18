@@ -3,10 +3,13 @@ import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { usePathname } from "next/navigation";
 import { useState, ReactNode } from "react";
+import { useSession } from "next-auth/react";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/onboarding";
+  const { data: session } = useSession();
+  const isLandingPage = pathname === "/" && !session?.user?.id;
+  const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/onboarding" || isLandingPage;
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   if (isAuthPage) return <>{children}</>;
