@@ -18,6 +18,7 @@ export async function GET(
   const team = await db.team.findUnique({
     where: { calendarToken: token },
     include: {
+      players: true,
       events: {
         include: {
           map_obj: true,
@@ -39,8 +40,29 @@ export async function GET(
   }
 
   const origin = req.nextUrl.origin;
+  const now = new Date();
 
-  const calendarEvents: ics.EventAttributes[] = team.events.map((ev) => {
+  const activeEvents = team.events.filter((ev) => {
+    // 1. Excluir eventos cancelados
+    const isCancelled = ev.status === "cancelled" || ev.status === "not_played" || ev.status === "no_players";
+    if (isCancelled) return false;
+
+    // 2. Excluir eventos imposibles (futuros con menos de 5 jugadores posibles)
+    const startDt = new Date(`${ev.date}T${ev.time}:00Z`);
+    const isPast = startDt < now;
+
+    const unavailableCount = ev.availability.filter((a) => a.status === "unavailable").length;
+    const isImpossible =
+      !isPast &&
+      team.players.length >= 5 &&
+      team.players.length - unavailableCount < 5;
+
+    if (isImpossible) return false;
+
+    return true;
+  });
+
+  const calendarEvents: ics.EventAttributes[] = activeEvents.map((ev) => {
     const [year, month, day] = ev.date.split("-").map(Number);
     const [hour, minute] = ev.time.split(":").map(Number);
 

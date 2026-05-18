@@ -21,6 +21,7 @@ export async function GET(
       player: true,
       team: {
         include: {
+          players: true,
           events: {
             include: {
               map_obj: true,
@@ -49,6 +50,10 @@ export async function GET(
 
   const calendarEvents: ics.EventAttributes[] = user.team.events
     .filter((ev) => {
+      // 1. Excluir eventos cancelados
+      const isCancelled = ev.status === "cancelled" || ev.status === "not_played" || ev.status === "no_players";
+      if (isCancelled) return false;
+
       const myAvail = ev.availability.find(a => a.player_id === playerId);
       const myStatus = myAvail?.status || "pending";
       const isInterested = myStatus === "available" || myStatus === "maybe" || myStatus === "played";
@@ -61,6 +66,15 @@ export async function GET(
       if (isPast) {
         return ev.status === 'completed';
       }
+
+      // 2. Excluir eventos imposibles (futuros con menos de 5 jugadores posibles)
+      const unavailableCount = ev.availability.filter((a) => a.status === "unavailable").length;
+      const isImpossible =
+        !isPast &&
+        user.team!.players.length >= 5 &&
+        user.team!.players.length - unavailableCount < 5;
+
+      if (isImpossible) return false;
 
       return true;
     })
