@@ -112,7 +112,7 @@ export async function GET(
       let description = `🗺️ Mapa: ${mapName}\n`;
       description += `👤 Tu Estado: ${myStatus.toUpperCase()}\n`;
       if (confirmedCount < 5) {
-        description += `⏳ Esperando al resto\n`;
+        description += `⏳ Convocatoria provisional: Se requieren al menos 5 confirmados para disputar el evento.\n`;
       }
       if (ev.description) {
         description += `📝 Notas: ${ev.description}\n`;
@@ -132,7 +132,7 @@ export async function GET(
       let htmlContent = `<div>
         <p><strong>🗺️ Mapa:</strong> ${mapName}</p>
         <p><strong>👤 Tu Estado:</strong> <span style="text-transform: uppercase;">${myStatus}</span></p>
-        ${confirmedCount < 5 ? `<p><strong>⏳ Esperando al resto</strong></p>` : ""}
+        ${confirmedCount < 5 ? `<p style="color: #d97706; margin: 4px 0 0 0;"><strong>⏳ Convocatoria provisional:</strong> Se requieren al menos 5 confirmados para disputar el evento.</p>` : ""}
         ${ev.description ? `<p><strong>📝 Notas:</strong> ${ev.description}</p>` : ""}
         <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
       `;
