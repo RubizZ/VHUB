@@ -39,6 +39,7 @@ export default function MatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  const [hasInitializedSeason, setHasInitializedSeason] = useState(false);
 
   // 1. Fetch matches & seasons
   const {
@@ -61,10 +62,11 @@ export default function MatchesPage() {
 
   // Set default active season once loaded
   useEffect(() => {
-    if (matchesData?.activeSeasonId && selectedSeason === null) {
+    if (matchesData?.activeSeasonId && !hasInitializedSeason) {
       setSelectedSeason(matchesData.activeSeasonId);
+      setHasInitializedSeason(true);
     }
-  }, [matchesData, selectedSeason]);
+  }, [matchesData, hasInitializedSeason]);
 
   // 2. Fetch selected match details
   const {
