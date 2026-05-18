@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/Skeleton";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 
 interface Player {
     id: number;
@@ -133,6 +133,13 @@ export default function StatsPage() {
 
     const loadStats = async (p: Player, season: string = "all", syncPage: number = 1) => {
         setSelected(p);
+        if (!p.riot_name || !p.riot_tag) {
+            setData(null);
+            setError(null);
+            setLoading(false);
+            setLoadingMore(false);
+            return;
+        }
         if (syncPage > 1) {
             setLoadingMore(true);
             setLoadMoreError(null);
@@ -245,42 +252,62 @@ export default function StatsPage() {
                     style={{ marginBottom: 24, padding: "16px" }}
                 >
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        {players.map((p) => (
-                            <button
-                                key={p.id}
-                                className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`}
-                                onClick={() => loadStats(p)}
-                                style={{
-                                    borderColor:
-                                        selected?.id === p.id
-                                            ? p.avatar_color
-                                            : undefined,
-                                    boxShadow:
-                                        selected?.id === p.id
-                                            ? `0 0 15px ${p.avatar_color}44`
-                                            : undefined,
-                                }}
-                            >
-                                <div
+                        {players.map((p) => {
+                            const hasRiot = p.riot_name && p.riot_tag;
+                            return (
+                                <button
+                                    key={p.id}
+                                    className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`}
+                                    onClick={() => loadStats(p)}
                                     style={{
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: "50%",
-                                        background: p.avatar_color,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 12,
-                                        color: "#fff",
-                                        fontWeight: 800,
-                                        boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                                        borderColor:
+                                            selected?.id === p.id
+                                                ? p.avatar_color
+                                                : undefined,
+                                        boxShadow:
+                                            selected?.id === p.id
+                                                ? `0 0 15px ${p.avatar_color}44`
+                                                : undefined,
+                                        opacity: hasRiot ? 1 : 0.65,
                                     }}
                                 >
-                                    {p.name[0]}
-                                </div>
-                                {p.name}
-                            </button>
-                        ))}
+                                    <div
+                                        style={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: "50%",
+                                            background: p.avatar_color,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: 12,
+                                            color: "#fff",
+                                            fontWeight: 800,
+                                            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                                        }}
+                                    >
+                                        {p.name[0]}
+                                    </div>
+                                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        {p.name}
+                                        {!hasRiot && (
+                                            <span
+                                                style={{
+                                                    fontSize: 10,
+                                                    background: "rgba(255, 70, 85, 0.15)",
+                                                    color: "var(--val-red)",
+                                                    padding: "1px 6px",
+                                                    borderRadius: 4,
+                                                    fontWeight: 700
+                                                }}
+                                            >
+                                                SIN ID
+                                            </span>
+                                        )}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -294,6 +321,95 @@ export default function StatsPage() {
                     >
                         <p style={{ fontSize: 48, marginBottom: 12 }}>📊</p>
                         <p>Selecciona un jugador para ver sus estadísticas</p>
+                    </div>
+                )}
+
+                {selected && (!selected.riot_name || !selected.riot_tag) && (
+                    <div
+                        className="card glass-card animate-fade-in"
+                        style={{
+                            border: "1px solid rgba(255, 70, 85, 0.2)",
+                            background: "rgba(255, 70, 85, 0.02)",
+                            textAlign: "center",
+                            padding: "48px 32px",
+                            borderRadius: 16,
+                            boxShadow: "0 8px 32px rgba(255, 70, 85, 0.03)",
+                            maxWidth: 600,
+                            margin: "0 auto 24px",
+                        }}
+                    >
+                        <p style={{ fontSize: 54, marginBottom: 16 }}>🎮</p>
+                        <h4
+                            style={{
+                                color: "var(--val-red)",
+                                fontSize: 22,
+                                fontWeight: 800,
+                                fontFamily: "var(--font-valorant), sans-serif",
+                                textTransform: "uppercase",
+                                letterSpacing: 1,
+                                marginBottom: 12,
+                            }}
+                        >
+                            Sin Riot ID Vinculado
+                        </h4>
+                        <p
+                            style={{
+                                color: "var(--text-primary)",
+                                fontSize: 15,
+                                lineHeight: 1.6,
+                                marginBottom: 24,
+                                opacity: 0.9,
+                            }}
+                        >
+                            {selected && session?.user?.playerId && String(selected.id) === String(session.user.playerId) ? (
+                                <>Aún no has vinculado tu cuenta de Valorant (Riot ID y Tag). Para poder ver y sincronizar tus estadísticas en tiempo real, necesitas vincular tu cuenta.</>
+                            ) : (
+                                <>Este jugador no ha vinculado su cuenta de Valorant (Riot ID y Tag) en su perfil. Las estadísticas de juego solo están disponibles una vez que se vincula una cuenta activa.</>
+                            )}
+                        </p>
+                        {selected && session?.user?.playerId && String(selected.id) === String(session.user.playerId) ? (
+                            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                                <button
+                                    className="btn btn-primary hover-lift"
+                                    onClick={() => window.location.href = "/profile"}
+                                    style={{
+                                        padding: "12px 24px",
+                                        borderRadius: "12px",
+                                        fontWeight: 800,
+                                        fontSize: "14px",
+                                        background: "var(--val-red)",
+                                        border: "none",
+                                        color: "white",
+                                        cursor: "pointer",
+                                        boxShadow: "0 4px 15px rgba(255, 70, 85, 0.3)",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    👤 Ir a mi Perfil
+                                </button>
+                                <button
+                                    className="btn btn-secondary hover-lift"
+                                    onClick={() => signIn("riot-games")}
+                                    style={{
+                                        padding: "12px 24px",
+                                        borderRadius: "12px",
+                                        fontWeight: 800,
+                                        fontSize: "14px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    🔗 Vincular con Riot
+                                </button>
+                            </div>
+                        ) : (
+                            <p style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
+                                Una vez que el jugador guarde su Riot ID en su perfil, las estadísticas se calcularán automáticamente.
+                            </p>
+                        )}
                     </div>
                 )}
 
