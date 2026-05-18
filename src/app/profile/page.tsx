@@ -1,8 +1,10 @@
-/* global fetch, console, setTimeout */
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface PlayerData {
   id: number;
@@ -18,45 +20,70 @@ interface PlayerData {
 
 export default function ProfilePage() {
   const { data: session } = useSession();
-  const [player, setPlayer] = useState<PlayerData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState({ text: "", type: "" });
 
-  useEffect(() => {
-    if (session?.user) {
-      fetch(`/api/players/me`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.player) {
-            setPlayer(data.player);
-          }
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    }
-  }, [session]);
+  // 1. Fetch Profile
+  const {
+    data: playerData,
+    isLoading: playerLoading,
+    error: playerError,
+  } = useQuery<{ player: PlayerData }>({
+    queryKey: ["player", "me"],
+    queryFn: async () => {
+      const res = await fetch("/api/players/me");
+      if (!res.ok) throw new Error("Error al cargar perfil");
+      return res.json();
+    },
+    enabled: !!session?.user,
+  });
 
-  const handleUpdateProfile = async (updates: Partial<PlayerData>) => {
-    setSaving(true);
-    try {
+  const player = playerData?.player || null;
+  const loading = playerLoading;
+
+  useEffect(() => {
+    if (playerError) {
+      setMessage({ text: (playerError as Error).message || "Error al cargar perfil", type: "error" });
+    }
+  }, [playerError]);
+
+  // 2. Update Profile Mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<PlayerData>) => {
       const res = await fetch("/api/players/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
       });
-      if (res.ok) {
-        setPlayer(prev => prev ? { ...prev, ...updates } : null);
-        setMessage({ text: "Perfil actualizado correctamente", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage({ text: "Error al actualizar perfil", type: "error" });
-    } finally {
-      setSaving(false);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al actualizar perfil");
+      return { updates, data };
+    },
+    onSuccess: (result) => {
+      // Optimistically update the player details inside the cache
+      queryClient.setQueryData(["player", "me"], (old: any) => {
+        if (!old?.player) return old;
+        return {
+          ...old,
+          player: {
+            ...old.player,
+            ...result.updates
+          }
+        };
+      });
+      setMessage({ text: "Perfil actualizado correctamente", type: "success" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+    },
+    onError: (err: any) => {
+      setMessage({ text: err.message || "Error al actualizar perfil", type: "error" });
     }
+  });
+
+  const handleUpdateProfile = (updates: Partial<PlayerData>) => {
+    updateProfileMutation.mutate(updates);
   };
+
+  const saving = updateProfileMutation.isPending;
 
   if (loading) {
     return (

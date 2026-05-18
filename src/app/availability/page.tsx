@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useSession } from "next-auth/react";
 import React, {
@@ -9,6 +11,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Player {
     id: string;
@@ -69,14 +72,19 @@ const getEventDisplayName = (ev: { title?: string | null; type: string }) => {
     return "Evento";
 };
 
+const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 export default function AvailabilityPage() {
     const { data: session } = useSession();
     const router = useRouter();
-    const [players, setPlayers] = useState<Player[]>([]);
-    const [events, setEvents] = useState<Ev[]>([]);
-    const [avail, setAvail] = useState<Record<number, Avail[]>>({});
+    const queryClient = useQueryClient();
+
     const [showNew, setShowNew] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState({
         title: "",
         type: "custom",
@@ -90,7 +98,6 @@ export default function AvailabilityPage() {
     >(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isMounted, setIsMounted] = useState(false);
-    const [maps, setMaps] = useState<any[]>([]);
     const [now, setNow] = useState(new Date());
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
     const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
@@ -100,13 +107,7 @@ export default function AvailabilityPage() {
     );
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
     const [isEntryAnimationDone, setIsEntryAnimationDone] = useState(false);
-    const [isLoadingEvents, setIsLoadingEvents] = useState(true);
     const [showExport, setShowExport] = useState(false);
-    const [calendarToken, setCalendarToken] = useState<string | null>(null);
-    const [userCalendarToken, setUserCalendarToken] = useState<string | null>(
-        null,
-    );
-    const [isRegenerating, setIsRegenerating] = useState(false);
     const [exportTab, setExportTab] = useState<"team" | "personal">("personal");
     const [origin, setOrigin] = useState("");
 
@@ -118,6 +119,231 @@ export default function AvailabilityPage() {
     const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<
         "above" | "below" | "in-view"
     >("in-view");
+
+    // 1. Queries for data
+    const { data: playersData } = useQuery<{ players: Player[] }>({
+        queryKey: ["players"],
+        queryFn: async () => {
+            const r = await fetch("/api/players");
+            if (!r.ok) throw new Error("Error loading players");
+            return r.json();
+        },
+    });
+    const players = playersData?.players || [];
+
+    const { data: mapsData } = useQuery<{ maps: any[] }>({
+        queryKey: ["maps"],
+        queryFn: async () => {
+            const r = await fetch("/api/maps");
+            if (!r.ok) throw new Error("Error loading maps");
+            return r.json();
+        },
+    });
+    const maps = mapsData?.maps || [];
+
+    const { data: teamTokenData } = useQuery({
+        queryKey: ["teamCalendarToken"],
+        queryFn: async () => {
+            const res = await fetch("/api/teams/calendar-token");
+            return res.json();
+        },
+    });
+    const calendarToken = teamTokenData?.token || null;
+
+    const { data: userTokenData } = useQuery({
+        queryKey: ["userCalendarToken"],
+        queryFn: async () => {
+            const res = await fetch("/api/users/calendar-token");
+            return res.json();
+        },
+    });
+    const userCalendarToken = userTokenData?.token || null;
+
+    const { data: eventsData, isLoading: eventsLoading, error: eventsError } = useQuery({
+        queryKey: ["events"],
+        queryFn: async () => {
+            const res = await fetch("/api/events");
+            if (res.status === 401) {
+                window.location.href = "/login";
+                return null;
+            }
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
+            return d;
+        },
+    });
+
+    const isLoadingEvents = eventsLoading;
+    const error = eventsError ? (eventsError as Error).message : null;
+
+    // Derived events formatting and availability map
+    const { events, avail } = useMemo(() => {
+        if (!eventsData?.events) return { events: [] as Ev[], avail: {} as Record<number, Avail[]> };
+
+        const loadedEvents: Ev[] = (eventsData.events || []).map((ev: any) => {
+            const utcDate = new Date(`${ev.date}T${ev.time}:00Z`);
+            let localEndDate = undefined;
+            let localEndTime = undefined;
+            if (ev.end_date && ev.end_time) {
+                const utcEnd = new Date(`${ev.end_date}T${ev.end_time}:00Z`);
+                localEndDate = formatDateLocal(utcEnd);
+                localEndTime = utcEnd.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                });
+            }
+            return {
+                ...ev,
+                localDate: formatDateLocal(utcDate),
+                localTime: utcDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                }),
+                localEndDate,
+                localEndTime,
+            };
+        });
+
+        const availMap: Record<number, Avail[]> = {};
+        loadedEvents.forEach((ev: any) => {
+            availMap[ev.id] = (ev.availability || []).map((a: any) => ({
+                player_id: a.player_id,
+                player_name: a.player?.name || "Desconocido",
+                status: a.status,
+                avatar_color: a.player?.avatar_color || "#999",
+            }));
+        });
+
+        return { events: loadedEvents, avail: availMap };
+    }, [eventsData]);
+
+    // 2. Mutations
+    const createEventMutation = useMutation({
+        mutationFn: async () => {
+            const localDate = new Date(`${form.date}T${form.time}:00`);
+            const utcDateStr = localDate.toISOString().split("T")[0];
+            const utcTimeStr =
+                localDate.getUTCHours().toString().padStart(2, "0") +
+                ":" +
+                localDate.getUTCMinutes().toString().padStart(2, "0");
+
+            const res = await fetch("/api/events", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...form,
+                    date: utcDateStr,
+                    time: utcTimeStr,
+                }),
+            });
+
+            if (!res.ok) {
+                const d = await res.json();
+                throw new Error(d.error || "Error al crear evento");
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            setShowNew(false);
+            setForm({
+                title: "",
+                type: "custom",
+                date: "",
+                time: "19:00",
+                description: "",
+                map: "",
+            });
+            queryClient.invalidateQueries({ queryKey: ["events"] });
+        },
+        onError: (err: any) => {
+            alert(err.message);
+        }
+    });
+
+    const createEvent = async () => {
+        createEventMutation.mutate();
+    };
+
+    const setAvailabilityMutation = useMutation({
+        mutationFn: async ({ eventId, status }: { eventId: number; status: string }) => {
+            if (!myPlayerId) {
+                throw new Error("No estás vinculado a ningún jugador. Contacta con tu administrador.");
+            }
+            const res = await fetch("/api/availability", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    player_id: myPlayerId,
+                    status,
+                }),
+            });
+
+            if (!res.ok) {
+                const d = await res.json();
+                throw new Error(d.error || "Error al actualizar disponibilidad");
+            }
+            return res.json();
+        },
+        onMutate: ({ eventId }) => {
+            setUpdatingEventId(eventId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["events"] });
+            setTimeout(() => setUpdatingEventId(null), 1000);
+        },
+        onError: (err: any) => {
+            alert(err.message);
+            setUpdatingEventId(null);
+        }
+    });
+
+    const setAvailability = async (eventId: number, status: string) => {
+        setAvailabilityMutation.mutate({ eventId, status });
+    };
+
+    const deleteEventMutation = useMutation({
+        mutationFn: async (id: number) => {
+            const res = await fetch(`/api/events?id=${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Error deleting event");
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["events"] });
+        }
+    });
+
+    const deleteEvent = async (id: number) => {
+        deleteEventMutation.mutate(id);
+    };
+
+    const regenerateTokenMutation = useMutation({
+        mutationFn: async (type: "team" | "personal") => {
+            const url = type === "team" ? "/api/teams/calendar-token" : "/api/users/calendar-token";
+            const res = await fetch(url, { method: "POST" });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || "Error regenerating token");
+            return d;
+        },
+        onSuccess: (data, type) => {
+            if (type === "team") {
+                queryClient.invalidateQueries({ queryKey: ["teamCalendarToken"] });
+            } else {
+                queryClient.invalidateQueries({ queryKey: ["userCalendarToken"] });
+            }
+        },
+        onError: (err: any) => {
+            console.error("Error regenerating token", err);
+        }
+    });
+
+    const regenerateToken = async (type: "team" | "personal") => {
+        if (!confirm("¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.")) return;
+        regenerateTokenMutation.mutate(type);
+    };
+
+    const isRegenerating = regenerateTokenMutation.isPending;
 
     // Helper to get unique maps of the same season for playoffs
     const getSeasonMaps = (ev: Ev) => {
@@ -199,12 +425,6 @@ export default function AvailabilityPage() {
         if (typeof globalThis !== "undefined" && (globalThis as any).window) {
             setOrigin((globalThis as any).window.location.origin);
         }
-        fetch("/api/players")
-            .then((r) => r.json())
-            .then((d) => setPlayers(d.players || []));
-        fetch("/api/maps")
-            .then((r) => r.json())
-            .then((d) => setMaps(d.maps || []));
 
         const timer = setInterval(() => setNow(new Date()), 60000);
         const entryTimer = setTimeout(
@@ -224,8 +444,6 @@ export default function AvailabilityPage() {
         } else {
             setViewMode("calendar");
         }
-        loadToken();
-        loadUserToken();
     }, [isMounted]);
 
     useEffect(() => {
@@ -236,13 +454,6 @@ export default function AvailabilityPage() {
             );
         }
     }, [viewMode, isMounted]);
-
-    useEffect(() => {
-        // Cargar eventos una sola vez al montar la página para evitar el doble fetch
-        // y prevenir la pérdida de autoscroll y parpadeos del skeleton.
-        loadEvents();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     useEffect(() => {
         if (
@@ -287,283 +498,6 @@ export default function AvailabilityPage() {
         players,
         avail,
     ]);
-
-    const loadEvents = async () => {
-        try {
-            setIsLoadingEvents(true);
-            setError(null);
-            const res = await fetch("/api/events");
-            if (res.status === 401) {
-                window.location.href = "/login";
-                return;
-            }
-            const d = await res.json();
-
-            if (!res.ok)
-                throw new Error(d.error || `Events API failed: ${res.status}`);
-
-            const loadedEvents: Ev[] = (d.events || []).map((ev: any) => {
-                // ev.date (YYYY-MM-DD) y ev.time (HH:mm) están en UTC 0
-                const utcDate = new Date(`${ev.date}T${ev.time}:00Z`);
-                let localEndDate = undefined;
-                let localEndTime = undefined;
-                if (ev.end_date && ev.end_time) {
-                    const utcEnd = new Date(
-                        `${ev.end_date}T${ev.end_time}:00Z`,
-                    );
-                    localEndDate = formatDateLocal(utcEnd);
-                    localEndTime = utcEnd.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                    });
-                }
-                return {
-                    ...ev,
-                    localDate: formatDateLocal(utcDate),
-                    localTime: utcDate.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                    }),
-                    localEndDate,
-                    localEndTime,
-                };
-            });
-
-            setEvents(loadedEvents);
-
-            const availMap: Record<number, Avail[]> = {};
-            loadedEvents.forEach((ev: any) => {
-                availMap[ev.id] = (ev.availability || []).map((a: any) => ({
-                    player_id: a.player_id,
-                    player_name: a.player?.name || "Desconocido",
-                    status: a.status,
-                    avatar_color: a.player?.avatar_color || "#999",
-                }));
-            });
-            setAvail(availMap);
-        } catch (err: any) {
-            console.error("Error cargando eventos:", err);
-            setError(err.message);
-        } finally {
-            setIsLoadingEvents(false);
-        }
-    };
-
-    const createEvent = async () => {
-        // Cuando creamos manualmente, el input type="date" y "time" son locales.
-        const localDate = new Date(`${form.date}T${form.time}:00`);
-        const utcDateStr = localDate.toISOString().split("T")[0];
-        const utcTimeStr =
-            localDate.getUTCHours().toString().padStart(2, "0") +
-            ":" +
-            localDate.getUTCMinutes().toString().padStart(2, "0");
-
-        const res = await fetch("/api/events", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                ...form,
-                date: utcDateStr,
-                time: utcTimeStr,
-            }),
-        });
-
-        if (!res.ok) {
-            const d = await res.json();
-            alert(d.error || "Error al crear evento");
-            return;
-        }
-        setShowNew(false);
-        setForm({
-            title: "",
-            type: "custom",
-            date: "",
-            time: "19:00",
-            description: "",
-            map: "",
-        });
-        loadEvents();
-    };
-
-    const setAvailability = async (eventId: number, status: string) => {
-        if (!myPlayerId) {
-            alert(
-                "No estás vinculado a ningún jugador. Contacta con tu administrador.",
-            );
-            return;
-        }
-
-        try {
-            setUpdatingEventId(eventId);
-            const res = await fetch("/api/availability", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    event_id: eventId,
-                    player_id: myPlayerId,
-                    status,
-                }),
-            });
-
-            if (!res.ok) {
-                const d = await res.json();
-                throw new Error(
-                    d.error || "Error al actualizar disponibilidad",
-                );
-            }
-
-            // Local state updates to avoid refetching all events
-            const currentPlayer = players.find(
-                (p) => String(p.id) === String(myPlayerId),
-            );
-            const playerName = currentPlayer?.name || "Desconocido";
-            const playerAvatarColor = currentPlayer?.avatar_color || "#999";
-
-            setAvail((prev) => {
-                const currentAvails = prev[eventId] || [];
-                const exists = currentAvails.some(
-                    (a) => String(a.player_id) === String(myPlayerId),
-                );
-                let newAvails;
-                if (exists) {
-                    newAvails = currentAvails.map((a) => {
-                        if (String(a.player_id) === String(myPlayerId)) {
-                            return { ...a, status };
-                        }
-                        return a;
-                    });
-                } else {
-                    newAvails = [
-                        ...currentAvails,
-                        {
-                            player_id: String(myPlayerId),
-                            player_name: playerName,
-                            status: status,
-                            avatar_color: playerAvatarColor,
-                        },
-                    ];
-                }
-                return {
-                    ...prev,
-                    [eventId]: newAvails,
-                };
-            });
-
-            setEvents((prev) =>
-                prev.map((ev) => {
-                    if (ev.id === eventId) {
-                        const currentAvailability = ev.availability || [];
-                        const exists = currentAvailability.some(
-                            (a) => String(a.player_id) === String(myPlayerId),
-                        );
-                        let newAvailability;
-                        if (exists) {
-                            newAvailability = currentAvailability.map((a) => {
-                                if (
-                                    String(a.player_id) === String(myPlayerId)
-                                ) {
-                                    return { ...a, status };
-                                }
-                                return a;
-                            });
-                        } else {
-                            newAvailability = [
-                                ...currentAvailability,
-                                {
-                                    player_id: String(myPlayerId),
-                                    status: status,
-                                    player: {
-                                        name: playerName,
-                                        avatar_color: playerAvatarColor,
-                                    },
-                                },
-                            ];
-                        }
-                        return {
-                            ...ev,
-                            availability: newAvailability,
-                        };
-                    }
-                    return ev;
-                }),
-            );
-
-            setTimeout(() => setUpdatingEventId(null), 1000);
-        } catch (err: any) {
-            console.error("Error al marcar disponibilidad:", err);
-            alert(err.message);
-            setUpdatingEventId(null);
-        }
-    };
-
-    const deleteEvent = async (id: number) => {
-        await fetch(`/api/events?id=${id}`, { method: "DELETE" });
-        loadEvents();
-    };
-
-    const loadToken = async () => {
-        try {
-            const res = await fetch("/api/teams/calendar-token");
-            const d = await res.json();
-            if (d.token) setCalendarToken(d.token);
-        } catch (e) {
-            console.error("Error loading calendar token", e);
-        }
-    };
-
-    const loadUserToken = async () => {
-        try {
-            const res = await fetch("/api/users/calendar-token");
-            const d = await res.json();
-            if (d.token) setUserCalendarToken(d.token);
-        } catch (e) {
-            console.error("Error loading user calendar token", e);
-        }
-    };
-
-    const regenerateToken = async (type: "team" | "personal") => {
-        if (
-            !confirm(
-                "¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.",
-            )
-        )
-            return;
-        try {
-            setIsRegenerating(true);
-            const url =
-                type === "team"
-                    ? "/api/teams/calendar-token"
-                    : "/api/users/calendar-token";
-            const res = await fetch(url, { method: "POST" });
-            const d = await res.json();
-            if (type === "team") setCalendarToken(d.token);
-            else setUserCalendarToken(d.token);
-        } catch (e) {
-            console.error("Error regenerating token", e);
-        } finally {
-            setIsRegenerating(false);
-        }
-    };
-
-    const statusIcon = (s: string) =>
-        s === "played"
-            ? "🎮"
-            : s === "available"
-              ? "✅"
-              : s === "maybe"
-                ? "⚠️"
-                : s === "unavailable"
-                  ? "❌"
-                  : "⏳";
-
-    const formatDateLocal = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
 
     const todayStr = formatDateLocal(new Date());
 
@@ -2609,7 +2543,6 @@ export default function AvailabilityPage() {
                                             !isPast &&
                                             players.length >= 5 &&
                                             players.length - unavailable < 5;
-                                        const isConfirmed = confirmed >= 5;
 
                                         // Logic for day grouping (visual only)
                                         const prevEv =

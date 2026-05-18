@@ -1,8 +1,9 @@
 /* eslint-disable no-undef */
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Skeleton } from "@/components/Skeleton";
 import { useSession, signIn } from "next-auth/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Player {
     id: number;
@@ -114,114 +115,98 @@ interface PlayerData {
 
 export default function StatsPage() {
     const { data: session } = useSession();
-    const [players, setPlayers] = useState<Player[]>([]);
+    const queryClient = useQueryClient();
+
     const [selected, setSelected] = useState<Player | null>(null);
-    const [data, setData] = useState<PlayerData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"competitive" | "premier" | "standard" | "others" | "deathmatch">("competitive");
-    const [seasons, setSeasons] = useState<Array<{ id: string; name: string }>>([]);
     const [selectedSeason, setSelectedSeason] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetch("/api/players")
-            .then((r) => r.json())
-            .then((d) => setPlayers(d.players || []));
-    }, []);
+    // 1. Fetch list of players
+    const { data: playersData } = useQuery<{ players: Player[] }>({
+        queryKey: ["players"],
+        queryFn: async () => {
+            const r = await fetch("/api/players");
+            if (!r.ok) throw new Error("Error al obtener la lista de jugadores");
+            return r.json();
+        },
+    });
 
-    const loadStats = async (p: Player, season: string = "all", syncPage: number = 1) => {
-        setSelected(p);
-        if (!p.riot_name || !p.riot_tag) {
-            setData(null);
-            setError(null);
-            setLoading(false);
-            setLoadingMore(false);
-            return;
-        }
-        if (syncPage > 1) {
-            setLoadingMore(true);
-            setLoadMoreError(null);
-        } else {
-            setLoading(true);
-            setError(null);
-            if (season === "all") {
-                setData(null);
-                setSeasons([]);
+    const players = playersData?.players || [];
+
+    // 2. Fetch player statistics dynamically
+    const {
+        data: statsData,
+        isLoading: statsLoading,
+        error: statsError,
+        isFetching: statsFetching,
+    } = useQuery<PlayerData | null>({
+        queryKey: ["stats", selected?.id, selectedSeason, activeTab, currentPage],
+        queryFn: async () => {
+            if (!selected || !selected.riot_name || !selected.riot_tag) return null;
+            const name = selected.riot_name || selected.name;
+            const tag = selected.riot_tag || "EUW";
+            let apiMode = activeTab as string;
+            if (activeTab === "standard") {
+                apiMode = "unrated";
             }
-        }
-        const name = p.riot_name || p.name;
-        const tag = p.riot_tag || "EUW";
-        let apiMode = activeTab as string;
-        if (activeTab === "standard") {
-            apiMode = "unrated";
-        }
-        try {
             const res = await fetch(
-                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${season}&syncPage=${syncPage}&mode=${apiMode}`,
+                `/api/valorant?action=stats&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&season=${selectedSeason}&syncPage=${currentPage}&mode=${apiMode}`,
             );
             const d = await res.json();
 
             if (d.error) {
                 if (d.error.includes("401")) {
-                    throw new Error(
-                        "La Riot API Key ha caducado o es inválida. Por favor, renuévala en el .env",
-                    );
+                    throw new Error("La Riot API Key ha caducado o es inválida. Por favor, renuévala en el .env");
                 }
                 if (d.error.includes("429")) {
-                    throw new Error(
-                        "Demasiadas solicitudes a Riot. Espera un minuto y vuelve a intentarlo.",
-                    );
+                    throw new Error("Demasiadas solicitudes a Riot. Espera un minuto y vuelve a intentarlo.");
                 }
                 throw new Error(d.message || d.error);
             }
+            return d;
+        },
+        enabled: !!selected && !!selected.riot_name && !!selected.riot_tag,
+    });
 
-            setData(d);
-            if (d.seasons) {
-                setSeasons(d.seasons);
-            }
+    const data = statsData || null;
+    const loading = statsLoading && currentPage === 1;
+    const loadingMore = statsFetching && currentPage > 1;
+    const error = statsError ? (statsError as Error).message : null;
+    const seasons = statsData?.seasons || [];
 
-            if (d.stats && syncPage === 1) {
-                if (d.stats.competitive && d.stats.competitive.gamesPlayed > 0) {
-                    setActiveTab("competitive");
-                } else if (d.stats.premier && d.stats.premier.gamesPlayed > 0) {
-                    setActiveTab("premier");
-                } else if (d.stats.standard && d.stats.standard.gamesPlayed > 0) {
-                    setActiveTab("standard");
-                } else if (d.stats.others && d.stats.others.gamesPlayed > 0) {
-                    setActiveTab("others");
-                } else if (d.stats.deathmatch && d.stats.deathmatch.gamesPlayed > 0) {
-                    setActiveTab("deathmatch");
-                } else {
-                    setActiveTab("competitive");
-                }
+    // Auto-switch tab based on initial play sessions found on first sync/load
+    useEffect(() => {
+        if (statsData?.stats && currentPage === 1) {
+            const stats = statsData.stats;
+            if (stats.competitive && stats.competitive.gamesPlayed > 0) {
+                setActiveTab("competitive");
+            } else if (stats.premier && stats.premier.gamesPlayed > 0) {
+                setActiveTab("premier");
+            } else if (stats.standard && stats.standard.gamesPlayed > 0) {
+                setActiveTab("standard");
+            } else if (stats.others && stats.others.gamesPlayed > 0) {
+                setActiveTab("others");
+            } else if (stats.deathmatch && stats.deathmatch.gamesPlayed > 0) {
+                setActiveTab("deathmatch");
             }
-        } catch (err) {
-            console.error("Error al cargar estadísticas:", err);
-            const msg = err instanceof Error
-                ? err.message
-                : "Error desconocido al cargar estadísticas";
-            if (syncPage > 1) {
+        }
+    }, [statsData, currentPage]);
+
+    // Handle load more flashing errors
+    useEffect(() => {
+        if (statsError) {
+            const msg = (statsError as Error).message || "Error al cargar estadísticas";
+            if (currentPage > 1) {
                 setLoadMoreError(msg);
-                setTimeout(() => {
+                const timer = setTimeout(() => {
                     setLoadMoreError(null);
                 }, 6000);
-            } else {
-                setError(msg);
+                return () => clearTimeout(timer);
             }
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
         }
-    };
-
-    const handleSeasonChange = async (seasonId: string) => {
-        setSelectedSeason(seasonId);
-        if (selected) {
-            await loadStats(selected, seasonId);
-        }
-    };
+    }, [statsError, currentPage]);
 
 
     return (
@@ -258,7 +243,11 @@ export default function StatsPage() {
                                 <button
                                     key={p.id}
                                     className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`}
-                                    onClick={() => loadStats(p)}
+                                    onClick={() => {
+                                        setSelected(p);
+                                        setCurrentPage(1);
+                                        setSelectedSeason("all");
+                                    }}
                                     style={{
                                         borderColor:
                                             selected?.id === p.id
@@ -712,7 +701,10 @@ export default function StatsPage() {
                                             <div style={{ marginLeft: 4 }}>
                                                 <select
                                                     value={selectedSeason}
-                                                    onChange={(e) => handleSeasonChange(e.target.value)}
+                                                     onChange={(e) => {
+                                                         setSelectedSeason(e.target.value);
+                                                         setCurrentPage(1);
+                                                     }}
                                                     style={{
                                                         background: "rgba(255,255,255,0.03)",
                                                         border: "1px solid var(--border-color)",
@@ -811,7 +803,10 @@ export default function StatsPage() {
                                 <button
                                     key={tab.id}
                                     className={`btn ${activeTab === tab.id ? "btn-primary" : "btn-secondary"}`}
-                                    onClick={() => setActiveTab(tab.id as "competitive" | "premier" | "standard" | "others" | "deathmatch")}
+                                     onClick={() => {
+                                         setActiveTab(tab.id as "competitive" | "premier" | "standard" | "others" | "deathmatch");
+                                         setCurrentPage(1);
+                                     }}
                                     style={{
                                         opacity: 1,
                                         cursor: "pointer",
@@ -852,11 +847,11 @@ export default function StatsPage() {
                                         {/* Botón Cargar Más */}
                                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 24, gap: 12, paddingBottom: 8 }}>
                                             <button
-                                                onClick={() => {
-                                                    // Como hay 0 partidas, solicitamos la página 1 para intentar la sincronización inicial
-                                                    loadStats(selected!, selectedSeason, 1);
-                                                }}
-                                                disabled={loadingMore}
+                                                 onClick={() => {
+                                                     setCurrentPage(1);
+                                                     queryClient.invalidateQueries({ queryKey: ["stats", selected?.id] });
+                                                 }}
+                                                 disabled={statsFetching}
                                                 style={{
                                                     display: "flex",
                                                     alignItems: "center",
@@ -880,7 +875,7 @@ export default function StatsPage() {
                                                     e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                                                 }}
                                             >
-                                                {loadingMore ? (
+                                                {statsFetching ? (
                                                     <>
                                                         <span className="spinner-border animate-spin" style={{
                                                             width: 14,
@@ -1409,7 +1404,8 @@ export default function StatsPage() {
                                                                     >
                                                                         <div
                                                                             style={{
-                                                                                display: "flex",
+                                                                                display:
+                                                                                    "flex",
                                                                                 alignItems:
                                                                                     "center",
                                                                                 gap: 8,
@@ -1433,7 +1429,8 @@ export default function StatsPage() {
                                                                     >
                                                                         <div
                                                                             style={{
-                                                                                display: "flex",
+                                                                                display:
+                                                                                    "flex",
                                                                                 justifyContent:
                                                                                     "center",
                                                                                 gap: 4,
@@ -1543,13 +1540,13 @@ export default function StatsPage() {
                                             {/* Botón Cargar Más */}
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 24, gap: 12, paddingBottom: 8 }}>
                                                 <button
-                                                    onClick={() => {
-                                                        const nextPage = filteredMatches.length < 10
-                                                            ? 2
-                                                            : Math.floor(filteredMatches.length / 10) + 1;
-                                                        loadStats(selected!, selectedSeason, nextPage);
-                                                    }}
-                                                    disabled={loadingMore}
+                                                     onClick={() => {
+                                                         const nextPage = filteredMatches.length < 10
+                                                             ? 2
+                                                             : Math.floor(filteredMatches.length / 10) + 1;
+                                                         setCurrentPage(nextPage);
+                                                     }}
+                                                     disabled={loadingMore}
                                                     style={{
                                                         display: "flex",
                                                         alignItems: "center",

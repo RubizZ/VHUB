@@ -1,12 +1,34 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCompetitiveMaps, type ValorantMap } from "@/lib/maps";
 import { AGENTS, getAgentsByRole, findAgentById, ROLE_COLORS, type ValorantAgent } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface Composition { id: number; map_id: string; name: string; description: string; agent_1: string; agent_2: string; agent_3: string; agent_4: string; agent_5: string; }
-interface Strategy { id: number; composition_id: number; name: string; side: string; description: string; canvas_data: string; }
+interface Composition { 
+  id: number; 
+  map_id: string; 
+  name: string; 
+  description: string; 
+  agent_1: string; 
+  agent_2: string; 
+  agent_3: string; 
+  agent_4: string; 
+  agent_5: string; 
+}
+
+interface Strategy { 
+  id: number; 
+  composition_id: number; 
+  name: string; 
+  side: string; 
+  description: string; 
+  canvas_data: string; 
+}
+
 type Tool = "select" | "draw" | "arrow" | "eraser";
 type View = "maps" | "compositions" | "strategies" | "editor";
 
@@ -14,11 +36,11 @@ const competitiveMaps = getCompetitiveMaps();
 
 export default function StrategiesPage() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+
   const [view, setView] = useState<View>("maps");
   const [selectedMap, setSelectedMap] = useState<ValorantMap | null>(null);
-  const [compositions, setCompositions] = useState<Composition[]>([]);
   const [selectedComp, setSelectedComp] = useState<Composition | null>(null);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [current, setCurrent] = useState<Strategy | null>(null);
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
   const [tool, setTool] = useState<Tool>("draw");
@@ -28,8 +50,7 @@ export default function StrategiesPage() {
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [compAgents, setCompAgents] = useState<string[]>(["", "", "", "", ""]);
-  const [compsLoading, setCompsLoading] = useState(false);
-  const [stratsLoading, setStratsLoading] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
@@ -38,31 +59,63 @@ export default function StrategiesPage() {
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  const loadComps = (mapId: string) => {
-    setCompsLoading(true);
-    return fetch(`/api/compositions?map_id=${mapId}`)
-      .then(r => r.json())
-      .then(d => {
-        setCompositions(d.compositions || []);
-        setCompsLoading(false);
-      });
+  // 1. Query Compositions
+  const {
+    data: compositionsData,
+    isLoading: compositionsLoading
+  } = useQuery<{ compositions: Composition[] }>({
+    queryKey: ["compositions", selectedMap?.id],
+    queryFn: async () => {
+      if (!selectedMap) return { compositions: [] };
+      const res = await fetch(`/api/compositions?map_id=${selectedMap.id}`);
+      if (!res.ok) throw new Error("Error loading compositions");
+      return res.json();
+    },
+    enabled: !!selectedMap,
+  });
+
+  const compositions = compositionsData?.compositions || [];
+  const compsLoading = compositionsLoading;
+
+  // 2. Query Strategies
+  const {
+    data: strategiesData,
+    isLoading: strategiesLoading
+  } = useQuery<{ strategies: Strategy[] }>({
+    queryKey: ["strategies", selectedComp?.id],
+    queryFn: async () => {
+      if (!selectedComp) return { strategies: [] };
+      const res = await fetch(`/api/strategies?composition_id=${selectedComp.id}`);
+      if (!res.ok) throw new Error("Error loading strategies");
+      return res.json();
+    },
+    enabled: !!selectedComp,
+  });
+
+  const strategies = strategiesData?.strategies || [];
+  const stratsLoading = strategiesLoading;
+
+  const goToMap = (map: ValorantMap) => { 
+    setSelectedMap(map); 
+    setView("compositions"); 
   };
-  const loadStrats = (compId: number) => {
-    setStratsLoading(true);
-    return fetch(`/api/strategies?composition_id=${compId}`)
-      .then(r => r.json())
-      .then(d => {
-        setStrategies(d.strategies || []);
-        setStratsLoading(false);
-      });
+  
+  const goToComp = (comp: Composition) => { 
+    setSelectedComp(comp); 
+    setView("strategies"); 
   };
 
-  const goToMap = (map: ValorantMap) => { setSelectedMap(map); setView("compositions"); loadComps(map.id); };
-  const goToComp = (comp: Composition) => { setSelectedComp(comp); setView("strategies"); loadStrats(comp.id); };
   const goBack = () => {
-    if (view === "editor") { setCurrent(null); setView("strategies"); }
-    else if (view === "strategies") { setSelectedComp(null); setView("compositions"); }
-    else if (view === "compositions") { setSelectedMap(null); setView("maps"); }
+    if (view === "editor") { 
+      setCurrent(null); 
+      setView("strategies"); 
+    } else if (view === "strategies") { 
+      setSelectedComp(null); 
+      setView("compositions"); 
+    } else if (view === "compositions") { 
+      setSelectedMap(null); 
+      setView("maps"); 
+    }
   };
 
   useEffect(() => {
@@ -190,9 +243,22 @@ export default function StrategiesPage() {
     const cy = "touches" in e ? e.touches[0].clientY : e.clientY;
     return { x: cx - rect.left, y: cy - rect.top };
   };
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => { if (tool === "select") return; drawingRef.current = true; pathsRef.current.push({ tool, color, points: [getPos(e)] }); };
-  const draw = (e: React.MouseEvent | React.TouchEvent) => { if (!drawingRef.current || tool === "select") return; pathsRef.current[pathsRef.current.length - 1].points.push(getPos(e)); redraw(); };
-  const stopDraw = () => { drawingRef.current = false; };
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => { 
+    if (tool === "select") return; 
+    drawingRef.current = true; 
+    pathsRef.current.push({ tool, color, points: [getPos(e)] }); 
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => { 
+    if (!drawingRef.current || tool === "select") return; 
+    pathsRef.current[pathsRef.current.length - 1].points.push(getPos(e)); 
+    redraw(); 
+  };
+
+  const stopDraw = () => { 
+    drawingRef.current = false; 
+  };
 
   const dropAgent = (a: ValorantAgent) => {
     const c = canvasRef.current; if (!c) return;
@@ -210,37 +276,109 @@ export default function StrategiesPage() {
   const openEditor = (s: Strategy) => {
     setCurrent(s);
     setSelectedSide(s.side as "attack" | "defense");
-    try { const d = JSON.parse(s.canvas_data || "{}"); pathsRef.current = d.paths || []; agentsRef.current = d.agents || []; }
-    catch { pathsRef.current = []; agentsRef.current = []; }
+    try { 
+      const d = JSON.parse(s.canvas_data || "{}"); 
+      pathsRef.current = d.paths || []; 
+      agentsRef.current = d.agents || []; 
+    } catch { 
+      pathsRef.current = []; 
+      agentsRef.current = []; 
+    }
     setView("editor");
     setTimeout(() => { initCanvas(); redraw(); }, 150);
   };
 
-  const saveStrategy = async () => {
-    if (!current) return;
-    await fetch("/api/strategies", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: current.id, name: current.name, side: selectedSide, description: current.description, canvas_data: { paths: pathsRef.current, agents: agentsRef.current } }) });
-    if (selectedComp) loadStrats(selectedComp.id);
+  // 3. Save Strategy Canvas Mutation
+  const saveStrategyMutation = useMutation({
+    mutationFn: async () => {
+      if (!current) return;
+      const res = await fetch("/api/strategies", { 
+        method: "PUT", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          id: current.id, 
+          name: current.name, 
+          side: selectedSide, 
+          description: current.description, 
+          canvas_data: { paths: pathsRef.current, agents: agentsRef.current } 
+        }) 
+      });
+      if (!res.ok) throw new Error("Error saving strategy canvas");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedComp?.id] });
+    }
+  });
+
+  const saveStrategy = () => {
+    saveStrategyMutation.mutate();
   };
 
-  const createComp = async () => {
-    if (!newName.trim() || !selectedMap || compAgents.some(a => !a)) return;
-    await fetch("/api/compositions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ map_id: selectedMap.id, name: newName, description: newDesc, agent_1: compAgents[0], agent_2: compAgents[1], agent_3: compAgents[2], agent_4: compAgents[3], agent_5: compAgents[4] }) });
-    setShowNewComp(false); setNewName(""); setNewDesc(""); setCompAgents(["", "", "", "", ""]);
-    loadComps(selectedMap.id);
+  // 4. Create Composition Mutation
+  const createCompMutation = useMutation({
+    mutationFn: async () => {
+      if (!newName.trim() || !selectedMap || compAgents.some(a => !a)) return;
+      const res = await fetch("/api/compositions", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          map_id: selectedMap.id, 
+          name: newName, 
+          description: newDesc, 
+          agent_1: compAgents[0], 
+          agent_2: compAgents[1], 
+          agent_3: compAgents[2], 
+          agent_4: compAgents[3], 
+          agent_5: compAgents[4] 
+        }) 
+      });
+      if (!res.ok) throw new Error("Error creating composition");
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowNewComp(false); 
+      setNewName(""); 
+      setNewDesc(""); 
+      setCompAgents(["", "", "", "", ""]);
+      queryClient.invalidateQueries({ queryKey: ["compositions", selectedMap?.id] });
+    }
+  });
+
+  const createComp = () => {
+    createCompMutation.mutate();
   };
 
-  const createStrat = async () => {
-    if (!newName.trim() || !selectedComp) return;
-    const res = await fetch("/api/strategies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ composition_id: selectedComp.id, name: newName, side: selectedSide }) });
-    const { id } = await res.json();
-    setShowNewStrat(false); setNewName("");
-    await loadStrats(selectedComp.id);
-    openEditor({ id, composition_id: selectedComp.id, name: newName, side: selectedSide, description: "", canvas_data: "{}" });
+  // 5. Create Strategy Mutation
+  const createStratMutation = useMutation({
+    mutationFn: async () => {
+      if (!newName.trim() || !selectedComp) {
+        throw new Error("Nombre inválido o sin composición seleccionada");
+      }
+      const res = await fetch("/api/strategies", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ composition_id: selectedComp.id, name: newName, side: selectedSide }) 
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear estrategia");
+      return { id: data.id, composition_id: selectedComp.id, name: newName, side: selectedSide };
+    },
+    onSuccess: (data) => {
+      if (!data) return;
+      setShowNewStrat(false); 
+      setNewName("");
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedComp?.id] });
+      openEditor({ id: data.id, composition_id: data.composition_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
+    }
+  });
+
+  const createStrat = () => {
+    createStratMutation.mutate();
   };
 
   const getAgentIcons = (comp: Composition) => [comp.agent_1, comp.agent_2, comp.agent_3, comp.agent_4, comp.agent_5].map(id => findAgentById(id)).filter(Boolean) as ValorantAgent[];
 
-  const byRole = { duelist: getAgentsByRole("duelist"), initiator: getAgentsByRole("initiator"), controller: getAgentsByRole("controller"), sentinel: getAgentsByRole("sentinel") };
   const colors2 = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#FFFFFF", "#FFD700"];
 
   return (
@@ -396,7 +534,9 @@ export default function StrategiesPage() {
                 </div>
                 <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => { pathsRef.current.pop(); redraw(); }}>↩ Deshacer</button>
-                  <button className="btn btn-primary btn-sm" onClick={saveStrategy}>💾 Guardar Cambios</button>
+                  <button className="btn btn-primary btn-sm" onClick={saveStrategy} disabled={saveStrategyMutation.isPending}>
+                    {saveStrategyMutation.isPending ? "Guardando..." : "💾 Guardar Cambios"}
+                  </button>
                 </div>
               </div>
               <div className="strategy-canvas-wrap glass-card" style={{ padding: 0, overflow: "hidden", border: "1px solid var(--border-color)" }}>
@@ -439,7 +579,9 @@ export default function StrategiesPage() {
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 24 }}>
               <button className="btn btn-secondary" onClick={() => setShowNewComp(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={createComp} disabled={compAgents.some(a => !a)}>Crear Composición</button>
+              <button className="btn btn-primary" onClick={createComp} disabled={compAgents.some(a => !a) || createCompMutation.isPending}>
+                {createCompMutation.isPending ? "Creando..." : "Crear Composición"}
+              </button>
             </div>
           </div>
         </div>
@@ -459,7 +601,9 @@ export default function StrategiesPage() {
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button className="btn btn-secondary" onClick={() => setShowNewStrat(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={createStrat}>Comenzar a Dibujar</button>
+              <button className="btn btn-primary" onClick={createStrat} disabled={createStratMutation.isPending}>
+                {createStratMutation.isPending ? "Creando..." : "Comenzar a Dibujar"}
+              </button>
             </div>
           </div>
         </div>

@@ -1,20 +1,28 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; user?: { email: string } }
-interface UnlinkedUser { id: string; name: string; email: string; }
+interface Player { 
+  id: number; 
+  name: string; 
+  riot_name: string; 
+  riot_tag: string; 
+  role: string; 
+  avatar_color: string; 
+  user?: { email: string };
+}
 
 export default function TeamRosterPage() {
   const { data: session } = useSession();
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [unlinkedUsers, setUnlinkedUsers] = useState<UnlinkedUser[]>([]);
+  const queryClient = useQueryClient();
+
   const [editing, setEditing] = useState<Player | null>(null);
   const [form, setForm] = useState({ email: "", role: "flex", avatar_color: "#FF4655" });
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
 
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
   
@@ -24,55 +32,81 @@ export default function TeamRosterPage() {
     { value: "controller", label: "Controlador" }, { value: "sentinel", label: "Centinela" }, { value: "flex", label: "Flex" }
   ];
 
-  const loadData = async () => {
-    try {
-      setDataLoading(true);
-      const pRes = await fetch("/api/players");
-      const pData = await pRes.json();
-      setPlayers(pData.players || []);
-    } catch (err) {
-      console.error("Error loading data:", err);
-    } finally {
-      setDataLoading(false);
+  // 1. Fetch Players
+  const { 
+    data: playersData, 
+    isLoading: playersLoading, 
+    error: playersError 
+  } = useQuery<{ players: Player[] }>({
+    queryKey: ["players"],
+    queryFn: async () => {
+      const res = await fetch("/api/players");
+      if (!res.ok) throw new Error("Error al cargar plantilla");
+      return res.json();
+    },
+    enabled: !!session,
+  });
+
+  const players = playersData?.players || [];
+  const dataLoading = playersLoading;
+
+  useEffect(() => {
+    if (playersError) {
+      setError((playersError as Error).message || "Error al cargar plantilla");
     }
-  };
+  }, [playersError]);
 
-  useEffect(() => { loadData(); }, [session]);
-
-  const save = async () => {
-    if (!form.email && !editing) {
-      setError("Debes introducir un email.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-
-    try {
+  // 2. Save/Edit Mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!form.email && !editing) {
+        throw new Error("Debes introducir un email.");
+      }
       const res = await fetch("/api/players", { 
         method: editing ? "PUT" : "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify(editing ? { id: editing.id, role: form.role, avatar_color: form.avatar_color } : form) 
       });
-      
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Error al procesar");
-      } else {
-        setEditing(null);
-        setForm({ email: "", role: "flex", avatar_color: "#FF4655" });
-        loadData();
+        throw new Error(data.error || "Error al procesar");
       }
-    } catch (err) {
-      setError("Error de conexión");
-    } finally {
-      setLoading(false);
+      return data;
+    },
+    onSuccess: () => {
+      setEditing(null);
+      setForm({ email: "", role: "flex", avatar_color: "#FF4655" });
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Error de conexión");
     }
+  });
+
+  const save = () => {
+    saveMutation.mutate();
   };
+
+  const loading = saveMutation.isPending;
+
+  // 3. Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/players?id=${id}`, { method: "DELETE" }); 
+      if (!res.ok) throw new Error("Error al eliminar jugador");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Error al eliminar jugador");
+    }
+  });
 
   const del = async (id: number) => { 
     if (!confirm("¿Eliminar este jugador?")) return;
-    await fetch(`/api/players?id=${id}`, { method: "DELETE" }); 
-    loadData(); 
+    deleteMutation.mutate(id);
   };
 
   if (!canManage) {
@@ -130,7 +164,7 @@ export default function TeamRosterPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={loading || (!editing && unlinkedUsers.length === 0)}>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={loading}>
                 {loading ? "Validando..." : editing ? "Guardar Cambios" : "Registrar Jugador"}
               </button>
               {editing && <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancelar</button>}

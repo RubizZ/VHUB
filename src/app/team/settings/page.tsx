@@ -1,54 +1,84 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import React from "react";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+interface TeamForm {
+  name: string;
+  slug: string;
+  logo_url: string;
+  tag: string;
+  division: string | number;
+  inviteCode: string | null;
+}
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
-  const [team, setTeam] = useState({ name: "", slug: "", logo_url: "", tag: "", division: "" as string | number, inviteCode: "" as string | null });
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const [form, setForm] = useState<TeamForm>({ name: "", slug: "", logo_url: "", tag: "", division: "", inviteCode: null });
   const [message, setMessage] = useState("");
 
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
 
-  useEffect(() => {
-    fetch("/api/team/current")
-      .then(res => res.json())
-      .then(data => {
-        if (data.team) {
-          setTeam(data.team);
-        }
-        setLoading(false);
-      });
-  }, []);
+  // 1. Fetch Current Team
+  const {
+    data: teamData,
+    isLoading: teamLoading
+  } = useQuery<{ team: TeamForm }>({
+    queryKey: ["currentTeam"],
+    queryFn: async () => {
+      const res = await fetch("/api/team/current");
+      if (!res.ok) throw new Error("Error loading team data");
+      return res.json();
+    },
+    enabled: !!session,
+  });
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-    
-    try {
+  useEffect(() => {
+    if (teamData?.team) {
+      setForm(teamData.team);
+    }
+  }, [teamData]);
+
+  // 2. Save Team Mutation
+  const saveTeamMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch("/api/team/current", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          name: team.name, 
-          logo_url: team.logo_url,
-          tag: team.tag,
-          division: team.division
+          name: form.name, 
+          logo_url: form.logo_url,
+          tag: form.tag,
+          division: form.division
         })
       });
-
-      if (res.ok) {
-        setMessage("✅ Configuración guardada correctamente");
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        setMessage("❌ Error al guardar los cambios");
-      }
-    } catch (err) {
-      setMessage("❌ Error de conexión");
+      if (!res.ok) throw new Error("Error saving settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      setMessage("✅ Configuración guardada correctamente");
+      queryClient.invalidateQueries({ queryKey: ["currentTeam"] });
+      setTimeout(() => setMessage(""), 3000);
+    },
+    onError: () => {
+      setMessage("❌ Error al guardar los cambios");
     }
+  });
+
+  const save = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+    saveTeamMutation.mutate();
   };
+
+  const loading = teamLoading;
 
   if (!canManage) {
     return <div className="p-20 text-center">Acceso restringido a administradores de equipo.</div>;
@@ -83,8 +113,8 @@ export default function TeamSettingsPage() {
                   <input 
                     className="input-field" 
                     style={{ width: "100%" }} 
-                    value={team.name} 
-                    onChange={e => setTeam({ ...team, name: e.target.value })} 
+                    value={form.name} 
+                    onChange={e => setForm({ ...form, name: e.target.value })} 
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 16 }}>
@@ -93,7 +123,7 @@ export default function TeamSettingsPage() {
                     className="input-field" 
                     style={{ width: "100%" }} 
                     disabled 
-                    value={team.slug} 
+                    value={form.slug} 
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 24 }}>
@@ -102,8 +132,8 @@ export default function TeamSettingsPage() {
                     className="input-field" 
                     style={{ width: "100%" }} 
                     placeholder="https://ejemplo.com/logo.png"
-                    value={team.logo_url} 
-                    onChange={e => setTeam({ ...team, logo_url: e.target.value })} 
+                    value={form.logo_url || ""} 
+                    onChange={e => setForm({ ...form, logo_url: e.target.value })} 
                   />
                 </div>
 
@@ -114,8 +144,8 @@ export default function TeamSettingsPage() {
                       className="input-field" 
                       style={{ width: "100%" }} 
                       placeholder="Ej: ABC"
-                      value={team.tag || ""} 
-                      onChange={e => setTeam({ ...team, tag: e.target.value.toUpperCase().replace("#", "") })} 
+                      value={form.tag || ""} 
+                      onChange={e => setForm({ ...form, tag: e.target.value.toUpperCase().replace("#", "") })} 
                     />
                   </div>
                   <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
@@ -123,8 +153,8 @@ export default function TeamSettingsPage() {
                     <select 
                       className="input-field" 
                       style={{ width: "100%" }} 
-                      value={team.division || ""} 
-                      onChange={e => setTeam({ ...team, division: e.target.value ? Number(e.target.value) : "" })}
+                      value={form.division || ""} 
+                      onChange={e => setForm({ ...form, division: e.target.value ? Number(e.target.value) : "" })}
                     >
                       <option value="">Selecciona tu división...</option>
                       {PREMIER_DIVISIONS.map(div => (
@@ -140,7 +170,9 @@ export default function TeamSettingsPage() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary">Guardar Cambios</button>
+                <button type="submit" className="btn btn-primary" disabled={saveTeamMutation.isPending}>
+                  {saveTeamMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                </button>
               </form>
             )}
           </div>
@@ -154,7 +186,7 @@ export default function TeamSettingsPage() {
                 <Skeleton width={100} height={40} />
               </div>
             ) : (
-              <InviteLinkSection inviteCode={team.inviteCode} setTeam={setTeam} team={team} />
+              <InviteLinkSection inviteCode={form.inviteCode} />
             )}
           </div>
 
@@ -170,34 +202,42 @@ export default function TeamSettingsPage() {
 }
 
 function JoinRequests() {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
 
-  const fetchRequests = () => {
-    fetch("/api/teams/requests")
-      .then(res => res.json())
-      .then(data => {
-        if (data.requests) setRequests(data.requests);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
+  // Fetch Requests
+  const { data: requestsData, isLoading: requestsLoading } = useQuery<{ requests: any[] }>({
+    queryKey: ["joinRequests"],
+    queryFn: async () => {
+      const res = await fetch("/api/teams/requests");
+      if (!res.ok) throw new Error("Error loading requests");
+      return res.json();
+    },
+    enabled: !!session,
+  });
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  const requests = requestsData?.requests || [];
+  const loading = requestsLoading;
 
-  const handleRequest = async (id: string, action: "approve" | "reject") => {
-    try {
+  // Resolve Request Mutation
+  const resolveRequestMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: "approve" | "reject" }) => {
       const res = await fetch(`/api/teams/requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action })
       });
-      if (res.ok) fetchRequests();
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error("Error resolving request");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["players"] });
     }
+  });
+
+  const handleRequest = (id: string, action: "approve" | "reject") => {
+    resolveRequestMutation.mutate({ id, action });
   };
 
   if (loading) return (
@@ -231,6 +271,7 @@ function JoinRequests() {
               className="btn" 
               style={{ padding: "6px 12px", fontSize: 12, background: "var(--val-red)", color: "#fff", border: "none" }}
               onClick={() => handleRequest(req.id, "reject")}
+              disabled={resolveRequestMutation.isPending}
             >
               Rechazar
             </button>
@@ -238,6 +279,7 @@ function JoinRequests() {
               className="btn btn-primary" 
               style={{ padding: "6px 12px", fontSize: 12 }}
               onClick={() => handleRequest(req.id, "approve")}
+              disabled={resolveRequestMutation.isPending}
             >
               Aprobar
             </button>
@@ -248,9 +290,9 @@ function JoinRequests() {
   );
 }
 
-function InviteLinkSection({ inviteCode, setTeam, team }: { inviteCode: string | null, setTeam: any, team: any }) {
+function InviteLinkSection({ inviteCode }: { inviteCode: string | null }) {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
   const inviteUrl = inviteCode ? `${window.location.origin}/register?invite=${inviteCode}` : "";
 
@@ -262,20 +304,25 @@ function InviteLinkSection({ inviteCode, setTeam, team }: { inviteCode: string |
     }
   };
 
-  const generateNewCode = async () => {
-    setGenerating(true);
-    try {
+  // Generate Invite Mutation
+  const generateInviteMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch("/api/team/invite", { method: "POST" });
       const data = await res.json();
-      if (data.inviteCode) {
-        setTeam({ ...team, inviteCode: data.inviteCode });
-      }
-    } catch (err) {
-      console.error("Error al generar código", err);
-    } finally {
-      setGenerating(false);
+      if (!res.ok) throw new Error("Error generating invite link");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentTeam"] });
     }
+  });
+
+  const generateNewCode = () => {
+    if (inviteCode && !confirm("¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.")) return;
+    generateInviteMutation.mutate();
   };
+
+  const generating = generateInviteMutation.isPending;
 
   if (!inviteCode) {
     return (

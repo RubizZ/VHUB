@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import React, { useState, useEffect } from "react";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface PlayerData {
   id: number;
@@ -18,55 +19,173 @@ interface PlayerData {
 
 export default function AccountSettingsPage() {
   const { data: session, status } = useSession();
-  const [player, setPlayer] = useState<PlayerData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingRiot, setSavingRiot] = useState(false);
-  const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Local state for form inputs and toggles
   const [riotName, setRiotName] = useState("");
   const [riotTag, setRiotTag] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
   });
+  const [localConsent, setLocalConsent] = useState(false);
+
+  // Status and feedback messages
   const [profileMessage, setProfileMessage] = useState({ text: "", type: "" });
   const [riotMessage, setRiotMessage] = useState({ text: "", type: "" });
   const [privacyMessage, setPrivacyMessage] = useState({ text: "", type: "" });
-  const [localConsent, setLocalConsent] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
+  // 1. Get player profile data via useQuery
+  const { data: queryData, isLoading: queryLoading } = useQuery({
+    queryKey: ["player", "me"],
+    queryFn: async () => {
+      const res = await fetch(`/api/players/me`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Error al obtener la información del jugador");
+      return res.json();
+    },
+    enabled: !!session?.user,
+  });
+
+  const player = queryData?.player as PlayerData | null;
+
+  // Sync query data to local input states
   useEffect(() => {
     if (session?.user) {
-      setForm(prev => ({
-        ...prev,
-        name: session.user?.name || "",
-        email: session.user?.email || "",
-      }));
-
-      fetch(`/api/players/me`)
-        .then(res => {
-          if (res.status === 404) {
-            setLoading(false);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data && data.player) {
-            setPlayer(data.player);
-            setForm({
-              name: data.player.name || session.user?.name || "",
-              email: session.user?.email || "",
-            });
-            setRiotName(data.player.riot_name || "");
-            setRiotTag(data.player.riot_tag || "");
-            setLocalConsent(data.player.dataConsent || false);
-          }
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      setForm({
+        name: player?.name || session.user.name || "",
+        email: session.user.email || "",
+      });
+      setRiotName(player?.riot_name || "");
+      setRiotTag(player?.riot_tag || "");
+      setLocalConsent(player?.dataConsent || false);
     }
-  }, [session]);
+  }, [player, session]);
+
+  // 2. Profile Mutation
+  const saveProfileMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      const res = await fetch("/api/players/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Error al guardar cambios");
+      return d;
+    },
+    onMutate: () => {
+      setProfileMessage({ text: "Guardando cambios...", type: "info" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player", "me"] });
+      setProfileMessage({ text: "Configuración de cuenta guardada correctamente", type: "success" });
+      setTimeout(() => setProfileMessage({ text: "", type: "" }), 3000);
+    },
+    onError: (err: any) => {
+      setProfileMessage({ text: err.message || "Error al guardar cambios", type: "error" });
+    }
+  });
+
+  // 3. Riot Games Profile Sync Mutation
+  const syncRiotMutation = useMutation({
+    mutationFn: async (payload: { riotName: string; riotTag: string }) => {
+      const res = await fetch("/api/valorant/sync-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al sincronizar");
+      return data;
+    },
+    onMutate: () => {
+      setRiotMessage({ text: "Sincronizando con Riot Games...", type: "info" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player", "me"] });
+      setRiotMessage({ text: "¡Cuenta de Riot vinculada correctamente!", type: "success" });
+      setTimeout(() => setRiotMessage({ text: "", type: "" }), 3000);
+    },
+    onError: (err: any) => {
+      setRiotMessage({ text: err.message || "Error de conexión", type: "error" });
+    }
+  });
+
+  // 4. Privacy Settings Consent Mutation
+  const savePrivacyMutation = useMutation({
+    mutationFn: async (consent: boolean) => {
+      const res = await fetch("/api/players/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataConsent: consent })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Error al actualizar privacidad");
+      return d;
+    },
+    onMutate: () => {
+      setPrivacyMessage({ text: "Guardando cambios...", type: "info" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player", "me"] });
+      setPrivacyMessage({ text: "Preferencias de privacidad actualizadas", type: "success" });
+      setTimeout(() => setPrivacyMessage({ text: "", type: "" }), 3000);
+    },
+    onError: (err: any) => {
+      setPrivacyMessage({ text: err.message || "Error al actualizar privacidad", type: "error" });
+    }
+  });
+
+  // 5. Account Deletion Mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/players/me", {
+        method: "DELETE",
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Error al eliminar la cuenta");
+      return d;
+    },
+    onSuccess: async () => {
+      window.alert("Tu cuenta ha sido eliminada correctamente.");
+      await signOut({ callbackUrl: "/" });
+    },
+    onError: (err: any) => {
+      window.alert(err.message || "Hubo un error al eliminar tu cuenta. Por favor, inténtalo de nuevo.");
+    }
+  });
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    saveProfileMutation.mutate(form.name);
+  };
+
+  const handleSyncRiot = async () => {
+    if (!riotName || !riotTag) {
+      setRiotMessage({ text: "Introduce tu Riot ID y Etiqueta (ej: Nombre#TAG)", type: "error" });
+      return;
+    }
+    syncRiotMutation.mutate({ riotName, riotTag });
+  };
+
+  const handleSavePrivacy = async (consent: boolean) => {
+    savePrivacyMutation.mutate(consent);
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "⚠ ATENCIÓN: ¿Estás completamente seguro de que deseas eliminar tu cuenta de forma permanente?\n\nEsta acción es irreversible: se borrarán todos tus datos, disponibilidades, mensajes y estadísticas de equipo. No podrás recuperar tu cuenta."
+    );
+    if (!confirmed) return;
+
+    const secondConfirm = window.confirm(
+      "CONFIRMACIÓN FINAL:\n\n¿Realmente deseas proceder con la eliminación definitiva de tu cuenta?"
+    );
+    if (!secondConfirm) return;
+
+    deleteAccountMutation.mutate();
+  };
 
   const renderLocalMessage = (msg: { text: string; type: string }) => {
     if (!msg.text) return null;
@@ -82,128 +201,7 @@ export default function AccountSettingsPage() {
     );
   };
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingProfile(true);
-    setProfileMessage({ text: "Guardando cambios...", type: "info" });
-    try {
-      const res = await fetch("/api/players/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.player) {
-          setPlayer(data.player);
-        }
-        setProfileMessage({ text: "Configuración de cuenta guardada correctamente", type: "success" });
-        setTimeout(() => setProfileMessage({ text: "", type: "" }), 3000);
-      } else {
-        const d = await res.json();
-        setProfileMessage({ text: d.error || "Error al guardar cambios", type: "error" });
-      }
-    } catch (err) {
-      console.error(err);
-      setProfileMessage({ text: "Error al guardar cambios", type: "error" });
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
-  const handleSyncRiot = async () => {
-    if (!riotName || !riotTag) {
-      setRiotMessage({ text: "Introduce tu Riot ID y Etiqueta (ej: Nombre#TAG)", type: "error" });
-      return;
-    }
-    setSavingRiot(true);
-    setRiotMessage({ text: "Sincronizando con Riot Games...", type: "info" });
-
-    try {
-      const res = await fetch("/api/valorant/sync-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ riotName, riotTag })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setPlayer(prev => prev ? { ...prev, puuid: data.puuid, riot_name: riotName, riot_tag: riotTag } : null);
-        setRiotMessage({ text: "¡Cuenta de Riot vinculada correctamente!", type: "success" });
-        setTimeout(() => setRiotMessage({ text: "", type: "" }), 3000);
-      } else {
-        setRiotMessage({ text: data.error || "Error al sincronizar", type: "error" });
-      }
-    } catch (err) {
-      console.error(err);
-      setRiotMessage({ text: "Error de conexión", type: "error" });
-    } finally {
-      setSavingRiot(false);
-    }
-  };
-
-  const handleSavePrivacy = async (consent: boolean) => {
-    setSavingPrivacy(true);
-    setPrivacyMessage({ text: "Guardando cambios...", type: "info" });
-    try {
-      const res = await fetch("/api/players/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataConsent: consent })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.player) {
-          setPlayer(data.player);
-          setLocalConsent(data.player.dataConsent || false);
-        }
-        setPrivacyMessage({ text: "Preferencias de privacidad actualizadas", type: "success" });
-        setTimeout(() => setPrivacyMessage({ text: "", type: "" }), 3000);
-      } else {
-        const d = await res.json();
-        setPrivacyMessage({ text: d.error || "Error al actualizar privacidad", type: "error" });
-      }
-    } catch (err) {
-      console.error(err);
-      setPrivacyMessage({ text: "Error al actualizar privacidad", type: "error" });
-    } finally {
-      setSavingPrivacy(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      "⚠ ATENCIÓN: ¿Estás completamente seguro de que deseas eliminar tu cuenta de forma permanente?\n\nEsta acción es irreversible: se borrarán todos tus datos, disponibilidades, mensajes y estadísticas de equipo. No podrás recuperar tu cuenta."
-    );
-    if (!confirmed) return;
-
-    const secondConfirm = window.confirm(
-      "CONFIRMACIÓN FINAL:\n\n¿Realmente deseas proceder con la eliminación definitiva de tu cuenta?"
-    );
-    if (!secondConfirm) return;
-
-    setDeleting(true);
-    try {
-      const res = await fetch("/api/players/me", {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        window.alert("Tu cuenta ha sido eliminada correctamente.");
-        await signOut({ callbackUrl: "/" });
-      } else {
-        const d = await res.json();
-        window.alert(d.error || "Hubo un error al eliminar tu cuenta. Por favor, inténtalo de nuevo.");
-      }
-    } catch (err) {
-      console.error(err);
-      window.alert("Error de conexión al intentar eliminar la cuenta.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (status === "loading" || loading) {
+  if (status === "loading" || queryLoading) {
     return (
       <div className="page-content animate-in">
         <div className="grid grid-2" style={{ gap: 32 }}>
@@ -260,8 +258,8 @@ export default function AccountSettingsPage() {
                 </div>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900 }} disabled={savingProfile}>
-                 {savingProfile ? "Guardando..." : "Guardar Cambios"}
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900 }} disabled={saveProfileMutation.isPending}>
+                 {saveProfileMutation.isPending ? "Guardando..." : "Guardar Cambios"}
               </button>
             </form>
           </div>
@@ -322,9 +320,9 @@ export default function AccountSettingsPage() {
                 className="btn btn-primary"
                 style={{ width: "100%", height: 52, borderRadius: 12, fontWeight: 900, letterSpacing: 0.5 }}
                 onClick={handleSyncRiot}
-                disabled={savingRiot}
+                disabled={syncRiotMutation.isPending}
               >
-                {savingRiot ? "Sincronizando..." : player?.puuid ? "🔄 Actualizar Vínculo" : "🔗 Conectar Valorant"}
+                {syncRiotMutation.isPending ? "Sincronizando..." : player?.puuid ? "🔄 Actualizar Vínculo" : "🔗 Conectar Valorant"}
               </button>
 
               {player?.puuid && (
@@ -386,7 +384,7 @@ export default function AccountSettingsPage() {
                   <input
                     type="checkbox"
                     checked={localConsent}
-                    disabled={savingPrivacy}
+                    disabled={savePrivacyMutation.isPending}
                     onChange={(e) => {
                       const nextVal = e.target.checked;
                       setLocalConsent(nextVal);
@@ -419,9 +417,9 @@ export default function AccountSettingsPage() {
                 className="btn btn-ghost" 
                 style={{ width: "100%", color: "var(--val-red)", borderColor: "rgba(255, 70, 85, 0.2)", height: 48, borderRadius: 12, fontSize: 12, fontWeight: 800 }}
                 onClick={handleDeleteAccount}
-                disabled={deleting}
+                disabled={deleteAccountMutation.isPending}
               >
-                 {deleting ? "ELIMINANDO..." : "ELIMINAR MI CUENTA"}
+                 {deleteAccountMutation.isPending ? "ELIMINANDO..." : "ELIMINAR MI CUENTA"}
               </button>
             </div>
           </div>

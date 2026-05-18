@@ -1,10 +1,12 @@
-/* global fetch, setTimeout, clearTimeout */
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState, useMemo, CSSProperties } from "react";
+import React, { useEffect, useState, useMemo, CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import { findAgentById, ROLE_COLORS } from "@/lib/agents";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Match {
   id: number; riot_match_id: string; map_name: string; game_mode: string;
@@ -30,115 +32,66 @@ interface PlayerStat {
 
 export default function MatchesPage() {
   const searchParams = useSearchParams();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [seasons, setSeasons] = useState<{id: string, name: string}[]>([]);
+  const queryClient = useQueryClient();
+
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [selected, setSelected] = useState<Match | null>(null);
-  const [stats, setStats] = useState<PlayerStat[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        setSuccess(null);
-      }, 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError(null);
-      }, 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
-  const fetchMatches = async (season?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = (season !== null && season !== undefined && season !== "") ? `/api/matches?season=${encodeURIComponent(season)}` : "/api/matches";
+  // 1. Fetch matches & seasons
+  const {
+    data: matchesData,
+    isLoading: matchesLoading,
+    error: matchesError,
+  } = useQuery<{ matches: Match[]; seasons: { id: string; name: string }[]; activeSeasonId: string }>({
+    queryKey: ["matches", selectedSeason],
+    queryFn: async () => {
+      const url = selectedSeason ? `/api/matches?season=${encodeURIComponent(selectedSeason)}` : "/api/matches";
       const r = await fetch(url);
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error al cargar los partidos");
-      setMatches(d.matches || []);
-      if (d.seasons) setSeasons(d.seasons);
-      if (d.activeSeasonId && season === null && selectedSeason === null) {
-        setSelectedSeason(d.activeSeasonId);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar los partidos");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return d;
+    },
+  });
 
+  const matches = matchesData?.matches || [];
+  const seasons = matchesData?.seasons || [];
+
+  // Set default active season once loaded
   useEffect(() => {
-    fetchMatches(selectedSeason || "");
-  }, [selectedSeason]);
-
-  useEffect(() => {
-    if (deepLinkHandled || loading) return;
-    const matchIdParam = searchParams.get("id");
-    if (matchIdParam && matches.length > 0) {
-      const matchId = Number(matchIdParam);
-      const match = matches.find(m => m.id === matchId);
-      if (match && !match.isHidden) {
-        loadMatch(match);
-      } else if (!match) {
-        loadMatchById(matchId);
-      }
-      setDeepLinkHandled(true);
+    if (matchesData?.activeSeasonId && selectedSeason === null) {
+      setSelectedSeason(matchesData.activeSeasonId);
     }
-  }, [matches, loading, deepLinkHandled, searchParams]);
+  }, [matchesData, selectedSeason]);
 
-  const loadMatch = async (m: Match) => {
-    if (m.isHidden) return;
-    setSelected(m);
-    setError(null);
-    try {
-      const res = await fetch(`/api/matches?id=${m.id}`);
+  // 2. Fetch selected match details
+  const {
+    data: matchDetailsData,
+    error: matchDetailsError,
+  } = useQuery<{ playerStats: PlayerStat[] }>({
+    queryKey: ["matchDetails", selected?.id],
+    queryFn: async () => {
+      if (!selected) return null;
+      const res = await fetch(`/api/matches?id=${selected.id}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setStats(data.playerStats || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar detalles");
-    }
-  };
+      return data;
+    },
+    enabled: !!selected,
+  });
 
-  const loadMatchById = async (matchId: number) => {
-    setError(null);
-    try {
-      const res = await fetch(`/api/matches?id=${matchId}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      if (data.match) {
-        setSelected(data.match as Match);
-        setStats(data.playerStats || []);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar detalles del partido");
-    }
-  };
+  const stats = matchDetailsData?.playerStats || [];
 
-  const syncMatches = async () => {
-    setSyncing(true);
-    setError(null);
-    setSuccess(null);
-    try {
+  // 3. Sync matches mutation
+  const syncMutation = useMutation({
+    mutationFn: async () => {
       const pRes = await fetch("/api/players");
       const pData = await pRes.json();
       const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
       if (!playerWithPuuid) {
-        setError("Ningún jugador tiene un PUUID configurado.");
-        setSyncing(false);
-        return;
+        throw new Error("Ningún jugador tiene un PUUID configurado.");
       }
       const res = await fetch("/api/matches", {
         method: "POST",
@@ -147,16 +100,82 @@ export default function MatchesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error en la sincronización");
+      return data;
+    },
+    onSuccess: (data) => {
       setSuccess(`Sincronización completada: ${data.synced} partidos procesados.`);
-      fetchMatches(selectedSeason || "");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSyncing(false);
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Error al sincronizar");
     }
+  });
+
+  const syncMatches = () => {
+    syncMutation.mutate();
   };
 
-  const formatDuration = (ms: number) => { const m = Math.floor(ms / 60000); return `${m}min`; };
+  const syncing = syncMutation.isPending;
+  const loading = matchesLoading;
+
+  // Timed dismiss alerts
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (matchesError) {
+      setError((matchesError as Error).message || "Error al cargar partidos");
+    }
+  }, [matchesError]);
+
+  useEffect(() => {
+    if (matchDetailsError) {
+      setError((matchDetailsError as Error).message || "Error al cargar detalles");
+    }
+  }, [matchDetailsError]);
+
+  // Deep Link Handling
+  useEffect(() => {
+    if (deepLinkHandled || loading) return;
+    const matchIdParam = searchParams.get("id");
+    if (matchIdParam) {
+      const matchId = Number(matchIdParam);
+      const match = matches.find(m => m.id === matchId);
+      if (match && !match.isHidden) {
+        setSelected(match);
+      } else if (!match) {
+        // Fetch details and set active match
+        fetch(`/api/matches?id=${matchId}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.match) {
+              setSelected(data.match as Match);
+            }
+          })
+          .catch(err => {
+            console.error("Error loading deep link match details", err);
+          });
+      }
+      setDeepLinkHandled(true);
+    }
+  }, [matches, loading, deepLinkHandled, searchParams]);
+
+  const loadMatch = (m: Match) => {
+    if (m.isHidden) return;
+    setSelected(m);
+  };
+
   const formatDate = (d: string) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const winRate = useMemo(() => {
@@ -459,7 +478,7 @@ export default function MatchesPage() {
           </div>
         ) : (
           <div className="animate-in">
-            <button className="btn btn-ghost" style={{ marginBottom: 20, paddingLeft: 0 }} onClick={() => { setSelected(null); setStats([]); }}>
+            <button className="btn btn-ghost" style={{ marginBottom: 20, paddingLeft: 0 }} onClick={() => setSelected(null)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 8 }}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               Volver al historial
             </button>

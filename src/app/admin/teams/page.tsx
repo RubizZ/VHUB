@@ -1,7 +1,10 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Team {
   id: string;
@@ -20,29 +23,29 @@ interface Team {
 
 export default function AdminTeamsPage() {
   const { data: session } = useSession();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [formData, setFormData] = useState({ name: "", slug: "", conference: "EMEA", tag: "" });
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchTeams();
-  }, []);
-
-  const fetchTeams = async () => {
-    try {
+  // 1. Fetch Teams Query
+  const {
+    data: teamsData,
+    isLoading: teamsLoading
+  } = useQuery<{ teams: Team[] }>({
+    queryKey: ["adminTeams"],
+    queryFn: async () => {
       const res = await fetch("/api/admin/teams");
-      const data = await res.json();
-      setTeams(data.teams || []);
-    } catch (error) {
-      console.error("Error fetching teams:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!res.ok) throw new Error("Error loading teams");
+      return res.json();
+    },
+    enabled: session?.user?.role === "super_admin",
+  });
+
+  const teams = teamsData?.teams || [];
+  const loading = teamsLoading;
 
   const handleOpenCreate = () => {
     setEditingTeam(null);
@@ -61,41 +64,50 @@ export default function AdminTeamsPage() {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const method = editingTeam ? "PUT" : "POST";
-    const url = editingTeam ? `/api/admin/teams/${editingTeam.id}` : "/api/admin/teams";
-
-    try {
+  // 2. Save Team Mutation (Create/Edit)
+  const saveTeamMutation = useMutation({
+    mutationFn: async () => {
+      const method = editingTeam ? "PUT" : "POST";
+      const url = editingTeam ? `/api/admin/teams/${editingTeam.id}` : "/api/admin/teams";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        setShowModal(false);
-        fetchTeams();
-      }
-    } catch (error) {
-      console.error("Error saving team:", error);
+      if (!res.ok) throw new Error("Error saving team");
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowModal(false);
+      queryClient.invalidateQueries({ queryKey: ["adminTeams"] });
+      queryClient.invalidateQueries({ queryKey: ["adminStats"] });
     }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveTeamMutation.mutate();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este equipo? Esta acción es irreversible y eliminará todos los datos asociados.")) return;
-    
-    setIsDeleting(id);
-    try {
+  // 3. Delete Team Mutation
+  const deleteTeamMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/admin/teams/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setTeams(teams.filter(t => t.id !== id));
-      }
-    } catch (error) {
-      console.error("Error deleting team:", error);
-    } finally {
-      setIsDeleting(null);
+      if (!res.ok) throw new Error("Error deleting team");
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminTeams"] });
+      queryClient.invalidateQueries({ queryKey: ["adminStats"] });
     }
+  });
+
+  const handleDelete = (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este equipo? Esta acción es irreversible y eliminará todos los datos asociados.")) return;
+    deleteTeamMutation.mutate(id);
   };
+
+  const isDeleting = deleteTeamMutation.isPending ? deleteTeamMutation.variables : null;
 
   const filteredTeams = teams.filter(t => 
     t.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -263,8 +275,8 @@ export default function AdminTeamsPage() {
               
               <div style={{ display: "flex", gap: 16 }}>
                 <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }}>
-                   {editingTeam ? "Actualizar" : "Crear Entidad"}
+                <button type="submit" className="btn btn-primary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} disabled={saveTeamMutation.isPending}>
+                   {saveTeamMutation.isPending ? "Procesando..." : editingTeam ? "Actualizar" : "Crear Entidad"}
                 </button>
               </div>
             </form>

@@ -1,7 +1,10 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface User {
   id: string;
@@ -19,54 +22,88 @@ interface Team {
 
 export default function AdminUsersPage() {
   const { data: session } = useSession();
-  const [users, setUsers] = useState<User[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({ role: "member", teamId: "" });
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/admin/users").then(res => res.json()),
-      fetch("/api/admin/teams").then(res => res.json())
-    ]).then(([userData, teamData]) => {
-      setUsers(userData.users || []);
-      setTeams(teamData.teams || []);
-      setLoading(false);
-    });
-  }, []);
+  // 1. Fetch Users Query
+  const {
+    data: usersData,
+    isLoading: usersLoading
+  } = useQuery<{ users: User[] }>({
+    queryKey: ["adminUsers"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Error loading admin users");
+      return res.json();
+    },
+    enabled: session?.user?.role === "super_admin",
+  });
+
+  // 2. Fetch Teams Query for Dropdown Select Options
+  const {
+    data: teamsData,
+    isLoading: teamsLoading
+  } = useQuery<{ teams: Team[] }>({
+    queryKey: ["adminTeams"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/teams");
+      if (!res.ok) throw new Error("Error loading admin teams");
+      return res.json();
+    },
+    enabled: session?.user?.role === "super_admin",
+  });
+
+  const users = usersData?.users || [];
+  const teams = teamsData?.teams || [];
+  const loading = usersLoading || teamsLoading;
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setFormData({ role: user.role, teamId: user.teamId || "" });
   };
 
-  const handleSave = async () => {
-    if (!editingUser) return;
-    try {
+  // 3. Edit User Mutation
+  const editUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) return;
       const res = await fetch("/api/admin/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: editingUser.id, ...formData }),
       });
-      if (res.ok) {
-        setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...formData, team: teams.find(t => t.id === formData.teamId) } : u));
-        setEditingUser(null);
-      }
-    } catch (error) {
-      console.error("Error updating user:", error);
+      if (!res.ok) throw new Error("Error updating user details");
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditingUser(null);
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminStats"] });
     }
+  });
+
+  const handleSave = () => {
+    editUserMutation.mutate();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este usuario definitivamente?")) return;
-    try {
+  // 4. Delete User Mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
-      if (res.ok) setUsers(users.filter(u => u.id !== id));
-    } catch (error) {
-      console.error("Error deleting user:", error);
+      if (!res.ok) throw new Error("Error deleting user");
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminStats"] });
     }
+  });
+
+  const handleDelete = (id: string) => {
+    if (!confirm("¿Eliminar este usuario definitivamente?")) return;
+    deleteUserMutation.mutate(id);
   };
 
   const filteredUsers = users.filter(u => 
@@ -149,7 +186,9 @@ export default function AdminUsersPage() {
                   <td style={{ padding: "20px 24px", textAlign: "right" }}>
                     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                        <button className="icon-action-btn" onClick={() => handleEdit(u)}>✏️</button>
-                       <button className="icon-action-btn" style={{ color: "var(--val-red)" }} onClick={() => handleDelete(u.id)}>🗑️</button>
+                       <button className="icon-action-btn" style={{ color: "var(--val-red)" }} onClick={() => handleDelete(u.id)} disabled={deleteUserMutation.isPending && deleteUserMutation.variables === u.id}>
+                         {deleteUserMutation.isPending && deleteUserMutation.variables === u.id ? "..." : "🗑️"}
+                       </button>
                     </div>
                   </td>
                 </tr>
@@ -191,7 +230,9 @@ export default function AdminUsersPage() {
 
             <div style={{ display: "flex", gap: 16 }}>
               <button className="btn btn-secondary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} onClick={() => setEditingUser(null)}>Cancelar</button>
-              <button className="btn btn-primary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} onClick={handleSave}>Guardar Cambios</button>
+              <button className="btn btn-primary" style={{ flex: 1, height: 48, borderRadius: 12, fontWeight: 800 }} onClick={handleSave} disabled={editUserMutation.isPending}>
+                {editUserMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+              </button>
             </div>
           </div>
         </div>

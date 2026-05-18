@@ -1,90 +1,99 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function OnboardingPage() {
-  const [mode, setMode] = useState<"choice" | "create" | "join" | "pending">("choice");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
   const { update } = useSession();
   const router = useRouter();
+
+  const [mode, setMode] = useState<"choice" | "create" | "join" | "pending">("choice");
+  const [error, setError] = useState("");
 
   // Form states
   const [teamName, setTeamName] = useState("");
   const [conference, setConference] = useState("EU_IBIT");
   const [joinSlug, setJoinSlug] = useState("");
 
+  // 1. Query for pending request
+  const { data: requestData } = useQuery({
+    queryKey: ["myTeamRequest"],
+    queryFn: async () => {
+      const res = await fetch("/api/teams/requests/me");
+      if (!res.ok) throw new Error("Error loading pending requests");
+      return res.json();
+    },
+  });
+
   useEffect(() => {
-    // If the user already has a pending request, switch to pending mode
-    fetch("/api/teams/requests/me")
-      .then(res => res.json())
-      .then(data => {
-        if (data.request) {
-          setMode("pending");
-        }
-      })
-      .catch(() => {});
-  }, []);
+    if (requestData?.request) {
+      setMode("pending");
+    }
+  }, [requestData]);
 
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
+  // 2. Create team mutation
+  const createTeamMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: teamName, conference })
       });
       const data = await res.json();
-
-      if (res.ok) {
-        // Actualizamos la sesión en cliente antes de redirigir
-        // Esto refresca el JWT para que el Middleware vea que ya tenemos equipo
-        await update({ 
-          teamId: data.team.id,
-          role: "team_admin" // El creador suele ser admin
-        });
-        
-        router.push("/");
-      } else {
-        setError(data.error || "Error al crear el equipo");
-      }
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setLoading(false);
+      if (!res.ok) throw new Error(data.error || "Error al crear el equipo");
+      return data;
+    },
+    onSuccess: async (data) => {
+      await update({ 
+        teamId: data.team.id,
+        role: "team_admin"
+      });
+      router.push("/");
+    },
+    onError: (err: any) => {
+      setError(err.message || "Error de conexión");
     }
+  });
+
+  const handleCreateTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    createTeamMutation.mutate();
   };
 
-  const handleJoinTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinSlug.trim()) return;
-    
-    setLoading(true);
-    setError("");
-
-    try {
+  // 3. Join team mutation
+  const joinTeamMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch("/api/teams/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug: joinSlug.trim() })
       });
       const data = await res.json();
-
-      if (res.ok) {
-        setMode("pending");
-      } else {
-        setError(data.error || "Error al enviar la solicitud");
-      }
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setLoading(false);
+      if (!res.ok) throw new Error(data.error || "Error al enviar la solicitud");
+      return data;
+    },
+    onSuccess: () => {
+      setMode("pending");
+      queryClient.invalidateQueries({ queryKey: ["myTeamRequest"] });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Error de conexión");
     }
+  });
+
+  const handleJoinTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinSlug.trim()) return;
+    setError("");
+    joinTeamMutation.mutate();
   };
+
+  const loading = createTeamMutation.isPending || joinTeamMutation.isPending;
 
   return (
     <div className="login-page">

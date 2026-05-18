@@ -1,8 +1,11 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState } from "react";
+import React from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
+import { useQuery } from "@tanstack/react-query";
 
 interface AdminStats {
   teams: number;
@@ -29,21 +32,25 @@ interface RecentUser {
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [recentTeams, setRecentTeams] = useState<RecentTeam[]>([]);
-  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then(res => res.json())
-      .then(data => {
-        setStats(data.stats);
-        setRecentTeams(data.recentTeams);
-        setRecentUsers(data.recentUsers);
-        setLoading(false);
-      });
-  }, []);
+  // 1. Fetch Admin Metrics
+  const {
+    data: statsData,
+    isLoading: statsLoading
+  } = useQuery<{ stats: AdminStats; recentTeams: RecentTeam[]; recentUsers: RecentUser[] }>({
+    queryKey: ["adminStats"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error("Error loading admin stats");
+      return res.json();
+    },
+    enabled: session?.user?.role === "super_admin",
+  });
+
+  const stats = statsData?.stats || null;
+  const recentTeams = statsData?.recentTeams || [];
+  const recentUsers = statsData?.recentUsers || [];
+  const loading = statsLoading;
 
   if (session?.user?.role !== "super_admin") {
     return <div className="p-20 text-center">Acceso restringido. Solo para administradores globales.</div>;
