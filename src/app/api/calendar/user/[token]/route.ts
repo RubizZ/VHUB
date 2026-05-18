@@ -105,11 +105,15 @@ export async function GET(
         else titleText = "Evento";
       }
 
+      const displayTitle = confirmedCount < 5 ? `${titleText} [Provisional]` : titleText;
       const eventUrl = `${origin}/availability?eventId=${ev.id}`;
       const mapName = ev.map_obj?.name || ev.map || "Por definir";
 
       let description = `🗺️ Mapa: ${mapName}\n`;
       description += `👤 Tu Estado: ${myStatus.toUpperCase()}\n`;
+      if (confirmedCount < 5) {
+        description += `⏳ Esperando al resto\n`;
+      }
       if (ev.description) {
         description += `📝 Notas: ${ev.description}\n`;
       }
@@ -128,6 +132,7 @@ export async function GET(
       let htmlContent = `<div>
         <p><strong>🗺️ Mapa:</strong> ${mapName}</p>
         <p><strong>👤 Tu Estado:</strong> <span style="text-transform: uppercase;">${myStatus}</span></p>
+        ${confirmedCount < 5 ? `<p><strong>⏳ Esperando al resto</strong></p>` : ""}
         ${ev.description ? `<p><strong>📝 Notas:</strong> ${ev.description}</p>` : ""}
         <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
       `;
@@ -153,7 +158,7 @@ export async function GET(
       return {
         start: [year, month, day, hour, minute],
         duration,
-        title: titleText,
+        title: displayTitle,
         description,
         htmlContent,
         url: eventUrl,
