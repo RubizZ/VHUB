@@ -1507,11 +1507,12 @@ export default function AvailabilityPage() {
                                                                                               isCancelled ||
                                                                                               isNoPlayers ||
                                                                                               isNotPlayed ||
-                                                                                              isImpossible ||
-                                                                                              myStatus ===
-                                                                                                  "unavailable"
+                                                                                              isImpossible
                                                                                                   ? 0.4
-                                                                                                  : 1,
+                                                                                                  : myStatus ===
+                                                                                                    "unavailable"
+                                                                                                    ? 0.85
+                                                                                                    : 1,
                                                                                           border:
                                                                                               isRed ||
                                                                                               myStatus ===
@@ -2218,11 +2219,12 @@ export default function AvailabilityPage() {
                                                                                               overflow:
                                                                                                   "hidden",
                                                                                               opacity:
-                                                                                                  myStatus ===
-                                                                                                      "unavailable" ||
                                                                                                   isRed
                                                                                                       ? 0.4
-                                                                                                      : 1,
+                                                                                                      : myStatus ===
+                                                                                                        "unavailable"
+                                                                                                        ? 0.85
+                                                                                                        : 1,
                                                                                               textDecoration:
                                                                                                   myStatus ===
                                                                                                       "unavailable" ||

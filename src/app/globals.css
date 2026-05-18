@@ -1086,7 +1086,7 @@ select option {
 }
 
 .card.unavailable-card {
-  opacity: 0.4 !important;
+  opacity: 0.85 !important;
 }
 
 .tag-green {
