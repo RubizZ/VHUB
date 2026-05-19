@@ -87,13 +87,6 @@ export default function StrategiesPage() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!selectedMap?.displayIcon) return;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = selectedMap.displayIcon;
-    img.onload = () => { mapImgRef.current = img; };
-  }, [selectedMap]);
 
   const redraw = useCallback(() => {
     const ctx = ctxRef.current;
@@ -255,6 +248,17 @@ export default function StrategiesPage() {
       ctx.restore();
     }
   }, [selectedMap, selectedSide, tool]);
+
+  useEffect(() => {
+    if (!selectedMap?.displayIcon) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = selectedMap.displayIcon;
+    img.onload = () => { 
+      mapImgRef.current = img; 
+      redraw();
+    };
+  }, [selectedMap, redraw]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
