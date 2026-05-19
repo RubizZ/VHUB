@@ -2971,3 +2971,84 @@ input:checked+.slider:before {
   border-radius: 0;
   border: none;
 }
+
+/* ── Full Integration in Chat Mode (No Padding & Border Radius) ── */
+.chat-page-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0a0e14;
+  color: #f3f4f6;
+  box-sizing: border-box;
+}
+
+.chat-top-bar-premium {
+  padding: 20px 24px 0 24px;
+  background: rgba(10, 14, 20, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.chat-top-bar-premium .channel-tabs {
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: -1px;
+  display: flex;
+  gap: 4px;
+}
+
+.chat-top-bar-premium .channel-tab {
+  padding: 8px 16px;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.chat-top-bar-premium .channel-tab:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+}
+
+.chat-top-bar-premium .channel-tab.active {
+  background: rgba(15, 23, 42, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.chat-container-premium {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.chat-container-premium .chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: radial-gradient(circle at center, rgba(255, 70, 85, 0.02) 0%, transparent 70%);
+}
+
+.chat-container-premium .chat-input-bar {
+  padding: 16px 24px;
+  background: rgba(10, 14, 20, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}

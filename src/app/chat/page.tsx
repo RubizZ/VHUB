@@ -118,24 +118,24 @@ export default function ChatPage() {
   };
 
   return (
-    <>
-      <div className="page-header hero-gradient" style={{ borderBottom: "none", background: "transparent", padding: "24px 0", flexShrink: 0 }}>
+    <div className="chat-page-container animate-in">
+      <div className="chat-top-bar-premium">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Chat de Equipo</h1>
-            <p style={{ fontSize: 14, marginTop: 4 }}>Canal de comunicación {isSupabaseConfigured ? "en tiempo real ⚡" : "modo polling 🕒"}</p>
+            <h1 className="gradient-text-valorant" style={{ fontSize: 24, fontWeight: 900 }}>Chat de Equipo</h1>
+            <p style={{ fontSize: 12, marginTop: 4, color: "rgba(255,255,255,0.6)" }}>Canal de comunicación {isSupabaseConfigured ? "en tiempo real ⚡" : "modo polling 🕒"}</p>
           </div>
-          <div className="card glass-card" style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="card glass-card" style={{ padding: "6px 12px", display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--val-red)" }}>{session?.user?.name}</div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{session?.user?.role?.toUpperCase()}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--val-red)" }}>{session?.user?.name}</div>
+              <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>{session?.user?.role?.toUpperCase()}</div>
             </div>
-            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 32, height: 32, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 28, height: 28, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: 13 }}>
               {session?.user?.name?.[0]}
             </div>
           </div>
         </div>
-        <div className="channel-tabs" style={{ marginTop: 24 }}>
+        <div className="channel-tabs">
           {CHANNELS.map(c => (
             <button key={c} className={`channel-tab ${channel === c ? "active" : ""}`} onClick={() => setChannel(c)}>
               <span style={{ opacity: 0.5, marginRight: 4 }}>#</span>{c}
@@ -143,67 +143,75 @@ export default function ChatPage() {
           ))}
         </div>
       </div>
-      <div className="page-content animate-in" style={{ paddingTop: 0 }}>
-        <div className="chat-container">
-          <div className="chat-messages">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="chat-message" style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                  <Skeleton width={36} height={36} circle />
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                      <Skeleton width={80} height={14} />
-                      <Skeleton width={40} height={10} />
-                    </div>
-                    <Skeleton width="90%" height={14} />
+      
+      <div className="chat-container-premium">
+        <div className="chat-messages">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="chat-message" style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+                <Skeleton width={36} height={36} circle />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <Skeleton width={80} height={14} />
+                    <Skeleton width={40} height={10} />
                   </div>
+                  <Skeleton width="90%" height={14} />
                 </div>
-              ))
-            ) : (
-              <>
-                {messages.length === 0 && (
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>
-                    No hay mensajes en #{channel}. ¡Sé el primero!
-                  </div>
-                )}
-                {messages.map(m => {
-                  const isMe = String(m.player_id) === String((session?.user as any)?.playerId);
-                  return (
-                    <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
-                      <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                        {m.player_name?.[0] || "?"}
-                      </div>
-                      <div>
-                        <div className="chat-msg-header">
-                          <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
-                          <span className="chat-msg-time">{formatTime(m.created_at)}</span>
-                        </div>
-                        <div className="chat-msg-content">{m.content}</div>
-                      </div>
+              </div>
+            ))
+          ) : (
+            <>
+              {messages.length === 0 && (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>
+                  No hay mensajes en #{channel}. ¡Sé el primero!
+                </div>
+              )}
+              {messages.map(m => {
+                const isMe = String(m.player_id) === String((session?.user as any)?.playerId);
+                return (
+                  <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
+                    <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                      {m.player_name?.[0] || "?"}
                     </div>
-                  );
-                })}
-              </>
-            )}
-            <div ref={bottomRef} />
-          </div>
-          <div className="chat-input-bar">
-            <input 
-              value={input} 
-              onChange={e => setInput(e.target.value)} 
-              onKeyDown={e => e.key === "Enter" && send()} 
-              placeholder={`Escribe un mensaje en #${channel}...`} 
-              autoComplete="off"
-            />
-            <button className="btn btn-primary btn-icon" onClick={send} disabled={!input.trim() || sendMessageMutation.isPending} title="Enviar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </div>
+                    <div>
+                      <div className="chat-msg-header">
+                        <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>
+                        <span className="chat-msg-time">{formatTime(m.created_at)}</span>
+                      </div>
+                      <div className="chat-msg-content">{m.content}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+          <div ref={bottomRef} />
+        </div>
+        <div className="chat-input-bar">
+          <input 
+            value={input} 
+            onChange={e => setInput(e.target.value)} 
+            onKeyDown={e => e.key === "Enter" && send()} 
+            placeholder={`Escribe un mensaje en #${channel}...`} 
+            autoComplete="off"
+            style={{
+              flex: 1,
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              color: "#fff",
+              outline: "none"
+            }}
+          />
+          <button className="btn btn-primary btn-icon" style={{ borderRadius: "10px" }} onClick={send} disabled={!input.trim() || sendMessageMutation.isPending} title="Enviar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
