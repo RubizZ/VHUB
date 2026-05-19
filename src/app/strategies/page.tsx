@@ -1240,7 +1240,7 @@ export default function StrategiesPage() {
                             borderRadius: 9,
                             background: "conic-gradient(from 90deg, red, yellow, lime, aqua, blue, magenta, red)",
                             boxShadow: !colors2.includes(color) ? `0 0 8px ${color}` : "none",
-                            border: "none",
+                            border: !colors2.includes(color) ? `1.5px solid ${color}` : "1.5px solid transparent",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center"
