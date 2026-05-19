@@ -1348,7 +1348,7 @@ export default function StrategiesPage() {
                           setCustomH(h);
                           setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
                         }}
-                        className="premium-slider"
+                        className="color-picker-slider"
                         style={{
                           width: "100%",
                           background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)"
@@ -1372,7 +1372,7 @@ export default function StrategiesPage() {
                           setCustomS(s);
                           setColor(`hsl(${customH}, ${s}%, ${customL}%)`);
                         }}
-                        className="premium-slider"
+                        className="color-picker-slider"
                         style={{
                           width: "100%",
                           background: `linear-gradient(to right, hsl(${customH}, 0%, ${customL}%), hsl(${customH}, 100%, ${customL}%))`
@@ -1396,7 +1396,7 @@ export default function StrategiesPage() {
                           setCustomL(l);
                           setColor(`hsl(${customH}, ${customS}%, ${l}%)`);
                         }}
-                        className="premium-slider"
+                        className="color-picker-slider"
                         style={{
                           width: "100%",
                           background: `linear-gradient(to right, #000000, hsl(${customH}, ${customS}%, 50%), #ffffff)`

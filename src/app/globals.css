@@ -3107,3 +3107,48 @@ input[type="range"].premium-slider::-moz-range-thumb {
 input[type="range"].premium-slider::-moz-range-thumb:hover {
   transform: scale(1.3);
 }
+
+/* ── Color Picker Custom Slider (High Visibility Thumb) ── */
+input[type="range"].color-picker-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge, Opera) */
+input[type="range"].color-picker-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+  cursor: pointer;
+  box-shadow: 0 0 0 1.5px #ffffff, 0 2px 5px rgba(0,0,0,0.6);
+  transition: transform 0.1s ease;
+  margin-top: -3px; /* Center thumb vertically relative to 8px track */
+}
+
+input[type="range"].color-picker-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Firefox */
+input[type="range"].color-picker-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+  cursor: pointer;
+  box-shadow: 0 0 0 1.5px #ffffff, 0 2px 5px rgba(0,0,0,0.6);
+  transition: transform 0.1s ease;
+}
+
+input[type="range"].color-picker-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
