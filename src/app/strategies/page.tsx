@@ -1,28 +1,15 @@
 /* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCompetitiveMaps, type ValorantMap } from "@/lib/maps";
-import { AGENTS, getAgentsByRole, findAgentById, ROLE_COLORS, type ValorantAgent } from "@/lib/agents";
+import { getAgentsByRole, findAgentById, ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface Composition { 
-  id: number; 
-  map_id: string; 
-  name: string; 
-  description: string; 
-  agent_1: string; 
-  agent_2: string; 
-  agent_3: string; 
-  agent_4: string; 
-  agent_5: string; 
-}
-
 interface Strategy { 
   id: number; 
-  composition_id: number; 
+  map_id: string; 
   name: string; 
   side: string; 
   description: string; 
@@ -30,7 +17,7 @@ interface Strategy {
 }
 
 type Tool = "select" | "draw" | "arrow" | "eraser";
-type View = "maps" | "compositions" | "strategies" | "editor";
+type View = "maps" | "strategies" | "editor";
 
 const competitiveMaps = getCompetitiveMaps();
 
@@ -40,16 +27,12 @@ export default function StrategiesPage() {
 
   const [view, setView] = useState<View>("maps");
   const [selectedMap, setSelectedMap] = useState<ValorantMap | null>(null);
-  const [selectedComp, setSelectedComp] = useState<Composition | null>(null);
   const [current, setCurrent] = useState<Strategy | null>(null);
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
   const [tool, setTool] = useState<Tool>("draw");
   const [color, setColor] = useState("#FF4655");
-  const [showNewComp, setShowNewComp] = useState(false);
   const [showNewStrat, setShowNewStrat] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [compAgents, setCompAgents] = useState<string[]>(["", "", "", "", ""]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -59,37 +42,19 @@ export default function StrategiesPage() {
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  // 1. Query Compositions
-  const {
-    data: compositionsData,
-    isLoading: compositionsLoading
-  } = useQuery<{ compositions: Composition[] }>({
-    queryKey: ["compositions", selectedMap?.id],
-    queryFn: async () => {
-      if (!selectedMap) return { compositions: [] };
-      const res = await fetch(`/api/compositions?map_id=${selectedMap.id}`);
-      if (!res.ok) throw new Error("Error loading compositions");
-      return res.json();
-    },
-    enabled: !!selectedMap,
-  });
-
-  const compositions = compositionsData?.compositions || [];
-  const compsLoading = compositionsLoading;
-
-  // 2. Query Strategies
+  // 1. Query Strategies
   const {
     data: strategiesData,
     isLoading: strategiesLoading
   } = useQuery<{ strategies: Strategy[] }>({
-    queryKey: ["strategies", selectedComp?.id],
+    queryKey: ["strategies", selectedMap?.id],
     queryFn: async () => {
-      if (!selectedComp) return { strategies: [] };
-      const res = await fetch(`/api/strategies?composition_id=${selectedComp.id}`);
+      if (!selectedMap) return { strategies: [] };
+      const res = await fetch(`/api/strategies?map_id=${selectedMap.id}`);
       if (!res.ok) throw new Error("Error loading strategies");
       return res.json();
     },
-    enabled: !!selectedComp,
+    enabled: !!selectedMap,
   });
 
   const strategies = strategiesData?.strategies || [];
@@ -97,11 +62,6 @@ export default function StrategiesPage() {
 
   const goToMap = (map: ValorantMap) => { 
     setSelectedMap(map); 
-    setView("compositions"); 
-  };
-  
-  const goToComp = (comp: Composition) => { 
-    setSelectedComp(comp); 
     setView("strategies"); 
   };
 
@@ -110,9 +70,6 @@ export default function StrategiesPage() {
       setCurrent(null); 
       setView("strategies"); 
     } else if (view === "strategies") { 
-      setSelectedComp(null); 
-      setView("compositions"); 
-    } else if (view === "compositions") { 
       setSelectedMap(null); 
       setView("maps"); 
     }
@@ -288,7 +245,7 @@ export default function StrategiesPage() {
     setTimeout(() => { initCanvas(); redraw(); }, 150);
   };
 
-  // 3. Save Strategy Canvas Mutation
+  // 2. Save Strategy Canvas Mutation
   const saveStrategyMutation = useMutation({
     mutationFn: async () => {
       if (!current) return;
@@ -307,7 +264,7 @@ export default function StrategiesPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["strategies", selectedComp?.id] });
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
     }
   });
 
@@ -315,69 +272,33 @@ export default function StrategiesPage() {
     saveStrategyMutation.mutate();
   };
 
-  // 4. Create Composition Mutation
-  const createCompMutation = useMutation({
-    mutationFn: async () => {
-      if (!newName.trim() || !selectedMap || compAgents.some(a => !a)) return;
-      const res = await fetch("/api/compositions", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ 
-          map_id: selectedMap.id, 
-          name: newName, 
-          description: newDesc, 
-          agent_1: compAgents[0], 
-          agent_2: compAgents[1], 
-          agent_3: compAgents[2], 
-          agent_4: compAgents[3], 
-          agent_5: compAgents[4] 
-        }) 
-      });
-      if (!res.ok) throw new Error("Error creating composition");
-      return res.json();
-    },
-    onSuccess: () => {
-      setShowNewComp(false); 
-      setNewName(""); 
-      setNewDesc(""); 
-      setCompAgents(["", "", "", "", ""]);
-      queryClient.invalidateQueries({ queryKey: ["compositions", selectedMap?.id] });
-    }
-  });
-
-  const createComp = () => {
-    createCompMutation.mutate();
-  };
-
-  // 5. Create Strategy Mutation
+  // 3. Create Strategy Mutation
   const createStratMutation = useMutation({
     mutationFn: async () => {
-      if (!newName.trim() || !selectedComp) {
-        throw new Error("Nombre inválido o sin composición seleccionada");
+      if (!newName.trim() || !selectedMap) {
+        throw new Error("Nombre inválido o sin mapa seleccionado");
       }
       const res = await fetch("/api/strategies", { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ composition_id: selectedComp.id, name: newName, side: selectedSide }) 
+        body: JSON.stringify({ map_id: selectedMap.id, name: newName, side: selectedSide }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear estrategia");
-      return { id: data.id, composition_id: selectedComp.id, name: newName, side: selectedSide };
+      return { id: data.id, map_id: selectedMap.id, name: newName, side: selectedSide };
     },
     onSuccess: (data) => {
       if (!data) return;
       setShowNewStrat(false); 
       setNewName("");
-      queryClient.invalidateQueries({ queryKey: ["strategies", selectedComp?.id] });
-      openEditor({ id: data.id, composition_id: data.composition_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
+      openEditor({ id: data.id, map_id: data.map_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
     }
   });
 
   const createStrat = () => {
     createStratMutation.mutate();
   };
-
-  const getAgentIcons = (comp: Composition) => [comp.agent_1, comp.agent_2, comp.agent_3, comp.agent_4, comp.agent_5].map(id => findAgentById(id)).filter(Boolean) as ValorantAgent[];
 
   const colors2 = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#FFFFFF", "#FFD700"];
 
@@ -389,8 +310,7 @@ export default function StrategiesPage() {
             <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800 }}>Centro Táctico</h1>
             <p style={{ fontSize: 14, marginTop: 4 }}>
               {view === "maps" ? "Selecciona un mapa para ver sus estrategias" : 
-               view === "compositions" ? `${selectedMap?.name} — Gestiona tus composiciones` : 
-               view === "strategies" ? `${selectedComp?.name} — Biblioteca de tácticas` : 
+               view === "strategies" ? `${selectedMap?.name} — Biblioteca de tácticas` : 
                `Editor Táctico — ${current?.name}`}
             </p>
           </div>
@@ -422,55 +342,10 @@ export default function StrategiesPage() {
           </div>
         )}
 
-        {view === "compositions" && (
+        {view === "strategies" && selectedMap && (
           <div className="animate-in">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Composiciones Disponibles</h2>
-               <button className="btn btn-primary" onClick={() => setShowNewComp(true)}>+ Crear Nueva</button>
-            </div>
-             <div className="grid grid-auto" style={{ gap: 20 }}>
-              {compsLoading ? (
-                <>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="card glass-card">
-                      <Skeleton width="60%" height={20} style={{ marginBottom: 16 }} />
-                      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-                        {Array.from({ length: 5 }).map((_, j) => (
-                          <Skeleton key={j} width={36} height={36} circle />
-                        ))}
-                      </div>
-                      <Skeleton width="100%" height={12} style={{ marginBottom: 4 }} />
-                      <Skeleton width="80%" height={12} />
-                    </div>
-                  ))}
-                </>
-              ) : compositions.map(c => {
-                const agents = getAgentIcons(c);
-                return (
-                  <div key={c.id} className="card glass-card hover-lift" style={{ cursor: "pointer" }} onClick={() => goToComp(c)}>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16 }}>{c.name}</h3>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-                      {agents.map(a => (
-                        <img key={a.id} src={a.displayIcon} alt={a.name} title={a.name} style={{ width: 36, height: 36, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, background: "rgba(0,0,0,0.3)" }} />
-                      ))}
-                    </div>
-                    {c.description && <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{c.description}</p>}
-                  </div>
-                );
-              })}
-              {!compsLoading && compositions.length === 0 && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <EmptyState message={`No hay composiciones para ${selectedMap?.name}.`} />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {view === "strategies" && selectedComp && (
-          <div className="animate-in">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Estrategias para {selectedComp.name}</h2>
+               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Estrategias para {selectedMap.name}</h2>
                <button className="btn btn-primary" onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
             </div>
             {stratsLoading ? (
@@ -516,8 +391,9 @@ export default function StrategiesPage() {
           </div>
         )}
 
-        {view === "editor" && current && <div className="strategy-editor-layout" style={{ display: "flex", flexWrap: "wrap", gap: 24, minHeight: 0, flex: 1 }}>
-              <div style={{ flex: "1 1 500px", display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+        {view === "editor" && current && (
+          <div className="strategy-editor-layout" style={{ display: "flex", flexWrap: "wrap", gap: 24, minHeight: 0, flex: 1 }}>
+            <div style={{ flex: "1 1 500px", display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
               <div className="card glass-card" style={{ padding: 12, marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                 <div className="glass-card" style={{ display: "flex", padding: 4, borderRadius: 8 }}>
                    <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("attack"); setTimeout(redraw, 50); }}>⚔️ Atacante</button>
@@ -546,46 +422,32 @@ export default function StrategiesPage() {
               </div>
             </div>
             <div className="strategy-editor-sidebar" style={{ flex: "0 0 240px", width: "100%" }}>
-              <div className="card glass-card">
-                <h4 style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Agentes de Comp.</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 10 }}>
-                  {selectedComp && getAgentIcons(selectedComp).map(a => (
-                    <button key={a.id} className="card hover-lift" onClick={() => dropAgent(a)} style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.02)", cursor: "pointer", border: "1px solid var(--border-color)" }}>
-                      <img src={a.displayIcon} alt={a.name} style={{ width: 40, height: 40, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, marginBottom: 4 }} />
-                      <div style={{ fontSize: 10, fontWeight: 700 }}>{a.name.toUpperCase()}</div>
-                    </button>
-                  ))}
-                </div>
+              <div className="card glass-card" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                <h4 style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Agentes</h4>
+                {(['duelist', 'initiator', 'controller', 'sentinel'] as AgentRole[]).map(role => {
+                  const roleAgents = getAgentsByRole(role);
+                  return (
+                    <div key={role} style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: ROLE_COLORS[role], marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span>{role === 'duelist' ? '⚔️' : role === 'initiator' ? '🎯' : role === 'controller' ? '🌌' : '🛡️'}</span>
+                        <span>{role}s</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))", gap: 8 }}>
+                        {roleAgents.map(a => (
+                          <button key={a.id} className="card hover-lift" onClick={() => dropAgent(a)} style={{ padding: '6px 4px', textAlign: "center", background: "rgba(255,255,255,0.02)", cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: 8 }}>
+                            <img src={a.displayIcon} alt={a.name} style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[a.role] || '#fff'}`, marginBottom: 2, marginLeft: 'auto', marginRight: 'auto', display: 'block' }} />
+                            <div style={{ fontSize: 9, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name.toUpperCase()}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
-        }
+        )}
       </div>
-
-      {showNewComp && (
-        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div className="card glass-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, width: "90%" }}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Nueva Composición — {selectedMap?.name}</h3>
-            <div className="form-group" style={{ marginBottom: 16 }}><label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nombre</label><input className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Double Duelist Agro" autoFocus /></div>
-            <div className="form-group" style={{ marginBottom: 16 }}><label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Descripción (opcional)</label><input className="input-field" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Notas sobre esta composición..." /></div>
-            <h4 style={{ fontSize: 13, fontWeight: 800, marginTop: 20, marginBottom: 12, textTransform: "uppercase" }}>Selección de Agentes</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {compAgents.map((agentId, idx) => (
-                <select key={idx} className="input-field" value={agentId} onChange={e => { const next = [...compAgents]; next[idx] = e.target.value; setCompAgents(next); }}>
-                  <option value="">— Agente {idx + 1} —</option>
-                  {AGENTS.map(a => <option key={a.id} value={a.id} disabled={compAgents.includes(a.id) && compAgents[idx] !== a.id}>{a.name} ({a.role})</option>)}
-                </select>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 24 }}>
-              <button className="btn btn-secondary" onClick={() => setShowNewComp(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={createComp} disabled={compAgents.some(a => !a) || createCompMutation.isPending}>
-                {createCompMutation.isPending ? "Creando..." : "Crear Composición"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showNewStrat && (
         <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>

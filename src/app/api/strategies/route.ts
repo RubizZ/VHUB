@@ -8,12 +8,12 @@ export async function GET(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 
   const { searchParams } = new URL(req.url);
-  const compositionId = searchParams.get("composition_id");
+  const mapId = searchParams.get("map_id");
 
   const strategies = await db.strategy.findMany({
     where: {
-      composition: { teamId },
-      ...(compositionId ? { composition_id: Number(compositionId) } : {})
+      teamId,
+      ...(mapId ? { map_id: mapId } : {})
     },
     orderBy: [
       { side: 'asc' },
@@ -30,20 +30,15 @@ export async function POST(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 
   const body = await req.json();
-  const { composition_id, name, side, description, canvas_data } = body;
+  const { map_id, name, side, description, canvas_data } = body;
   
-  if (!composition_id || !name)
-    return NextResponse.json({ error: "composition_id and name required" }, { status: 400 });
-
-  // Validar que la composición pertenece al equipo
-  const comp = await db.composition.findUnique({
-    where: { id: Number(composition_id), teamId }
-  });
-  if (!comp) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!map_id || !name)
+    return NextResponse.json({ error: "map_id and name required" }, { status: 400 });
 
   const strategy = await db.strategy.create({
     data: {
-      composition_id: Number(composition_id),
+      teamId,
+      map_id,
       name,
       side: side || "attack",
       description: description || "",

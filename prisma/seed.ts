@@ -15,7 +15,6 @@ async function main() {
         // Borramos en orden inverso a las dependencias
         await prisma.availability.deleteMany();
         await prisma.strategy.deleteMany();
-        await prisma.composition.deleteMany();
         await prisma.matchPlayerStats.deleteMany();
         await prisma.event.deleteMany();
         await prisma.match.deleteMany();

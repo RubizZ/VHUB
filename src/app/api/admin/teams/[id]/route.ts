@@ -15,7 +15,7 @@ export async function GET(
     where: { id: (await params).id },
     include: {
       _count: {
-        select: { players: true, users: true, matches: true, compositions: true }
+        select: { players: true, users: true, matches: true, strategies: true }
       }
     }
   });

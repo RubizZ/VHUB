@@ -46,12 +46,12 @@ async function main() {
   });
   console.log(`✅ ${messages.count} mensajes de chat vinculados al equipo.`);
 
-  // 6. Migrar Composiciones y Estrategias
-  const comps = await prisma.composition.updateMany({
-    where: { teamId: null },
+  // 6. Migrar Estrategias
+  const strats = await prisma.strategy.updateMany({
+    where: { teamId: "" },
     data: { teamId: team.id },
   });
-  console.log(`✅ ${comps.count} composiciones vinculadas al equipo.`);
+  console.log(`✅ ${strats.count} estrategias vinculadas al equipo.`);
 
   // 7. Migrar Partidas
   const matches = await prisma.match.updateMany({

@@ -19,7 +19,7 @@ model Team {
   division            Int?
   tag                 String?
   calendarToken       String?           @unique @default(cuid(2))
-  compositions        Composition[]
+  strategies          Strategy[]
   events              Event[]
   matches             Match[]
   messages            Message[]
@@ -108,38 +108,22 @@ model Map {
   premierBackground   String?
   mapUrl              String?
   tacticalDescription String?
-  compositions        Composition[]
+  strategies          Strategy[]
   events              Event[]
-}
-
-model Composition {
-  id          Int        @id @default(autoincrement())
-  teamId      String?
-  map_id      String
-  name        String
-  description String?
-  agent_1     String
-  agent_2     String
-  agent_3     String
-  agent_4     String
-  agent_5     String
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  map         Map        @relation(fields: [map_id], references: [id])
-  team        Team?      @relation(fields: [teamId], references: [id])
-  strategies  Strategy[]
 }
 
 model Strategy {
   id             Int         @id @default(autoincrement())
-  composition_id Int
+  teamId         String
+  map_id         String
   name           String
   side           String      @default("attack")
   description    String?
   canvas_data    Json?       @default("{}")
   created_at     DateTime    @default(now())
   updated_at     DateTime    @updatedAt
-  composition    Composition @relation(fields: [composition_id], references: [id], onDelete: Cascade)
+  team           Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  map            Map         @relation(fields: [map_id], references: [id], onDelete: Cascade)
 }
 
 model Season {
