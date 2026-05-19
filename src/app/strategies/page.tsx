@@ -103,16 +103,7 @@ export default function StrategiesPage() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const mapImg = mapImgRef.current;
-    if (mapImg && mapImg.complete) {
-      const scale = Math.min(canvas.width / mapImg.width, canvas.height / mapImg.height);
-      const w = mapImg.width * scale;
-      const h = mapImg.height * scale;
-      const ox = (canvas.width - w) / 2;
-      const oy = (canvas.height - h) / 2;
-      ctx.globalAlpha = 0.85;
-      ctx.drawImage(mapImg, ox, oy, w, h);
-      ctx.globalAlpha = 1;
-    } else {
+    if (!(mapImg && mapImg.complete)) {
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       ctx.font = "bold 60px Outfit, sans-serif";
       ctx.textAlign = "center";
@@ -125,6 +116,23 @@ export default function StrategiesPage() {
     ctx.fillStyle = selectedSide === "attack" ? "#FF4655" : "#3B82F6";
     ctx.font = "bold 11px Outfit, sans-serif";
     ctx.fillText(selectedSide === "attack" ? "ATK" : "DEF", 10, 18);
+
+    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(angle);
+
+    if (mapImg && mapImg.complete) {
+      const rotatedW = mapImg.height;
+      const rotatedH = mapImg.width;
+      const scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+      const w = mapImg.width * scale;
+      const h = mapImg.height * scale;
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(mapImg, -w / 2, -h / 2, w, h);
+      ctx.globalAlpha = 1;
+    }
 
     for (const path of pathsRef.current) {
       if (path.points.length < 2) continue;
@@ -141,11 +149,11 @@ export default function StrategiesPage() {
       if (path.tool === "arrow" && path.points.length >= 2) {
         const last = path.points[path.points.length - 1];
         const prev = path.points[path.points.length - 2];
-        const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+        const arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x);
         ctx.beginPath(); ctx.fillStyle = path.color;
         ctx.moveTo(last.x, last.y);
-        ctx.lineTo(last.x - 15 * Math.cos(angle - 0.4), last.y - 15 * Math.sin(angle - 0.4));
-        ctx.lineTo(last.x - 15 * Math.cos(angle + 0.4), last.y - 15 * Math.sin(angle + 0.4));
+        ctx.lineTo(last.x - 15 * Math.cos(arrowAngle - 0.4), last.y - 15 * Math.sin(arrowAngle - 0.4));
+        ctx.lineTo(last.x - 15 * Math.cos(arrowAngle + 0.4), last.y - 15 * Math.sin(arrowAngle + 0.4));
         ctx.closePath(); ctx.fill();
       }
     }
@@ -163,7 +171,7 @@ export default function StrategiesPage() {
         ctx.beginPath();
         ctx.arc(a.x, a.y, 18, 0, Math.PI * 2);
         ctx.strokeStyle = ROLE_COLORS[agent?.role || "duelist"];
-        ctx.lineWidth = 2;
+        ctx.lineWidth = draggedAgentRef.current === a ? 4 : 2;
         ctx.stroke();
       } else {
         ctx.beginPath();
@@ -177,6 +185,8 @@ export default function StrategiesPage() {
         ctx.textAlign = "start";
       }
     }
+
+    ctx.restore();
   }, [selectedMap, selectedSide]);
 
   const initCanvas = useCallback(() => {
@@ -196,10 +206,36 @@ export default function StrategiesPage() {
   }, [initCanvas, view]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const cx = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const cy = "touches" in e ? e.touches[0].clientY : e.clientY;
-    return { x: cx - rect.left, y: cy - rect.top };
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    
+    let cx = 0;
+    let cy = 0;
+    if ("touches" in e) {
+      if (e.touches.length > 0) {
+        cx = e.touches[0].clientX;
+        cy = e.touches[0].clientY;
+      } else if ("changedTouches" in e && e.changedTouches.length > 0) {
+        cx = e.changedTouches[0].clientX;
+        cy = e.changedTouches[0].clientY;
+      }
+    } else {
+      cx = (e as React.MouseEvent).clientX;
+      cy = (e as React.MouseEvent).clientY;
+    }
+    
+    const canvasX = cx - rect.left;
+    const canvasY = cy - rect.top;
+    
+    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const dx = canvasX - canvas.width / 2;
+    const dy = canvasY - canvas.height / 2;
+    
+    const mx = dx * Math.cos(-angle) - dy * Math.sin(-angle);
+    const my = dx * Math.sin(-angle) + dy * Math.cos(-angle);
+    
+    return { x: mx, y: my };
   };
 
   const startDraw = (e: React.MouseEvent | React.TouchEvent) => { 
@@ -262,7 +298,7 @@ export default function StrategiesPage() {
       img.onload = () => { agentImgsRef.current.set(a.id, img); redraw(); };
       agentImgsRef.current.set(a.id, img);
     }
-    agentsRef.current.push({ id: a.id, x: 100 + Math.random() * (c.width - 200), y: 100 + Math.random() * (c.height - 200) });
+    agentsRef.current.push({ id: a.id, x: -50 + Math.random() * 100, y: -50 + Math.random() * 100 });
     redraw();
   };
 
