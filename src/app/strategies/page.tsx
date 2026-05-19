@@ -55,6 +55,37 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
   };
 }
 
+function hslToHSV(h: number, s: number, l: number): { h: number; s: number; v: number } {
+  const l_fraction = l / 100;
+  const s_fraction = s / 100;
+  let v = l_fraction + s_fraction * Math.min(l_fraction, 1 - l_fraction);
+  let newS = v === 0 ? 0 : 2 * (1 - l_fraction / v);
+  return {
+    h,
+    s: Math.round(newS * 100),
+    v: Math.round(v * 100)
+  };
+}
+
+function hsvToHSL(h: number, s: number, v: number): { h: number; s: number; l: number } {
+  const l = ((2 - s / 100) * (v / 100)) / 2;
+  let newS = s;
+  if (l !== 0) {
+    if (l === 1) {
+      newS = 0;
+    } else if (l < 0.5) {
+      newS = (s * v) / (l * 200);
+    } else {
+      newS = (s * v) / (2 - l * 2);
+    }
+  }
+  return {
+    h,
+    s: Math.round(newS),
+    l: Math.round(l * 100)
+  };
+}
+
 export default function StrategiesPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -112,6 +143,65 @@ export default function StrategiesPage() {
       }
     }
   }, [color]);
+
+  const handleStart2D = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const updateColor = (clientX: number, clientY: number) => {
+      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      const hsvS = x * 100;
+      const hsvV = (1 - y) * 100;
+      const hsl = hsvToHSL(customH, hsvS, hsvV);
+      setCustomS(hsl.s);
+      setCustomL(hsl.l);
+      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+    };
+
+    updateColor(e.clientX, e.clientY);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      updateColor(moveEvent.clientX, moveEvent.clientY);
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleTouchStart2D = (e: React.TouchEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const updateColor = (clientX: number, clientY: number) => {
+      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      const hsvS = x * 100;
+      const hsvV = (1 - y) * 100;
+      const hsl = hsvToHSL(customH, hsvS, hsvV);
+      setCustomS(hsl.s);
+      setCustomL(hsl.l);
+      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+    };
+
+    updateColor(e.touches[0].clientX, e.touches[0].clientY);
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length > 0) {
+        updateColor(moveEvent.touches[0].clientX, moveEvent.touches[0].clientY);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+  };
+
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
@@ -1335,6 +1425,51 @@ export default function StrategiesPage() {
                         <span style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(255,255,255,0.5)" }}>{color}</span>
                       </div>
                     </div>
+
+                    {/* 2D Picker Canvas (Saturation & Value) */}
+                    {(() => {
+                      const { s: hsvS, v: hsvV } = hslToHSV(customH, customS, customL);
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                            <span>SATURACIÓN / LUMINOSIDAD</span>
+                          </div>
+                          <div
+                            onMouseDown={handleStart2D}
+                            onTouchStart={handleTouchStart2D}
+                            style={{
+                              width: "100%",
+                              height: 110,
+                              borderRadius: 8,
+                              backgroundColor: `hsl(${customH}, 100%, 50%)`,
+                              backgroundImage: "linear-gradient(to bottom, transparent, #000000), linear-gradient(to right, #ffffff, transparent)",
+                              position: "relative",
+                              overflow: "hidden",
+                              cursor: "crosshair",
+                              border: "1px solid rgba(255,255,255,0.15)",
+                              userSelect: "none"
+                            }}
+                          >
+                            {/* Target selector circle */}
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: `${hsvS}%`,
+                                top: `${100 - hsvV}%`,
+                                width: 12,
+                                height: 12,
+                                borderRadius: "50%",
+                                background: "#ffffff",
+                                border: "2px solid #000000",
+                                boxShadow: "0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5)",
+                                transform: "translate(-50%, -50%)",
+                                pointerEvents: "none"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Hue Slider */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
