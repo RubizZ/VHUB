@@ -147,14 +147,21 @@ export default function StrategiesPage() {
   const handleStart2D = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const updateColor = (clientX: number, clientY: number) => {
-      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-      const hsvS = x * 100;
-      const hsvV = (1 - y) * 100;
-      const hsl = hsvToHSL(customH, hsvS, hsvV);
-      setCustomS(hsl.s);
-      setCustomL(hsl.l);
-      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        const x = (clientX - rect.left) / rect.width;
+        const y = (clientY - rect.top) / rect.height;
+        const hsvS = x * 100;
+        const hsvV = (1 - y) * 100;
+        const hsl = hsvToHSL(customH, hsvS, hsvV);
+        setCustomS(hsl.s);
+        setCustomL(hsl.l);
+        setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+      }
     };
 
     updateColor(e.clientX, e.clientY);
@@ -175,14 +182,21 @@ export default function StrategiesPage() {
   const handleTouchStart2D = (e: React.TouchEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const updateColor = (clientX: number, clientY: number) => {
-      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-      const hsvS = x * 100;
-      const hsvV = (1 - y) * 100;
-      const hsl = hsvToHSL(customH, hsvS, hsvV);
-      setCustomS(hsl.s);
-      setCustomL(hsl.l);
-      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        const x = (clientX - rect.left) / rect.width;
+        const y = (clientY - rect.top) / rect.height;
+        const hsvS = x * 100;
+        const hsvV = (1 - y) * 100;
+        const hsl = hsvToHSL(customH, hsvS, hsvV);
+        setCustomS(hsl.s);
+        setCustomL(hsl.l);
+        setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
+      }
     };
 
     updateColor(e.touches[0].clientX, e.touches[0].clientY);
@@ -955,7 +969,7 @@ export default function StrategiesPage() {
     createStratMutation.mutate();
   };
 
-  const colors2 = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#FFFFFF", "#FFD700"];
+  const colors2 = ["#FF4655", "#3B82F6", "#22C55E", "#EAB308", "#FFFFFF"];
 
   return (
     <div className={`strategies-container-premium ${view === "editor" ? "in-editor" : ""}`}>
@@ -1240,7 +1254,7 @@ export default function StrategiesPage() {
                             borderRadius: 9,
                             background: "conic-gradient(from 90deg, red, yellow, lime, aqua, blue, magenta, red)",
                             boxShadow: !colors2.includes(color) ? `0 0 8px ${color}` : "none",
-                            border: !colors2.includes(color) ? `1.5px solid ${color}` : "1.5px solid transparent",
+                            border: !colors2.includes(color) ? "1.5px solid #ffffff" : "none",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center"
