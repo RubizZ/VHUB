@@ -119,18 +119,25 @@ export default function StrategiesPage() {
 
     const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
 
+    let scale = 1;
+    let imgW = 1000;
+    let imgH = 1000;
+    if (mapImg && mapImg.complete) {
+      imgW = mapImg.width;
+      imgH = mapImg.height;
+      const rotatedW = imgH;
+      const rotatedH = imgW;
+      scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+    }
+
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(angle);
+    ctx.scale(scale, scale);
 
     if (mapImg && mapImg.complete) {
-      const rotatedW = mapImg.height;
-      const rotatedH = mapImg.width;
-      const scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
-      const w = mapImg.width * scale;
-      const h = mapImg.height * scale;
       ctx.globalAlpha = 0.85;
-      ctx.drawImage(mapImg, -w / 2, -h / 2, w, h);
+      ctx.drawImage(mapImg, -imgW / 2, -imgH / 2, imgW, imgH);
       ctx.globalAlpha = 1;
     }
 
@@ -138,7 +145,7 @@ export default function StrategiesPage() {
       if (path.points.length < 2) continue;
       ctx.beginPath();
       ctx.strokeStyle = path.color;
-      ctx.lineWidth = path.tool === "eraser" ? 20 : 3;
+      ctx.lineWidth = (path.tool === "eraser" ? 20 : 3) / scale;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       if (path.tool === "eraser") ctx.globalCompositeOperation = "destination-out";
@@ -150,40 +157,54 @@ export default function StrategiesPage() {
         const last = path.points[path.points.length - 1];
         const prev = path.points[path.points.length - 2];
         const arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x);
+        
+        ctx.save();
+        ctx.translate(last.x, last.y);
+        ctx.rotate(arrowAngle);
+        ctx.scale(1 / scale, 1 / scale);
+        
         ctx.beginPath(); ctx.fillStyle = path.color;
-        ctx.moveTo(last.x, last.y);
-        ctx.lineTo(last.x - 15 * Math.cos(arrowAngle - 0.4), last.y - 15 * Math.sin(arrowAngle - 0.4));
-        ctx.lineTo(last.x - 15 * Math.cos(arrowAngle + 0.4), last.y - 15 * Math.sin(arrowAngle + 0.4));
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-15, -6);
+        ctx.lineTo(-15, 6);
         ctx.closePath(); ctx.fill();
+        ctx.restore();
       }
     }
 
     for (const a of agentsRef.current) {
       const img = agentImgsRef.current.get(a.id);
       const agent = findAgentById(a.id);
+      
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(-angle);
+      ctx.scale(1 / scale, 1 / scale);
+      
       if (img && img.complete) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 18, 0, Math.PI * 2);
+        ctx.arc(0, 0, 18, 0, Math.PI * 2);
         ctx.clip();
-        ctx.drawImage(img, a.x - 18, a.y - 18, 36, 36);
+        ctx.drawImage(img, -18, -18, 36, 36);
         ctx.restore();
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 18, 0, Math.PI * 2);
+        ctx.arc(0, 0, 18, 0, Math.PI * 2);
         ctx.strokeStyle = ROLE_COLORS[agent?.role || "duelist"];
         ctx.lineWidth = draggedAgentRef.current === a ? 4 : 2;
         ctx.stroke();
       } else {
         ctx.beginPath();
         ctx.fillStyle = ROLE_COLORS[agent?.role || "duelist"];
-        ctx.arc(a.x, a.y, 16, 0, Math.PI * 2);
+        ctx.arc(0, 0, 16, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#fff";
         ctx.font = "10px Outfit, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(agent?.name.substring(0, 2) || "?", a.x, a.y + 4);
+        ctx.fillText(agent?.name.substring(0, 2) || "?", 0, 4);
         ctx.textAlign = "start";
       }
+      ctx.restore();
     }
 
     ctx.restore();
@@ -238,20 +259,37 @@ export default function StrategiesPage() {
     const dx = canvasX - canvas.width / 2;
     const dy = canvasY - canvas.height / 2;
     
-    const mx = dx * Math.cos(-angle) - dy * Math.sin(-angle);
-    const my = dx * Math.sin(-angle) + dy * Math.cos(-angle);
+    const mapImg = mapImgRef.current;
+    let scale = 1;
+    if (mapImg && mapImg.complete) {
+      const rotatedW = mapImg.height;
+      const rotatedH = mapImg.width;
+      scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+    }
+    
+    const mx = (dx * Math.cos(-angle) - dy * Math.sin(-angle)) / scale;
+    const my = (dx * Math.sin(-angle) + dy * Math.cos(-angle)) / scale;
     
     return { x: mx, y: my };
   };
 
   const startDraw = (e: React.MouseEvent | React.TouchEvent) => { 
     const pos = getPos(e);
+    
+    const canvas = canvasRef.current;
+    const mapImg = mapImgRef.current;
+    let scale = 1;
+    if (canvas && mapImg && mapImg.complete) {
+      const rotatedW = mapImg.height;
+      const rotatedH = mapImg.width;
+      scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+    }
+
     if (tool === "select") {
-      // Find if we clicked close to an agent (within 18px radius)
       const found = [...agentsRef.current].reverse().find(a => {
         const dx = a.x - pos.x;
         const dy = a.y - pos.y;
-        return Math.sqrt(dx * dx + dy * dy) <= 18;
+        return Math.sqrt(dx * dx + dy * dy) <= (18 / scale);
       });
       if (found) {
         draggedAgentRef.current = found;
@@ -259,11 +297,10 @@ export default function StrategiesPage() {
       return;
     }
     if (tool === "eraser") {
-      // Check if we click close to an agent (within 18px radius) and remove it
       const agentIndex = agentsRef.current.findIndex(a => {
         const dx = a.x - pos.x;
         const dy = a.y - pos.y;
-        return Math.sqrt(dx * dx + dy * dy) <= 18;
+        return Math.sqrt(dx * dx + dy * dy) <= (18 / scale);
       });
       if (agentIndex !== -1) {
         agentsRef.current.splice(agentIndex, 1);
