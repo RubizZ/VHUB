@@ -334,6 +334,85 @@ export default function StrategiesPage() {
       ctx.stroke();
       ctx.restore();
     }
+
+    // 5. Draw Custom Pencil/Arrow cursors in screen space
+    if ((tool === "draw" || tool === "arrow") && mousePosRef.current) {
+      const x = mousePosRef.current.canvasX;
+      const y = mousePosRef.current.canvasY;
+      
+      ctx.save();
+      // Draw crosshair shadow/outline for contrast
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y);
+      ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5);
+      ctx.stroke();
+      
+      // Draw main crosshair line (white)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y);
+      ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5);
+      ctx.stroke();
+      
+      // Draw the tool icon
+      if (tool === "draw") {
+        // Pencil icon
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 2;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        // Pencil body
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + 4);
+        ctx.lineTo(x + 12, y + 12);
+        ctx.stroke();
+
+        // Pencil tip (red)
+        ctx.strokeStyle = "var(--val-red)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 3, y + 3);
+        ctx.lineTo(x + 4, y + 4);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        // Arrow icon
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 2;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        // Arrow shaft
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + 4);
+        ctx.lineTo(x + 12, y + 12);
+        ctx.stroke();
+
+        // Arrowhead wings
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(x + 2, y + 2);
+        ctx.lineTo(x + 7, y + 2);
+        ctx.lineTo(x + 2, y + 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      
+      ctx.restore();
+    }
   }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize]);
 
   useEffect(() => {
