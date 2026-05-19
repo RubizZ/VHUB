@@ -1125,16 +1125,18 @@ export default function StrategiesPage() {
                       <button
                         style={{
                           position: "relative",
-                          width: 18,
+                          gridColumn: "span 2",
+                          width: "100%",
                           height: 18,
-                          borderRadius: "50%",
+                          borderRadius: 9,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           border: "none",
-                          padding: 0
+                          padding: 0,
+                          background: "transparent"
                         }}
                         onClick={() => setShowColorPicker(!showColorPicker)}
                         title="Color personalizado"
@@ -1143,10 +1145,10 @@ export default function StrategiesPage() {
                         <div
                           className={`color-orb-premium ${!colors2.includes(color) ? "active" : ""}`}
                           style={{
-                            width: 18,
+                            width: "100%",
                             height: 18,
-                            borderRadius: "50%",
-                            background: "conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)",
+                            borderRadius: 9,
+                            background: "conic-gradient(from 90deg, red, yellow, lime, aqua, blue, magenta, red)",
                             boxShadow: !colors2.includes(color) ? `0 0 8px ${color}` : "none",
                             border: !colors2.includes(color) ? "1.5px solid #ffffff" : "1px solid rgba(255,255,255,0.2)",
                             display: "flex",
@@ -1154,7 +1156,7 @@ export default function StrategiesPage() {
                             justifyContent: "center"
                           }}
                         >
-                          {!colors2.includes(color) && (
+                          {!colors2.includes(color) ? (
                             <div
                               style={{
                                 width: 5,
@@ -1164,6 +1166,8 @@ export default function StrategiesPage() {
                                 boxShadow: "0 0 2px rgba(0,0,0,0.5)"
                               }}
                             />
+                          ) : (
+                            <span style={{ fontSize: 8, fontWeight: 900, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.8)", letterSpacing: 0.5 }}>MÁS</span>
                           )}
                         </div>
                       </button>
