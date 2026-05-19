@@ -7,21 +7,17 @@ import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface Strategy { 
-  id: number; 
-  map_id: string; 
-  name: string; 
-  side: string; 
-  description: string; 
-  canvas_data: unknown; 
+interface Strategy {
+  id: number;
+  map_id: string;
+  name: string;
+  side: string;
+  description: string;
+  canvas_data: unknown;
 }
 
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
 type View = "maps" | "strategies" | "editor";
-
-const PENCIL_CURSOR = `url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2732%27%20height%3D%2732%27%20viewBox%3D%270%200%2032%2032%27%3E%3Cline%20x1%3D%2712%27%20y1%3D%277%27%20x2%3D%2712%27%20y2%3D%2717%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20opacity%3D%270.5%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%277%27%20y1%3D%2712%27%20x2%3D%2717%27%20y2%3D%2712%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20opacity%3D%270.5%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2712%27%20y1%3D%277%27%20x2%3D%2712%27%20y2%3D%2717%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20opacity%3D%270.95%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%277%27%20y1%3D%2712%27%20x2%3D%2717%27%20y2%3D%2712%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20opacity%3D%270.95%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2717%27%20y1%3D%2717%27%20x2%3D%2725%27%20y2%3D%2725%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cline%20x1%3D%2716%27%20y1%3D%2716%27%20x2%3D%2717%27%20y2%3D%2717%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cline%20x1%3D%2716%27%20y1%3D%2716%27%20x2%3D%2724%27%20y2%3D%2724%27%20stroke%3D%27white%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3Cline%20x1%3D%2715%27%20y1%3D%2715%27%20x2%3D%2716%27%20y2%3D%2716%27%20stroke%3D%27%23ff4655%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3C%2Fsvg%3E") 12 12, crosshair`;
-
-const ARROW_CURSOR = `url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2732%27%20height%3D%2732%27%20viewBox%3D%270%200%2032%2032%27%3E%3Cline%20x1%3D%2712%27%20y1%3D%277%27%20x2%3D%2712%27%20y2%3D%2717%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20opacity%3D%270.5%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%277%27%20y1%3D%2712%27%20x2%3D%2717%27%20y2%3D%2712%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20opacity%3D%270.5%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2712%27%20y1%3D%277%27%20x2%3D%2712%27%20y2%3D%2717%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20opacity%3D%270.95%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%277%27%20y1%3D%2712%27%20x2%3D%2717%27%20y2%3D%2712%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20opacity%3D%270.95%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2717%27%20y1%3D%2717%27%20x2%3D%2725%27%20y2%3D%2725%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cpolygon%20points%3D%2716%2C16%2021%2C16%2016%2C21%27%20fill%3D%27black%27%20opacity%3D%270.5%27%20transform%3D%27translate%281%2C%201%29%27%20%2F%3E%3Cline%20x1%3D%2716%27%20y1%3D%2716%27%20x2%3D%2724%27%20y2%3D%2724%27%20stroke%3D%27white%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3Cpolygon%20points%3D%2714%2C14%2019%2C14%2014%2C19%27%20fill%3D%27white%27%20%2F%3E%3C%2Fsvg%3E") 12 12, crosshair`;
 
 const competitiveMaps = getCompetitiveMaps();
 
@@ -59,6 +55,9 @@ export default function StrategiesPage() {
   const draggedAgentRef = useRef<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
   const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
   const agentsRef = useRef<Array<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
+  const redoPathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
@@ -116,9 +115,9 @@ export default function StrategiesPage() {
     return agents.filter(a => a.role === role);
   }, [agents]);
 
-  const goToMap = (map: ValorantMap) => { 
-    setSelectedMap(map); 
-    setView("strategies"); 
+  const goToMap = (map: ValorantMap) => {
+    setSelectedMap(map);
+    setView("strategies");
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
@@ -144,12 +143,12 @@ export default function StrategiesPage() {
   };
 
   const goBack = () => {
-    if (view === "editor") { 
-      setCurrent(null); 
-      setView("strategies"); 
-    } else if (view === "strategies") { 
-      setSelectedMap(null); 
-      setView("maps"); 
+    if (view === "editor") {
+      setCurrent(null);
+      setView("strategies");
+    } else if (view === "strategies") {
+      setSelectedMap(null);
+      setView("maps");
     }
   };
 
@@ -237,15 +236,15 @@ export default function StrategiesPage() {
           pCtx.lineTo(path.points[i].x, path.points[i].y);
         }
         pCtx.stroke();
-        
+
         pCtx.globalCompositeOperation = "source-over";
         if (path.tool === "arrow" && path.points.length >= 2) {
           const last = path.points[path.points.length - 1];
-          
+
           // Find a reference point going backwards that is at least minDistance away to smooth out rotation jitters
           let refPoint = path.points[path.points.length - 2];
           const minDistance = 10 / scale;
-          
+
           for (let i = path.points.length - 2; i >= 0; i--) {
             const p = path.points[i];
             const dx = last.x - p.x;
@@ -255,14 +254,14 @@ export default function StrategiesPage() {
               break;
             }
           }
-          
+
           const arrowAngle = Math.atan2(last.y - refPoint.y, last.x - refPoint.x);
-          
+
           pCtx.save();
           pCtx.translate(last.x, last.y);
           pCtx.rotate(arrowAngle);
           pCtx.scale(1 / scale, 1 / scale);
-          
+
           const arrowScale = (path.thickness !== undefined ? path.thickness : 5) / 5;
           pCtx.beginPath(); pCtx.fillStyle = path.color;
           pCtx.moveTo(0, -6 * arrowScale);
@@ -288,12 +287,12 @@ export default function StrategiesPage() {
     for (const a of agentsRef.current) {
       const img = agentImgsRef.current.get(a.id);
       const agent = findAgent(a.id);
-      
+
       ctx.save();
       ctx.translate(a.x, a.y);
       ctx.rotate(-angle);
       ctx.scale(1 / scale, 1 / scale);
-      
+
       if (img && img.complete) {
         ctx.save();
         ctx.beginPath();
@@ -330,7 +329,7 @@ export default function StrategiesPage() {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      
+
       ctx.beginPath();
       ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, Math.max(1, r - 1), 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
@@ -338,30 +337,60 @@ export default function StrategiesPage() {
       ctx.stroke();
       ctx.restore();
     }
-
   }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize]);
+
+  const updateUndoRedo = useCallback(() => {
+    setCanUndo(pathsRef.current.length > 0);
+    setCanRedo(redoPathsRef.current.length > 0);
+  }, []);
+
+  const undo = useCallback(() => {
+    if (pathsRef.current.length > 0) {
+      const path = pathsRef.current.pop();
+      if (path) {
+        redoPathsRef.current.push(path);
+      }
+      redraw();
+      updateUndoRedo();
+    }
+  }, [redraw, updateUndoRedo]);
+
+  const redo = useCallback(() => {
+    if (redoPathsRef.current.length > 0) {
+      const path = redoPathsRef.current.pop();
+      if (path) {
+        pathsRef.current.push(path);
+      }
+      redraw();
+      updateUndoRedo();
+    }
+  }, [redraw, updateUndoRedo]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (view === "editor" && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        pathsRef.current.pop();
-        redraw();
+      if (view === "editor" && (e.ctrlKey || e.metaKey)) {
+        if (e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          undo();
+        } else if (e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          redo();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [view, redraw]);
+  }, [view, undo, redo]);
 
   useEffect(() => {
     if (!selectedMap?.displayIcon) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = selectedMap.displayIcon;
-    img.onload = () => { 
-      mapImgRef.current = img; 
+    img.onload = () => {
+      mapImgRef.current = img;
       redraw();
     };
   }, [selectedMap, redraw]);
@@ -389,36 +418,36 @@ export default function StrategiesPage() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const handleWheelRaw = (e: WheelEvent) => {
       e.preventDefault();
-      
+
       const scaleFactor = 1.15;
       const currentZoom = zoomRef.current;
       const currentPan = panRef.current;
-      
+
       let newZoom = currentZoom;
       if (e.deltaY < 0) {
         newZoom = Math.min(currentZoom * scaleFactor, 6);
       } else {
         newZoom = Math.max(currentZoom / scaleFactor, 0.4);
       }
-      
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       const dx = mouseX - canvas.width / 2 - currentPan.x;
       const dy = mouseY - canvas.height / 2 - currentPan.y;
-      
+
       const zoomRatio = newZoom / currentZoom;
       const newPanX = mouseX - canvas.width / 2 - dx * zoomRatio;
       const newPanY = mouseY - canvas.height / 2 - dy * zoomRatio;
-      
+
       setZoom(newZoom);
       setPan({ x: newPanX, y: newPanY });
     };
-    
+
     canvas.addEventListener("wheel", handleWheelRaw, { passive: false });
     return () => canvas.removeEventListener("wheel", handleWheelRaw);
   }, [view, current]);
@@ -431,7 +460,7 @@ export default function StrategiesPage() {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
-    
+
     const mapImg = mapImgRef.current;
     let scale = 1;
     if (mapImg && mapImg.complete) {
@@ -439,16 +468,16 @@ export default function StrategiesPage() {
       const rotatedH = mapImg.width;
       scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
     }
-    
+
     const x_rot = mx * scale;
     const y_rot = my * scale;
-    
+
     const x_rot2 = x_rot * Math.cos(angle) - y_rot * Math.sin(angle);
     const y_rot2 = x_rot * Math.sin(angle) + y_rot * Math.cos(angle);
-    
+
     const screenX = canvas.width / 2 + panRef.current.x + x_rot2 * zoomRef.current;
     const screenY = canvas.height / 2 + panRef.current.y + y_rot2 * zoomRef.current;
-    
+
     return { x: screenX, y: screenY };
   };
 
@@ -456,7 +485,7 @@ export default function StrategiesPage() {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    
+
     let cx = 0;
     let cy = 0;
     if ("touches" in e) {
@@ -471,16 +500,16 @@ export default function StrategiesPage() {
       cx = (e as React.MouseEvent).clientX;
       cy = (e as React.MouseEvent).clientY;
     }
-    
+
     const canvasX = cx - rect.left;
     const canvasY = cy - rect.top;
-    
+
     const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
     const zoomVal = zoomRef.current;
     const panVal = panRef.current;
     const dx = (canvasX - canvas.width / 2 - panVal.x) / zoomVal;
     const dy = (canvasY - canvas.height / 2 - panVal.y) / zoomVal;
-    
+
     const mapImg = mapImgRef.current;
     let scale = 1;
     if (mapImg && mapImg.complete) {
@@ -488,14 +517,14 @@ export default function StrategiesPage() {
       const rotatedH = mapImg.width;
       scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
     }
-    
+
     const mx = (dx * Math.cos(-angle) - dy * Math.sin(-angle)) / scale;
     const my = (dx * Math.sin(-angle) + dy * Math.cos(-angle)) / scale;
-    
+
     return { x: mx, y: my };
   };
 
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => { 
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
     let cy = 0;
     if ("touches" in e) {
@@ -524,7 +553,7 @@ export default function StrategiesPage() {
       const rect = canvas.getBoundingClientRect();
       const mouseX = cx - rect.left;
       const mouseY = cy - rect.top;
-      
+
       const found = [...agentsRef.current].reverse().find(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
@@ -540,7 +569,7 @@ export default function StrategiesPage() {
       const rect = canvas.getBoundingClientRect();
       const mouseX = cx - rect.left;
       const mouseY = cy - rect.top;
-      
+
       const agentIndex = agentsRef.current.findIndex(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
@@ -553,12 +582,14 @@ export default function StrategiesPage() {
         return;
       }
     }
-    drawingRef.current = true; 
+    drawingRef.current = true;
     const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
-    pathsRef.current.push({ tool, color, points: [pos], thickness: activeSize }); 
+    pathsRef.current.push({ tool, color, points: [pos], thickness: activeSize });
+    redoPathsRef.current = [];
+    updateUndoRedo();
   };
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => { 
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
     let cy = 0;
     if ("touches" in e) {
@@ -600,15 +631,7 @@ export default function StrategiesPage() {
           canvas.style.cursor = isOverAgent ? "pointer" : "default";
         }
       } else if (tool === "pan") {
-        canvas.style.cursor = panningRef.current ? "grabbing" : "grab";
-      } else if (tool === "eraser") {
-        canvas.style.cursor = "none";
-      } else if (tool === "draw") {
-        canvas.style.cursor = PENCIL_CURSOR;
-      } else if (tool === "arrow") {
-        canvas.style.cursor = ARROW_CURSOR;
-      } else {
-        canvas.style.cursor = "default";
+        canvas.style.cursor = "grab";
       }
     }
 
@@ -623,12 +646,12 @@ export default function StrategiesPage() {
     if (!drawingRef.current) {
       if (tool === "eraser") redraw();
       return;
-    } 
-    pathsRef.current[pathsRef.current.length - 1].points.push(pos); 
-    redraw(); 
+    }
+    pathsRef.current[pathsRef.current.length - 1].points.push(pos);
+    redraw();
   };
 
-  const stopDraw = () => { 
+  const stopDraw = () => {
     if (panningRef.current) {
       panningRef.current = false;
       const canvas = canvasRef.current;
@@ -637,7 +660,7 @@ export default function StrategiesPage() {
       }
       return;
     }
-    drawingRef.current = false; 
+    drawingRef.current = false;
     draggedAgentRef.current = null;
     const canvas = canvasRef.current;
     if (canvas && tool === "select") {
@@ -702,12 +725,12 @@ export default function StrategiesPage() {
     setSelectedSide(s.side as "attack" | "defense");
     setZoom(1);
     setPan({ x: 0, y: 0 });
-    try { 
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any; 
-      pathsRef.current = d.paths || []; 
-      agentsRef.current = d.agents || []; 
-      
+      const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any;
+      pathsRef.current = d.paths || [];
+      agentsRef.current = d.agents || [];
+
       // Pre-load agent images
       for (const a of agentsRef.current) {
         if (!agentImgsRef.current.has(a.id)) {
@@ -724,10 +747,12 @@ export default function StrategiesPage() {
           }
         }
       }
-    } catch { 
-      pathsRef.current = []; 
-      agentsRef.current = []; 
+    } catch {
+      pathsRef.current = [];
+      agentsRef.current = [];
     }
+    redoPathsRef.current = [];
+    updateUndoRedo();
     setView("editor");
   };
 
@@ -735,16 +760,16 @@ export default function StrategiesPage() {
   const saveStrategyMutation = useMutation({
     mutationFn: async () => {
       if (!current) return;
-      const res = await fetch("/api/strategies", { 
-        method: "PUT", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ 
-          id: current.id, 
-          name: current.name, 
-          side: current.side, 
-          description: current.description, 
-          canvas_data: { paths: pathsRef.current, agents: agentsRef.current } 
-        }) 
+      const res = await fetch("/api/strategies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: current.id,
+          name: current.name,
+          side: current.side,
+          description: current.description,
+          canvas_data: { paths: pathsRef.current, agents: agentsRef.current }
+        })
       });
       if (!res.ok) throw new Error("Error saving strategy canvas");
       return res.json();
@@ -764,10 +789,10 @@ export default function StrategiesPage() {
       if (!newName.trim() || !selectedMap) {
         throw new Error("Nombre inválido o sin mapa seleccionado");
       }
-      const res = await fetch("/api/strategies", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ map_id: selectedMap.id, name: newName, side: selectedSide }) 
+      const res = await fetch("/api/strategies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ map_id: selectedMap.id, name: newName, side: selectedSide })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear estrategia");
@@ -775,7 +800,7 @@ export default function StrategiesPage() {
     },
     onSuccess: (data) => {
       if (!data) return;
-      setShowNewStrat(false); 
+      setShowNewStrat(false);
       setNewName("");
       queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
       openEditor({ id: data.id, map_id: data.map_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
@@ -796,9 +821,9 @@ export default function StrategiesPage() {
             <div>
               <h1 className="gradient-text-valorant" style={{ fontSize: 32, fontWeight: 900 }}>Centro Táctico</h1>
               <p style={{ fontSize: 13, marginTop: 6, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
-                {view === "maps" ? "Selecciona un mapa para ver sus estrategias" : 
-                 view === "strategies" ? `${selectedMap?.name.toUpperCase()} — Biblioteca de tácticas` : 
-                 `Editor Táctico — ${current?.name}`}
+                {view === "maps" ? "Selecciona un mapa para ver sus estrategias" :
+                  view === "strategies" ? `${selectedMap?.name.toUpperCase()} — Biblioteca de tácticas` :
+                    `Editor Táctico — ${current?.name}`}
               </p>
             </div>
             {view !== "maps" && (
@@ -815,7 +840,7 @@ export default function StrategiesPage() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }} className="animate-in">
-        
+
         {view === "maps" && (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
             <div className="map-grid-premium">
@@ -835,8 +860,8 @@ export default function StrategiesPage() {
         {view === "strategies" && selectedMap && (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4, display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 16, flexShrink: 0 }}>
-               <h2 style={{ fontSize: 22, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Estrategias: {selectedMap.name}</h2>
-               <button className="btn btn-primary" style={{ padding: "10px 20px", borderRadius: 12 }} onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
+              <h2 style={{ fontSize: 22, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Estrategias: {selectedMap.name}</h2>
+              <button className="btn btn-primary" style={{ padding: "10px 20px", borderRadius: 12 }} onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
             </div>
             {strategiesLoading ? (
               <div className="strats-grid-premium">
@@ -883,23 +908,23 @@ export default function StrategiesPage() {
 
         {view === "editor" && current && (
           <div className="editor-card-premium">
-            
+
             {/* Top Toolbar Panel */}
             <div className="editor-top-bar-premium">
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 {/* Volver button */}
-                <button 
-                  className="tool-btn-premium" 
-                  onClick={goBack} 
-                  title="Volver a estrategias" 
-                  style={{ 
-                    width: 32, 
-                    height: 32, 
-                    borderRadius: 8, 
-                    padding: 0, 
-                    justifyContent: 'center', 
-                    background: 'rgba(255,255,255,0.03)', 
-                    border: '1px solid rgba(255,255,255,0.06)' 
+                <button
+                  className="tool-btn-premium"
+                  onClick={goBack}
+                  title="Volver a estrategias"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    padding: 0,
+                    justifyContent: 'center',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)'
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -937,18 +962,18 @@ export default function StrategiesPage() {
 
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {/* Settings Button */}
-                <button 
-                  className="btn btn-secondary btn-sm" 
-                  style={{ 
-                    borderRadius: 10, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 8, 
-                    padding: "8px 14px", 
-                    border: "1px solid rgba(255,255,255,0.08)", 
-                    background: "rgba(255,255,255,0.02)" 
-                  }} 
-                  onClick={openConfigModal} 
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.02)"
+                  }}
+                  onClick={openConfigModal}
                   title="Ajustes de la Táctica"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -959,18 +984,18 @@ export default function StrategiesPage() {
                 </button>
 
                 {/* Save Button */}
-                <button 
-                  className="btn btn-primary btn-sm" 
-                  style={{ 
-                    borderRadius: 10, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 8, 
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
                     padding: "8px 16px",
                     boxShadow: "0 0 12px rgba(255, 70, 85, 0.25)"
-                  }} 
-                  onClick={saveStrategy} 
-                  disabled={saveStrategyMutation.isPending} 
+                  }}
+                  onClick={saveStrategy}
+                  disabled={saveStrategyMutation.isPending}
                   title="Guardar Táctica"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -987,7 +1012,7 @@ export default function StrategiesPage() {
 
             {/* Editor Workspace Row: Left is Vertical Toolbar, Right is Canvas */}
             <div className="editor-workspace-row-premium">
-              
+
               {/* Vertical Toolbar Panel */}
               <div className="editor-toolbar-panel-premium">
                 {/* Drawing tools group */}
@@ -1051,10 +1076,10 @@ export default function StrategiesPage() {
                         {(tool === "eraser" ? [10, 20, 45, 80] : [2, 5, 10, 18]).map(size => {
                           const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize;
                           const isActive = activeSize === size;
-                          
+
                           // Visual representation of the dot size scaled down
                           const dotSize = Math.max(4, Math.min(16, tool === "eraser" ? size / 4 : size * 0.9));
-                          
+
                           return (
                             <button
                               key={size}
@@ -1101,80 +1126,122 @@ export default function StrategiesPage() {
 
                 {/* Actions group */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                  <button className="btn btn-ghost btn-sm" style={{ borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", width: "100%", padding: "6px 0", height: "auto" }} onClick={() => { pathsRef.current.pop(); redraw(); }} title="Deshacer (Ctrl+Z)">
+                  {/* Deshacer (Undo) */}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      borderRadius: 10,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "6px 0",
+                      height: "auto",
+                      opacity: canUndo ? 1 : 0.35,
+                      pointerEvents: canUndo ? "auto" : "none",
+                      transition: "all 0.2s ease"
+                    }}
+                    onClick={undo}
+                    title="Deshacer (Ctrl+Z)"
+                  >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 7v6h6" />
                       <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
                     </svg>
                     <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>DESHACER</span>
                   </button>
+
+                  {/* Rehacer (Redo) */}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      borderRadius: 10,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "6px 0",
+                      height: "auto",
+                      opacity: canRedo ? 1 : 0.35,
+                      pointerEvents: canRedo ? "auto" : "none",
+                      transition: "all 0.2s ease"
+                    }}
+                    onClick={redo}
+                    title="Rehacer (Ctrl+Y)"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 7v6h-6" />
+                      <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                    </svg>
+                    <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>REHACER</span>
+                  </button>
                 </div>
               </div>
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : tool === "draw" ? PENCIL_CURSOR : tool === "arrow" ? ARROW_CURSOR : "default"), touchAction: "none", width: "100%", height: "100%" }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
                   onContextMenu={e => e.preventDefault()} />
 
-                 {/* Floating Zoom & Perspective Controls */}
-                 <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", alignItems: "center", gap: 8, zIndex: 10 }}>
-                   <button className="tool-btn-premium" onClick={() => {
-                     const nextZoom = Math.min(zoom * 1.25, 6);
-                     setZoom(nextZoom);
-                   }} title="Acercar" style={{ width: 32, height: 32, borderRadius: 8, padding: 0, justifyContent: 'center' }}>
-                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                       <line x1="12" y1="5" x2="12" y2="19" />
-                       <line x1="5" y1="12" x2="19" y2="12" />
-                     </svg>
-                   </button>
-                   <button className="tool-btn-premium" onClick={() => {
-                     const nextZoom = Math.max(zoom / 1.25, 0.4);
-                     setZoom(nextZoom);
-                   }} title="Alejar" style={{ width: 32, height: 32, borderRadius: 8, padding: 0, justifyContent: 'center' }}>
-                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                       <line x1="5" y1="12" x2="19" y2="12" />
-                     </svg>
-                   </button>
-                   <button className="tool-btn-premium" onClick={() => {
-                     setZoom(1);
-                     setPan({ x: 0, y: 0 });
-                   }} title="Restablecer vista" style={{ width: 64, height: 32, borderRadius: 8, padding: 0, fontSize: 10, fontWeight: 800, justifyContent: 'center', textTransform: 'uppercase' }}>
-                     {Math.round(zoom * 100)}%
-                   </button>
+                {/* Floating Zoom & Perspective Controls */}
+                <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", alignItems: "center", gap: 8, zIndex: 10 }}>
+                  <button className="tool-btn-premium" onClick={() => {
+                    const nextZoom = Math.min(zoom * 1.25, 6);
+                    setZoom(nextZoom);
+                  }} title="Acercar" style={{ width: 32, height: 32, borderRadius: 8, padding: 0, justifyContent: 'center' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                  <button className="tool-btn-premium" onClick={() => {
+                    const nextZoom = Math.max(zoom / 1.25, 0.4);
+                    setZoom(nextZoom);
+                  }} title="Alejar" style={{ width: 32, height: 32, borderRadius: 8, padding: 0, justifyContent: 'center' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                  <button className="tool-btn-premium" onClick={() => {
+                    setZoom(1);
+                    setPan({ x: 0, y: 0 });
+                  }} title="Restablecer vista" style={{ width: 64, height: 32, borderRadius: 8, padding: 0, fontSize: 10, fontWeight: 800, justifyContent: 'center', textTransform: 'uppercase' }}>
+                    {Math.round(zoom * 100)}%
+                  </button>
 
-                   {/* Integrated Horizontal Side/Perspective Selector */}
-                   <div className="pill-toggle-premium" style={{ padding: 2, borderRadius: 8, display: 'flex', gap: 2, height: 32, alignItems: 'center', background: 'rgba(10, 14, 20, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(8px)' }}>
-                     <button
-                       type="button"
-                       className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`}
-                       onClick={() => setSelectedSide("attack")}
-                       title="Perspectiva de Ataque (ATK)"
-                       style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
-                     >
-                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                         <polyline points="14.5 17.5 3 6 6 3 17.5 14.5" />
-                         <line x1="13" y1="19" x2="19" y2="13" />
-                         <line x1="16" y1="20" x2="20" y2="16" />
-                       </svg>
-                       ATK
-                     </button>
-                     <button
-                       type="button"
-                       className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`}
-                       onClick={() => setSelectedSide("defense")}
-                       title="Perspectiva de Defensa (DEF)"
-                       style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
-                     >
-                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                       </svg>
-                       DEF
-                     </button>
-                   </div>
-                 </div>
+                  {/* Integrated Horizontal Side/Perspective Selector */}
+                  <div className="pill-toggle-premium" style={{ padding: 2, borderRadius: 8, display: 'flex', gap: 2, height: 32, alignItems: 'center', background: 'rgba(10, 14, 20, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(8px)' }}>
+                    <button
+                      type="button"
+                      className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`}
+                      onClick={() => setSelectedSide("attack")}
+                      title="Perspectiva de Ataque (ATK)"
+                      style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="14.5 17.5 3 6 6 3 17.5 14.5" />
+                        <line x1="13" y1="19" x2="19" y2="13" />
+                        <line x1="16" y1="20" x2="20" y2="16" />
+                      </svg>
+                      ATK
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`}
+                      onClick={() => setSelectedSide("defense")}
+                      title="Perspectiva de Defensa (DEF)"
+                      style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                      DEF
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* No secondary right toolbar - Moved to Top Toolbar */}
@@ -1228,7 +1295,7 @@ export default function StrategiesPage() {
                         />
                         <span className="agents-role-name-premium">{role.toUpperCase()}S</span>
                       </button>
-                      
+
                       <div className={`agents-row-premium ${activeRole === role ? 'expanded' : ''}`}>
                         {roleAgents.map(a => (
                           <button key={a.id} className="agent-btn-premium-horizontal" onClick={() => dropAgent(a)} draggable={true} onDragStart={(e) => handleAgentDragStart(e, a.id)}>
@@ -1299,7 +1366,7 @@ export default function StrategiesPage() {
         <div className="modal-overlay-premium">
           <div className="modal-card-premium" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la Táctica</h3>
-            
+
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la táctica</label>
               <input className="input-premium" value={configName} onChange={e => setConfigName(e.target.value)} placeholder="Ej: Control de Mid a A" />
