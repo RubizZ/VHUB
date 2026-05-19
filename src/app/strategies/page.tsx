@@ -1055,16 +1055,77 @@ export default function StrategiesPage() {
                   ))}
                 </div>
 
-                <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "2px 0" }} />
+                {(tool === "draw" || tool === "arrow") && (
+                  <>
+                    <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "2px 0" }} />
 
-                {/* Color Palette orbs */}
-                <div className="color-palette-premium-vertical">
-                  {colors2.map(c => (
-                    <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => setColor(c)}>
-                      {color === c && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff" }} />}
-                    </button>
-                  ))}
-                </div>
+                    {/* Color Palette orbs */}
+                    <div className="color-palette-premium-vertical">
+                      {colors2.map(c => (
+                        <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => setColor(c)}>
+                          {color === c && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff" }} />}
+                        </button>
+                      ))}
+
+                      {/* Custom Spectrum Picker Orb */}
+                      <div
+                        style={{
+                          position: "relative",
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                        title="Color personalizado"
+                      >
+                        <div
+                          className={`color-orb-premium ${!colors2.includes(color) ? "active" : ""}`}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: "conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)",
+                            boxShadow: !colors2.includes(color) ? `0 0 8px ${color}` : "none",
+                            border: !colors2.includes(color) ? "1.5px solid #ffffff" : "1px solid rgba(255,255,255,0.2)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}
+                        >
+                          {!colors2.includes(color) && (
+                            <div
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: "#ffffff",
+                                boxShadow: "0 0 2px rgba(0,0,0,0.5)"
+                              }}
+                            />
+                          )}
+                        </div>
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            opacity: 0,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Brush Size Selector */}
                 {(tool === "draw" || tool === "arrow" || tool === "eraser") && (
