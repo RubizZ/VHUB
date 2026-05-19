@@ -205,6 +205,12 @@ export default function StrategiesPage() {
     return () => window.removeEventListener("resize", initCanvas);
   }, [initCanvas, view]);
 
+  useEffect(() => {
+    if (view === "editor") {
+      redraw();
+    }
+  }, [selectedSide, redraw, view]);
+
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -486,8 +492,8 @@ export default function StrategiesPage() {
             <div style={{ flex: "1 1 500px", display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
               <div className="card glass-card" style={{ padding: 12, marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                 <div className="glass-card" style={{ display: "flex", padding: 4, borderRadius: 8 }}>
-                   <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("attack"); setTimeout(redraw, 50); }}>⚔️ Atacante</button>
-                   <button className={`btn btn-sm ${selectedSide === "defense" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setSelectedSide("defense"); setTimeout(redraw, 50); }}>🛡️ Defensor</button>
+                   <button className={`btn btn-sm ${selectedSide === "attack" ? "btn-primary" : "btn-ghost"}`} onClick={() => setSelectedSide("attack")}>⚔️ Atacante</button>
+                   <button className={`btn btn-sm ${selectedSide === "defense" ? "btn-primary" : "btn-ghost"}`} onClick={() => setSelectedSide("defense")}>🛡️ Defensor</button>
                 </div>
                 <div style={{ width: 1, height: 24, background: "var(--border-color)" }} />
                 <div className="strategy-toolbar" style={{ border: "none", padding: 0, display: "flex", gap: 4 }}>
