@@ -595,7 +595,11 @@ export default function StrategiesPage() {
           canvas.style.cursor = isOverAgent ? "pointer" : "default";
         }
       } else if (tool === "pan") {
-        canvas.style.cursor = "grab";
+        canvas.style.cursor = panningRef.current ? "grabbing" : "grab";
+      } else if (tool === "eraser" || tool === "draw" || tool === "arrow") {
+        canvas.style.cursor = "none";
+      } else {
+        canvas.style.cursor = "default";
       }
     }
 
@@ -608,7 +612,7 @@ export default function StrategiesPage() {
       return;
     }
     if (!drawingRef.current) {
-      if (tool === "eraser") redraw();
+      if (tool === "eraser" || tool === "draw" || tool === "arrow") redraw();
       return;
     } 
     pathsRef.current[pathsRef.current.length - 1].points.push(pos); 
@@ -1100,7 +1104,7 @@ export default function StrategiesPage() {
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : (tool === "eraser" || tool === "draw" || tool === "arrow") ? "none" : "crosshair"), touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
