@@ -4,7 +4,6 @@ import { getAccount, getMatches, getMMR, getStoredMatches, getMatchById } from "
 import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
 import { db } from "@/lib/db";
 import { MAPS } from "@/lib/maps";
-import { findAgentByName } from "@/lib/agents";
 import { HenrikMatch } from "@/lib/henrik-types";
 
 export async function GET(req: NextRequest) {
@@ -169,7 +168,9 @@ export async function GET(req: NextRequest) {
                     const ourPlayer = await tx.player.findUnique({
                       where: { puuid: playerStats.puuid }
                     });
-                    const agent = findAgentByName(playerStats.character);
+                    const agent = await tx.agent.findFirst({
+                      where: { name: { equals: playerStats.character, mode: "insensitive" } }
+                    });
 
                     await tx.matchPlayerStats.create({
                       data: {

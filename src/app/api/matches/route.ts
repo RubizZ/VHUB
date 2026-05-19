@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { MAPS } from "@/lib/maps";
 import { auth } from "@/auth";
 import { getMatches, getPremierSeasons } from "@/lib/henrik-api";
-import { findAgentByName } from "@/lib/agents";
 import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -366,8 +365,9 @@ export async function POST(req: NextRequest) {
               const ourPlayer = await tx.player.findUnique({
                 where: { puuid: playerStats.puuid }
               });
-
-              const agent = findAgentByName(playerStats.character);
+              const agent = await tx.agent.findFirst({
+                where: { name: { equals: playerStats.character, mode: "insensitive" } }
+              });
 
               await tx.matchPlayerStats.create({
                 data: {

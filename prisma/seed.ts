@@ -24,6 +24,7 @@ async function main() {
         await prisma.player.deleteMany();
         await prisma.team.deleteMany();
         await prisma.map.deleteMany();
+        await prisma.agent.deleteMany();
         console.log("✅ All data cleared.");
     } else {
         console.log("🛡️ Production mode detected: skipping database cleanup.");
@@ -66,6 +67,54 @@ async function main() {
         }
     }
     console.log(`✅ ${mapsData.length} maps processed.`);
+
+    // 1.5 Fetch Agents from Valorant API
+    console.log("🛰️ Fetching agents...");
+    const agentsData = await valorantApi.agentsEndpoints.getAgentsV1();
+    let seededAgentsCount = 0;
+
+    for (const agent of agentsData) {
+        if (agent.isPlayableCharacter) {
+            const roleDisplayName = agent.role?.displayName || "duelist";
+            const roleName = (() => {
+                const name = roleDisplayName.toLowerCase();
+                if (name.includes("duel")) return "duelist";
+                if (name.includes("iniciador") || name.includes("init")) return "initiator";
+                if (name.includes("control") || name.includes("controlador")) return "controller";
+                if (name.includes("centinela") || name.includes("sentinel")) return "sentinel";
+                return "duelist";
+            })();
+            const roleIcon = agent.role?.displayIcon || "";
+            const bgColors = (agent.backgroundGradientColors || []).map(c => `#${c}`);
+
+            await prisma.agent.upsert({
+                where: { id: agent.uuid },
+                update: {
+                    name: agent.displayName,
+                    role: roleName,
+                    displayIcon: agent.displayIcon,
+                    killfeedPortrait: agent.killfeedPortrait,
+                    fullPortrait: agent.fullPortrait,
+                    background: agent.background,
+                    roleIcon: roleIcon,
+                    bgColors: bgColors,
+                },
+                create: {
+                    id: agent.uuid,
+                    name: agent.displayName,
+                    role: roleName,
+                    displayIcon: agent.displayIcon,
+                    killfeedPortrait: agent.killfeedPortrait,
+                    fullPortrait: agent.fullPortrait,
+                    background: agent.background,
+                    roleIcon: roleIcon,
+                    bgColors: bgColors,
+                },
+            });
+            seededAgentsCount++;
+        }
+    }
+    console.log(`✅ ${seededAgentsCount} agents processed.`);
 
     const generateCuid = createId;
 

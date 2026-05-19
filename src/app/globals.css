@@ -2613,16 +2613,15 @@ input:checked+.slider:before {
 .canvas-wrap-premium {
   background: #06090d;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   position: relative;
 }
 .canvas-wrap-premium::after {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: 20px;
+  border-radius: 0;
   border: 1px solid rgba(255, 70, 85, 0.05);
   pointer-events: none;
 }
@@ -2734,39 +2733,80 @@ input:checked+.slider:before {
 }
 .agents-role-group-premium {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
   flex-shrink: 0;
 }
 .agents-role-header-premium {
-  font-size: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   gap: 4px;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  min-width: 58px;
+  height: 58px;
+  box-sizing: border-box;
+  color: inherit;
+}
+.agents-role-header-premium:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.agents-role-header-premium.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 .agents-role-name-premium {
-  margin-left: 2px;
+  margin-left: 0;
 }
 .agents-row-premium {
   display: flex;
   gap: 8px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: scaleX(0.9);
+  transform-origin: left;
+  margin-left: 0;
+  pointer-events: none;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+.agents-row-premium.expanded {
+  opacity: 1;
+  max-width: 800px;
+  transform: scaleX(1);
+  margin-left: 8px;
+  pointer-events: auto;
 }
 .agent-btn-premium-horizontal {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.01);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 8px;
   padding: 4px 6px;
   width: 58px;
+  height: 58px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 .agent-btn-premium-horizontal:hover {
   transform: translateY(-2px);
@@ -2826,10 +2866,11 @@ input:checked+.slider:before {
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 .editor-agents-panel-premium {
-  padding: 12px 16px;
+  padding: 6px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
   flex-shrink: 0;
   box-sizing: border-box;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -2887,4 +2928,46 @@ input:checked+.slider:before {
     flex-wrap: wrap;
     width: auto;
   }
+}
+.editor-toolbar-panel-premium-right {
+  width: 68px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 10px;
+  box-sizing: border-box;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+@media (max-width: 640px) {
+  .editor-toolbar-panel-premium-right {
+    flex-direction: row;
+    width: 100%;
+    height: auto;
+    padding: 10px 16px;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+.editor-top-bar-premium {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(10, 14, 20, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* ── Full Integration in Editor Mode (No Padding & Border Radius) ── */
+.strategies-container-premium.in-editor {
+  padding: 0;
+}
+.strategies-container-premium.in-editor .editor-card-premium {
+  border-radius: 0;
+  border: none;
 }

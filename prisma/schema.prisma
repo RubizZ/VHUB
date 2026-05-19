@@ -240,3 +240,15 @@ model TeamJoinRequest {
 
   @@unique([userId, teamId])
 }
+
+model Agent {
+  id               String   @id
+  name             String
+  role             String   // e.g. "duelist", "initiator", "controller", "sentinel"
+  displayIcon      String
+  killfeedPortrait String?
+  fullPortrait     String?
+  background       String?
+  roleIcon         String
+  bgColors         String[] // Array of colors for the gradient
+}

@@ -3,7 +3,7 @@
 "use client";
 import React, { useEffect, useState, useMemo, CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { findAgentById, ROLE_COLORS } from "@/lib/agents";
+import { ROLE_COLORS, type AgentRole } from "@/lib/agents";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -85,6 +85,22 @@ export default function MatchesPage() {
   });
 
   const stats = matchDetailsData?.playerStats || [];
+
+  // 2.5 Fetch agents
+  const {
+    data: agentsData
+  } = useQuery<{ agents: any[] }>({
+    queryKey: ["agents"],
+    queryFn: async () => {
+      const res = await fetch("/api/agents");
+      if (!res.ok) throw new Error("Error al cargar agentes");
+      return res.json();
+    }
+  });
+
+  const agents = agentsData?.agents || [];
+
+  const findAgent = (id: string) => agents.find(a => a.id === id);
 
   // 3. Sync matches mutation
   const syncMutation = useMutation({
@@ -267,14 +283,14 @@ export default function MatchesPage() {
   const redTeam = stats.filter(s => s.team_id === "Red");
 
   const renderPlayerRow = (p: PlayerStat) => {
-    const agent = findAgentById(p.character_id);
+    const agent = findAgent(p.character_id);
     const acs = p.rounds_played > 0 ? Math.round(p.score / p.rounds_played) : 0;
     const kd = p.deaths > 0 ? (p.kills / p.deaths).toFixed(2) : p.kills.toString();
     return (
       <tr key={p.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
         <td style={{ padding: "12px 8px", display: "flex", alignItems: "center", gap: 12 }}>
           {agent && (
-            <img src={agent.displayIcon} alt={agent.name} style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[agent.role] || 'var(--val-red)'}` }} />
+            <img src={agent.displayIcon} alt={agent.name} style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${ROLE_COLORS[agent.role as AgentRole] || 'var(--val-red)'}` }} />
           )}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ fontWeight: 600 }}>{p.player_name || p.puuid?.substring(0, 8) || "?"}</span>
