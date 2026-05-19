@@ -3052,3 +3052,12 @@ input:checked+.slider:before {
   align-items: center;
   flex-shrink: 0;
 }
+
+/* ── Remove Canvas Frame/Border ── */
+.canvas-wrap-premium,
+.canvas-wrap-premium canvas {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
