@@ -158,7 +158,7 @@ export default function StrategiesPage() {
   const redraw = useCallback(() => {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
+    if (!ctx || !canvas || canvas.width <= 0 || canvas.height <= 0) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#0a0e14";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
