@@ -44,11 +44,16 @@ export default function StrategiesPage() {
   const [configSide, setConfigSide] = useState<"attack" | "defense">("attack");
   const [configDescription, setConfigDescription] = useState("");
 
+  // Brush Size States
+  const [pencilSize, setPencilSize] = useState<number>(3);
+  const [arrowSize, setArrowSize] = useState<number>(3);
+  const [eraserSize, setEraserSize] = useState<number>(20);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
   const draggedAgentRef = useRef<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
-  const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[] }>>([]);
+  const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
   const agentsRef = useRef<Array<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -215,7 +220,7 @@ export default function StrategiesPage() {
         if (path.points.length < 2) continue;
         pCtx.beginPath();
         pCtx.strokeStyle = path.color;
-        pCtx.lineWidth = (path.tool === "eraser" ? 20 : 3) / scale;
+        pCtx.lineWidth = (path.thickness !== undefined ? path.thickness : (path.tool === "eraser" ? 20 : 3)) / scale;
         pCtx.lineCap = "round";
         pCtx.lineJoin = "round";
         if (path.tool === "eraser") {
@@ -254,10 +259,11 @@ export default function StrategiesPage() {
           pCtx.rotate(arrowAngle);
           pCtx.scale(1 / scale, 1 / scale);
           
+          const arrowScale = (path.thickness !== undefined ? path.thickness : 3) / 3;
           pCtx.beginPath(); pCtx.fillStyle = path.color;
-          pCtx.moveTo(0, -6);
-          pCtx.lineTo(15, 0);
-          pCtx.lineTo(0, 6);
+          pCtx.moveTo(0, -6 * arrowScale);
+          pCtx.lineTo(15 * arrowScale, 0);
+          pCtx.lineTo(0, 6 * arrowScale);
           pCtx.closePath(); pCtx.fill();
           pCtx.restore();
         }
@@ -542,7 +548,8 @@ export default function StrategiesPage() {
       }
     }
     drawingRef.current = true; 
-    pathsRef.current.push({ tool, color, points: [pos] }); 
+    const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 3;
+    pathsRef.current.push({ tool, color, points: [pos], thickness: activeSize }); 
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => { 
@@ -1019,6 +1026,33 @@ export default function StrategiesPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Brush Size Slider */}
+                {(tool === "draw" || tool === "arrow" || tool === "eraser") && (
+                  <>
+                    <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 0 4px 0" }} />
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 4 }}>
+                      <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Grosor</span>
+                      <input
+                        type="range"
+                        min={tool === "eraser" ? 5 : 1}
+                        max={tool === "eraser" ? 100 : 20}
+                        value={tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize}
+                        onChange={(e) => {
+                          const size = parseInt(e.target.value);
+                          if (tool === "draw") setPencilSize(size);
+                          else if (tool === "arrow") setArrowSize(size);
+                          else if (tool === "eraser") setEraserSize(size);
+                        }}
+                        style={{ width: "80%", cursor: "pointer" }}
+                        className="premium-slider"
+                      />
+                      <span style={{ fontSize: 9, fontWeight: 800, color: "var(--val-red)", marginTop: 2 }}>
+                        {tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize}px
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 <div style={{ flexGrow: 1 }} />
 
