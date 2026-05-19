@@ -3116,9 +3116,19 @@ input[type="range"].color-picker-slider {
   border-radius: 4px;
   outline: none;
   transition: opacity 0.2s ease;
+  background: transparent !important;
 }
 
-/* Webkit browsers (Chrome, Safari, Edge, Opera) */
+input[type="range"].color-picker-slider::-webkit-slider-runnable-track {
+  background: transparent !important;
+  border: none;
+}
+
+input[type="range"].color-picker-slider::-moz-range-track {
+  background: transparent !important;
+  border: none;
+}
+
 input[type="range"].color-picker-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

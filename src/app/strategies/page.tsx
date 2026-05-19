@@ -1342,22 +1342,41 @@ export default function StrategiesPage() {
                         <span>TONO</span>
                         <span>{customH}°</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="360"
-                        value={customH}
-                        onChange={(e) => {
-                          const h = parseInt(e.target.value);
-                          setCustomH(h);
-                          setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
-                        }}
-                        className="color-picker-slider"
+                      <div
                         style={{
+                          position: "relative",
                           width: "100%",
-                          background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)"
+                          height: 8,
+                          borderRadius: 4,
+                          background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                          display: "flex",
+                          alignItems: "center"
                         }}
-                      />
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="360"
+                          value={customH}
+                          onChange={(e) => {
+                            const h = parseInt(e.target.value);
+                            setCustomH(h);
+                            setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
+                          }}
+                          className="color-picker-slider"
+                          style={{
+                            position: "absolute",
+                            left: 6,
+                            right: 6,
+                            width: "calc(100% - 12px)",
+                            background: "transparent",
+                            margin: 0,
+                            padding: 0,
+                            height: 20,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {/* Saturation Slider */}
@@ -1366,22 +1385,41 @@ export default function StrategiesPage() {
                         <span>SATURACIÓN</span>
                         <span>{customS}%</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={customS}
-                        onChange={(e) => {
-                          const s = parseInt(e.target.value);
-                          setCustomS(s);
-                          setColor(`hsl(${customH}, ${s}%, ${customL}%)`);
-                        }}
-                        className="color-picker-slider"
+                      <div
                         style={{
+                          position: "relative",
                           width: "100%",
-                          background: `linear-gradient(to right, hsl(${customH}, 0%, ${customL}%), hsl(${customH}, 100%, ${customL}%))`
+                          height: 8,
+                          borderRadius: 4,
+                          background: `linear-gradient(to right, hsl(${customH}, 0%, ${customL}%), hsl(${customH}, 100%, ${customL}%))`,
+                          display: "flex",
+                          alignItems: "center"
                         }}
-                      />
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={customS}
+                          onChange={(e) => {
+                            const s = parseInt(e.target.value);
+                            setCustomS(s);
+                            setColor(`hsl(${customH}, ${s}%, ${customL}%)`);
+                          }}
+                          className="color-picker-slider"
+                          style={{
+                            position: "absolute",
+                            left: 6,
+                            right: 6,
+                            width: "calc(100% - 12px)",
+                            background: "transparent",
+                            margin: 0,
+                            padding: 0,
+                            height: 20,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {/* Lightness Slider */}
@@ -1390,22 +1428,41 @@ export default function StrategiesPage() {
                         <span>LUMINOSIDAD</span>
                         <span>{customL}%</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={customL}
-                        onChange={(e) => {
-                          const l = parseInt(e.target.value);
-                          setCustomL(l);
-                          setColor(`hsl(${customH}, ${customS}%, ${l}%)`);
-                        }}
-                        className="color-picker-slider"
+                      <div
                         style={{
+                          position: "relative",
                           width: "100%",
-                          background: `linear-gradient(to right, #000000, hsl(${customH}, ${customS}%, 50%), #ffffff)`
+                          height: 8,
+                          borderRadius: 4,
+                          background: `linear-gradient(to right, #000000, hsl(${customH}, ${customS}%, 50%), #ffffff)`,
+                          display: "flex",
+                          alignItems: "center"
                         }}
-                      />
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={customL}
+                          onChange={(e) => {
+                            const l = parseInt(e.target.value);
+                            setCustomL(l);
+                            setColor(`hsl(${customH}, ${customS}%, ${l}%)`);
+                          }}
+                          className="color-picker-slider"
+                          style={{
+                            position: "absolute",
+                            left: 6,
+                            right: 6,
+                            width: "calc(100% - 12px)",
+                            background: "transparent",
+                            margin: 0,
+                            padding: 0,
+                            height: 20,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <button
