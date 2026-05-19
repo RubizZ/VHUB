@@ -19,6 +19,10 @@ interface Strategy {
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
 type View = "maps" | "strategies" | "editor";
 
+const PENCIL_CURSOR = `url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2732%27%20height%3D%2732%27%20viewBox%3D%270%200%2032%2032%27%3E%3Cline%20x1%3D%2712%27%20y1%3D%274%27%20x2%3D%2712%27%20y2%3D%2720%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%274%27%20y1%3D%2712%27%20x2%3D%2720%27%20y2%3D%2712%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2712%27%20y1%3D%275%27%20x2%3D%2712%27%20y2%3D%2719%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%275%27%20y1%3D%2712%27%20x2%3D%2719%27%20y2%3D%2712%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2722%27%20y1%3D%2722%27%20x2%3D%2729%27%20y2%3D%2729%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2721%27%20x2%3D%2722%27%20y2%3D%2722%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2721%27%20x2%3D%2728%27%20y2%3D%2728%27%20stroke%3D%27white%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3Cline%20x1%3D%2720%27%20y1%3D%2720%27%20x2%3D%2721%27%20y2%3D%2721%27%20stroke%3D%27%23ff4655%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3C%2Fsvg%3E") 12 12, crosshair`;
+
+const ARROW_CURSOR = `url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2732%27%20height%3D%2732%27%20viewBox%3D%270%200%2032%2032%27%3E%3Cline%20x1%3D%2712%27%20y1%3D%274%27%20x2%3D%2712%27%20y2%3D%2720%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%274%27%20y1%3D%2712%27%20x2%3D%2720%27%20y2%3D%2712%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2712%27%20y1%3D%275%27%20x2%3D%2712%27%20y2%3D%2719%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%275%27%20y1%3D%2712%27%20x2%3D%2719%27%20y2%3D%2712%27%20stroke%3D%27white%27%20stroke-width%3D%271%27%20stroke-linecap%3D%27square%27%20%2F%3E%3Cline%20x1%3D%2722%27%20y1%3D%2722%27%20x2%3D%2729%27%20y2%3D%2729%27%20stroke%3D%27black%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20opacity%3D%270.5%27%20%2F%3E%3Cpolygon%20points%3D%2721%2C21%2026%2C21%2021%2C26%27%20fill%3D%27black%27%20opacity%3D%270.5%27%20transform%3D%27translate%281%2C%201%29%27%20%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2721%27%20x2%3D%2728%27%20y2%3D%2728%27%20stroke%3D%27white%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20%2F%3E%3Cpolygon%20points%3D%2719%2C19%2024%2C19%2019%2C24%27%20fill%3D%27white%27%20%2F%3E%3C%2Fsvg%3E") 12 12, crosshair`;
+
 const competitiveMaps = getCompetitiveMaps();
 
 export default function StrategiesPage() {
@@ -335,69 +339,6 @@ export default function StrategiesPage() {
       ctx.restore();
     }
 
-    // 5. Draw Custom Pencil/Arrow cursors in screen space
-    if ((tool === "draw" || tool === "arrow") && mousePosRef.current) {
-      const x = mousePosRef.current.canvasX;
-      const y = mousePosRef.current.canvasY;
-      
-      ctx.save();
-      
-      // Draw the tool icon as a complement to the native crosshair
-      if (tool === "draw") {
-        // Pencil icon
-        ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        ctx.shadowBlur = 2;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-
-        // Pencil body
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x + 8, y + 8);
-        ctx.lineTo(x + 15, y + 15);
-        ctx.stroke();
-
-        // Pencil tip (red)
-        ctx.strokeStyle = "var(--val-red)";
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(x + 7, y + 7);
-        ctx.lineTo(x + 8, y + 8);
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        // Arrow icon
-        ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        ctx.shadowBlur = 2;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-
-        // Arrow shaft
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1.5;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x + 8, y + 8);
-        ctx.lineTo(x + 15, y + 15);
-        ctx.stroke();
-
-        // Arrowhead wings
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.moveTo(x + 6, y + 6);
-        ctx.lineTo(x + 11, y + 6);
-        ctx.lineTo(x + 6, y + 11);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
-      
-      ctx.restore();
-    }
   }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize]);
 
   useEffect(() => {
@@ -662,8 +603,10 @@ export default function StrategiesPage() {
         canvas.style.cursor = panningRef.current ? "grabbing" : "grab";
       } else if (tool === "eraser") {
         canvas.style.cursor = "none";
-      } else if (tool === "draw" || tool === "arrow") {
-        canvas.style.cursor = "crosshair";
+      } else if (tool === "draw") {
+        canvas.style.cursor = PENCIL_CURSOR;
+      } else if (tool === "arrow") {
+        canvas.style.cursor = ARROW_CURSOR;
       } else {
         canvas.style.cursor = "default";
       }
@@ -678,7 +621,7 @@ export default function StrategiesPage() {
       return;
     }
     if (!drawingRef.current) {
-      if (tool === "eraser" || tool === "draw" || tool === "arrow") redraw();
+      if (tool === "eraser") redraw();
       return;
     } 
     pathsRef.current[pathsRef.current.length - 1].points.push(pos); 
@@ -1170,7 +1113,7 @@ export default function StrategiesPage() {
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair"), touchAction: "none", width: "100%", height: "100%" }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : tool === "draw" ? PENCIL_CURSOR : tool === "arrow" ? ARROW_CURSOR : "default"), touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
