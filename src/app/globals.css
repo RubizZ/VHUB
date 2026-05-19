@@ -2715,11 +2715,7 @@ input:checked+.slider:before {
   display: flex;
   gap: 20px;
   overflow-x: auto;
-  padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.35);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
+  padding: 4px 0 8px;
   flex-shrink: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -2796,30 +2792,48 @@ input:checked+.slider:before {
   text-align: center;
 }
 
-/* ── Vertical Toolbar Layout ── */
+/* ── Unified Editor Card Layout ── */
+.editor-card-premium {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
 .editor-workspace-row-premium {
   display: flex;
   flex: 1;
   min-height: 0;
   min-width: 0;
-  gap: 16px;
   width: 100%;
 }
-.toolbar-premium-vertical {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+.editor-toolbar-panel-premium {
   width: 68px;
   flex-shrink: 0;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 10px;
   box-sizing: border-box;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.editor-agents-panel-premium {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.15);
 }
 .pill-toggle-premium-vertical {
   display: flex;
@@ -2852,11 +2866,13 @@ input:checked+.slider:before {
   .editor-workspace-row-premium {
     flex-direction: column;
   }
-  .toolbar-premium-vertical {
+  .editor-toolbar-panel-premium {
     flex-direction: row;
     width: 100%;
     height: auto;
     padding: 10px 16px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
   .pill-toggle-premium-vertical {
     flex-direction: row;

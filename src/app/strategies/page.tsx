@@ -31,18 +31,20 @@ export default function StrategiesPage() {
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
   const [tool, setTool] = useState<Tool>("draw");
   const [color, setColor] = useState("#FF4655");
+  const [activeTeam, setActiveTeam] = useState<"ally" | "enemy">("ally");
   const [showNewStrat, setShowNewStrat] = useState(false);
   const [newName, setNewName] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
-  const draggedAgentRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const draggedAgentRef = useRef<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
   const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[] }>>([]);
-  const agentsRef = useRef<Array<{ id: string; x: number; y: number }>>([]);
+  const agentsRef = useRef<Array<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
+  const agentsScrollRef = useRef<HTMLDivElement>(null);
 
   // 1. Query Strategies
   const {
@@ -212,12 +214,12 @@ export default function StrategiesPage() {
         ctx.restore();
         ctx.beginPath();
         ctx.arc(0, 0, 18, 0, Math.PI * 2);
-        ctx.strokeStyle = ROLE_COLORS[agent?.role || "duelist"];
-        ctx.lineWidth = draggedAgentRef.current === a ? 4 : 2;
+        ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
+        ctx.lineWidth = draggedAgentRef.current === a ? 4.5 : 2.5;
         ctx.stroke();
       } else {
         ctx.beginPath();
-        ctx.fillStyle = ROLE_COLORS[agent?.role || "duelist"];
+        ctx.fillStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
         ctx.arc(0, 0, 16, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#fff";
@@ -436,8 +438,70 @@ export default function StrategiesPage() {
       img.onload = () => { agentImgsRef.current.set(a.id, img); redraw(); };
       agentImgsRef.current.set(a.id, img);
     }
-    agentsRef.current.push({ id: a.id, x: -50 + Math.random() * 100, y: -50 + Math.random() * 100 });
+    agentsRef.current.push({ id: a.id, x: -50 + Math.random() * 100, y: -50 + Math.random() * 100, team: activeTeam });
     redraw();
+  };
+
+  const handleAgentDragStart = (e: React.DragEvent, agentId: string) => {
+    e.dataTransfer.setData("text/plain", agentId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const agentId = e.dataTransfer.getData("text/plain");
+    if (!agentId) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX;
+    const cy = e.clientY;
+
+    const canvasX = cx - rect.left;
+    const canvasY = cy - rect.top;
+
+    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const dx = canvasX - canvas.width / 2;
+    const dy = canvasY - canvas.height / 2;
+
+    const mapImg = mapImgRef.current;
+    let scale = 1;
+    if (mapImg && mapImg.complete) {
+      const rotatedW = mapImg.height;
+      const rotatedH = mapImg.width;
+      scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+    }
+
+    const mx = (dx * Math.cos(-angle) - dy * Math.sin(-angle)) / scale;
+    const my = (dx * Math.sin(-angle) + dy * Math.cos(-angle)) / scale;
+
+    const agent = findAgentById(agentId);
+    if (agent) {
+      if (!agentImgsRef.current.has(agent.id)) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = agent.displayIcon;
+        img.onload = () => {
+          agentImgsRef.current.set(agent.id, img);
+          redraw();
+        };
+        agentImgsRef.current.set(agent.id, img);
+      }
+      agentsRef.current.push({ id: agent.id, x: mx, y: my, team: activeTeam });
+      redraw();
+    }
+  };
+
+  const handleAgentsWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (agentsScrollRef.current) {
+      agentsScrollRef.current.scrollLeft += e.deltaY;
+    }
   };
 
   const openEditor = (s: Strategy) => {
@@ -621,13 +685,13 @@ export default function StrategiesPage() {
         )}
 
         {view === "editor" && current && (
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0, gap: 16 }}>
+          <div className="editor-card-premium">
             
             {/* Editor Workspace Row: Left is Vertical Toolbar, Right is Canvas */}
             <div className="editor-workspace-row-premium">
               
-              {/* Vertical Toolbar */}
-              <div className="toolbar-premium-vertical">
+              {/* Vertical Toolbar Panel */}
+              <div className="editor-toolbar-panel-premium">
                 {/* Pill side selector */}
                 <div className="pill-toggle-premium-vertical">
                   <button className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`} onClick={() => setSelectedSide("attack")} title="Atacante" style={{ padding: '8px 0', width: '100%', justifyContent: 'center' }}>
@@ -712,33 +776,48 @@ export default function StrategiesPage() {
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
                 <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
-                  onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
+                  onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
+                  onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop} />
               </div>
 
             </div>
 
-            {/* Agent Selector (Horizontal below canvas) */}
-            <div className="agents-horizontal-premium">
-              {(['duelist', 'initiator', 'controller', 'sentinel'] as AgentRole[]).map(role => {
-                const roleAgents = getAgentsByRole(role);
-                if (roleAgents.length === 0) return null;
-                return (
-                  <div key={role} className="agents-role-group-premium">
-                    <div className="agents-role-header-premium" style={{ color: ROLE_COLORS[role] }}>
-                      <span>{role === 'duelist' ? '⚔️' : role === 'initiator' ? '🎯' : role === 'controller' ? '🌌' : '🛡️'}</span>
-                      <span className="agents-role-name-premium">{role.toUpperCase()}S</span>
+            {/* Agent Selector Panel (Horizontal below canvas) */}
+            <div className="editor-agents-panel-premium">
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 1.5 }}>Añadir agentes como:</span>
+                <div className="pill-toggle-premium" style={{ padding: 3, borderRadius: 8 }}>
+                  <button className={`pill-btn-premium def ${activeTeam === "ally" ? "active" : ""}`} onClick={() => setActiveTeam("ally")} style={{ padding: "4px 12px", fontSize: 10, borderRadius: 6, textTransform: "uppercase", fontWeight: 800 }}>
+                    Aliados
+                  </button>
+                  <button className={`pill-btn-premium atk ${activeTeam === "enemy" ? "active" : ""}`} onClick={() => setActiveTeam("enemy")} style={{ padding: "4px 12px", fontSize: 10, borderRadius: 6, textTransform: "uppercase", fontWeight: 800 }}>
+                    Enemigos
+                  </button>
+                </div>
+              </div>
+              
+              <div className="agents-horizontal-premium" ref={agentsScrollRef} onWheel={handleAgentsWheel}>
+                {(['duelist', 'initiator', 'controller', 'sentinel'] as AgentRole[]).map(role => {
+                  const roleAgents = getAgentsByRole(role);
+                  if (roleAgents.length === 0) return null;
+                  return (
+                    <div key={role} className="agents-role-group-premium">
+                      <div className="agents-role-header-premium" style={{ color: ROLE_COLORS[role] }}>
+                        <span>{role === 'duelist' ? '⚔️' : role === 'initiator' ? '🎯' : role === 'controller' ? '🌌' : '🛡️'}</span>
+                        <span className="agents-role-name-premium">{role.toUpperCase()}S</span>
+                      </div>
+                      <div className="agents-row-premium">
+                        {roleAgents.map(a => (
+                          <button key={a.id} className="agent-btn-premium-horizontal" onClick={() => dropAgent(a)} draggable={true} onDragStart={(e) => handleAgentDragStart(e, a.id)}>
+                            <img src={a.displayIcon} alt={a.name} className="agent-icon-horizontal" style={{ border: `1.5px solid ${ROLE_COLORS[a.role] || '#fff'}` }} />
+                            <div className="agent-name-horizontal">{a.name.toUpperCase()}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="agents-row-premium">
-                      {roleAgents.map(a => (
-                        <button key={a.id} className="agent-btn-premium-horizontal" onClick={() => dropAgent(a)}>
-                          <img src={a.displayIcon} alt={a.name} className="agent-icon-horizontal" style={{ border: `1.5px solid ${ROLE_COLORS[a.role] || '#fff'}` }} />
-                          <div className="agent-name-horizontal">{a.name.toUpperCase()}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
           </div>
