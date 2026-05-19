@@ -2582,7 +2582,7 @@ input:checked+.slider:before {
   color: #ff4655;
   border: 1px solid rgba(255, 70, 85, 0.3);
   box-shadow: inset 0 0 8px rgba(255, 70, 85, 0.15);
-  transition: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0s;
 }
 .color-palette-premium {
   display: flex;
