@@ -42,6 +42,7 @@ export default function StrategiesPage() {
   const agentsRef = useRef<Array<{ id: string; x: number; y: number }>>([]);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
 
   // 1. Query Strategies
   const {
@@ -130,6 +131,7 @@ export default function StrategiesPage() {
       scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
     }
 
+    // 1. Draw Map Image on main canvas
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(angle);
@@ -140,37 +142,65 @@ export default function StrategiesPage() {
       ctx.drawImage(mapImg, -imgW / 2, -imgH / 2, imgW, imgH);
       ctx.globalAlpha = 1;
     }
+    ctx.restore();
 
-    for (const path of pathsRef.current) {
-      if (path.points.length < 2) continue;
-      ctx.beginPath();
-      ctx.strokeStyle = path.color;
-      ctx.lineWidth = (path.tool === "eraser" ? 20 : 3) / scale;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      if (path.tool === "eraser") ctx.globalCompositeOperation = "destination-out";
-      ctx.moveTo(path.points[0].x, path.points[0].y);
-      for (let i = 1; i < path.points.length; i++) ctx.lineTo(path.points[i].x, path.points[i].y);
-      ctx.stroke();
-      ctx.globalCompositeOperation = "source-over";
-      if (path.tool === "arrow" && path.points.length >= 2) {
-        const last = path.points[path.points.length - 1];
-        const prev = path.points[path.points.length - 2];
-        const arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x);
+    // 2. Draw Paths on an offscreen canvas to prevent eraser from erasing the map
+    const pathCanvas = document.createElement("canvas");
+    pathCanvas.width = canvas.width;
+    pathCanvas.height = canvas.height;
+    const pCtx = pathCanvas.getContext("2d");
+    if (pCtx) {
+      pCtx.translate(canvas.width / 2, canvas.height / 2);
+      pCtx.rotate(angle);
+      pCtx.scale(scale, scale);
+
+      for (const path of pathsRef.current) {
+        if (path.points.length < 2) continue;
+        pCtx.beginPath();
+        pCtx.strokeStyle = path.color;
+        pCtx.lineWidth = (path.tool === "eraser" ? 20 : 3) / scale;
+        pCtx.lineCap = "round";
+        pCtx.lineJoin = "round";
+        if (path.tool === "eraser") {
+          pCtx.globalCompositeOperation = "destination-out";
+        } else {
+          pCtx.globalCompositeOperation = "source-over";
+        }
+        pCtx.moveTo(path.points[0].x, path.points[0].y);
+        for (let i = 1; i < path.points.length; i++) {
+          pCtx.lineTo(path.points[i].x, path.points[i].y);
+        }
+        pCtx.stroke();
         
-        ctx.save();
-        ctx.translate(last.x, last.y);
-        ctx.rotate(arrowAngle);
-        ctx.scale(1 / scale, 1 / scale);
-        
-        ctx.beginPath(); ctx.fillStyle = path.color;
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-15, -6);
-        ctx.lineTo(-15, 6);
-        ctx.closePath(); ctx.fill();
-        ctx.restore();
+        pCtx.globalCompositeOperation = "source-over";
+        if (path.tool === "arrow" && path.points.length >= 2) {
+          const last = path.points[path.points.length - 1];
+          const prev = path.points[path.points.length - 2];
+          const arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x);
+          
+          pCtx.save();
+          pCtx.translate(last.x, last.y);
+          pCtx.rotate(arrowAngle);
+          pCtx.scale(1 / scale, 1 / scale);
+          
+          pCtx.beginPath(); pCtx.fillStyle = path.color;
+          pCtx.moveTo(0, 0);
+          pCtx.lineTo(-15, -6);
+          pCtx.lineTo(-15, 6);
+          pCtx.closePath(); pCtx.fill();
+          pCtx.restore();
+        }
       }
     }
+
+    // Draw the processed paths onto the main canvas
+    ctx.drawImage(pathCanvas, 0, 0);
+
+    // 3. Draw Agents on main canvas
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
 
     for (const a of agentsRef.current) {
       const img = agentImgsRef.current.get(a.id);
@@ -206,9 +236,25 @@ export default function StrategiesPage() {
       }
       ctx.restore();
     }
-
     ctx.restore();
-  }, [selectedMap, selectedSide]);
+
+    // 4. Draw Custom Eraser Circle cursor in screen space
+    if (tool === "eraser" && mousePosRef.current) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, 10, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }, [selectedMap, selectedSide, tool]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -312,6 +358,27 @@ export default function StrategiesPage() {
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => { 
     const pos = getPos(e);
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      let cx = 0;
+      let cy = 0;
+      if ("touches" in e) {
+        if (e.touches.length > 0) {
+          cx = e.touches[0].clientX;
+          cy = e.touches[0].clientY;
+        } else if ("changedTouches" in e && e.changedTouches.length > 0) {
+          cx = e.changedTouches[0].clientX;
+          cy = e.changedTouches[0].clientY;
+        }
+      } else {
+        cx = (e as React.MouseEvent).clientX;
+        cy = (e as React.MouseEvent).clientY;
+      }
+      mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
+    }
+
     if (tool === "select") {
       if (draggedAgentRef.current) {
         draggedAgentRef.current.x = pos.x;
@@ -320,7 +387,10 @@ export default function StrategiesPage() {
       }
       return;
     }
-    if (!drawingRef.current) return; 
+    if (!drawingRef.current) {
+      if (tool === "eraser") redraw();
+      return;
+    } 
     pathsRef.current[pathsRef.current.length - 1].points.push(pos); 
     redraw(); 
   };
@@ -546,8 +616,8 @@ export default function StrategiesPage() {
                 </div>
               </div>
               <div className="strategy-canvas-wrap glass-card" style={{ padding: 0, overflow: "hidden", border: "1px solid var(--border-color)" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : "crosshair", touchAction: "none" }}
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none" }}
+                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
               </div>
             </div>
