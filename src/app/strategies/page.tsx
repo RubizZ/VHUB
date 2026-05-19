@@ -127,41 +127,50 @@ export default function StrategiesPage() {
   const [customH, setCustomH] = useState(0);
   const [customS, setCustomS] = useState(100);
   const [customL, setCustomL] = useState(50);
+  const [customHSV, setCustomHSV] = useState({ s: 100, v: 100 });
+  const [isDraggingColor, setIsDraggingColor] = useState(false);
 
   useEffect(() => {
+    if (isDraggingColor) return;
+    let hVal = 0, sVal = 100, lVal = 50;
     if (color.startsWith("#")) {
       const { h, s, l } = hexToHSL(color);
-      setCustomH(h);
-      setCustomS(s);
-      setCustomL(l);
+      hVal = h;
+      sVal = s;
+      lVal = l;
     } else if (color.startsWith("hsl")) {
       const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
       if (match) {
-        setCustomH(parseInt(match[1]));
-        setCustomS(parseInt(match[2]));
-        setCustomL(parseInt(match[3]));
+        hVal = parseInt(match[1]);
+        sVal = parseInt(match[2]);
+        lVal = parseInt(match[3]);
       }
     }
+    setCustomH(hVal);
+    setCustomS(sVal);
+    setCustomL(lVal);
+    const hsv = hslToHSV(hVal, sVal, lVal);
+    setCustomHSV({ s: hsv.s, v: hsv.v });
   }, [color]);
 
   const handleStart2D = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDraggingColor(true);
     const rect = e.currentTarget.getBoundingClientRect();
     const updateColor = (clientX: number, clientY: number) => {
-      if (
-        clientX >= rect.left &&
-        clientX <= rect.right &&
-        clientY >= rect.top &&
-        clientY <= rect.bottom
-      ) {
-        const x = (clientX - rect.left) / rect.width;
-        const y = (clientY - rect.top) / rect.height;
-        const hsvS = x * 100;
-        const hsvV = (1 - y) * 100;
-        const hsl = hsvToHSL(customH, hsvS, hsvV);
-        setCustomS(hsl.s);
-        setCustomL(hsl.l);
-        setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
-      }
+      const boundedX = Math.max(rect.left, Math.min(rect.right, clientX));
+      const boundedY = Math.max(rect.top, Math.min(rect.bottom, clientY));
+
+      const x = (boundedX - rect.left) / rect.width;
+      const y = (boundedY - rect.top) / rect.height;
+      const hsvS = Math.round(x * 100);
+      const hsvV = Math.round((1 - y) * 100);
+
+      setCustomHSV({ s: hsvS, v: hsvV });
+
+      const hsl = hsvToHSL(customH, hsvS, hsvV);
+      setCustomS(hsl.s);
+      setCustomL(hsl.l);
+      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
     };
 
     updateColor(e.clientX, e.clientY);
@@ -171,6 +180,7 @@ export default function StrategiesPage() {
     };
 
     const handleMouseUp = () => {
+      setIsDraggingColor(false);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
@@ -180,23 +190,23 @@ export default function StrategiesPage() {
   };
 
   const handleTouchStart2D = (e: React.TouchEvent<HTMLDivElement>) => {
+    setIsDraggingColor(true);
     const rect = e.currentTarget.getBoundingClientRect();
     const updateColor = (clientX: number, clientY: number) => {
-      if (
-        clientX >= rect.left &&
-        clientX <= rect.right &&
-        clientY >= rect.top &&
-        clientY <= rect.bottom
-      ) {
-        const x = (clientX - rect.left) / rect.width;
-        const y = (clientY - rect.top) / rect.height;
-        const hsvS = x * 100;
-        const hsvV = (1 - y) * 100;
-        const hsl = hsvToHSL(customH, hsvS, hsvV);
-        setCustomS(hsl.s);
-        setCustomL(hsl.l);
-        setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
-      }
+      const boundedX = Math.max(rect.left, Math.min(rect.right, clientX));
+      const boundedY = Math.max(rect.top, Math.min(rect.bottom, clientY));
+
+      const x = (boundedX - rect.left) / rect.width;
+      const y = (boundedY - rect.top) / rect.height;
+      const hsvS = Math.round(x * 100);
+      const hsvV = Math.round((1 - y) * 100);
+
+      setCustomHSV({ s: hsvS, v: hsvV });
+
+      const hsl = hsvToHSL(customH, hsvS, hsvV);
+      setCustomS(hsl.s);
+      setCustomL(hsl.l);
+      setColor(`hsl(${customH}, ${hsl.s}%, ${hsl.l}%)`);
     };
 
     updateColor(e.touches[0].clientX, e.touches[0].clientY);
@@ -208,6 +218,7 @@ export default function StrategiesPage() {
     };
 
     const handleTouchEnd = () => {
+      setIsDraggingColor(false);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
@@ -1441,49 +1452,55 @@ export default function StrategiesPage() {
                     </div>
 
                     {/* 2D Picker Canvas (Saturation & Value) */}
-                    {(() => {
-                      const { s: hsvS, v: hsvV } = hslToHSV(customH, customS, customL);
-                      return (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
-                            <span>SATURACIÓN / LUMINOSIDAD</span>
-                          </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                        <span>SATURACIÓN / LUMINOSIDAD</span>
+                      </div>
+                      <div style={{ position: "relative", width: "100%", height: 110 }}>
+                        {/* Gradient Background Container */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            borderRadius: 8,
+                            backgroundColor: `hsl(${customH}, 100%, 50%)`,
+                            backgroundImage: "linear-gradient(to bottom, transparent, #000000), linear-gradient(to right, #ffffff, transparent)",
+                            overflow: "hidden",
+                            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.15)",
+                            pointerEvents: "none"
+                          }}
+                        />
+                        {/* Dragging Area & Target Selector */}
+                        <div
+                          onMouseDown={handleStart2D}
+                          onTouchStart={handleTouchStart2D}
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            cursor: "crosshair",
+                            userSelect: "none"
+                          }}
+                        >
+                          {/* Target selector circle */}
                           <div
-                            onMouseDown={handleStart2D}
-                            onTouchStart={handleTouchStart2D}
                             style={{
-                              width: "100%",
-                              height: 110,
-                              borderRadius: 8,
-                              backgroundColor: `hsl(${customH}, 100%, 50%)`,
-                              backgroundImage: "linear-gradient(to bottom, transparent, #000000), linear-gradient(to right, #ffffff, transparent)",
-                              position: "relative",
-                              overflow: "hidden",
-                              cursor: "crosshair",
-                              border: "1px solid rgba(255,255,255,0.15)",
-                              userSelect: "none"
+                              position: "absolute",
+                              left: `${customHSV.s}%`,
+                              top: `${100 - customHSV.v}%`,
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              background: "#ffffff",
+                              border: "2px solid #000000",
+                              boxShadow: "0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5)",
+                              transform: "translate(-50%, -50%)",
+                              cursor: isDraggingColor ? "crosshair" : "grab",
+                              pointerEvents: "auto"
                             }}
-                          >
-                            {/* Target selector circle */}
-                            <div
-                              style={{
-                                position: "absolute",
-                                left: `${hsvS}%`,
-                                top: `${100 - hsvV}%`,
-                                width: 12,
-                                height: 12,
-                                borderRadius: "50%",
-                                background: "#ffffff",
-                                border: "2px solid #000000",
-                                boxShadow: "0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5)",
-                                transform: "translate(-50%, -50%)",
-                                pointerEvents: "none"
-                              }}
-                            />
-                          </div>
+                          />
                         </div>
-                      );
-                    })()}
+                      </div>
+                    </div>
 
                     {/* Hue Slider */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

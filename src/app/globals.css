@@ -2565,7 +2565,7 @@ input:checked+.slider:before {
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: rgba(255, 255, 255, 0.65);
   cursor: pointer;
@@ -2580,9 +2580,9 @@ input:checked+.slider:before {
 .tool-btn-premium.active {
   background: rgba(255, 255, 255, 0.1);
   color: #ff4655;
-  border: 1px solid rgba(255, 70, 85, 0.3);
+  border-color: rgba(255, 70, 85, 0.3);
   box-shadow: inset 0 0 8px rgba(255, 70, 85, 0.15);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0s;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0s;
 }
 .color-palette-premium {
   display: flex;
