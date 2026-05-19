@@ -21,6 +21,40 @@ type View = "maps" | "strategies" | "editor";
 
 const competitiveMaps = getCompetitiveMaps();
 
+function hexToHSL(hex: string): { h: number; s: number; l: number } {
+  hex = hex.replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  let r = parseInt(hex.substring(0, 2), 16) / 255;
+  let g = parseInt(hex.substring(2, 4), 16) / 255;
+  let b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  if (isNaN(r) || isNaN(g) || isNaN(b)) {
+    return { h: 0, s: 100, l: 50 };
+  }
+
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100)
+  };
+}
+
 export default function StrategiesPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -58,6 +92,26 @@ export default function StrategiesPage() {
   const redoPathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [customH, setCustomH] = useState(0);
+  const [customS, setCustomS] = useState(100);
+  const [customL, setCustomL] = useState(50);
+
+  useEffect(() => {
+    if (color.startsWith("#")) {
+      const { h, s, l } = hexToHSL(color);
+      setCustomH(h);
+      setCustomS(s);
+      setCustomL(l);
+    } else if (color.startsWith("hsl")) {
+      const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+      if (match) {
+        setCustomH(parseInt(match[1]));
+        setCustomS(parseInt(match[2]));
+        setCustomL(parseInt(match[3]));
+      }
+    }
+  }, [color]);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
@@ -1014,7 +1068,7 @@ export default function StrategiesPage() {
             <div className="editor-workspace-row-premium">
 
               {/* Vertical Toolbar Panel */}
-              <div className="editor-toolbar-panel-premium">
+              <div className="editor-toolbar-panel-premium" style={{ position: "relative" }}>
                 {/* Drawing tools group */}
                 <div className="tool-group-premium-vertical">
                   {([
@@ -1062,13 +1116,13 @@ export default function StrategiesPage() {
                     {/* Color Palette orbs */}
                     <div className="color-palette-premium-vertical">
                       {colors2.map(c => (
-                        <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => setColor(c)}>
+                        <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => { setColor(c); setShowColorPicker(false); }}>
                           {color === c && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff" }} />}
                         </button>
                       ))}
 
                       {/* Custom Spectrum Picker Orb */}
-                      <div
+                      <button
                         style={{
                           position: "relative",
                           width: 18,
@@ -1079,8 +1133,12 @@ export default function StrategiesPage() {
                           justifyContent: "center",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
+                          border: "none",
+                          padding: 0
                         }}
+                        onClick={() => setShowColorPicker(!showColorPicker)}
                         title="Color personalizado"
+                        type="button"
                       >
                         <div
                           className={`color-orb-premium ${!colors2.includes(color) ? "active" : ""}`}
@@ -1108,21 +1166,7 @@ export default function StrategiesPage() {
                             />
                           )}
                         </div>
-                        <input
-                          type="color"
-                          value={color}
-                          onChange={(e) => setColor(e.target.value)}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            opacity: 0,
-                            cursor: "pointer"
-                          }}
-                        />
-                      </div>
+                      </button>
                     </div>
                   </>
                 )}
@@ -1237,6 +1281,150 @@ export default function StrategiesPage() {
                     <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>REHACER</span>
                   </button>
                 </div>
+
+                {/* Custom Color Picker Panel (Styled to match the app) */}
+                {showColorPicker && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 56,
+                      top: 70,
+                      width: 220,
+                      background: "rgba(10, 14, 20, 0.96)",
+                      backdropFilter: "blur(16px)",
+                      border: "1.5px solid rgba(255, 70, 85, 0.4)",
+                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 70, 85, 0.15)",
+                      borderRadius: 12,
+                      padding: 16,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      zIndex: 100,
+                      pointerEvents: "auto",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1 }}>Color de trazo</span>
+                      <button
+                        style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, padding: 0 }}
+                        onClick={() => setShowColorPicker(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Color Preview Block */}
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: color,
+                          border: "1px solid rgba(255,255,255,0.2)",
+                          boxShadow: `0 0 10px ${color}33`,
+                          flexShrink: 0
+                        }}
+                      />
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>Valor actual</span>
+                        <span style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(255,255,255,0.5)" }}>{color}</span>
+                      </div>
+                    </div>
+
+                    {/* Hue Slider */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                        <span>TONO</span>
+                        <span>{customH}°</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={customH}
+                        onChange={(e) => {
+                          const h = parseInt(e.target.value);
+                          setCustomH(h);
+                          setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
+                        }}
+                        className="premium-slider"
+                        style={{
+                          width: "100%",
+                          background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)"
+                        }}
+                      />
+                    </div>
+
+                    {/* Saturation Slider */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                        <span>SATURACIÓN</span>
+                        <span>{customS}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={customS}
+                        onChange={(e) => {
+                          const s = parseInt(e.target.value);
+                          setCustomS(s);
+                          setColor(`hsl(${customH}, ${s}%, ${customL}%)`);
+                        }}
+                        className="premium-slider"
+                        style={{
+                          width: "100%",
+                          background: `linear-gradient(to right, hsl(${customH}, 0%, ${customL}%), hsl(${customH}, 100%, ${customL}%))`
+                        }}
+                      />
+                    </div>
+
+                    {/* Lightness Slider */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                        <span>LUMINOSIDAD</span>
+                        <span>{customL}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={customL}
+                        onChange={(e) => {
+                          const l = parseInt(e.target.value);
+                          setCustomL(l);
+                          setColor(`hsl(${customH}, ${customS}%, ${l}%)`);
+                        }}
+                        className="premium-slider"
+                        style={{
+                          width: "100%",
+                          background: `linear-gradient(to right, #000000, hsl(${customH}, ${customS}%, 50%), #ffffff)`
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setShowColorPicker(false)}
+                      style={{
+                        marginTop: 4,
+                        background: "rgba(255, 70, 85, 0.15)",
+                        border: "1px solid rgba(255, 70, 85, 0.4)",
+                        color: "#ffffff",
+                        borderRadius: 6,
+                        padding: "6px 0",
+                        fontSize: 10,
+                        fontWeight: 900,
+                        letterSpacing: 1,
+                        cursor: "pointer",
+                        textTransform: "uppercase",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      ACEPTAR
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Canvas Wrap */}
