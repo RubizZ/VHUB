@@ -969,7 +969,7 @@ export default function StrategiesPage() {
     createStratMutation.mutate();
   };
 
-  const colors2 = ["#FF4655", "#3B82F6", "#22C55E", "#EAB308", "#FFFFFF"];
+  const colors2 = ["#FF4655", "#3B82F6", "#22C55E", "#EAB308", "#F97316", "#A855F7", "#EC4899", "#FFFFFF"];
 
   return (
     <div className={`strategies-container-premium ${view === "editor" ? "in-editor" : ""}`}>
@@ -1254,7 +1254,7 @@ export default function StrategiesPage() {
                             borderRadius: 9,
                             background: "conic-gradient(from 90deg, red, yellow, lime, aqua, blue, magenta, red)",
                             boxShadow: !colors2.includes(color) ? `0 0 8px ${color}` : "none",
-                            border: !colors2.includes(color) ? "1.5px solid #ffffff" : "none",
+                            border: !colors2.includes(color) ? `1.5px solid ${color}` : "none",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center"
