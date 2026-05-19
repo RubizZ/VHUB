@@ -2795,3 +2795,80 @@ input:checked+.slider:before {
   width: 100%;
   text-align: center;
 }
+
+/* ── Vertical Toolbar Layout ── */
+.editor-workspace-row-premium {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 16px;
+  width: 100%;
+}
+.toolbar-premium-vertical {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 68px;
+  flex-shrink: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+.pill-toggle-premium-vertical {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.tool-group-premium-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.color-palette-premium-vertical {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  justify-items: center;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .editor-workspace-row-premium {
+    flex-direction: column;
+  }
+  .toolbar-premium-vertical {
+    flex-direction: row;
+    width: 100%;
+    height: auto;
+    padding: 10px 16px;
+  }
+  .pill-toggle-premium-vertical {
+    flex-direction: row;
+    width: auto;
+  }
+  .tool-group-premium-vertical {
+    flex-direction: row;
+    width: auto;
+  }
+  .color-palette-premium-vertical {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+  }
+}

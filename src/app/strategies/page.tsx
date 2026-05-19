@@ -380,6 +380,26 @@ export default function StrategiesPage() {
         cy = (e as React.MouseEvent).clientY;
       }
       mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
+
+      if (tool === "select") {
+        if (draggedAgentRef.current) {
+          canvas.style.cursor = "grabbing";
+        } else {
+          const mapImg = mapImgRef.current;
+          let scale = 1;
+          if (mapImg && mapImg.complete) {
+            const rotatedW = mapImg.height;
+            const rotatedH = mapImg.width;
+            scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+          }
+          const isOverAgent = agentsRef.current.some(a => {
+            const dx = a.x - pos.x;
+            const dy = a.y - pos.y;
+            return Math.sqrt(dx * dx + dy * dy) <= (18 / scale);
+          });
+          canvas.style.cursor = isOverAgent ? "pointer" : "default";
+        }
+      }
     }
 
     if (tool === "select") {
@@ -401,6 +421,10 @@ export default function StrategiesPage() {
   const stopDraw = () => { 
     drawingRef.current = false; 
     draggedAgentRef.current = null;
+    const canvas = canvasRef.current;
+    if (canvas && tool === "select") {
+      canvas.style.cursor = "default";
+    }
   };
 
   const dropAgent = (a: ValorantAgent) => {
@@ -599,90 +623,98 @@ export default function StrategiesPage() {
         {view === "editor" && current && (
           <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0, gap: 16 }}>
             
-            <div className="toolbar-premium" style={{ flexShrink: 0 }}>
-              {/* Pill side selector */}
-              <div className="pill-toggle-premium">
-                <button className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`} onClick={() => setSelectedSide("attack")}>
-                  <span>⚔️</span> Atacante
-                </button>
-                <button className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`} onClick={() => setSelectedSide("defense")}>
-                  <span>🛡️</span> Defensor
-                </button>
-              </div>
-
-              <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.08)" }} />
-
-              {/* Drawing tools group */}
-              <div className="tool-group-premium">
-                {([
-                  ["select", (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m4 4 7.07 16.93 3.03-7.07 7.07-3.03L4 4z" />
-                      <path d="m13 13 6 6" />
-                    </svg>
-                  ), "Seleccionar"],
-                  ["draw", (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
-                  ), "Lápiz"],
-                  ["arrow", (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  ), "Vector/Flecha"],
-                  ["eraser", (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                      <path d="M22 21H7" />
-                      <path d="m5 11 9 9" />
-                    </svg>
-                  ), "Borrar"]
-                ] as [Tool, React.ReactNode, string][]).map(([t, icon, label]) => (
-                  <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => setTool(t)} title={label}>
-                    {icon}
+            {/* Editor Workspace Row: Left is Vertical Toolbar, Right is Canvas */}
+            <div className="editor-workspace-row-premium">
+              
+              {/* Vertical Toolbar */}
+              <div className="toolbar-premium-vertical">
+                {/* Pill side selector */}
+                <div className="pill-toggle-premium-vertical">
+                  <button className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`} onClick={() => setSelectedSide("attack")} title="Atacante" style={{ padding: '8px 0', width: '100%', justifyContent: 'center' }}>
+                    <span>⚔️</span>
                   </button>
-                ))}
-              </div>
-
-              <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.08)" }} />
-
-              {/* Color Palette orbs */}
-              <div className="color-palette-premium">
-                {colors2.map(c => (
-                  <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c } as React.CSSProperties} onClick={() => setColor(c)}>
-                    {color === c && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
+                  <button className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`} onClick={() => setSelectedSide("defense")} title="Defensor" style={{ padding: '8px 0', width: '100%', justifyContent: 'center' }}>
+                    <span>🛡️</span>
                   </button>
-                ))}
+                </div>
+
+                <div style={{ width: 28, height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+
+                {/* Drawing tools group */}
+                <div className="tool-group-premium-vertical">
+                  {([
+                    ["select", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m4 4 7.07 16.93 3.03-7.07 7.07-3.03L4 4z" />
+                        <path d="m13 13 6 6" />
+                      </svg>
+                    ), "Seleccionar"],
+                    ["draw", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                      </svg>
+                    ), "Lápiz"],
+                    ["arrow", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    ), "Vector/Flecha"],
+                    ["eraser", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                        <path d="M22 21H7" />
+                        <path d="m5 11 9 9" />
+                      </svg>
+                    ), "Borrar"]
+                  ] as [Tool, React.ReactNode, string][]).map(([t, icon, label]) => (
+                    <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => setTool(t)} title={label} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ width: 28, height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+
+                {/* Color Palette orbs */}
+                <div className="color-palette-premium-vertical">
+                  {colors2.map(c => (
+                    <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => setColor(c)}>
+                      {color === c && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff" }} />}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ flexGrow: 1 }} />
+
+                {/* Actions group */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+                  <button className="btn btn-ghost btn-sm" style={{ borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", width: "100%", padding: "6px 0", height: "auto" }} onClick={() => { pathsRef.current.pop(); redraw(); }} title="Deshacer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7v6h6" />
+                      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                    </svg>
+                    <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>ATRÁS</span>
+                  </button>
+                  <button className="btn btn-primary btn-sm" style={{ borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", width: "100%", padding: "8px 0", height: "auto" }} onClick={saveStrategy} disabled={saveStrategyMutation.isPending} title="Guardar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                    <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 800 }}>{saveStrategyMutation.isPending ? "OK..." : "GUARDAR"}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Right controls */}
-              <div style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
-                <button className="btn btn-ghost btn-sm" style={{ borderRadius: 10, display: "flex", alignItems: "center" }} onClick={() => { pathsRef.current.pop(); redraw(); }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-                    <path d="M3 7v6h6" />
-                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-                  </svg>
-                  Deshacer
-                </button>
-                <button className="btn btn-primary btn-sm" style={{ borderRadius: 10, display: "flex", alignItems: "center", padding: "8px 16px" }} onClick={saveStrategy} disabled={saveStrategyMutation.isPending}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                  </svg>
-                  {saveStrategyMutation.isPending ? "Guardando..." : "Guardar"}
-                </button>
+              {/* Canvas Wrap */}
+              <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
+                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
+                  onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
               </div>
-            </div>
 
-            {/* Canvas Wrap */}
-            <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-              <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
-                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
-                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
             </div>
 
             {/* Agent Selector (Horizontal below canvas) */}
