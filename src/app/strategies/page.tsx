@@ -341,23 +341,8 @@ export default function StrategiesPage() {
       const y = mousePosRef.current.canvasY;
       
       ctx.save();
-      // Draw crosshair shadow/outline for contrast
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y);
-      ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5);
-      ctx.stroke();
       
-      // Draw main crosshair line (white)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y);
-      ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5);
-      ctx.stroke();
-      
-      // Draw the tool icon
+      // Draw the tool icon as a complement to the native crosshair
       if (tool === "draw") {
         // Pencil icon
         ctx.save();
@@ -371,16 +356,16 @@ export default function StrategiesPage() {
         ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(x + 4, y + 4);
-        ctx.lineTo(x + 12, y + 12);
+        ctx.moveTo(x + 8, y + 8);
+        ctx.lineTo(x + 15, y + 15);
         ctx.stroke();
 
         // Pencil tip (red)
         ctx.strokeStyle = "var(--val-red)";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(x + 3, y + 3);
-        ctx.lineTo(x + 4, y + 4);
+        ctx.moveTo(x + 7, y + 7);
+        ctx.lineTo(x + 8, y + 8);
         ctx.stroke();
         ctx.restore();
       } else {
@@ -396,16 +381,16 @@ export default function StrategiesPage() {
         ctx.lineWidth = 1.5;
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(x + 4, y + 4);
-        ctx.lineTo(x + 12, y + 12);
+        ctx.moveTo(x + 8, y + 8);
+        ctx.lineTo(x + 15, y + 15);
         ctx.stroke();
 
         // Arrowhead wings
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.moveTo(x + 2, y + 2);
-        ctx.lineTo(x + 7, y + 2);
-        ctx.lineTo(x + 2, y + 7);
+        ctx.moveTo(x + 6, y + 6);
+        ctx.lineTo(x + 11, y + 6);
+        ctx.lineTo(x + 6, y + 11);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
@@ -675,8 +660,10 @@ export default function StrategiesPage() {
         }
       } else if (tool === "pan") {
         canvas.style.cursor = panningRef.current ? "grabbing" : "grab";
-      } else if (tool === "eraser" || tool === "draw" || tool === "arrow") {
+      } else if (tool === "eraser") {
         canvas.style.cursor = "none";
+      } else if (tool === "draw" || tool === "arrow") {
+        canvas.style.cursor = "crosshair";
       } else {
         canvas.style.cursor = "default";
       }
@@ -1183,7 +1170,7 @@ export default function StrategiesPage() {
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : (tool === "eraser" || tool === "draw" || tool === "arrow") ? "none" : "crosshair"), touchAction: "none", width: "100%", height: "100%" }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: (tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair"), touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
