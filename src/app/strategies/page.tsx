@@ -45,8 +45,8 @@ export default function StrategiesPage() {
   const [configDescription, setConfigDescription] = useState("");
 
   // Brush Size States
-  const [pencilSize, setPencilSize] = useState<number>(3);
-  const [arrowSize, setArrowSize] = useState<number>(3);
+  const [pencilSize, setPencilSize] = useState<number>(5);
+  const [arrowSize, setArrowSize] = useState<number>(5);
   const [eraserSize, setEraserSize] = useState<number>(20);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -220,7 +220,7 @@ export default function StrategiesPage() {
         if (path.points.length < 2) continue;
         pCtx.beginPath();
         pCtx.strokeStyle = path.color;
-        pCtx.lineWidth = (path.thickness !== undefined ? path.thickness : (path.tool === "eraser" ? 20 : 3)) / scale;
+        pCtx.lineWidth = (path.thickness !== undefined ? path.thickness : (path.tool === "eraser" ? 20 : 5)) / scale;
         pCtx.lineCap = "round";
         pCtx.lineJoin = "round";
         if (path.tool === "eraser") {
@@ -259,7 +259,7 @@ export default function StrategiesPage() {
           pCtx.rotate(arrowAngle);
           pCtx.scale(1 / scale, 1 / scale);
           
-          const arrowScale = (path.thickness !== undefined ? path.thickness : 3) / 3;
+          const arrowScale = (path.thickness !== undefined ? path.thickness : 5) / 5;
           pCtx.beginPath(); pCtx.fillStyle = path.color;
           pCtx.moveTo(0, -6 * arrowScale);
           pCtx.lineTo(15 * arrowScale, 0);
@@ -319,21 +319,22 @@ export default function StrategiesPage() {
 
     // 4. Draw Custom Eraser Circle cursor in screen space
     if (tool === "eraser" && mousePosRef.current) {
+      const r = (eraserSize / 2) * zoom;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, 10, 0, Math.PI * 2);
+      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, r, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
       
       ctx.beginPath();
-      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, 9, 0, Math.PI * 2);
+      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, Math.max(1, r - 1), 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.restore();
     }
-  }, [selectedMap, selectedSide, tool, agents, zoom, pan]);
+  }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -548,7 +549,7 @@ export default function StrategiesPage() {
       }
     }
     drawingRef.current = true; 
-    const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 3;
+    const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
     pathsRef.current.push({ tool, color, points: [pos], thickness: activeSize }); 
   };
 
@@ -1027,29 +1028,58 @@ export default function StrategiesPage() {
                   ))}
                 </div>
 
-                {/* Brush Size Slider */}
+                {/* Brush Size Selector */}
                 {(tool === "draw" || tool === "arrow" || tool === "eraser") && (
                   <>
                     <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 0 4px 0" }} />
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 4 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 6 }}>
                       <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Grosor</span>
-                      <input
-                        type="range"
-                        min={tool === "eraser" ? 5 : 1}
-                        max={tool === "eraser" ? 100 : 20}
-                        value={tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize}
-                        onChange={(e) => {
-                          const size = parseInt(e.target.value);
-                          if (tool === "draw") setPencilSize(size);
-                          else if (tool === "arrow") setArrowSize(size);
-                          else if (tool === "eraser") setEraserSize(size);
-                        }}
-                        style={{ width: "80%", cursor: "pointer" }}
-                        className="premium-slider"
-                      />
-                      <span style={{ fontSize: 9, fontWeight: 800, color: "var(--val-red)", marginTop: 2 }}>
-                        {tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize}px
-                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+                        {(tool === "eraser" ? [10, 20, 45, 80] : [2, 5, 10, 18]).map(size => {
+                          const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize;
+                          const isActive = activeSize === size;
+                          
+                          // Visual representation of the dot size scaled down
+                          const dotSize = Math.max(4, Math.min(16, tool === "eraser" ? size / 4 : size * 0.9));
+                          
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => {
+                                if (tool === "draw") setPencilSize(size);
+                                else if (tool === "arrow") setArrowSize(size);
+                                else if (tool === "eraser") setEraserSize(size);
+                              }}
+                              className={`size-selector-btn-premium ${isActive ? "active" : ""}`}
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                border: isActive ? "1px solid var(--val-red)" : "1px solid rgba(255,255,255,0.06)",
+                                background: isActive ? "rgba(255, 70, 85, 0.15)" : "rgba(255,255,255,0.02)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                outline: "none",
+                              }}
+                              title={`${size}px`}
+                            >
+                              <div
+                                style={{
+                                  width: dotSize,
+                                  height: dotSize,
+                                  borderRadius: "50%",
+                                  background: isActive ? "var(--val-red)" : "rgba(255,255,255,0.6)",
+                                  transition: "all 0.2s ease",
+                                }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </>
                 )}
