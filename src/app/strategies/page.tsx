@@ -216,21 +216,19 @@ export default function StrategiesPage() {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = Math.max(500, canvas.parentElement.clientWidth * 0.6);
     ctxRef.current = canvas.getContext("2d");
-    redraw();
-  }, [redraw]);
+  }, []);
 
   useEffect(() => {
     if (view !== "editor") return;
     initCanvas();
-    window.addEventListener("resize", initCanvas);
-    return () => window.removeEventListener("resize", initCanvas);
-  }, [initCanvas, view]);
-
-  useEffect(() => {
-    if (view === "editor") {
+    redraw();
+    const handleResize = () => {
+      initCanvas();
       redraw();
-    }
-  }, [selectedSide, redraw, view]);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [view, initCanvas, redraw]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -375,7 +373,6 @@ export default function StrategiesPage() {
       agentsRef.current = []; 
     }
     setView("editor");
-    setTimeout(() => { initCanvas(); redraw(); }, 150);
   };
 
   // 2. Save Strategy Canvas Mutation
