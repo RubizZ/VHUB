@@ -597,7 +597,7 @@ export default function StrategiesPage() {
         )}
 
         {view === "editor" && current && (
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0, gap: 16 }}>
             
             <div className="toolbar-premium" style={{ flexShrink: 0 }}>
               {/* Pill side selector */}

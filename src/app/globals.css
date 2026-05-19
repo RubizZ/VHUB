@@ -201,6 +201,7 @@ body::before {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  max-width: calc(100% - var(--sidebar-width));
 }
 
 .page-header {
@@ -1212,6 +1213,7 @@ select option {
   .main-content {
     margin-left: 0;
     padding-bottom: var(--bottom-nav-height);
+    max-width: 100%;
   }
 
   .page-header {
@@ -1718,6 +1720,7 @@ input:checked+.slider:before {
     margin-left: 0;
     padding-bottom: var(--bottom-nav-height);
     width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
   }
 
@@ -2718,6 +2721,8 @@ input:checked+.slider:before {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
