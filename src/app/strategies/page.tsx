@@ -13,7 +13,7 @@ interface Strategy {
   name: string; 
   side: string; 
   description: string; 
-  canvas_data: string; 
+  canvas_data: unknown; 
 }
 
 type Tool = "select" | "draw" | "arrow" | "eraser";
@@ -37,6 +37,7 @@ export default function StrategiesPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
+  const draggedAgentRef = useRef<{ id: string; x: number; y: number } | null>(null);
   const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[] }>>([]);
   const agentsRef = useRef<Array<{ id: string; x: number; y: number }>>([]);
   const mapImgRef = useRef<HTMLImageElement | null>(null);
@@ -202,19 +203,54 @@ export default function StrategiesPage() {
   };
 
   const startDraw = (e: React.MouseEvent | React.TouchEvent) => { 
-    if (tool === "select") return; 
+    const pos = getPos(e);
+    if (tool === "select") {
+      // Find if we clicked close to an agent (within 18px radius)
+      const found = [...agentsRef.current].reverse().find(a => {
+        const dx = a.x - pos.x;
+        const dy = a.y - pos.y;
+        return Math.sqrt(dx * dx + dy * dy) <= 18;
+      });
+      if (found) {
+        draggedAgentRef.current = found;
+      }
+      return;
+    }
+    if (tool === "eraser") {
+      // Check if we click close to an agent (within 18px radius) and remove it
+      const agentIndex = agentsRef.current.findIndex(a => {
+        const dx = a.x - pos.x;
+        const dy = a.y - pos.y;
+        return Math.sqrt(dx * dx + dy * dy) <= 18;
+      });
+      if (agentIndex !== -1) {
+        agentsRef.current.splice(agentIndex, 1);
+        redraw();
+        return;
+      }
+    }
     drawingRef.current = true; 
-    pathsRef.current.push({ tool, color, points: [getPos(e)] }); 
+    pathsRef.current.push({ tool, color, points: [pos] }); 
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => { 
-    if (!drawingRef.current || tool === "select") return; 
-    pathsRef.current[pathsRef.current.length - 1].points.push(getPos(e)); 
+    const pos = getPos(e);
+    if (tool === "select") {
+      if (draggedAgentRef.current) {
+        draggedAgentRef.current.x = pos.x;
+        draggedAgentRef.current.y = pos.y;
+        redraw();
+      }
+      return;
+    }
+    if (!drawingRef.current) return; 
+    pathsRef.current[pathsRef.current.length - 1].points.push(pos); 
     redraw(); 
   };
 
   const stopDraw = () => { 
     drawingRef.current = false; 
+    draggedAgentRef.current = null;
   };
 
   const dropAgent = (a: ValorantAgent) => {
@@ -234,9 +270,27 @@ export default function StrategiesPage() {
     setCurrent(s);
     setSelectedSide(s.side as "attack" | "defense");
     try { 
-      const d = JSON.parse(s.canvas_data || "{}"); 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any; 
       pathsRef.current = d.paths || []; 
       agentsRef.current = d.agents || []; 
+      
+      // Pre-load agent images
+      for (const a of agentsRef.current) {
+        if (!agentImgsRef.current.has(a.id)) {
+          const agent = findAgentById(a.id);
+          if (agent) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = agent.displayIcon;
+            img.onload = () => {
+              agentImgsRef.current.set(a.id, img);
+              redraw();
+            };
+            agentImgsRef.current.set(a.id, img);
+          }
+        }
+      }
     } catch { 
       pathsRef.current = []; 
       agentsRef.current = []; 
