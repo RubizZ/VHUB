@@ -252,3 +252,14 @@ model Agent {
   roleIcon         String
   bgColors         String[] // Array of colors for the gradient
 }
+
+model StrategyPresence {
+  id          String   @id @default(cuid(2))
+  strategyId  Int
+  userId      String
+  userName    String
+  userColor   String   @default("#FF4655")
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([strategyId, userId])
+}

@@ -2,10 +2,12 @@
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { type ValorantMap } from "@/lib/maps";
 import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface Strategy {
   id: number;
@@ -14,6 +16,23 @@ interface Strategy {
   side: string;
   description: string;
   canvas_data: unknown;
+  updated_at?: string;
+}
+
+interface CollabUser {
+  userId: string;
+  userName: string;
+  userColor: string;
+}
+
+interface RemoteCursor {
+  userId: string;
+  userName: string;
+  userColor: string;
+  x: number;
+  y: number;
+  canvasX: number;
+  canvasY: number;
 }
 
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
@@ -89,6 +108,7 @@ function hsvToHSL(h: number, s: number, v: number): { h: number; s: number; l: n
 export default function StrategiesPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   const [view, setView] = useState<View>("maps");
   const [selectedMap, setSelectedMap] = useState<(ValorantMap & { activeInRotation?: boolean }) | null>(null);
@@ -129,6 +149,17 @@ export default function StrategiesPage() {
   const [customL, setCustomL] = useState(50);
   const [customHSV, setCustomHSV] = useState({ s: 100, v: 100 });
   const [isDraggingColor, setIsDraggingColor] = useState(false);
+
+  // ── Collaboration State ──
+  const [collabUsers, setCollabUsers] = useState<CollabUser[]>([]);
+  const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastSavedAtRef = useRef<string | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myUserId = session?.user?.id || "";
+  const myUserName = session?.user?.name || "Anónimo";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myPlayerColor = (session?.user as any)?.avatarColor || "#FF4655";
 
   useEffect(() => {
     if (isDraggingColor) return;
@@ -523,11 +554,66 @@ export default function StrategiesPage() {
       ctx.stroke();
       ctx.restore();
     }
-  }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize]);
+
+    // 5. Draw Remote Cursors (collaboration) in screen space
+    for (const [, cursor] of remoteCursors) {
+      ctx.save();
+      // Draw cursor arrow
+      ctx.translate(cursor.canvasX, cursor.canvasY);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 14);
+      ctx.lineTo(4, 11);
+      ctx.lineTo(8, 18);
+      ctx.lineTo(11, 16);
+      ctx.lineTo(7, 10);
+      ctx.lineTo(12, 10);
+      ctx.closePath();
+      ctx.fillStyle = cursor.userColor;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Draw name label
+      const label = cursor.userName;
+      ctx.font = "bold 10px Outfit, sans-serif";
+      const textWidth = ctx.measureText(label).width;
+      const labelX = 14;
+      const labelY = 16;
+      ctx.fillStyle = cursor.userColor;
+      ctx.beginPath();
+      ctx.roundRect(labelX - 4, labelY - 9, textWidth + 8, 14, 3);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(label, labelX, labelY + 2);
+      ctx.restore();
+    }
+  }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize, remoteCursors]);
 
   const updateUndoRedo = useCallback(() => {
     setCanUndo(pathsRef.current.length > 0);
     setCanRedo(redoPathsRef.current.length > 0);
+  }, []);
+
+  // ── Collaboration: Broadcast canvas update ──
+  const broadcastCanvasUpdate = useCallback(() => {
+    if (!current || !isSupabaseConfigured || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "canvas-update",
+      payload: {
+        paths: pathsRef.current,
+        agents: agentsRef.current,
+        userId: myUserId
+      }
+    });
+  }, [current, myUserId]);
+
+  // ── Collaboration: Auto-save with debounce (forward-declared ref for saveStrategyMutation) ──
+  const scheduleAutoSaveRef = useRef<() => void>(() => {});
+  const scheduleAutoSave = useCallback(() => {
+    scheduleAutoSaveRef.current();
   }, []);
 
   const undo = useCallback(() => {
@@ -538,8 +624,10 @@ export default function StrategiesPage() {
       }
       redraw();
       updateUndoRedo();
+      broadcastCanvasUpdate();
+      scheduleAutoSave();
     }
-  }, [redraw, updateUndoRedo]);
+  }, [redraw, updateUndoRedo, broadcastCanvasUpdate, scheduleAutoSave]);
 
   const redo = useCallback(() => {
     if (redoPathsRef.current.length > 0) {
@@ -549,8 +637,10 @@ export default function StrategiesPage() {
       }
       redraw();
       updateUndoRedo();
+      broadcastCanvasUpdate();
+      scheduleAutoSave();
     }
-  }, [redraw, updateUndoRedo]);
+  }, [redraw, updateUndoRedo, broadcastCanvasUpdate, scheduleAutoSave]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -765,6 +855,8 @@ export default function StrategiesPage() {
       if (agentIndex !== -1) {
         agentsRef.current.splice(agentIndex, 1);
         redraw();
+        broadcastCanvasUpdate();
+        scheduleAutoSave();
         return;
       }
     }
@@ -801,6 +893,23 @@ export default function StrategiesPage() {
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
       mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
+
+      // ── Collaboration: Broadcast cursor position ──
+      if (isSupabaseConfigured && channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "cursor-move",
+          payload: {
+            userId: myUserId,
+            userName: myUserName,
+            userColor: myPlayerColor,
+            x: pos.x,
+            y: pos.y,
+            canvasX: cx - rect.left,
+            canvasY: cy - rect.top
+          }
+        });
+      }
 
       if (tool === "select") {
         if (draggedAgentRef.current) {
@@ -846,11 +955,18 @@ export default function StrategiesPage() {
       }
       return;
     }
+    const wasDrawing = drawingRef.current;
+    const wasDragging = !!draggedAgentRef.current;
     drawingRef.current = false;
     draggedAgentRef.current = null;
     const canvas = canvasRef.current;
     if (canvas && tool === "select") {
       canvas.style.cursor = "default";
+    }
+    // Broadcast canvas update after drawing/dragging finishes
+    if (wasDrawing || wasDragging) {
+      broadcastCanvasUpdate();
+      scheduleAutoSave();
     }
   };
 
@@ -865,6 +981,8 @@ export default function StrategiesPage() {
     }
     agentsRef.current.push({ id: a.id, x: -50 + Math.random() * 100, y: -50 + Math.random() * 100, team: activeTeam });
     redraw();
+    broadcastCanvasUpdate();
+    scheduleAutoSave();
   };
 
   const handleAgentDragStart = (e: React.DragEvent, agentId: string) => {
@@ -897,6 +1015,8 @@ export default function StrategiesPage() {
       }
       agentsRef.current.push({ id: agent.id, x: pos.x, y: pos.y, team: activeTeam });
       redraw();
+      broadcastCanvasUpdate();
+      scheduleAutoSave();
     }
   };
 
@@ -939,6 +1059,7 @@ export default function StrategiesPage() {
     }
     redoPathsRef.current = [];
     updateUndoRedo();
+    lastSavedAtRef.current = new Date().toISOString();
     setView("editor");
   };
 
@@ -958,7 +1079,9 @@ export default function StrategiesPage() {
         })
       });
       if (!res.ok) throw new Error("Error saving strategy canvas");
-      return res.json();
+      const data = await res.json();
+      lastSavedAtRef.current = new Date().toISOString();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
@@ -968,6 +1091,157 @@ export default function StrategiesPage() {
   const saveStrategy = () => {
     saveStrategyMutation.mutate();
   };
+
+  // ── Collaboration: Wire up auto-save ref ──
+  useEffect(() => {
+    scheduleAutoSaveRef.current = () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        if (current) saveStrategyMutation.mutate();
+      }, 2000);
+    };
+  }, [current, saveStrategyMutation]);
+
+  // ── Collaboration: Main real-time useEffect ──
+  useEffect(() => {
+    if (view !== "editor" || !current || !myUserId) return;
+
+    const strategyId = current.id;
+
+    // ── Supabase Realtime Mode ──
+    if (isSupabaseConfigured) {
+      const channel = supabase.channel(`strategy:${strategyId}`, {
+        config: { presence: { key: myUserId } }
+      });
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          const state = channel.presenceState();
+          const users: CollabUser[] = [];
+          for (const key of Object.keys(state)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const presences = state[key] as any[];
+            if (presences.length > 0) {
+              users.push({
+                userId: key,
+                userName: presences[0].userName || "Anónimo",
+                userColor: presences[0].userColor || "#FF4655"
+              });
+            }
+          }
+          setCollabUsers(users);
+        })
+        .on("broadcast", { event: "cursor-move" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          setRemoteCursors(prev => {
+            const next = new Map(prev);
+            next.set(payload.userId, {
+              userId: payload.userId,
+              userName: payload.userName,
+              userColor: payload.userColor,
+              x: payload.x,
+              y: payload.y,
+              canvasX: payload.canvasX,
+              canvasY: payload.canvasY
+            });
+            return next;
+          });
+        })
+        .on("broadcast", { event: "canvas-update" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          if (payload.paths) pathsRef.current = payload.paths;
+          if (payload.agents) agentsRef.current = payload.agents;
+          redraw();
+          updateUndoRedo();
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel.track({
+              userName: myUserName,
+              userColor: myPlayerColor,
+              online_at: new Date().toISOString()
+            });
+          }
+        });
+
+      channelRef.current = channel;
+
+      return () => {
+        channel.untrack();
+        supabase.removeChannel(channel);
+        channelRef.current = null;
+        setCollabUsers([]);
+        setRemoteCursors(new Map());
+      };
+    }
+
+    // ── Polling Fallback Mode ──
+    // Heartbeat: register presence every 5s
+    const heartbeat = async () => {
+      try {
+        const res = await fetch("/api/strategies/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategyId })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCollabUsers((data.users || []).map((u: CollabUser) => ({
+            userId: u.userId,
+            userName: u.userName,
+            userColor: u.userColor
+          })));
+        }
+      } catch { /* ignore */ }
+    };
+    heartbeat();
+    const heartbeatInterval = setInterval(heartbeat, 5000);
+
+    // Poll for remote canvas updates every 4s
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/strategies?id=${strategyId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const remote = data.strategy;
+        if (!remote) return;
+        // Only apply if remote is newer than our last save
+        if (lastSavedAtRef.current && remote.updated_at) {
+          const remoteTime = new Date(remote.updated_at).getTime();
+          const savedTime = new Date(lastSavedAtRef.current).getTime();
+          if (remoteTime > savedTime && !drawingRef.current && !draggedAgentRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const d = (typeof remote.canvas_data === "string" ? JSON.parse(remote.canvas_data || "{}") : remote.canvas_data || {}) as any;
+            pathsRef.current = d.paths || [];
+            agentsRef.current = d.agents || [];
+            lastSavedAtRef.current = remote.updated_at;
+            redraw();
+            updateUndoRedo();
+          }
+        }
+      } catch { /* ignore */ }
+    }, 4000);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(pollInterval);
+      // Remove presence on leave
+      fetch(`/api/strategies/presence?strategyId=${strategyId}`, { method: "DELETE" }).catch(() => {});
+      setCollabUsers([]);
+      setRemoteCursors(new Map());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, current?.id, myUserId]);
+
+  // ── Collaboration: Clean up remote cursors that go stale ──
+  useEffect(() => {
+    if (remoteCursors.size === 0) return;
+    const timer = setInterval(() => {
+      // Just trigger a redraw so cursors stay visible
+      if (view === "editor") redraw();
+    }, 100);
+    return () => clearInterval(timer);
+  }, [remoteCursors.size, view, redraw]);
 
   // 3. Create Strategy Mutation
   const createStratMutation = useMutation({
@@ -1304,11 +1578,90 @@ export default function StrategiesPage() {
                     }}>
                       {current.side === "attack" ? "Atacante" : "Defensor"}
                     </span>
+                    {collabUsers.length > 1 && (
+                      <span style={{
+                        fontSize: 8,
+                        fontWeight: 900,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background: "rgba(34, 197, 94, 0.15)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        animation: "pulseGlow 2s infinite"
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                        LIVE
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* ── Collaboration: Active Users Presence ── */}
+                {collabUsers.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 6 }}>
+                    {collabUsers.map((u, i) => (
+                      <div
+                        key={u.userId}
+                        title={`${u.userName}${u.userId === myUserId ? " (tú)" : ""}`}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          background: u.userColor,
+                          border: u.userId === myUserId ? "2px solid #fff" : "2px solid rgba(255,255,255,0.15)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          fontWeight: 900,
+                          color: "#fff",
+                          textTransform: "uppercase",
+                          marginLeft: i > 0 ? -6 : 0,
+                          zIndex: collabUsers.length - i,
+                          position: "relative",
+                          cursor: "default",
+                          boxShadow: `0 0 8px ${u.userColor}55`,
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        {u.userName[0] || "?"}
+                        {/* Live pulse dot */}
+                        <div style={{
+                          position: "absolute",
+                          bottom: -1,
+                          right: -1,
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: "#22c55e",
+                          border: "1.5px solid #0a0e14",
+                          animation: "pulseGlow 2s infinite"
+                        }} />
+                      </div>
+                    ))}
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      color: "rgba(255,255,255,0.4)",
+                      letterSpacing: 0.5,
+                      marginLeft: 4,
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {collabUsers.length === 1 ? "Solo tú" : `${collabUsers.length} editando`}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)" }} />
+
                 {/* Settings Button */}
                 <button
                   className="btn btn-secondary btn-sm"

@@ -8,7 +8,19 @@ export async function GET(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 
   const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
   const mapId = searchParams.get("map_id");
+
+  // Single strategy fetch (for polling sync)
+  if (id) {
+    const strategy = await db.strategy.findUnique({
+      where: { id: Number(id) }
+    });
+    if (!strategy || strategy.teamId !== teamId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ strategy });
+  }
 
   const strategies = await db.strategy.findMany({
     where: {
