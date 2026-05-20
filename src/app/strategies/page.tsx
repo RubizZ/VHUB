@@ -174,8 +174,11 @@ export default function StrategiesPage() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastSavedAtRef = useRef<string | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastBroadcastTimeRef = useRef<number>(0);
+  const lastCursorBroadcastTimeRef = useRef<number>(0);
+  const lastStrokeBroadcastTimeRef = useRef<number>(0);
+  const lastAgentBroadcastTimeRef = useRef<number>(0);
   const activePathIdRef = useRef<string | null>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -464,11 +467,17 @@ export default function StrategiesPage() {
     ctx.restore();
 
     // 2. Draw Paths on an offscreen canvas to prevent eraser from erasing the map
-    const pathCanvas = document.createElement("canvas");
-    pathCanvas.width = canvas.width;
-    pathCanvas.height = canvas.height;
+    if (!offscreenCanvasRef.current) {
+      offscreenCanvasRef.current = document.createElement("canvas");
+    }
+    const pathCanvas = offscreenCanvasRef.current;
+    if (pathCanvas.width !== canvas.width || pathCanvas.height !== canvas.height) {
+      pathCanvas.width = canvas.width;
+      pathCanvas.height = canvas.height;
+    }
     const pCtx = pathCanvas.getContext("2d");
     if (pCtx) {
+      pCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
       pCtx.save();
       pCtx.translate(canvas.width / 2 + pan.x, canvas.height / 2 + pan.y);
       pCtx.scale(zoom, zoom);
@@ -981,19 +990,23 @@ export default function StrategiesPage() {
 
       // ── Collaboration: Broadcast cursor position ──
       if (isSupabaseConfigured && channelRef.current) {
-        channelRef.current.send({
-          type: "broadcast",
-          event: "cursor-move",
-          payload: {
-            userId: myUserId,
-            userName: myUserName,
-            userColor: myPlayerColor,
-            x: pos.x,
-            y: pos.y,
-            canvasX: cx - rect.left,
-            canvasY: cy - rect.top
-          }
-        });
+        const now = Date.now();
+        if (now - lastCursorBroadcastTimeRef.current > 80) {
+          channelRef.current.send({
+            type: "broadcast",
+            event: "cursor-move",
+            payload: {
+              userId: myUserId,
+              userName: myUserName,
+              userColor: myPlayerColor,
+              x: pos.x,
+              y: pos.y,
+              canvasX: cx - rect.left,
+              canvasY: cy - rect.top
+            }
+          });
+          lastCursorBroadcastTimeRef.current = now;
+        }
       }
 
       if (tool === "select") {
@@ -1047,9 +1060,10 @@ export default function StrategiesPage() {
         draggedAgentRef.current.x = pos.x;
         draggedAgentRef.current.y = pos.y;
         redraw();
-        if (Date.now() - lastBroadcastTimeRef.current > 30) {
+        const now = Date.now();
+        if (now - lastAgentBroadcastTimeRef.current > 80) {
           broadcastAgentUpdate(draggedAgentRef.current, true);
-          lastBroadcastTimeRef.current = Date.now();
+          lastAgentBroadcastTimeRef.current = now;
         }
       }
       return;
@@ -1062,9 +1076,10 @@ export default function StrategiesPage() {
     if (!activePath) return;
     activePath.points.push(pos);
     redraw();
-    if (Date.now() - lastBroadcastTimeRef.current > 30) {
+    const now = Date.now();
+    if (now - lastStrokeBroadcastTimeRef.current > 80) {
       broadcastStrokeUpdate(activePath, false);
-      lastBroadcastTimeRef.current = Date.now();
+      lastStrokeBroadcastTimeRef.current = now;
     }
   };
 
