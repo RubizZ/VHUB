@@ -41,6 +41,7 @@ interface CanvasPath {
   color: string;
   points: { x: number; y: number }[];
   thickness?: number;
+  createdBy?: string;
 }
 
 interface CanvasAgent {
@@ -49,6 +50,7 @@ interface CanvasAgent {
   x: number;
   y: number;
   team?: 'ally' | 'enemy';
+  createdBy?: string;
 }
 
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
@@ -153,10 +155,10 @@ export default function StrategiesPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
-  const draggedAgentRef = useRef<{ instanceId: string; id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
-  const pathsRef = useRef<Array<{ id: string; tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
-  const agentsRef = useRef<Array<{ instanceId: string; id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
-  const redoPathsRef = useRef<Array<{ id: string; tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
+  const draggedAgentRef = useRef<CanvasAgent | null>(null);
+  const pathsRef = useRef<CanvasPath[]>([]);
+  const agentsRef = useRef<CanvasAgent[]>([]);
+  const redoPathsRef = useRef<CanvasPath[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -173,6 +175,7 @@ export default function StrategiesPage() {
   const lastSavedAtRef = useRef<string | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBroadcastTimeRef = useRef<number>(0);
+  const activePathIdRef = useRef<string | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -938,9 +941,11 @@ export default function StrategiesPage() {
       tool,
       color,
       points: [pos],
-      thickness: activeSize
+      thickness: activeSize,
+      createdBy: myUserId
     };
     pathsRef.current.push(newPath);
+    activePathIdRef.current = newPath.id;
     loadedPathIdsRef.current.add(newPath.id);
     redoPathsRef.current = [];
     updateUndoRedo();
@@ -1053,7 +1058,8 @@ export default function StrategiesPage() {
       if (tool === "eraser") redraw();
       return;
     }
-    const activePath = pathsRef.current[pathsRef.current.length - 1];
+    const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
+    if (!activePath) return;
     activePath.points.push(pos);
     redraw();
     if (Date.now() - lastBroadcastTimeRef.current > 30) {
@@ -1076,10 +1082,13 @@ export default function StrategiesPage() {
     
     if (wasDrawing) {
       drawingRef.current = false;
-      const activePath = pathsRef.current[pathsRef.current.length - 1];
-      broadcastStrokeUpdate(activePath, true);
-      loadedPathIdsRef.current.add(activePath.id);
-      scheduleAutoSave();
+      const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
+      if (activePath) {
+        broadcastStrokeUpdate(activePath, true);
+        loadedPathIdsRef.current.add(activePath.id);
+        scheduleAutoSave();
+      }
+      activePathIdRef.current = null;
     }
     
     if (wasDragging && draggedAgentRef.current) {
@@ -1109,7 +1118,8 @@ export default function StrategiesPage() {
       id: a.id,
       x: -50 + Math.random() * 100,
       y: -50 + Math.random() * 100,
-      team: activeTeam
+      team: activeTeam,
+      createdBy: myUserId
     };
     agentsRef.current.push(newAgent);
     loadedAgentIdsRef.current.add(newAgent.instanceId);
@@ -1151,7 +1161,8 @@ export default function StrategiesPage() {
         id: agent.id,
         x: pos.x,
         y: pos.y,
-        team: activeTeam
+        team: activeTeam,
+        createdBy: myUserId
       };
       agentsRef.current.push(newAgent);
       loadedAgentIdsRef.current.add(newAgent.instanceId);
