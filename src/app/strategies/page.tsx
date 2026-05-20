@@ -2,7 +2,7 @@
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { getCompetitiveMaps, type ValorantMap } from "@/lib/maps";
+import { type ValorantMap } from "@/lib/maps";
 import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ interface Strategy {
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
 type View = "maps" | "strategies" | "editor";
 
-const competitiveMaps = getCompetitiveMaps();
+
 
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
   hex = hex.replace(/^#/, "");
@@ -91,7 +91,7 @@ export default function StrategiesPage() {
   const queryClient = useQueryClient();
 
   const [view, setView] = useState<View>("maps");
-  const [selectedMap, setSelectedMap] = useState<ValorantMap | null>(null);
+  const [selectedMap, setSelectedMap] = useState<(ValorantMap & { activeInRotation?: boolean }) | null>(null);
   const [current, setCurrent] = useState<Strategy | null>(null);
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
   const [tool, setTool] = useState<Tool>("draw");
@@ -262,6 +262,23 @@ export default function StrategiesPage() {
 
   const strategies = strategiesData?.strategies || [];
 
+  // 1.2 Query Maps
+  const {
+    data: mapsData,
+    isLoading: mapsLoading
+  } = useQuery<{ maps: (ValorantMap & { activeInRotation?: boolean })[] }>({
+    queryKey: ["maps"],
+    queryFn: async () => {
+      const res = await fetch("/api/maps");
+      if (!res.ok) throw new Error("Error loading maps");
+      return res.json();
+    }
+  });
+
+  const allMaps = mapsData?.maps || [];
+  const mapsInRotation = allMaps.filter(m => m.activeInRotation);
+  const mapsOutOfRotation = allMaps.filter(m => !m.activeInRotation);
+
   // 1.5 Query Agents
   const {
     data: agentsData,
@@ -323,13 +340,13 @@ export default function StrategiesPage() {
 
   useEffect(() => {
     const mapParam = searchParams.get("map");
-    if (mapParam) {
-      const foundMap = competitiveMaps.find(m => m.id.toLowerCase() === mapParam.toLowerCase() || m.name.toLowerCase() === mapParam.toLowerCase());
+    if (mapParam && allMaps.length > 0) {
+      const foundMap = allMaps.find(m => m.id.toLowerCase() === mapParam.toLowerCase() || m.name.toLowerCase() === mapParam.toLowerCase());
       if (foundMap) {
         goToMap(foundMap);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, allMaps]);
 
 
   const redraw = useCallback(() => {
@@ -995,15 +1012,7 @@ export default function StrategiesPage() {
                     `Editor Táctico — ${current?.name}`}
               </p>
             </div>
-            {view !== "maps" && (
-              <button className="btn-back-premium" onClick={goBack}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="19" y1="12" x2="5" y2="12" />
-                  <polyline points="12 19 5 12 12 5" />
-                </svg>
-                Volver
-              </button>
-            )}
+            {/* Global back button removed to place it closer inside the context */}
           </div>
         </div>
       )}
@@ -1012,25 +1021,195 @@ export default function StrategiesPage() {
 
         {view === "maps" && (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
-            <div className="map-grid-premium">
-              {competitiveMaps.map(m => (
-                <div key={m.id} className="map-card-premium" onClick={() => goToMap(m)}>
-                  <img src={m.listViewIconTall} alt={m.name} className="map-img-premium" />
-                  <div className="map-card-overlay-premium">
-                    <h3 className="map-card-title-premium">{m.name}</h3>
-                    <span className="map-card-subtitle-premium">{m.tacticalDescription || 'Competitivo'}</span>
+            {mapsLoading ? (
+              <div className="map-grid-premium">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="map-card-premium" style={{ height: 280 }}>
+                    <Skeleton width="100%" height="100%" />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                {mapsInRotation.length > 0 && (
+                  <div style={{ marginBottom: 40 }}>
+                    <h2 style={{ fontSize: 13, fontWeight: 900, color: '#00d4aa', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: 2 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00d4aa', boxShadow: '0 0 10px #00d4aa' }} />
+                      MAPAS EN ROTACIÓN (ESTA SEASON)
+                    </h2>
+                    <div className="map-grid-premium">
+                      {mapsInRotation.map(m => (
+                        <div key={m.id} className="map-card-premium" onClick={() => goToMap(m)}>
+                          <img src={m.listViewIconTall || undefined} alt={m.name} className="map-img-premium" />
+                          <div className="map-card-overlay-premium">
+                            <h3 className="map-card-title-premium">{m.name}</h3>
+                            <span className="map-card-subtitle-premium">{m.tacticalDescription || 'Competitivo'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {mapsOutOfRotation.length > 0 && (
+                  <div>
+                    <h2 style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.4)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: 2 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.3)' }} />
+                      OTROS MAPAS (FUERA DE ROTACIÓN)
+                    </h2>
+                    <div className="map-grid-premium">
+                      {mapsOutOfRotation.map(m => (
+                        <div key={m.id} className="map-card-premium out-of-rotation" onClick={() => goToMap(m)}>
+                          <img src={m.listViewIconTall || undefined} alt={m.name} className="map-img-premium" />
+                          <div className="map-card-overlay-premium">
+                            <h3 className="map-card-title-premium">{m.name}</h3>
+                            <span className="map-card-subtitle-premium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                              {m.tacticalDescription || 'Fuera de rotación'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
         {view === "strategies" && selectedMap && (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4, display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 16, flexShrink: 0 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Estrategias: {selectedMap.name}</h2>
-              <button className="btn btn-primary" style={{ padding: "10px 20px", borderRadius: 12 }} onClick={() => setShowNewStrat(true)}>+ Nueva Táctica</button>
+            <div className="map-banner-premium" style={{
+              position: "relative",
+              minHeight: "180px",
+              height: "auto",
+              borderRadius: "24px",
+              overflow: "hidden",
+              marginBottom: "32px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              display: "flex",
+              alignItems: "center",
+              padding: "32px",
+              boxShadow: "0 12px 40px rgba(0, 0, 0, 0.5)",
+              flexShrink: 0
+            }}>
+              {/* Background Image (Splash or listViewIconTall/listViewIcon) */}
+              {(selectedMap.splash || selectedMap.listViewIconTall || selectedMap.listViewIcon) && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundImage: `url(${selectedMap.splash || selectedMap.listViewIconTall || selectedMap.listViewIcon || ""})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center 40%",
+                  opacity: 0.35,
+                  zIndex: 0
+                }} />
+              )}
+              {/* Visual overlay gradient */}
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(to right, rgba(10, 14, 20, 0.95) 0%, rgba(10, 14, 20, 0.7) 50%, rgba(10, 14, 20, 0.2) 100%)",
+                zIndex: 1
+              }} />
+
+              {/* Banner Content */}
+              <div style={{
+                position: "relative",
+                zIndex: 2,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "100%",
+                flexWrap: "wrap",
+                gap: 20
+              }}>
+                <div>
+                  <button
+                    onClick={goBack}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      color: "#ffffff",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: 1.5,
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 16,
+                      transition: "all 0.3s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255, 70, 85, 0.15)";
+                      e.currentTarget.style.borderColor = "rgba(255, 70, 85, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12" />
+                      <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    Volver a Mapas
+                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 900,
+                      color: selectedMap.activeInRotation ? "#00d4aa" : "rgba(255,255,255,0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: 2,
+                      background: selectedMap.activeInRotation ? "rgba(0, 212, 170, 0.1)" : "rgba(255,255,255,0.05)",
+                      padding: "3px 10px",
+                      borderRadius: "6px",
+                      border: selectedMap.activeInRotation ? "1px solid rgba(0, 212, 170, 0.2)" : "1px solid rgba(255,255,255,0.1)"
+                    }}>
+                      {selectedMap.activeInRotation ? "En Rotación Activa" : "Fuera de Rotación"}
+                    </span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>•</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5 }}>
+                      {selectedMap.tacticalDescription || "Mapa Competitivo"}
+                    </span>
+                  </div>
+                  <h1 style={{
+                    fontSize: 40,
+                    fontWeight: 950,
+                    textTransform: "uppercase",
+                    color: "#ffffff",
+                    margin: 0,
+                    letterSpacing: 2,
+                    lineHeight: 1.1,
+                    textShadow: "0 2px 10px rgba(0,0,0,0.5)"
+                  }} className="gradient-text-valorant">
+                    {selectedMap.name}
+                  </h1>
+                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 8, fontWeight: 500 }}>
+                    Biblioteca de estrategias creadas para este mapa.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  style={{
+                    padding: "12px 28px",
+                    borderRadius: "14px",
+                    fontWeight: 800,
+                    fontSize: 13,
+                    letterSpacing: 0.5,
+                    boxShadow: "0 8px 24px rgba(255, 70, 85, 0.35)",
+                    transition: "all 0.3s ease"
+                  }}
+                  onClick={() => setShowNewStrat(true)}
+                >
+                  + NUEVA ESTRATEGIA
+                </button>
+              </div>
             </div>
             {strategiesLoading ? (
               <div className="strats-grid-premium">

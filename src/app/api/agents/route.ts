@@ -1,6 +1,10 @@
+/* eslint-disable no-undef */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { valorantApi } from '@/lib/valorant-api';
+
+let lastSync = 0;
+const SYNC_COOLDOWN = 12 * 60 * 60 * 1000; // 12 horas
 
 export async function GET() {
   try {
@@ -8,9 +12,11 @@ export async function GET() {
       orderBy: { name: 'asc' },
     });
 
-    // Auto-sync if no agents exist in the database
-    if (agents.length === 0) {
-      console.log('🔄 Auto-syncing agents from Valorant API...');
+    const now = Date.now();
+    const shouldSync = agents.length === 0 || (now - lastSync > SYNC_COOLDOWN);
+
+    if (shouldSync) {
+      console.log('🔄 Syncing agents from Valorant API...');
       const agentsData = await valorantApi.agentsEndpoints.getAgentsV1();
 
       for (const agent of agentsData) {
@@ -54,6 +60,8 @@ export async function GET() {
         }
       }
       agents = await prisma.agent.findMany({ orderBy: { name: 'asc' } });
+      lastSync = now;
+      console.log('✅ Agents sync completed.');
     }
 
     return NextResponse.json({ agents });

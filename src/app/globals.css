@@ -2378,6 +2378,24 @@ input:checked+.slider:before {
 .map-card-premium:hover::before {
   background: linear-gradient(135deg, #ff4655 80%, rgba(255, 255, 255, 0.1) 100%);
 }
+.map-card-premium.out-of-rotation {
+  opacity: 0.65;
+  border-color: rgba(255, 255, 255, 0.04);
+}
+.map-card-premium.out-of-rotation .map-img-premium {
+  filter: grayscale(0.5);
+}
+.map-card-premium.out-of-rotation:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 20px 40px rgba(255, 255, 255, 0.08);
+}
+.map-card-premium.out-of-rotation:hover .map-img-premium {
+  filter: grayscale(0);
+}
+.map-card-premium.out-of-rotation:hover::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 80%, rgba(255, 255, 255, 0.05) 100%);
+}
 .map-img-premium {
   width: 100%;
   height: 100%;
