@@ -1183,7 +1183,7 @@ export default function StrategiesPage() {
             <div className="editor-workspace-row-premium">
 
               {/* Vertical Toolbar Panel */}
-              <div className="editor-toolbar-panel-premium" style={{ position: "relative" }}>
+              <div className="editor-toolbar-panel-premium">
                 {/* Drawing tools group */}
                 <div className="tool-group-premium-vertical">
                   {([
@@ -1400,173 +1400,155 @@ export default function StrategiesPage() {
                     <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>REHACER</span>
                   </button>
                 </div>
+              </div>
 
-                {/* Custom Color Picker Panel (Styled to match the app) */}
-                {showColorPicker && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: 56,
-                      top: 70,
-                      width: 220,
-                      background: "rgba(10, 14, 20, 0.96)",
-                      backdropFilter: "blur(16px)",
-                      border: "1.5px solid rgba(255, 70, 85, 0.4)",
-                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 70, 85, 0.15)",
-                      borderRadius: 12,
-                      padding: 16,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      zIndex: 100,
-                      pointerEvents: "auto",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1 }}>Color de trazo</span>
-                      <button
-                        style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, padding: 0 }}
-                        onClick={() => setShowColorPicker(false)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Color Preview Block */}
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 8,
-                          background: color,
-                          border: "1px solid rgba(255,255,255,0.2)",
-                          boxShadow: `0 0 10px ${color}33`,
-                          flexShrink: 0
-                        }}
-                      />
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>Valor actual</span>
-                        <span style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(255,255,255,0.5)" }}>{color}</span>
-                      </div>
-                    </div>
-
-                    {/* 2D Picker Canvas (Saturation & Value) */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
-                        <span>SATURACIÓN / LUMINOSIDAD</span>
-                      </div>
-                      <div style={{ position: "relative", width: "100%", height: 110 }}>
-                        {/* Gradient Background Container */}
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            borderRadius: 8,
-                            backgroundColor: `hsl(${customH}, 100%, 50%)`,
-                            backgroundImage: "linear-gradient(to bottom, transparent, #000000), linear-gradient(to right, #ffffff, transparent)",
-                            overflow: "hidden",
-                            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.15)",
-                            pointerEvents: "none"
-                          }}
-                        />
-                        {/* Dragging Area & Target Selector */}
-                        <div
-                          onMouseDown={handleStart2D}
-                          onTouchStart={handleTouchStart2D}
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            cursor: "crosshair",
-                            userSelect: "none"
-                          }}
-                        >
-                          {/* Target selector circle */}
-                          <div
-                            style={{
-                              position: "absolute",
-                              left: `${customHSV.s}%`,
-                              top: `${100 - customHSV.v}%`,
-                              width: 12,
-                              height: 12,
-                              borderRadius: "50%",
-                              background: "#ffffff",
-                              border: "2px solid #000000",
-                              boxShadow: "0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5)",
-                              transform: "translate(-50%, -50%)",
-                              cursor: isDraggingColor ? "crosshair" : "grab",
-                              pointerEvents: "auto"
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Hue Slider */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
-                        <span>TONO</span>
-                        <span>{customH}°</span>
-                      </div>
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          height: 8,
-                          borderRadius: 4,
-                          background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-                          display: "flex",
-                          alignItems: "center"
-                        }}
-                      >
-                        <input
-                          type="range"
-                          min="0"
-                          max="360"
-                          value={customH}
-                          onChange={(e) => {
-                            const h = parseInt(e.target.value);
-                            setCustomH(h);
-                            setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
-                          }}
-                          className="color-picker-slider"
-                          style={{
-                            position: "absolute",
-                            left: 6,
-                            right: 6,
-                            width: "calc(100% - 12px)",
-                            background: "transparent",
-                            margin: 0,
-                            padding: 0,
-                            height: 20,
-                            cursor: "pointer"
-                          }}
-                        />
-                      </div>
-                    </div>
-
+              {/* Custom Color Picker Panel (Styled to match the app) */}
+              {showColorPicker && (
+                <div className="color-picker-panel-premium">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1 }}>Color de trazo</span>
                     <button
+                      style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, padding: 0 }}
                       onClick={() => setShowColorPicker(false)}
-                      style={{
-                        marginTop: 4,
-                        background: "rgba(255, 70, 85, 0.15)",
-                        border: "1px solid rgba(255, 70, 85, 0.4)",
-                        color: "#ffffff",
-                        borderRadius: 6,
-                        padding: "6px 0",
-                        fontSize: 10,
-                        fontWeight: 900,
-                        letterSpacing: 1,
-                        cursor: "pointer",
-                        textTransform: "uppercase",
-                        transition: "all 0.2s ease"
-                      }}
                     >
-                      ACEPTAR
+                      ✕
                     </button>
                   </div>
-                )}
-              </div>
+
+                  {/* Color Preview Block */}
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: color,
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        boxShadow: `0 0 10px ${color}33`,
+                        flexShrink: 0
+                      }}
+                    />
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>Valor actual</span>
+                      <span style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(255,255,255,0.5)" }}>{color}</span>
+                    </div>
+                  </div>
+
+                  {/* 2D Picker Canvas (Saturation & Value) */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                      <span>SATURACIÓN / LUMINOSIDAD</span>
+                    </div>
+                    <div style={{ position: "relative", width: "100%", height: 110 }}>
+                      {/* Gradient Background Container */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 8,
+                          backgroundColor: `hsl(${customH}, 100%, 50%)`,
+                          backgroundImage: "linear-gradient(to bottom, transparent, #000000), linear-gradient(to right, #ffffff, transparent)",
+                          overflow: "hidden",
+                          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.15)",
+                          pointerEvents: "none"
+                        }}
+                      />
+                      {/* Dragging Area & Target Selector */}
+                      <div
+                        onMouseDown={handleStart2D}
+                        onTouchStart={handleTouchStart2D}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          cursor: "crosshair",
+                          userSelect: "none"
+                        }}
+                      >
+                        {/* Target selector circle */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${customHSV.s}%`,
+                            top: `${100 - customHSV.v}%`,
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            background: "#ffffff",
+                            border: "2px solid #000000",
+                            boxShadow: "0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5)",
+                            transform: "translate(-50%, -50%)",
+                            cursor: isDraggingColor ? "crosshair" : "grab",
+                            pointerEvents: "auto"
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hue Slider */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
+                      <span>TONO</span>
+                      <span>{customH}°</span>
+                    </div>
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        height: 8,
+                        borderRadius: 4,
+                        background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                        display: "flex",
+                        alignItems: "center"
+                      }}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={customH}
+                        onChange={(e) => {
+                          const h = parseInt(e.target.value);
+                          setCustomH(h);
+                          setColor(`hsl(${h}, ${customS}%, ${customL}%)`);
+                        }}
+                        className="color-picker-slider"
+                        style={{
+                          position: "absolute",
+                          left: 6,
+                          right: 6,
+                          width: "calc(100% - 12px)",
+                          background: "transparent",
+                          margin: 0,
+                          padding: 0,
+                          height: 20,
+                          cursor: "pointer"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowColorPicker(false)}
+                    style={{
+                      marginTop: 4,
+                      background: "rgba(255, 70, 85, 0.15)",
+                      border: "1px solid rgba(255, 70, 85, 0.4)",
+                      color: "#ffffff",
+                      borderRadius: 6,
+                      padding: "6px 0",
+                      fontSize: 10,
+                      fontWeight: 900,
+                      letterSpacing: 1,
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    ACEPTAR
+                  </button>
+                </div>
+              )}
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
