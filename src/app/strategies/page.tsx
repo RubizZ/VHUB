@@ -35,6 +35,22 @@ interface RemoteCursor {
   canvasY: number;
 }
 
+interface CanvasPath {
+  id: string;
+  tool: Tool;
+  color: string;
+  points: { x: number; y: number }[];
+  thickness?: number;
+}
+
+interface CanvasAgent {
+  instanceId: string;
+  id: string;
+  x: number;
+  y: number;
+  team?: 'ally' | 'enemy';
+}
+
 type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
 type View = "maps" | "strategies" | "editor";
 
@@ -137,10 +153,10 @@ export default function StrategiesPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
-  const draggedAgentRef = useRef<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
-  const pathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
-  const agentsRef = useRef<Array<{ id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
-  const redoPathsRef = useRef<Array<{ tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
+  const draggedAgentRef = useRef<{ instanceId: string; id: string; x: number; y: number; team?: 'ally' | 'enemy' } | null>(null);
+  const pathsRef = useRef<Array<{ id: string; tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
+  const agentsRef = useRef<Array<{ instanceId: string; id: string; x: number; y: number; team?: 'ally' | 'enemy' }>>([]);
+  const redoPathsRef = useRef<Array<{ id: string; tool: Tool; color: string; points: { x: number; y: number }[]; thickness?: number }>>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -156,6 +172,7 @@ export default function StrategiesPage() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastSavedAtRef = useRef<string | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastBroadcastTimeRef = useRef<number>(0);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,12 +351,12 @@ export default function StrategiesPage() {
     return agents.filter(a => a.role === role);
   }, [agents]);
 
-  const syncCanvasLocalState = useCallback((paths: any[], agentsList: any[]) => {
-    const sanitizedPaths = paths.map((p: any) => ({
+  const syncCanvasLocalState = useCallback((paths: CanvasPath[], agentsList: CanvasAgent[]) => {
+    const sanitizedPaths = paths.map((p) => ({
       ...p,
       id: p.id || Math.random().toString(36).substring(2, 9)
     }));
-    const sanitizedAgents = agentsList.map((a: any) => ({
+    const sanitizedAgents = agentsList.map((a) => ({
       ...a,
       instanceId: a.instanceId || Math.random().toString(36).substring(2, 9)
     }));
@@ -347,8 +364,8 @@ export default function StrategiesPage() {
     pathsRef.current = sanitizedPaths;
     agentsRef.current = sanitizedAgents;
 
-    loadedPathIdsRef.current = new Set(sanitizedPaths.map((p: any) => p.id));
-    loadedAgentIdsRef.current = new Set(sanitizedAgents.map((a: any) => a.instanceId));
+    loadedPathIdsRef.current = new Set(sanitizedPaths.map((p) => p.id));
+    loadedAgentIdsRef.current = new Set(sanitizedAgents.map((a) => a.instanceId));
   }, []);
 
   const goToMap = (map: ValorantMap) => {
@@ -618,15 +635,40 @@ export default function StrategiesPage() {
     setCanRedo(redoPathsRef.current.length > 0);
   }, []);
 
-  // ── Collaboration: Broadcast canvas update ──
-  const broadcastCanvasUpdate = useCallback(() => {
+  const broadcastStrokeUpdate = useCallback((path: CanvasPath, finished: boolean) => {
     if (!current || !isSupabaseConfigured || !channelRef.current) return;
     channelRef.current.send({
       type: "broadcast",
-      event: "canvas-update",
+      event: "draw-stroke",
       payload: {
-        paths: pathsRef.current,
-        agents: agentsRef.current,
+        path,
+        finished,
+        userId: myUserId
+      }
+    });
+  }, [current, myUserId]);
+
+  const broadcastAgentUpdate = useCallback((agent: CanvasAgent, dragging: boolean) => {
+    if (!current || !isSupabaseConfigured || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "drag-agent",
+      payload: {
+        agent,
+        dragging,
+        userId: myUserId
+      }
+    });
+  }, [current, myUserId]);
+
+  const broadcastEraseElements = useCallback((erasedPathIds: string[], erasedAgentIds: string[]) => {
+    if (!current || !isSupabaseConfigured || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "erase-elements",
+      payload: {
+        erasedPathIds,
+        erasedAgentIds,
         userId: myUserId
       }
     });
@@ -643,26 +685,26 @@ export default function StrategiesPage() {
       const path = pathsRef.current.pop();
       if (path) {
         redoPathsRef.current.push(path);
+        broadcastEraseElements([path.id], []);
       }
       redraw();
       updateUndoRedo();
-      broadcastCanvasUpdate();
       scheduleAutoSave();
     }
-  }, [redraw, updateUndoRedo, broadcastCanvasUpdate, scheduleAutoSave]);
+  }, [redraw, updateUndoRedo, broadcastEraseElements, scheduleAutoSave]);
 
   const redo = useCallback(() => {
     if (redoPathsRef.current.length > 0) {
       const path = redoPathsRef.current.pop();
       if (path) {
         pathsRef.current.push(path);
+        broadcastStrokeUpdate(path, true);
       }
       redraw();
       updateUndoRedo();
-      broadcastCanvasUpdate();
       scheduleAutoSave();
     }
-  }, [redraw, updateUndoRedo, broadcastCanvasUpdate, scheduleAutoSave]);
+  }, [redraw, updateUndoRedo, broadcastStrokeUpdate, scheduleAutoSave]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -869,18 +911,23 @@ export default function StrategiesPage() {
       const mouseY = cy - rect.top;
 
       const initialCount = agentsRef.current.length;
+      const erasedAgents: string[] = [];
       agentsRef.current = agentsRef.current.filter(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
         const dy = screenPos.y - mouseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const threshold = (18 + eraserSize / 2) * zoomRef.current;
-        return distance > threshold;
+        const keep = distance > threshold;
+        if (!keep) {
+          erasedAgents.push(a.instanceId);
+        }
+        return keep;
       });
 
       if (agentsRef.current.length < initialCount) {
         redraw();
-        broadcastCanvasUpdate();
+        broadcastEraseElements([], erasedAgents);
         scheduleAutoSave();
       }
     }
@@ -897,6 +944,7 @@ export default function StrategiesPage() {
     loadedPathIdsRef.current.add(newPath.id);
     redoPathsRef.current = [];
     updateUndoRedo();
+    broadcastStrokeUpdate(newPath, false);
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
@@ -968,18 +1016,23 @@ export default function StrategiesPage() {
       const mouseY = cy - rect.top;
 
       const initialCount = agentsRef.current.length;
+      const erasedAgents: string[] = [];
       agentsRef.current = agentsRef.current.filter(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
         const dy = screenPos.y - mouseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const threshold = (18 + eraserSize / 2) * zoomRef.current;
-        return distance > threshold;
+        const keep = distance > threshold;
+        if (!keep) {
+          erasedAgents.push(a.instanceId);
+        }
+        return keep;
       });
 
       if (agentsRef.current.length < initialCount) {
         redraw();
-        broadcastCanvasUpdate();
+        broadcastEraseElements([], erasedAgents);
         scheduleAutoSave();
       }
     }
@@ -989,6 +1042,10 @@ export default function StrategiesPage() {
         draggedAgentRef.current.x = pos.x;
         draggedAgentRef.current.y = pos.y;
         redraw();
+        if (Date.now() - lastBroadcastTimeRef.current > 30) {
+          broadcastAgentUpdate(draggedAgentRef.current, true);
+          lastBroadcastTimeRef.current = Date.now();
+        }
       }
       return;
     }
@@ -996,8 +1053,13 @@ export default function StrategiesPage() {
       if (tool === "eraser") redraw();
       return;
     }
-    pathsRef.current[pathsRef.current.length - 1].points.push(pos);
+    const activePath = pathsRef.current[pathsRef.current.length - 1];
+    activePath.points.push(pos);
     redraw();
+    if (Date.now() - lastBroadcastTimeRef.current > 30) {
+      broadcastStrokeUpdate(activePath, false);
+      lastBroadcastTimeRef.current = Date.now();
+    }
   };
 
   const stopDraw = () => {
@@ -1011,15 +1073,24 @@ export default function StrategiesPage() {
     }
     const wasDrawing = drawingRef.current;
     const wasDragging = !!draggedAgentRef.current;
-    drawingRef.current = false;
-    draggedAgentRef.current = null;
-    const canvas = canvasRef.current;
-    if (canvas && tool === "select") {
-      canvas.style.cursor = "default";
+    
+    if (wasDrawing) {
+      drawingRef.current = false;
+      const activePath = pathsRef.current[pathsRef.current.length - 1];
+      broadcastStrokeUpdate(activePath, true);
+      loadedPathIdsRef.current.add(activePath.id);
+      scheduleAutoSave();
     }
-    // Broadcast canvas update after drawing/dragging finishes
-    if (wasDrawing || wasDragging) {
-      broadcastCanvasUpdate();
+    
+    if (wasDragging && draggedAgentRef.current) {
+      const agent = draggedAgentRef.current;
+      draggedAgentRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas && tool === "select") {
+        canvas.style.cursor = "default";
+      }
+      broadcastAgentUpdate(agent, false);
+      loadedAgentIdsRef.current.add(agent.instanceId);
       scheduleAutoSave();
     }
   };
@@ -1043,7 +1114,7 @@ export default function StrategiesPage() {
     agentsRef.current.push(newAgent);
     loadedAgentIdsRef.current.add(newAgent.instanceId);
     redraw();
-    broadcastCanvasUpdate();
+    broadcastAgentUpdate(newAgent, false);
     scheduleAutoSave();
   };
 
@@ -1085,7 +1156,7 @@ export default function StrategiesPage() {
       agentsRef.current.push(newAgent);
       loadedAgentIdsRef.current.add(newAgent.instanceId);
       redraw();
-      broadcastCanvasUpdate();
+      broadcastAgentUpdate(newAgent, false);
       scheduleAutoSave();
     }
   };
@@ -1164,13 +1235,13 @@ export default function StrategiesPage() {
     }
   });
 
-  const saveStrategy = () => {
+  const saveStrategy = useCallback(() => {
     if (saveStrategyMutation.isPending) {
       scheduleAutoSave();
       return;
     }
     saveStrategyMutation.mutate();
-  };
+  }, [saveStrategyMutation, scheduleAutoSave]);
 
   // ── Collaboration: Wire up auto-save ref ──
   useEffect(() => {
@@ -1178,15 +1249,11 @@ export default function StrategiesPage() {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = setTimeout(() => {
         if (current) {
-          if (saveStrategyMutation.isPending) {
-            scheduleAutoSave();
-          } else {
-            saveStrategyMutation.mutate();
-          }
+          saveStrategy();
         }
-      }, 2000);
+      }, 1000);
     };
-  }, [current, saveStrategyMutation, scheduleAutoSave]);
+  }, [current, saveStrategy, scheduleAutoSave]);
 
   // ── Collaboration: Main real-time useEffect ──
   useEffect(() => {
@@ -1236,6 +1303,82 @@ export default function StrategiesPage() {
         .on("broadcast", { event: "canvas-update" }, ({ payload }) => {
           if (!payload || payload.userId === myUserId) return;
           syncCanvasLocalState(payload.paths || [], payload.agents || []);
+          redraw();
+          updateUndoRedo();
+        })
+        .on("broadcast", { event: "draw-stroke" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          const remotePath = payload.path;
+          if (!remotePath) return;
+
+          const idx = pathsRef.current.findIndex(p => p.id === remotePath.id);
+          if (idx !== -1) {
+            pathsRef.current[idx] = remotePath;
+          } else {
+            pathsRef.current.push(remotePath);
+          }
+
+          if (payload.finished) {
+            loadedPathIdsRef.current.add(remotePath.id);
+            updateUndoRedo();
+          }
+          redraw();
+        })
+        .on("broadcast", { event: "drag-agent" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          const remoteAgent = payload.agent;
+          if (!remoteAgent) return;
+
+          const idx = agentsRef.current.findIndex(a => a.instanceId === remoteAgent.instanceId);
+          if (idx !== -1) {
+            agentsRef.current[idx] = remoteAgent;
+          } else {
+            agentsRef.current.push(remoteAgent);
+            if (!agentImgsRef.current.has(remoteAgent.id)) {
+              const agentObj = findAgent(remoteAgent.id);
+              if (agentObj) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = agentObj.displayIcon;
+                img.onload = () => {
+                  agentImgsRef.current.set(remoteAgent.id, img);
+                  redraw();
+                };
+                agentImgsRef.current.set(remoteAgent.id, img);
+              }
+            }
+          }
+
+          if (!payload.dragging) {
+            loadedAgentIdsRef.current.add(remoteAgent.instanceId);
+          }
+          redraw();
+        })
+        .on("broadcast", { event: "erase-elements" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          const { erasedPathIds, erasedAgentIds } = payload;
+
+          if (erasedPathIds && erasedPathIds.length > 0) {
+            const toRemove = new Set(erasedPathIds);
+            pathsRef.current = pathsRef.current.filter(p => !toRemove.has(p.id));
+            erasedPathIds.forEach((id: string) => loadedPathIdsRef.current.delete(id));
+          }
+
+          if (erasedAgentIds && erasedAgentIds.length > 0) {
+            const toRemove = new Set(erasedAgentIds);
+            agentsRef.current = agentsRef.current.filter(a => !toRemove.has(a.instanceId));
+            erasedAgentIds.forEach((id: string) => loadedAgentIdsRef.current.delete(id));
+          }
+
+          redraw();
+          updateUndoRedo();
+        })
+        .on("broadcast", { event: "canvas-clear" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          pathsRef.current = [];
+          agentsRef.current = [];
+          loadedPathIdsRef.current.clear();
+          loadedAgentIdsRef.current.clear();
           redraw();
           updateUndoRedo();
         })
@@ -1768,30 +1911,48 @@ export default function StrategiesPage() {
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>AJUSTES</span>
                 </button>
 
-                {/* Save Button */}
-                <button
-                  className="btn btn-primary btn-sm"
-                  style={{
-                    borderRadius: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 16px",
-                    boxShadow: "0 0 12px rgba(255, 70, 85, 0.25)"
-                  }}
-                  onClick={saveStrategy}
-                  disabled={saveStrategyMutation.isPending}
-                  title="Guardar Táctica"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                  </svg>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
-                    {saveStrategyMutation.isPending ? "GUARDANDO..." : "GUARDAR"}
-                  </span>
-                </button>
+                {/* Auto-save Status Indicator */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  background: "rgba(255, 255, 255, 0.02)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  color: saveStrategyMutation.isPending ? "#eab308" : "#22c55e",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  transition: "all 0.3s ease",
+                  userSelect: "none"
+                }}>
+                  {saveStrategyMutation.isPending ? (
+                    <>
+                      <div style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        border: "2px solid rgba(234, 179, 8, 0.2)",
+                        borderTopColor: "#eab308",
+                        animation: "spin 1s linear infinite"
+                      }} />
+                      <span style={{ color: "#eab308" }}>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#22c55e",
+                        boxShadow: "0 0 6px #22c55e"
+                      }} />
+                      <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>Guardado</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
