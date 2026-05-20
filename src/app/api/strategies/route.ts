@@ -67,107 +67,135 @@ export async function PUT(req: NextRequest) {
   
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-  let finalCanvasData = canvas_data;
+  let updatedStrategy;
 
   if (canvas_data) {
-    const existing = await db.strategy.findUnique({
-      where: { id: Number(id) }
+    try {
+      updatedStrategy = await db.$transaction(async (tx) => {
+        // Lock the row for updates
+        const strategies = await tx.$queryRaw<any[]>`
+          SELECT canvas_data FROM "Strategy" 
+          WHERE id = ${Number(id)} 
+          FOR UPDATE
+        `;
+
+        let finalCanvasData = canvas_data;
+
+        if (strategies && strategies.length > 0) {
+          const existingCanvasRaw = strategies[0].canvas_data;
+          const existingCanvas = (typeof existingCanvasRaw === "string"
+            ? JSON.parse(existingCanvasRaw || "{}")
+            : existingCanvasRaw || {}) as any;
+
+          const existingPaths = (existingCanvas.paths || []) as any[];
+          const existingAgents = (existingCanvas.agents || []) as any[];
+
+          // Ensure all existing elements have IDs
+          existingPaths.forEach(p => {
+            if (!p.id) p.id = Math.random().toString(36).substring(2, 9);
+          });
+          existingAgents.forEach(a => {
+            if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
+          });
+
+          const incomingPaths = (canvas_data.paths || []) as any[];
+          const incomingAgents = (canvas_data.agents || []) as any[];
+
+          // Ensure all incoming elements have IDs
+          incomingPaths.forEach(p => {
+            if (!p.id) p.id = Math.random().toString(36).substring(2, 9);
+          });
+          incomingAgents.forEach(a => {
+            if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
+          });
+
+          const clientKnownPathIds = new Set(canvas_data.clientKnownPathIds || []);
+          const clientKnownAgentIds = new Set(canvas_data.clientKnownAgentIds || []);
+
+          // 1. Merge Paths
+          const finalPaths: any[] = [];
+          const incomingPathsMap = new Map(incomingPaths.map(p => [p.id, p]));
+          const existingPathsMap = new Map(existingPaths.map(p => [p.id, p]));
+
+          for (const p of existingPaths) {
+            if (incomingPathsMap.has(p.id)) {
+              finalPaths.push(incomingPathsMap.get(p.id));
+            } else {
+              // If in DB but not in incoming:
+              // Keep it if the client did NOT know about it (created by another client).
+              // Remove it if the client knew about it (meaning the client deleted/undid it).
+              if (!clientKnownPathIds.has(p.id)) {
+                finalPaths.push(p);
+              }
+            }
+          }
+          for (const p of incomingPaths) {
+            if (!existingPathsMap.has(p.id)) {
+              finalPaths.push(p);
+            }
+          }
+
+          // 2. Merge Agents
+          const finalAgents: any[] = [];
+          const incomingAgentsMap = new Map(incomingAgents.map(a => [a.instanceId, a]));
+          const existingAgentsMap = new Map(existingAgents.map(a => [a.instanceId, a]));
+
+          for (const a of existingAgents) {
+            if (incomingAgentsMap.has(a.instanceId)) {
+              finalAgents.push(incomingAgentsMap.get(a.instanceId));
+            } else {
+              // If in DB but not in incoming:
+              // Keep it if client did NOT know about it (created by another client).
+              // Remove it if client knew about it (meaning client deleted it).
+              if (!clientKnownAgentIds.has(a.instanceId)) {
+                finalAgents.push(a);
+              }
+            }
+          }
+          for (const a of incomingAgents) {
+            if (!existingAgentsMap.has(a.instanceId)) {
+              finalAgents.push(a);
+            }
+          }
+
+          finalCanvasData = {
+            paths: finalPaths,
+            agents: finalAgents
+          };
+        }
+
+        return await tx.strategy.update({
+          where: { id: Number(id) },
+          data: {
+            name,
+            side,
+            description,
+            canvas_data: finalCanvasData || undefined
+          }
+        });
+      }, {
+        timeout: 10000
+      });
+    } catch (err) {
+      console.error("Lock/Merge transaction failed:", err);
+      return NextResponse.json({ error: "Lock/Merge transaction failed" }, { status: 500 });
+    }
+  } else {
+    updatedStrategy = await db.strategy.update({
+      where: { id: Number(id) },
+      data: {
+        name,
+        side,
+        description
+      }
     });
-
-    if (existing) {
-      const existingCanvas = (typeof existing.canvas_data === "string"
-        ? JSON.parse(existing.canvas_data || "{}")
-        : existing.canvas_data || {}) as any;
-
-      const existingPaths = (existingCanvas.paths || []) as any[];
-      const existingAgents = (existingCanvas.agents || []) as any[];
-
-      // Ensure all existing elements have IDs
-      existingPaths.forEach(p => {
-        if (!p.id) p.id = Math.random().toString(36).substring(2, 9);
-      });
-      existingAgents.forEach(a => {
-        if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
-      });
-
-      const incomingPaths = (canvas_data.paths || []) as any[];
-      const incomingAgents = (canvas_data.agents || []) as any[];
-
-      // Ensure all incoming elements have IDs
-      incomingPaths.forEach(p => {
-        if (!p.id) p.id = Math.random().toString(36).substring(2, 9);
-      });
-      incomingAgents.forEach(a => {
-        if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
-      });
-
-      const clientKnownPathIds = new Set(canvas_data.clientKnownPathIds || []);
-      const clientKnownAgentIds = new Set(canvas_data.clientKnownAgentIds || []);
-
-      // 1. Merge Paths
-      const finalPaths: any[] = [];
-      const incomingPathsMap = new Map(incomingPaths.map(p => [p.id, p]));
-      const existingPathsMap = new Map(existingPaths.map(p => [p.id, p]));
-
-      for (const p of existingPaths) {
-        if (incomingPathsMap.has(p.id)) {
-          finalPaths.push(incomingPathsMap.get(p.id));
-        } else {
-          // If in DB but not in incoming:
-          // Keep it if the client did NOT know about it (created by another client).
-          // Remove it if the client knew about it (meaning the client deleted/undid it).
-          if (!clientKnownPathIds.has(p.id)) {
-            finalPaths.push(p);
-          }
-        }
-      }
-      for (const p of incomingPaths) {
-        if (!existingPathsMap.has(p.id)) {
-          finalPaths.push(p);
-        }
-      }
-
-      // 2. Merge Agents
-      const finalAgents: any[] = [];
-      const incomingAgentsMap = new Map(incomingAgents.map(a => [a.instanceId, a]));
-      const existingAgentsMap = new Map(existingAgents.map(a => [a.instanceId, a]));
-
-      for (const a of existingAgents) {
-        if (incomingAgentsMap.has(a.instanceId)) {
-          finalAgents.push(incomingAgentsMap.get(a.instanceId));
-        } else {
-          // If in DB but not in incoming:
-          // Keep it if client did NOT know about it (created by another client).
-          // Remove it if client knew about it (meaning client deleted it).
-          if (!clientKnownAgentIds.has(a.instanceId)) {
-            finalAgents.push(a);
-          }
-        }
-      }
-      for (const a of incomingAgents) {
-        if (!existingAgentsMap.has(a.instanceId)) {
-          finalAgents.push(a);
-        }
-      }
-
-      finalCanvasData = {
-        paths: finalPaths,
-        agents: finalAgents
-      };
-    }
   }
-
-  const updated = await db.strategy.update({
-    where: { id: Number(id) },
-    data: {
-      name,
-      side,
-      description,
-      canvas_data: finalCanvasData || undefined
-    }
-  });
   
-  return NextResponse.json({ ok: true, canvas_data: updated.canvas_data });
+  return NextResponse.json({
+    ok: true,
+    canvas_data: updatedStrategy?.canvas_data,
+    updated_at: updatedStrategy?.updated_at
+  });
 }
 
 export async function DELETE(req: NextRequest) {

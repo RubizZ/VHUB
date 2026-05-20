@@ -1154,21 +1154,21 @@ export default function StrategiesPage() {
       });
       if (!res.ok) throw new Error("Error saving strategy canvas");
       const data = await res.json();
-      lastSavedAtRef.current = new Date().toISOString();
       return data;
     },
     onSuccess: (data) => {
-      if (data && data.canvas_data) {
-        const d = (typeof data.canvas_data === "string" ? JSON.parse(data.canvas_data) : data.canvas_data) as any;
-        syncCanvasLocalState(d.paths || [], d.agents || []);
-        redraw();
-        updateUndoRedo();
+      if (data && data.updated_at) {
+        lastSavedAtRef.current = data.updated_at;
       }
       queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
     }
   });
 
   const saveStrategy = () => {
+    if (saveStrategyMutation.isPending) {
+      scheduleAutoSave();
+      return;
+    }
     saveStrategyMutation.mutate();
   };
 
@@ -1177,10 +1177,16 @@ export default function StrategiesPage() {
     scheduleAutoSaveRef.current = () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = setTimeout(() => {
-        if (current) saveStrategyMutation.mutate();
+        if (current) {
+          if (saveStrategyMutation.isPending) {
+            scheduleAutoSave();
+          } else {
+            saveStrategyMutation.mutate();
+          }
+        }
       }, 2000);
     };
-  }, [current, saveStrategyMutation]);
+  }, [current, saveStrategyMutation, scheduleAutoSave]);
 
   // ── Collaboration: Main real-time useEffect ──
   useEffect(() => {
