@@ -2469,8 +2469,8 @@ input:checked+.slider:before {
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0;
 }
 .strategy-card-premium::before {
   content: '';

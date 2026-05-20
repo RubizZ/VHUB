@@ -53,8 +53,19 @@ interface CanvasAgent {
   createdBy?: string;
 }
 
-type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
+type UndoAction =
+  | { type: 'add-path'; path: CanvasPath }
+  | { type: 'remove-path'; path: CanvasPath; index: number }
+  | { type: 'add-agent'; agent: CanvasAgent }
+  | { type: 'remove-agent'; agent: CanvasAgent; index: number }
+  | { type: 'move-agent'; agentId: string; oldX: number; oldY: number; newX: number; newY: number }
+  | { type: 'clear-all'; paths: CanvasPath[]; agents: CanvasAgent[] };
+
+type Tool = "select" | "draw" | "arrow" | "eraser" | "line-eraser";
 type View = "maps" | "strategies" | "editor";
+
+// RAF-based redraw scheduler to avoid calling redraw multiple times per frame
+let pendingRedrawRef: number | null = null;
 
 
 
@@ -140,25 +151,31 @@ export default function StrategiesPage() {
   const [activeRole, setActiveRole] = useState<AgentRole | null>("duelist");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [compositionFilter, setCompositionFilter] = useState<string | null>(null);
 
   // Strategy Settings States
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configName, setConfigName] = useState("");
   const [configSide, setConfigSide] = useState<"attack" | "defense">("attack");
   const [configDescription, setConfigDescription] = useState("");
+  const [configMapId, setConfigMapId] = useState("");
 
   // Brush Size States
   const [pencilSize, setPencilSize] = useState<number>(5);
   const [arrowSize, setArrowSize] = useState<number>(5);
   const [eraserSize, setEraserSize] = useState<number>(20);
+  const eraserSizeRef = useRef<number>(20);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
   const draggedAgentRef = useRef<CanvasAgent | null>(null);
+  const draggedAgentOldPosRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
-  const redoPathsRef = useRef<CanvasPath[]>([]);
+  const undoStackRef = useRef<UndoAction[]>([]);
+  const redoStackRef = useRef<UndoAction[]>([]);
+  const hoveredPathIdRef = useRef<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -292,6 +309,8 @@ export default function StrategiesPage() {
   const panRef = useRef({ x: 0, y: 0 });
   const panningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
+  // Tracks whether we need to flush pan state to React after panning ends
+  const pendingPanFlushRef = useRef(false);
 
   useEffect(() => {
     zoomRef.current = zoom;
@@ -300,6 +319,10 @@ export default function StrategiesPage() {
   useEffect(() => {
     panRef.current = pan;
   }, [pan]);
+
+  useEffect(() => {
+    eraserSizeRef.current = eraserSize;
+  }, [eraserSize]);
 
   // 1. Query Strategies
   const {
@@ -357,6 +380,31 @@ export default function StrategiesPage() {
     return agents.filter(a => a.role === role);
   }, [agents]);
 
+  const getAllyAgents = useCallback((strategy: Strategy): CanvasAgent[] => {
+    const canvasData = strategy.canvas_data as { agents?: CanvasAgent[] } | null;
+    if (!canvasData?.agents) return [];
+    return canvasData.agents.filter(a => a.team === 'ally').slice(0, 5);
+  }, []);
+
+  const getAllyComposition = useCallback((strategy: Strategy): string[] => {
+    const allyAgents = getAllyAgents(strategy);
+    return allyAgents.map(a => a.id);
+  }, [getAllyAgents]);
+
+  const getUniqueCompositions = useCallback((strats: Strategy[]): Map<string, Strategy[]> => {
+    const compMap = new Map<string, Strategy[]>();
+    for (const s of strats) {
+      const comp = getAllyComposition(s);
+      if (comp.length === 0) continue;
+      const key = comp.join(',');
+      if (!compMap.has(key)) {
+        compMap.set(key, []);
+      }
+      compMap.get(key)!.push(s);
+    }
+    return compMap;
+  }, [getAllyComposition]);
+
   const syncCanvasLocalState = useCallback((paths: CanvasPath[], agentsList: CanvasAgent[]) => {
     const sanitizedPaths = paths.map((p) => ({
       ...p,
@@ -386,16 +434,31 @@ export default function StrategiesPage() {
     setConfigName(current.name);
     setConfigSide(current.side as "attack" | "defense");
     setConfigDescription(current.description || "");
+    setConfigMapId(current.map_id || selectedMap?.id || "");
     setShowConfigModal(true);
   };
 
   const saveConfig = () => {
     if (!current) return;
+    // If map changed, update selected map
+    if (configMapId && configMapId !== current.map_id) {
+      const newMap = allMaps.find(m => m.id === configMapId);
+      if (newMap) {
+        setSelectedMap(newMap);
+        // Reset map image so it reloads
+        mapImgRef.current = null;
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = newMap.displayIcon || '';
+        img.onload = () => { mapImgRef.current = img; redraw(); };
+      }
+    }
     setCurrent({
       ...current,
       name: configName,
       description: configDescription,
-      side: configSide
+      side: configSide,
+      map_id: configMapId || current.map_id
     });
     setSelectedSide(configSide);
     setShowConfigModal(false);
@@ -422,7 +485,25 @@ export default function StrategiesPage() {
   }, [searchParams, allMaps]);
 
 
+  // Stable ref to always call the latest redrawImmediate without stale closure
+  const redrawImmediateRef = useRef<() => void>(() => {});
+
+  // Throttled redraw via requestAnimationFrame to prevent multiple redraws per frame
+  const scheduleRedraw = useCallback(() => {
+    if (pendingRedrawRef !== null) return;
+    pendingRedrawRef = requestAnimationFrame(() => {
+      pendingRedrawRef = null;
+      redrawImmediateRef.current();
+    });
+  }, []);
+
   const redraw = useCallback(() => {
+    scheduleRedraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize, remoteCursors]);
+
+  // The actual drawing function that reads from refs (no stale closures for pan/zoom)
+  const redrawImmediate = useCallback(() => {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
     if (!ctx || !canvas || canvas.width <= 0 || canvas.height <= 0) return;
@@ -431,6 +512,12 @@ export default function StrategiesPage() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const mapImg = mapImgRef.current;
+    const currentPan = panRef.current;
+    const currentZoom = zoomRef.current;
+    const currentSide = selectedSide;
+    const currentTool = tool;
+    const currentEraserSize = eraserSizeRef.current;
+
     if (!(mapImg && mapImg.complete)) {
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       ctx.font = "bold 60px Outfit, sans-serif";
@@ -439,7 +526,7 @@ export default function StrategiesPage() {
       ctx.textAlign = "start";
     }
 
-    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const angle = currentSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
 
     let scale = 1;
     let imgW = 1000;
@@ -454,8 +541,8 @@ export default function StrategiesPage() {
 
     // 1. Draw Map Image on main canvas
     ctx.save();
-    ctx.translate(canvas.width / 2 + pan.x, canvas.height / 2 + pan.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(canvas.width / 2 + currentPan.x, canvas.height / 2 + currentPan.y);
+    ctx.scale(currentZoom, currentZoom);
     ctx.rotate(angle);
     ctx.scale(scale, scale);
 
@@ -466,7 +553,7 @@ export default function StrategiesPage() {
     }
     ctx.restore();
 
-    // 2. Draw Paths on an offscreen canvas to prevent eraser from erasing the map
+    // 2. Draw Paths on an offscreen canvas to prevent eraser from erasing the map (using ref-based pan/zoom)
     if (!offscreenCanvasRef.current) {
       offscreenCanvasRef.current = document.createElement("canvas");
     }
@@ -479,8 +566,8 @@ export default function StrategiesPage() {
     if (pCtx) {
       pCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
       pCtx.save();
-      pCtx.translate(canvas.width / 2 + pan.x, canvas.height / 2 + pan.y);
-      pCtx.scale(zoom, zoom);
+      pCtx.translate(canvas.width / 2 + currentPan.x, canvas.height / 2 + currentPan.y);
+      pCtx.scale(currentZoom, currentZoom);
       pCtx.rotate(angle);
       pCtx.scale(scale, scale);
 
@@ -529,9 +616,9 @@ export default function StrategiesPage() {
 
           const arrowScale = (path.thickness !== undefined ? path.thickness : 5) / 5;
           pCtx.beginPath(); pCtx.fillStyle = path.color;
-          pCtx.moveTo(0, -6 * arrowScale);
-          pCtx.lineTo(15 * arrowScale, 0);
-          pCtx.lineTo(0, 6 * arrowScale);
+          pCtx.moveTo(0, -10 * arrowScale);
+          pCtx.lineTo(24 * arrowScale, 0);
+          pCtx.lineTo(0, 10 * arrowScale);
           pCtx.closePath(); pCtx.fill();
           pCtx.restore();
         }
@@ -544,8 +631,8 @@ export default function StrategiesPage() {
 
     // 3. Draw Agents on main canvas
     ctx.save();
-    ctx.translate(canvas.width / 2 + pan.x, canvas.height / 2 + pan.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(canvas.width / 2 + currentPan.x, canvas.height / 2 + currentPan.y);
+    ctx.scale(currentZoom, currentZoom);
     ctx.rotate(angle);
     ctx.scale(scale, scale);
 
@@ -586,8 +673,8 @@ export default function StrategiesPage() {
     ctx.restore();
 
     // 4. Draw Custom Eraser Circle cursor in screen space
-    if (tool === "eraser" && mousePosRef.current) {
-      const r = (eraserSize / 2) * zoom;
+    if (currentTool === "eraser" && mousePosRef.current) {
+      const r = (currentEraserSize / 2) * currentZoom;
       ctx.save();
       ctx.beginPath();
       ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, r, 0, Math.PI * 2);
@@ -602,6 +689,8 @@ export default function StrategiesPage() {
       ctx.stroke();
       ctx.restore();
     }
+
+    // 4b. Line-eraser highlight disabled (no preview)
 
     // 5. Draw Remote Cursors (collaboration) in screen space
     for (const [, cursor] of remoteCursors) {
@@ -640,11 +729,15 @@ export default function StrategiesPage() {
       ctx.fillText(label, labelX, labelY + 2);
       ctx.restore();
     }
-  }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize, remoteCursors]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMap, selectedSide, tool, agents, remoteCursors]);
+
+  // Keep ref always up-to-date so scheduleRedraw can call the latest version
+  redrawImmediateRef.current = redrawImmediate;
 
   const updateUndoRedo = useCallback(() => {
-    setCanUndo(pathsRef.current.length > 0);
-    setCanRedo(redoPathsRef.current.length > 0);
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(redoStackRef.current.length > 0);
   }, []);
 
   const broadcastStrokeUpdate = useCallback((path: CanvasPath, finished: boolean) => {
@@ -692,31 +785,139 @@ export default function StrategiesPage() {
     scheduleAutoSaveRef.current();
   }, []);
 
-  const undo = useCallback(() => {
-    if (pathsRef.current.length > 0) {
-      const path = pathsRef.current.pop();
-      if (path) {
-        redoPathsRef.current.push(path);
-        broadcastEraseElements([path.id], []);
-      }
-      redraw();
-      updateUndoRedo();
-      scheduleAutoSave();
+  const clearAll = useCallback(() => {
+    const oldPaths = [...pathsRef.current];
+    const oldAgents = [...agentsRef.current];
+    undoStackRef.current.push({ type: 'clear-all', paths: oldPaths, agents: oldAgents });
+    redoStackRef.current = [];
+    pathsRef.current = [];
+    agentsRef.current = [];
+    loadedPathIdsRef.current.clear();
+    loadedAgentIdsRef.current.clear();
+    updateUndoRedo();
+    redrawImmediate();
+    if (current && isSupabaseConfigured && channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "canvas-clear",
+        payload: { userId: myUserId }
+      });
     }
-  }, [redraw, updateUndoRedo, broadcastEraseElements, scheduleAutoSave]);
+    scheduleAutoSave();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, myUserId, updateUndoRedo, scheduleAutoSave]);
+
+  const undo = useCallback(() => {
+    const action = undoStackRef.current.pop();
+    if (!action) return;
+
+    switch (action.type) {
+      case 'add-path': {
+        pathsRef.current = pathsRef.current.filter(p => p.id !== action.path.id);
+        loadedPathIdsRef.current.delete(action.path.id);
+        redoStackRef.current.push(action);
+        broadcastEraseElements([action.path.id], []);
+        break;
+      }
+      case 'remove-path': {
+        pathsRef.current.splice(action.index, 0, action.path);
+        loadedPathIdsRef.current.add(action.path.id);
+        redoStackRef.current.push(action);
+        broadcastStrokeUpdate(action.path, true);
+        break;
+      }
+      case 'add-agent': {
+        agentsRef.current = agentsRef.current.filter(a => a.instanceId !== action.agent.instanceId);
+        redoStackRef.current.push(action);
+        broadcastEraseElements([], [action.agent.instanceId]);
+        break;
+      }
+      case 'remove-agent': {
+        agentsRef.current.splice(action.index, 0, action.agent);
+        redoStackRef.current.push(action);
+        broadcastAgentUpdate(action.agent, false);
+        loadedAgentIdsRef.current.add(action.agent.instanceId);
+        break;
+      }
+      case 'move-agent': {
+        const agent = agentsRef.current.find(a => a.instanceId === action.agentId);
+        if (agent) {
+          agent.x = action.oldX;
+          agent.y = action.oldY;
+          redoStackRef.current.push(action);
+          broadcastAgentUpdate(agent, false);
+        }
+        break;
+      }
+      case 'clear-all': {
+        pathsRef.current = action.paths;
+        agentsRef.current = action.agents;
+        redoStackRef.current.push(action);
+        break;
+      }
+    }
+
+    redraw();
+    updateUndoRedo();
+    scheduleAutoSave();
+  }, [redraw, updateUndoRedo, broadcastEraseElements, broadcastStrokeUpdate, broadcastAgentUpdate, scheduleAutoSave]);
 
   const redo = useCallback(() => {
-    if (redoPathsRef.current.length > 0) {
-      const path = redoPathsRef.current.pop();
-      if (path) {
-        pathsRef.current.push(path);
-        broadcastStrokeUpdate(path, true);
+    const action = redoStackRef.current.pop();
+    if (!action) return;
+
+    switch (action.type) {
+      case 'add-path': {
+        pathsRef.current.push(action.path);
+        loadedPathIdsRef.current.add(action.path.id);
+        undoStackRef.current.push(action);
+        broadcastStrokeUpdate(action.path, true);
+        break;
       }
-      redraw();
-      updateUndoRedo();
-      scheduleAutoSave();
+      case 'remove-path': {
+        pathsRef.current = pathsRef.current.filter(p => p.id !== action.path.id);
+        loadedPathIdsRef.current.delete(action.path.id);
+        undoStackRef.current.push(action);
+        broadcastEraseElements([action.path.id], []);
+        break;
+      }
+      case 'add-agent': {
+        agentsRef.current.push(action.agent);
+        undoStackRef.current.push(action);
+        broadcastAgentUpdate(action.agent, false);
+        loadedAgentIdsRef.current.add(action.agent.instanceId);
+        break;
+      }
+      case 'remove-agent': {
+        agentsRef.current = agentsRef.current.filter(a => a.instanceId !== action.agent.instanceId);
+        undoStackRef.current.push(action);
+        broadcastEraseElements([], [action.agent.instanceId]);
+        break;
+      }
+      case 'move-agent': {
+        const agent = agentsRef.current.find(a => a.instanceId === action.agentId);
+        if (agent) {
+          agent.x = action.newX;
+          agent.y = action.newY;
+          undoStackRef.current.push(action);
+          broadcastAgentUpdate(agent, false);
+        }
+        break;
+      }
+      case 'clear-all': {
+        pathsRef.current = [];
+        agentsRef.current = [];
+        loadedPathIdsRef.current.clear();
+        loadedAgentIdsRef.current.clear();
+        undoStackRef.current.push(action);
+        break;
+      }
     }
-  }, [redraw, updateUndoRedo, broadcastStrokeUpdate, scheduleAutoSave]);
+
+    redraw();
+    updateUndoRedo();
+    scheduleAutoSave();
+  }, [redraw, updateUndoRedo, broadcastEraseElements, broadcastStrokeUpdate, broadcastAgentUpdate, scheduleAutoSave]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -876,6 +1077,63 @@ export default function StrategiesPage() {
     return { x: mx, y: my };
   };
 
+  // Returns the minimum distance from point (px,py) to a line segment (ax,ay)-(bx,by)
+  const pointToSegmentDist = (px: number, py: number, ax: number, ay: number, bx: number, by: number): number => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return Math.sqrt((px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2);
+  };
+
+  // Finds the path closest to (worldX, worldY) within hitRadius (in world units)
+  // Skips eraser-type paths and paths fully covered by eraser paths drawn AFTER them
+  const findPathAtPoint = (worldX: number, worldY: number, hitRadius: number): CanvasPath | null => {
+    let closest: CanvasPath | null = null;
+    let closestDist = hitRadius;
+    // Search in reverse so topmost (last drawn) path is preferred
+    for (let i = pathsRef.current.length - 1; i >= 0; i--) {
+      const path = pathsRef.current[i];
+      if (path.tool === "eraser" || path.points.length < 2) continue;
+
+      // Check if this path is covered by any eraser drawn AFTER it
+      let covered = false;
+      for (let k = i + 1; k < pathsRef.current.length; k++) {
+        const ep = pathsRef.current[k];
+        if (ep.tool !== "eraser" || ep.points.length < 2) continue;
+        for (let j = 1; j < ep.points.length; j++) {
+          const eraserRadius = (ep.thickness ?? 20) / 2;
+          const d = pointToSegmentDist(
+            worldX, worldY,
+            ep.points[j - 1].x, ep.points[j - 1].y,
+            ep.points[j].x, ep.points[j].y
+          );
+          if (d <= eraserRadius) {
+            covered = true;
+            break;
+          }
+        }
+        if (covered) break;
+      }
+      if (covered) continue;
+
+      for (let j = 1; j < path.points.length; j++) {
+        const d = pointToSegmentDist(
+          worldX, worldY,
+          path.points[j - 1].x, path.points[j - 1].y,
+          path.points[j].x, path.points[j].y
+        );
+        if (d < closestDist) {
+          closestDist = d;
+          closest = path;
+          break;
+        }
+      }
+    }
+    return closest;
+  };
+
   const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
     let cy = 0;
@@ -890,16 +1148,55 @@ export default function StrategiesPage() {
     }
 
     const isRightClick = "button" in e && e.button === 2;
-    if (tool === "pan" || isRightClick) {
+    if (isRightClick) {
       panningRef.current = true;
       panStartRef.current = { x: cx - panRef.current.x, y: cy - panRef.current.y };
       const canvas = canvasRef.current;
       if (canvas) canvas.style.cursor = "grabbing";
+
+      // Global listeners so pan continues outside the canvas bounds
+      const panMoveHandler = (ev: MouseEvent) => draw(ev as unknown as React.MouseEvent);
+      const panUpHandler = () => {
+        window.removeEventListener("mousemove", panMoveHandler);
+        window.removeEventListener("mouseup", panUpHandler);
+        stopDraw();
+      };
+      window.addEventListener("mousemove", panMoveHandler);
+      window.addEventListener("mouseup", panUpHandler);
       return;
     }
 
     const pos = getPos(e);
     const canvas = canvasRef.current;
+
+    // ── Line Eraser: erase whole path on mousedown ──
+    if (canvas && tool === "line-eraser") {
+      const mapImg = mapImgRef.current;
+      let scale = 1;
+      if (mapImg && mapImg.complete) {
+        const rotatedW = mapImg.height;
+        const rotatedH = mapImg.width;
+        scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+      }
+      const hitRadius = 12 / (zoomRef.current * scale);
+      const hit = findPathAtPoint(pos.x, pos.y, hitRadius);
+      if (hit) {
+        const erasedId = hit.id;
+        const erasedIdx = pathsRef.current.findIndex(p => p.id === erasedId);
+        const erasedPath = pathsRef.current.find(p => p.id === erasedId)!;
+        undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
+        redoStackRef.current = [];
+        pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
+        loadedPathIdsRef.current.delete(erasedId);
+        if (hoveredPathIdRef.current === erasedId) hoveredPathIdRef.current = null;
+        updateUndoRedo();
+        redrawImmediate();
+        broadcastEraseElements([erasedId], []);
+        scheduleAutoSave();
+      }
+      drawingRef.current = true;
+      return;
+    }
 
     if (canvas && tool === "select") {
       const rect = canvas.getBoundingClientRect();
@@ -914,6 +1211,7 @@ export default function StrategiesPage() {
       });
       if (found) {
         draggedAgentRef.current = found;
+        draggedAgentOldPosRef.current = { x: found.x, y: found.y };
         return;
       }
     }
@@ -923,7 +1221,7 @@ export default function StrategiesPage() {
       const mouseY = cy - rect.top;
 
       const initialCount = agentsRef.current.length;
-      const erasedAgents: string[] = [];
+      const erasedAgents: CanvasAgent[] = [];
       agentsRef.current = agentsRef.current.filter(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
@@ -932,14 +1230,20 @@ export default function StrategiesPage() {
         const threshold = (18 + eraserSize / 2) * zoomRef.current;
         const keep = distance > threshold;
         if (!keep) {
-          erasedAgents.push(a.instanceId);
+          erasedAgents.push(a);
         }
         return keep;
       });
 
       if (agentsRef.current.length < initialCount) {
+        for (const agent of erasedAgents) {
+          const idx = agentsRef.current.findIndex(a => a.instanceId === agent.instanceId);
+          undoStackRef.current.push({ type: 'remove-agent', agent, index: idx < 0 ? agentsRef.current.length : idx });
+        }
+        redoStackRef.current = [];
         redraw();
-        broadcastEraseElements([], erasedAgents);
+        broadcastEraseElements([], erasedAgents.map(a => a.instanceId));
+        updateUndoRedo();
         scheduleAutoSave();
       }
     }
@@ -956,10 +1260,26 @@ export default function StrategiesPage() {
     pathsRef.current.push(newPath);
     activePathIdRef.current = newPath.id;
     loadedPathIdsRef.current.add(newPath.id);
-    redoPathsRef.current = [];
     updateUndoRedo();
     broadcastStrokeUpdate(newPath, false);
+
+    // Attach global listeners so drawing continues outside the canvas bounds.
+    // We capture the current ref values so add/remove use the same function reference.
+    const moveHandler = (e: MouseEvent) => globalMouseMoveRef.current(e);
+    const upHandler = () => globalMouseUpRef.current();
+    globalMouseMoveRef.current = (e: MouseEvent) => draw(e as unknown as React.MouseEvent);
+    globalMouseUpRef.current = () => {
+      window.removeEventListener("mousemove", moveHandler);
+      window.removeEventListener("mouseup", upHandler);
+      stopDraw();
+    };
+    window.addEventListener("mousemove", moveHandler);
+    window.addEventListener("mouseup", upHandler);
   };
+
+  // Stable refs for global listeners
+  const globalMouseMoveRef = useRef<(e: MouseEvent) => void>(() => {});
+  const globalMouseUpRef = useRef<() => void>(() => {});
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
@@ -975,9 +1295,18 @@ export default function StrategiesPage() {
     }
 
     if (panningRef.current) {
-      setPan({
+      // Update pan ref immediately (no React re-render) for lag-free panning
+      const newPan = {
         x: cx - panStartRef.current.x,
         y: cy - panStartRef.current.y
+      };
+      panRef.current = newPan;
+      pendingPanFlushRef.current = true;
+      // Schedule a redraw via RAF instead of setState
+      if (pendingRedrawRef !== null) cancelAnimationFrame(pendingRedrawRef);
+      pendingRedrawRef = requestAnimationFrame(() => {
+        pendingRedrawRef = null;
+        redrawImmediate();
       });
       return;
     }
@@ -1023,8 +1352,34 @@ export default function StrategiesPage() {
           });
           canvas.style.cursor = isOverAgent ? "pointer" : "default";
         }
-      } else if (tool === "pan") {
-        canvas.style.cursor = "grab";
+      } else if (tool === "line-eraser") {
+        const mapImg = mapImgRef.current;
+        let scale = 1;
+        if (mapImg && mapImg.complete) {
+          const rotatedW = mapImg.height;
+          const rotatedH = mapImg.width;
+          scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
+        }
+        const hitRadius = 12 / (zoomRef.current * scale);
+        const pos2 = getPos(e);
+        const hit = findPathAtPoint(pos2.x, pos2.y, hitRadius);
+        hoveredPathIdRef.current = hit ? hit.id : null;
+        canvas.style.cursor = hit ? "pointer" : "crosshair";
+        // If dragging (mousedown held), keep erasing paths under cursor
+        if (drawingRef.current && hit) {
+          const erasedId = hit.id;
+          const erasedIdx = pathsRef.current.findIndex(p => p.id === erasedId);
+          const erasedPath = pathsRef.current.find(p => p.id === erasedId)!;
+          undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
+          redoStackRef.current = [];
+          pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
+          loadedPathIdsRef.current.delete(erasedId);
+          hoveredPathIdRef.current = null;
+          updateUndoRedo();
+          redrawImmediate();
+          broadcastEraseElements([erasedId], []);
+          scheduleAutoSave();
+        }
       }
     }
 
@@ -1034,7 +1389,7 @@ export default function StrategiesPage() {
       const mouseY = cy - rect.top;
 
       const initialCount = agentsRef.current.length;
-      const erasedAgents: string[] = [];
+      const erasedAgents: CanvasAgent[] = [];
       agentsRef.current = agentsRef.current.filter(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
@@ -1043,14 +1398,20 @@ export default function StrategiesPage() {
         const threshold = (18 + eraserSize / 2) * zoomRef.current;
         const keep = distance > threshold;
         if (!keep) {
-          erasedAgents.push(a.instanceId);
+          erasedAgents.push(a);
         }
         return keep;
       });
 
       if (agentsRef.current.length < initialCount) {
+        for (const agent of erasedAgents) {
+          const idx = agentsRef.current.findIndex(a => a.instanceId === agent.instanceId);
+          undoStackRef.current.push({ type: 'remove-agent', agent, index: idx < 0 ? agentsRef.current.length : idx });
+        }
+        redoStackRef.current = [];
         redraw();
-        broadcastEraseElements([], erasedAgents);
+        broadcastEraseElements([], erasedAgents.map(a => a.instanceId));
+        updateUndoRedo();
         scheduleAutoSave();
       }
     }
@@ -1069,7 +1430,7 @@ export default function StrategiesPage() {
       return;
     }
     if (!drawingRef.current) {
-      if (tool === "eraser") redraw();
+      if (tool === "eraser") redrawImmediate();
       return;
     }
     const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
@@ -1086,10 +1447,23 @@ export default function StrategiesPage() {
   const stopDraw = () => {
     if (panningRef.current) {
       panningRef.current = false;
+      if (pendingPanFlushRef.current) {
+        pendingPanFlushRef.current = false;
+        setPan({ ...panRef.current });
+      }
       const canvas = canvasRef.current;
       if (canvas) {
-        canvas.style.cursor = tool === "pan" ? "grab" : "default";
+        const toolCursor =
+          tool === "eraser" ? "none" :
+          tool === "select" ? "default" :
+          tool === "line-eraser" ? "crosshair" :
+          "crosshair";
+        canvas.style.cursor = toolCursor;
       }
+      return;
+    }
+    if (tool === "line-eraser") {
+      drawingRef.current = false;
       return;
     }
     const wasDrawing = drawingRef.current;
@@ -1099,8 +1473,11 @@ export default function StrategiesPage() {
       drawingRef.current = false;
       const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
       if (activePath) {
+        undoStackRef.current.push({ type: 'add-path', path: activePath });
+        redoStackRef.current = [];
         broadcastStrokeUpdate(activePath, true);
         loadedPathIdsRef.current.add(activePath.id);
+        updateUndoRedo();
         scheduleAutoSave();
       }
       activePathIdRef.current = null;
@@ -1108,10 +1485,17 @@ export default function StrategiesPage() {
 
     if (wasDragging && draggedAgentRef.current) {
       const agent = draggedAgentRef.current;
+      const oldPos = draggedAgentOldPosRef.current;
       draggedAgentRef.current = null;
+      draggedAgentOldPosRef.current = null;
       const canvas = canvasRef.current;
       if (canvas && tool === "select") {
         canvas.style.cursor = "default";
+      }
+      if (oldPos && (oldPos.x !== agent.x || oldPos.y !== agent.y)) {
+        undoStackRef.current.push({ type: 'move-agent', agentId: agent.instanceId, oldX: oldPos.x, oldY: oldPos.y, newX: agent.x, newY: agent.y });
+        redoStackRef.current = [];
+        updateUndoRedo();
       }
       broadcastAgentUpdate(agent, false);
       loadedAgentIdsRef.current.add(agent.instanceId);
@@ -1136,11 +1520,15 @@ export default function StrategiesPage() {
       team: activeTeam,
       createdBy: myUserId
     };
+    undoStackRef.current.push({ type: 'add-agent', agent: newAgent });
+    redoStackRef.current = [];
     agentsRef.current.push(newAgent);
     loadedAgentIdsRef.current.add(newAgent.instanceId);
     redraw();
     broadcastAgentUpdate(newAgent, false);
+    updateUndoRedo();
     scheduleAutoSave();
+    setTool("select");
   };
 
   const handleAgentDragStart = (e: React.DragEvent, agentId: string) => {
@@ -1181,8 +1569,11 @@ export default function StrategiesPage() {
       };
       agentsRef.current.push(newAgent);
       loadedAgentIdsRef.current.add(newAgent.instanceId);
+      undoStackRef.current.push({ type: 'add-agent', agent: newAgent });
+      redoStackRef.current = [];
       redraw();
       broadcastAgentUpdate(newAgent, false);
+      updateUndoRedo();
       scheduleAutoSave();
     }
   };
@@ -1223,7 +1614,8 @@ export default function StrategiesPage() {
       pathsRef.current = [];
       agentsRef.current = [];
     }
-    redoPathsRef.current = [];
+    undoStackRef.current = [];
+    redoStackRef.current = [];
     updateUndoRedo();
     lastSavedAtRef.current = new Date().toISOString();
     setView("editor");
@@ -1751,31 +2143,150 @@ export default function StrategiesPage() {
               </div>
             ) : (
               <>
-                {(["attack", "defense"] as const).map(side => {
-                  const sideStrats = strategies.filter(s => s.side === side);
-                  if (sideStrats.length === 0) return null;
+                {(() => {
+                  const compositions = getUniqueCompositions(strategies);
+                  const compEntries = Array.from(compositions.entries());
+                  
+                  const filteredStrategies = compositionFilter
+                    ? strategies.filter(s => getAllyComposition(s).join(',') === compositionFilter)
+                    : strategies;
+
                   return (
-                    <div key={side} style={{ marginBottom: 36, flexShrink: 0 }}>
-                      <div className="strategy-group-title">
-                        <div className="strategy-group-line" style={{ background: side === "attack" ? "#ff4655" : "#3b82f6" }} />
-                        <h4 className="strategy-group-text">
-                          {side === "attack" ? "Planes de Ataque (ATK)" : "Líneas de Defensa (DEF)"}
-                        </h4>
-                      </div>
-                      <div className="strats-grid-premium">
-                        {sideStrats.map(s => (
-                          <div key={s.id} className={`strategy-card-premium ${s.side === "attack" ? "atk" : "def"}`} onClick={() => openEditor(s)}>
-                            <h3 className="strategy-card-title-premium">{s.name}</h3>
-                            <span className={`strategy-card-badge-premium ${s.side === "attack" ? "atk" : "def"}`}>
-                              {s.side === "attack" ? "Atacante" : "Defensor"}
-                            </span>
+                    <>
+                      {compEntries.length > 0 && (
+                        <div style={{ marginBottom: 24, flexShrink: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                            <div style={{ width: 3, height: 16, background: "#00d4aa", borderRadius: 2 }} />
+                            <h4 style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1.5, margin: 0 }}>
+                              Filtrar por Composición
+                            </h4>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            <button
+                              onClick={() => setCompositionFilter(null)}
+                              style={{
+                                padding: "6px 14px",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                background: !compositionFilter ? "rgba(0, 212, 170, 0.2)" : "rgba(255,255,255,0.05)",
+                                border: !compositionFilter ? "1px solid rgba(0, 212, 170, 0.4)" : "1px solid rgba(255,255,255,0.1)",
+                                color: !compositionFilter ? "#00d4aa" : "rgba(255,255,255,0.6)",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              TODAS ({strategies.length})
+                            </button>
+                            {compEntries.map(([compKey, strats]) => {
+                              const compAgents = compKey.split(',');
+                              return (
+                                <button
+                                  key={compKey}
+                                  onClick={() => setCompositionFilter(compositionFilter === compKey ? null : compKey)}
+                                  style={{
+                                    padding: "6px 10px",
+                                    borderRadius: 8,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    background: compositionFilter === compKey ? "rgba(0, 212, 170, 0.2)" : "rgba(255,255,255,0.05)",
+                                    border: compositionFilter === compKey ? "1px solid rgba(0, 212, 170, 0.4)" : "1px solid rgba(255,255,255,0.1)",
+                                    color: compositionFilter === compKey ? "#00d4aa" : "rgba(255,255,255,0.6)",
+                                    transition: "all 0.2s ease"
+                                  }}
+                                >
+                                  <div style={{ display: "flex", gap: 3 }}>
+                                    {compAgents.slice(0, 3).map((agentId, idx) => {
+                                      const agent = agents.find(a => a.id === agentId);
+                                      if (!agent) return null;
+                                      return (
+                                        <img
+                                          key={`${agentId}-${idx}`}
+                                          src={agent.displayIcon}
+                                          alt={agent.name}
+                                          style={{ width: 20, height: 20, borderRadius: 4 }}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                  <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                                    {compAgents.slice(3, 5).map((agentId, idx) => {
+                                      const agent = agents.find(a => a.id === agentId);
+                                      if (!agent) return null;
+                                      return (
+                                        <img
+                                          key={`${agentId}-${idx}`}
+                                          src={agent.displayIcon}
+                                          alt={agent.name}
+                                          style={{ width: 20, height: 20, borderRadius: 4 }}
+                                        />
+                                      );
+                                    })}
+                                    <span style={{ marginLeft: 2, opacity: 0.7, fontSize: 10 }}>×{strats.length}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {(["attack", "defense"] as const).map(side => {
+                        const sideStrats = filteredStrategies.filter(s => s.side === side);
+                        if (sideStrats.length === 0) return null;
+                        return (
+                          <div key={side} style={{ marginBottom: 36, flexShrink: 0 }}>
+                            <div className="strategy-group-title">
+                              <div className="strategy-group-line" style={{ background: side === "attack" ? "#ff4655" : "#3b82f6" }} />
+                              <h4 className="strategy-group-text">
+                                {side === "attack" ? "Planes de Ataque (ATK)" : "Líneas de Defensa (DEF)"}
+                              </h4>
+                            </div>
+                            <div className="strats-grid-premium">
+                              {sideStrats.map(s => {
+                                const allyAgents = getAllyAgents(s);
+                                return (
+                                  <div key={s.id} className={`strategy-card-premium ${s.side === "attack" ? "atk" : "def"}`} onClick={() => openEditor(s)}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                      <h3 className="strategy-card-title-premium">{s.name}</h3>
+                                      <span className={`strategy-card-badge-premium ${s.side === "attack" ? "atk" : "def"}`}>
+                                        {s.side === "attack" ? "Atacante" : "Defensor"}
+                                      </span>
+                                    </div>
+                                    {allyAgents.length > 0 && (
+                                      <div style={{ display: "flex", gap: 4, marginTop: 10, justifyContent: "center" }}>
+                                        {allyAgents.map(ca => {
+                                          const agent = agents.find(a => a.id === ca.id);
+                                          if (!agent) return null;
+                                          return (
+                                            <img
+                                              key={ca.instanceId}
+                                              src={agent.displayIcon}
+                                              alt={agent.name}
+                                              title={agent.name}
+                                              style={{ width: 32, height: 32, borderRadius: 6, border: `2px solid ${ROLE_COLORS[agent.role]}` }}
+                                            />
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {!strategiesLoading && filteredStrategies.length === 0 && (
+                        <EmptyState message={compositionFilter ? "No hay estrategias con esta composición." : "Aún no hay estrategias creadas para este mapa."} />
+                      )}
+                    </>
                   );
-                })}
-                {!strategiesLoading && strategies.length === 0 && <EmptyState message="Aún no hay estrategias creadas para este mapa." />}
+                })()}
               </>
             )}
           </div>
@@ -1996,11 +2507,6 @@ export default function StrategiesPage() {
                         <path d="m13 13 6 6" />
                       </svg>
                     ), "Seleccionar"],
-                    ["pan", (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m5 9-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
-                      </svg>
-                    ), "Mover vista"],
                     ["draw", (
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9" />
@@ -2019,27 +2525,30 @@ export default function StrategiesPage() {
                         <path d="M22 21H7" />
                         <path d="m5 11 9 9" />
                       </svg>
-                    ), "Borrar"]
+                    ), "Borrador (pixel)"],
+                    ["line-eraser", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                        <path d="M22 21H7" />
+                        <line x1="17" y1="3" x2="3" y2="17" />
+                      </svg>
+                    ), "Borrador de línea"]
                   ] as [Tool, React.ReactNode, string][]).map(([t, icon, label]) => (
-                    <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => setTool(t)} title={label} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                    <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => { setTool(t); hoveredPathIdRef.current = null; }} title={label} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                       {icon}
                     </button>
                   ))}
                 </div>
 
+                {/* Tool-specific params: draw & arrow */}
                 {(tool === "draw" || tool === "arrow") && (
                   <>
-                    <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "2px 0" }} />
-
-                    {/* Color Palette orbs */}
                     <div className="color-palette-premium-vertical">
                       {colors2.map(c => (
                         <button key={c} className={`color-orb-premium ${color === c ? "active" : ""}`} style={{ background: c, "--orb-glow": c, width: 18, height: 18 } as React.CSSProperties} onClick={() => { setColor(c); setShowColorPicker(false); }}>
                           {color === c && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff" }} />}
                         </button>
                       ))}
-
-                      {/* Custom Spectrum Picker Orb */}
                       <button
                         style={{
                           position: "relative",
@@ -2090,32 +2599,18 @@ export default function StrategiesPage() {
                         </div>
                       </button>
                     </div>
-                  </>
-                )}
-
-                {/* Brush Size Selector */}
-                {(tool === "draw" || tool === "arrow" || tool === "eraser") && (
-                  <>
-                    <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 0 4px 0" }} />
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 6 }}>
                       <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Grosor</span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-                        {(tool === "eraser" ? [10, 20, 45, 80] : [2, 5, 10, 18]).map(size => {
-                          const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : eraserSize;
+                        {[2, 5, 10, 18].map(size => {
+                          const activeSize = tool === "draw" ? pencilSize : arrowSize;
                           const isActive = activeSize === size;
-
-                          // Visual representation of the dot size scaled down
-                          const dotSize = Math.max(4, Math.min(16, tool === "eraser" ? size / 4 : size * 0.9));
-
+                          const dotSize = Math.max(4, Math.min(16, size * 0.9));
                           return (
                             <button
                               key={size}
                               type="button"
-                              onClick={() => {
-                                if (tool === "draw") setPencilSize(size);
-                                else if (tool === "arrow") setArrowSize(size);
-                                else if (tool === "eraser") setEraserSize(size);
-                              }}
+                              onClick={() => { if (tool === "draw") setPencilSize(size); else setArrowSize(size); }}
                               className={`size-selector-btn-premium ${isActive ? "active" : ""}`}
                               style={{
                                 width: 28,
@@ -2149,6 +2644,54 @@ export default function StrategiesPage() {
                   </>
                 )}
 
+                {/* Tool-specific params: eraser */}
+                {tool === "eraser" && (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 6 }}>
+                      <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Grosor</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+                        {[10, 20, 45, 80].map(size => {
+                          const isActive = eraserSize === size;
+                          const dotSize = Math.max(4, Math.min(16, size / 4));
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => setEraserSize(size)}
+                              className={`size-selector-btn-premium ${isActive ? "active" : ""}`}
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                border: isActive ? "1px solid var(--val-red)" : "1px solid rgba(255,255,255,0.06)",
+                                background: isActive ? "rgba(255, 70, 85, 0.15)" : "rgba(255,255,255,0.02)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                outline: "none",
+                              }}
+                              title={`${size}px`}
+                            >
+                              <div
+                                style={{
+                                  width: dotSize,
+                                  height: dotSize,
+                                  borderRadius: "50%",
+                                  background: isActive ? "var(--val-red)" : "rgba(255,255,255,0.6)",
+                                  transition: "all 0.2s ease",
+                                }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Spacer */}
                 <div style={{ flexGrow: 1 }} />
 
                 {/* Actions group */}
@@ -2201,6 +2744,38 @@ export default function StrategiesPage() {
                       <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
                     </svg>
                     <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>REHACER</span>
+                  </button>
+
+                  {/* Borrar Todo */}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      borderRadius: 10,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "10px 4px",
+                      height: "auto",
+                      color: "#ff4655",
+                      opacity: (pathsRef.current.length > 0 || agentsRef.current.length > 0) ? 1 : 0.35,
+                      transition: "all 0.2s ease"
+                    }}
+                    onClick={() => {
+                      if (window.confirm("¿Borrar todo el lienzo? Esta acción no se puede deshacer.")) {
+                        clearAll();
+                      }
+                    }}
+                    title="Borrar todo el lienzo"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>BORRAR TODO</span>
                   </button>
                 </div>
               </div>
@@ -2355,8 +2930,8 @@ export default function StrategiesPage() {
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
+                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; redrawImmediate(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
                   onContextMenu={e => e.preventDefault()} />
@@ -2578,7 +3153,7 @@ export default function StrategiesPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Descripción</label>
               <textarea
                 className="input-premium"
@@ -2588,6 +3163,25 @@ export default function StrategiesPage() {
                 placeholder="Describe la ejecución, utilidades a usar, etc..."
                 style={{ resize: 'none', height: 'auto', paddingTop: 10, paddingBottom: 10 }}
               />
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Cambiar Mapa</label>
+              <select
+                className="input-premium"
+                value={configMapId}
+                onChange={e => setConfigMapId(e.target.value)}
+                style={{ cursor: 'pointer' }}
+              >
+                {allMaps.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}{m.activeInRotation ? " ★" : ""}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", fontWeight: 600, marginTop: 4, display: 'block' }}>
+                ★ = En rotación activa. Cambiar el mapa no borra el trazado.
+              </span>
             </div>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
