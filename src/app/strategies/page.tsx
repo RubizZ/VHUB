@@ -260,6 +260,8 @@ export default function StrategiesPage() {
 
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const loadedPathIdsRef = useRef<Set<string>>(new Set());
+  const loadedAgentIdsRef = useRef<Set<string>>(new Set());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
   const agentsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -331,6 +333,23 @@ export default function StrategiesPage() {
   const getAgentsByRole = useCallback((role: AgentRole) => {
     return agents.filter(a => a.role === role);
   }, [agents]);
+
+  const syncCanvasLocalState = useCallback((paths: any[], agentsList: any[]) => {
+    const sanitizedPaths = paths.map((p: any) => ({
+      ...p,
+      id: p.id || Math.random().toString(36).substring(2, 9)
+    }));
+    const sanitizedAgents = agentsList.map((a: any) => ({
+      ...a,
+      instanceId: a.instanceId || Math.random().toString(36).substring(2, 9)
+    }));
+
+    pathsRef.current = sanitizedPaths;
+    agentsRef.current = sanitizedAgents;
+
+    loadedPathIdsRef.current = new Set(sanitizedPaths.map((p: any) => p.id));
+    loadedAgentIdsRef.current = new Set(sanitizedAgents.map((a: any) => a.instanceId));
+  }, []);
 
   const goToMap = (map: ValorantMap) => {
     setSelectedMap(map);
@@ -557,9 +576,12 @@ export default function StrategiesPage() {
 
     // 5. Draw Remote Cursors (collaboration) in screen space
     for (const [, cursor] of remoteCursors) {
+      const screenPos = (cursor.x !== undefined && cursor.y !== undefined)
+        ? getScreenPos(cursor.x, cursor.y)
+        : { x: cursor.canvasX, y: cursor.canvasY };
       ctx.save();
       // Draw cursor arrow
-      ctx.translate(cursor.canvasX, cursor.canvasY);
+      ctx.translate(screenPos.x, screenPos.y);
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, 14);
@@ -846,23 +868,33 @@ export default function StrategiesPage() {
       const mouseX = cx - rect.left;
       const mouseY = cy - rect.top;
 
-      const agentIndex = agentsRef.current.findIndex(a => {
+      const initialCount = agentsRef.current.length;
+      agentsRef.current = agentsRef.current.filter(a => {
         const screenPos = getScreenPos(a.x, a.y);
         const dx = screenPos.x - mouseX;
         const dy = screenPos.y - mouseY;
-        return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const threshold = (18 + eraserSize / 2) * zoomRef.current;
+        return distance > threshold;
       });
-      if (agentIndex !== -1) {
-        agentsRef.current.splice(agentIndex, 1);
+
+      if (agentsRef.current.length < initialCount) {
         redraw();
         broadcastCanvasUpdate();
         scheduleAutoSave();
-        return;
       }
     }
     drawingRef.current = true;
     const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
-    pathsRef.current.push({ tool, color, points: [pos], thickness: activeSize });
+    const newPath = {
+      id: Math.random().toString(36).substring(2, 9),
+      tool,
+      color,
+      points: [pos],
+      thickness: activeSize
+    };
+    pathsRef.current.push(newPath);
+    loadedPathIdsRef.current.add(newPath.id);
     redoPathsRef.current = [];
     updateUndoRedo();
   };
@@ -930,6 +962,28 @@ export default function StrategiesPage() {
       }
     }
 
+    if (drawingRef.current && tool === "eraser" && canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = cx - rect.left;
+      const mouseY = cy - rect.top;
+
+      const initialCount = agentsRef.current.length;
+      agentsRef.current = agentsRef.current.filter(a => {
+        const screenPos = getScreenPos(a.x, a.y);
+        const dx = screenPos.x - mouseX;
+        const dy = screenPos.y - mouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const threshold = (18 + eraserSize / 2) * zoomRef.current;
+        return distance > threshold;
+      });
+
+      if (agentsRef.current.length < initialCount) {
+        redraw();
+        broadcastCanvasUpdate();
+        scheduleAutoSave();
+      }
+    }
+
     if (tool === "select") {
       if (draggedAgentRef.current) {
         draggedAgentRef.current.x = pos.x;
@@ -979,7 +1033,15 @@ export default function StrategiesPage() {
       img.onload = () => { agentImgsRef.current.set(a.id, img); redraw(); };
       agentImgsRef.current.set(a.id, img);
     }
-    agentsRef.current.push({ id: a.id, x: -50 + Math.random() * 100, y: -50 + Math.random() * 100, team: activeTeam });
+    const newAgent = {
+      instanceId: Math.random().toString(36).substring(2, 9),
+      id: a.id,
+      x: -50 + Math.random() * 100,
+      y: -50 + Math.random() * 100,
+      team: activeTeam
+    };
+    agentsRef.current.push(newAgent);
+    loadedAgentIdsRef.current.add(newAgent.instanceId);
     redraw();
     broadcastCanvasUpdate();
     scheduleAutoSave();
@@ -1011,9 +1073,17 @@ export default function StrategiesPage() {
           agentImgsRef.current.set(agent.id, img);
           redraw();
         };
-        agentImgsRef.current.set(agent.id, img);
+          agentImgsRef.current.set(agent.id, img);
       }
-      agentsRef.current.push({ id: agent.id, x: pos.x, y: pos.y, team: activeTeam });
+      const newAgent = {
+        instanceId: Math.random().toString(36).substring(2, 9),
+        id: agent.id,
+        x: pos.x,
+        y: pos.y,
+        team: activeTeam
+      };
+      agentsRef.current.push(newAgent);
+      loadedAgentIdsRef.current.add(newAgent.instanceId);
       redraw();
       broadcastCanvasUpdate();
       scheduleAutoSave();
@@ -1034,8 +1104,7 @@ export default function StrategiesPage() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any;
-      pathsRef.current = d.paths || [];
-      agentsRef.current = d.agents || [];
+      syncCanvasLocalState(d.paths || [], d.agents || []);
 
       // Pre-load agent images
       for (const a of agentsRef.current) {
@@ -1075,7 +1144,12 @@ export default function StrategiesPage() {
           name: current.name,
           side: current.side,
           description: current.description,
-          canvas_data: { paths: pathsRef.current, agents: agentsRef.current }
+          canvas_data: {
+            paths: pathsRef.current,
+            agents: agentsRef.current,
+            clientKnownPathIds: Array.from(loadedPathIdsRef.current),
+            clientKnownAgentIds: Array.from(loadedAgentIdsRef.current)
+          }
         })
       });
       if (!res.ok) throw new Error("Error saving strategy canvas");
@@ -1083,7 +1157,13 @@ export default function StrategiesPage() {
       lastSavedAtRef.current = new Date().toISOString();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data && data.canvas_data) {
+        const d = (typeof data.canvas_data === "string" ? JSON.parse(data.canvas_data) : data.canvas_data) as any;
+        syncCanvasLocalState(d.paths || [], d.agents || []);
+        redraw();
+        updateUndoRedo();
+      }
       queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
     }
   });
@@ -1149,8 +1229,7 @@ export default function StrategiesPage() {
         })
         .on("broadcast", { event: "canvas-update" }, ({ payload }) => {
           if (!payload || payload.userId === myUserId) return;
-          if (payload.paths) pathsRef.current = payload.paths;
-          if (payload.agents) agentsRef.current = payload.agents;
+          syncCanvasLocalState(payload.paths || [], payload.agents || []);
           redraw();
           updateUndoRedo();
         })
@@ -1212,8 +1291,7 @@ export default function StrategiesPage() {
           if (remoteTime > savedTime && !drawingRef.current && !draggedAgentRef.current) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const d = (typeof remote.canvas_data === "string" ? JSON.parse(remote.canvas_data || "{}") : remote.canvas_data || {}) as any;
-            pathsRef.current = d.paths || [];
-            agentsRef.current = d.agents || [];
+            syncCanvasLocalState(d.paths || [], d.agents || []);
             lastSavedAtRef.current = remote.updated_at;
             redraw();
             updateUndoRedo();
