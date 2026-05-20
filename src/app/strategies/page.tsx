@@ -33,6 +33,10 @@ interface RemoteCursor {
   y: number;
   canvasX: number;
   canvasY: number;
+  targetX?: number;
+  targetY?: number;
+  targetCanvasX?: number;
+  targetCanvasY?: number;
 }
 
 interface CanvasPath {
@@ -53,7 +57,7 @@ interface CanvasAgent {
   createdBy?: string;
 }
 
-type Tool = "select" | "draw" | "arrow" | "eraser" | "pan";
+type Tool = "select" | "draw" | "arrow" | "eraser" | "path-eraser" | "pan";
 type View = "maps" | "strategies" | "editor";
 
 
@@ -146,6 +150,8 @@ export default function StrategiesPage() {
   const [configName, setConfigName] = useState("");
   const [configSide, setConfigSide] = useState<"attack" | "defense">("attack");
   const [configDescription, setConfigDescription] = useState("");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const smoothCursorsRef = useRef<Map<string, RemoteCursor>>(new Map());
 
   // Brush Size States
   const [pencilSize, setPencilSize] = useState<number>(5);
@@ -586,25 +592,40 @@ export default function StrategiesPage() {
     ctx.restore();
 
     // 4. Draw Custom Eraser Circle cursor in screen space
-    if (tool === "eraser" && mousePosRef.current) {
-      const r = (eraserSize / 2) * zoom;
+    if ((tool === "eraser" || tool === "path-eraser") && mousePosRef.current) {
+      const r = tool === "path-eraser" ? 8 * zoom : (eraserSize / 2) * zoom;
       ctx.save();
       ctx.beginPath();
       ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, r, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.strokeStyle = tool === "path-eraser" ? "rgba(255, 70, 85, 0.9)" : "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
       ctx.beginPath();
       ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, Math.max(1, r - 1), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.strokeStyle = tool === "path-eraser" ? "rgba(255, 70, 85, 0.3)" : "rgba(0, 0, 0, 0.3)";
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      if (tool === "path-eraser") {
+        // Draw X icon in center
+        const cx = mousePosRef.current.canvasX;
+        const cy = mousePosRef.current.canvasY;
+        const s = 3 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(cx - s, cy - s);
+        ctx.lineTo(cx + s, cy + s);
+        ctx.moveTo(cx + s, cy - s);
+        ctx.lineTo(cx - s, cy + s);
+        ctx.strokeStyle = "rgba(255, 70, 85, 0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
-    // 5. Draw Remote Cursors (collaboration) in screen space
-    for (const [, cursor] of remoteCursors) {
+    // 5. Draw Remote Cursors (collaboration) in screen space — uses interpolated positions
+    for (const [, cursor] of smoothCursorsRef.current) {
       const screenPos = (cursor.x !== undefined && cursor.y !== undefined)
         ? getScreenPos(cursor.x, cursor.y)
         : { x: cursor.canvasX, y: cursor.canvasY };
@@ -685,6 +706,28 @@ export default function StrategiesPage() {
       }
     });
   }, [current, myUserId]);
+
+  const broadcastCanvasClear = useCallback(() => {
+    if (!current || !isSupabaseConfigured || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "canvas-clear",
+      payload: { userId: myUserId }
+    });
+  }, [current, myUserId]);
+
+  const clearAll = useCallback(() => {
+    pathsRef.current = [];
+    agentsRef.current = [];
+    redoPathsRef.current = [];
+    loadedPathIdsRef.current.clear();
+    loadedAgentIdsRef.current.clear();
+    broadcastCanvasClear();
+    redraw();
+    updateUndoRedo();
+    scheduleAutoSaveRef.current();
+    setShowResetConfirm(false);
+  }, [broadcastCanvasClear, redraw, updateUndoRedo]);
 
   // ── Collaboration: Auto-save with debounce (forward-declared ref for saveStrategyMutation) ──
   const scheduleAutoSaveRef = useRef<() => void>(() => {});
@@ -943,6 +986,31 @@ export default function StrategiesPage() {
         scheduleAutoSave();
       }
     }
+
+    // Path eraser: find and remove entire strokes near the click point
+    if (canvas && tool === "path-eraser") {
+      const erasedPathIds: string[] = [];
+      const hitRadius = 12 / zoomRef.current;
+      pathsRef.current = pathsRef.current.filter(path => {
+        for (const pt of path.points) {
+          const dx = pt.x - pos.x;
+          const dy = pt.y - pos.y;
+          if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+            erasedPathIds.push(path.id);
+            return false;
+          }
+        }
+        return true;
+      });
+      if (erasedPathIds.length > 0) {
+        broadcastEraseElements(erasedPathIds, []);
+        redraw();
+        updateUndoRedo();
+        scheduleAutoSave();
+      }
+      return;
+    }
+
     drawingRef.current = true;
     const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
     const newPath = {
@@ -974,6 +1042,13 @@ export default function StrategiesPage() {
       cy = e.clientY;
     }
 
+    // Update mouse position FIRST to fix eraser cursor lag
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
+    }
+
     if (panningRef.current) {
       setPan({
         x: cx - panStartRef.current.x,
@@ -983,10 +1058,8 @@ export default function StrategiesPage() {
     }
 
     const pos = getPos(e);
-    const canvas = canvasRef.current;
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
-      mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
 
       // ── Collaboration: Broadcast cursor position ──
       if (isSupabaseConfigured && channelRef.current) {
@@ -1055,6 +1128,30 @@ export default function StrategiesPage() {
       }
     }
 
+    // Path eraser: continuously erase whole strokes while dragging
+    if (tool === "path-eraser" && canvas) {
+      const erasedPathIds: string[] = [];
+      const hitRadius = 12 / zoomRef.current;
+      pathsRef.current = pathsRef.current.filter(path => {
+        for (const pt of path.points) {
+          const dx = pt.x - pos.x;
+          const dy = pt.y - pos.y;
+          if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+            erasedPathIds.push(path.id);
+            return false;
+          }
+        }
+        return true;
+      });
+      if (erasedPathIds.length > 0) {
+        broadcastEraseElements(erasedPathIds, []);
+        updateUndoRedo();
+        scheduleAutoSave();
+      }
+      redraw();
+      return;
+    }
+
     if (tool === "select") {
       if (draggedAgentRef.current) {
         draggedAgentRef.current.x = pos.x;
@@ -1069,7 +1166,7 @@ export default function StrategiesPage() {
       return;
     }
     if (!drawingRef.current) {
-      if (tool === "eraser") redraw();
+      if (tool === "eraser" || tool === "path-eraser") redraw();
       return;
     }
     const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
@@ -1312,16 +1409,23 @@ export default function StrategiesPage() {
         })
         .on("broadcast", { event: "cursor-move" }, ({ payload }) => {
           if (!payload || payload.userId === myUserId) return;
+          // Store target positions for smooth interpolation
           setRemoteCursors(prev => {
             const next = new Map(prev);
+            const existing = prev.get(payload.userId);
             next.set(payload.userId, {
               userId: payload.userId,
               userName: payload.userName,
               userColor: payload.userColor,
-              x: payload.x,
-              y: payload.y,
-              canvasX: payload.canvasX,
-              canvasY: payload.canvasY
+              // Keep current position for interpolation, set target
+              x: existing?.x ?? payload.x,
+              y: existing?.y ?? payload.y,
+              canvasX: existing?.canvasX ?? payload.canvasX,
+              canvasY: existing?.canvasY ?? payload.canvasY,
+              targetX: payload.x,
+              targetY: payload.y,
+              targetCanvasX: payload.canvasX,
+              targetCanvasY: payload.canvasY
             });
             return next;
           });
@@ -1486,15 +1590,52 @@ export default function StrategiesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, current?.id, myUserId]);
 
-  // ── Collaboration: Clean up remote cursors that go stale ──
+  // ── Collaboration: Smooth cursor interpolation loop ──
   useEffect(() => {
-    if (remoteCursors.size === 0) return;
-    const timer = setInterval(() => {
-      // Just trigger a redraw so cursors stay visible
-      if (view === "editor") redraw();
-    }, 100);
-    return () => clearInterval(timer);
-  }, [remoteCursors.size, view, redraw]);
+    if (remoteCursors.size === 0) {
+      smoothCursorsRef.current.clear();
+      return;
+    }
+    let animId: number;
+    const lerpFactor = 0.25; // Smooth interpolation speed (0..1, higher = snappier)
+    const animate = () => {
+      let changed = false;
+      for (const [userId, cursor] of remoteCursors) {
+        const smooth = smoothCursorsRef.current.get(userId) || { ...cursor };
+        const tx = cursor.targetX ?? cursor.x;
+        const ty = cursor.targetY ?? cursor.y;
+        const tcx = cursor.targetCanvasX ?? cursor.canvasX;
+        const tcy = cursor.targetCanvasY ?? cursor.canvasY;
+        const newX = smooth.x + (tx - smooth.x) * lerpFactor;
+        const newY = smooth.y + (ty - smooth.y) * lerpFactor;
+        const newCX = smooth.canvasX + (tcx - smooth.canvasX) * lerpFactor;
+        const newCY = smooth.canvasY + (tcy - smooth.canvasY) * lerpFactor;
+        if (Math.abs(newX - smooth.x) > 0.01 || Math.abs(newY - smooth.y) > 0.01) {
+          changed = true;
+        }
+        smoothCursorsRef.current.set(userId, {
+          ...cursor,
+          x: newX,
+          y: newY,
+          canvasX: newCX,
+          canvasY: newCY
+        });
+      }
+      // Remove cursors no longer in remoteCursors
+      for (const userId of smoothCursorsRef.current.keys()) {
+        if (!remoteCursors.has(userId)) {
+          smoothCursorsRef.current.delete(userId);
+          changed = true;
+        }
+      }
+      if (changed && view === "editor") {
+        redraw();
+      }
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [remoteCursors, view, redraw]);
 
   // 3. Create Strategy Mutation
   const createStratMutation = useMutation({
@@ -2019,7 +2160,15 @@ export default function StrategiesPage() {
                         <path d="M22 21H7" />
                         <path d="m5 11 9 9" />
                       </svg>
-                    ), "Borrar"]
+                    ), "Borrador"],
+                    ["path-eraser", (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                        <path d="M22 21H7" />
+                        <line x1="18" y1="3" x2="22" y2="7" />
+                        <line x1="22" y1="3" x2="18" y2="7" />
+                      </svg>
+                    ), "Borrar trazados"]
                   ] as [Tool, React.ReactNode, string][]).map(([t, icon, label]) => (
                     <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => setTool(t)} title={label} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                       {icon}
@@ -2202,6 +2351,36 @@ export default function StrategiesPage() {
                     </svg>
                     <span style={{ fontSize: 8, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>REHACER</span>
                   </button>
+
+                  {/* Separator */}
+                  <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "2px auto" }} />
+
+                  {/* Reset All */}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      borderRadius: 10,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "10px 4px",
+                      height: "auto",
+                      opacity: canUndo ? 1 : 0.35,
+                      pointerEvents: canUndo ? "auto" : "none",
+                      transition: "all 0.2s ease",
+                      color: "#ff4655"
+                    }}
+                    onClick={() => setShowResetConfirm(true)}
+                    title="Reiniciar todo el mapa"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                    <span style={{ fontSize: 7, marginTop: 4, letterSpacing: 0.5, fontWeight: 700 }}>RESETEAR</span>
+                  </button>
                 </div>
               </div>
 
@@ -2355,7 +2534,7 @@ export default function StrategiesPage() {
 
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "pan" ? "grab" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
+                <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "pan" ? "grab" : (tool === "eraser" || tool === "path-eraser") ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; stopDraw(); redraw(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
@@ -2594,6 +2773,89 @@ export default function StrategiesPage() {
               <button className="btn btn-secondary" style={{ borderRadius: 10 }} onClick={() => setShowConfigModal(false)}>Cancelar</button>
               <button className="btn btn-primary" style={{ borderRadius: 10, padding: "10px 20px" }} onClick={saveConfig}>
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0, 0, 0, 0.7)",
+          backdropFilter: "blur(8px)"
+        }}
+        onClick={() => setShowResetConfirm(false)}
+        >
+          <div
+            style={{
+              background: "linear-gradient(135deg, #141820, #1a1e28)",
+              border: "1px solid rgba(255, 70, 85, 0.25)",
+              borderRadius: 16,
+              padding: "32px 36px",
+              maxWidth: 420,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 70, 85, 0.1)"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "rgba(255, 70, 85, 0.12)",
+                border: "1px solid rgba(255, 70, 85, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff4655" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>¿Reiniciar todo el mapa?</h3>
+                <p style={{ margin: "4px 0 0 0", fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6, margin: "0 0 24px 0" }}>
+              Se eliminarán <strong style={{ color: "#ff4655" }}>todos los trazados y agentes</strong> del canvas. Esta acción afectará a todos los usuarios conectados y no podrá deshacerse.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                className="btn btn-secondary"
+                style={{ borderRadius: 10, padding: "10px 20px", fontSize: 12, fontWeight: 800 }}
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn"
+                style={{
+                  borderRadius: 10,
+                  padding: "10px 20px",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #ff4655, #d63341)",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 16px rgba(255, 70, 85, 0.3)",
+                  transition: "all 0.2s ease"
+                }}
+                onClick={clearAll}
+              >
+                Sí, reiniciar todo
               </button>
             </div>
           </div>
