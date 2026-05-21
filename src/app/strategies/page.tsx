@@ -499,7 +499,7 @@ export default function StrategiesPage() {
   useEffect(() => {
     if (initialRouteHandled.current || allMaps.length === 0) return;
     initialRouteHandled.current = true;
-    
+
     const stratParam = searchParams.get("strategy");
     if (stratParam) {
       fetch(`/api/strategies?id=${stratParam}`).then(res => res.json()).then(data => {
@@ -525,7 +525,7 @@ export default function StrategiesPage() {
 
 
   // Stable ref to always call the latest redrawImmediate without stale closure
-  const redrawImmediateRef = useRef<() => void>(() => {});
+  const redrawImmediateRef = useRef<() => void>(() => { });
 
   // Throttled redraw via requestAnimationFrame to prevent multiple redraws per frame
   const scheduleRedraw = useCallback(() => {
@@ -755,7 +755,7 @@ export default function StrategiesPage() {
       ctx.fillText(label, labelX, labelY + 2);
       ctx.restore();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMap, selectedSide, tool, agents, remoteCursors]);
 
   // Keep ref always up-to-date so scheduleRedraw can call the latest version
@@ -830,7 +830,7 @@ export default function StrategiesPage() {
       });
     }
     scheduleAutoSave();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, myUserId, updateUndoRedo, scheduleAutoSave]);
 
   const undo = useCallback(() => {
@@ -1322,8 +1322,8 @@ export default function StrategiesPage() {
   };
 
   // Stable refs for global listeners
-  const globalMouseMoveRef = useRef<(e: MouseEvent) => void>(() => {});
-  const globalMouseUpRef = useRef<() => void>(() => {});
+  const globalMouseMoveRef = useRef<(e: MouseEvent) => void>(() => { });
+  const globalMouseUpRef = useRef<() => void>(() => { });
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
@@ -1403,8 +1403,8 @@ export default function StrategiesPage() {
         if (draggedAgentRef.current) {
           canvas.style.cursor = "grabbing";
           if (hoveredAgentRef.current) {
-             hoveredAgentRef.current = null;
-             setHoverMenuState(prev => ({ ...prev, visible: false }));
+            hoveredAgentRef.current = null;
+            setHoverMenuState(prev => ({ ...prev, visible: false }));
           }
         } else {
           const mouseX = cx - rect.left;
@@ -1428,11 +1428,11 @@ export default function StrategiesPage() {
               if (hoveredAgentRef.current !== foundHoverAgent) {
                 hoveredAgentRef.current = foundHoverAgent;
                 const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
-                setHoverMenuState({ 
-                  agent: foundHoverAgent, 
-                  x: screenPos.x + rect.left, 
-                  y: screenPos.y + rect.top, 
-                  visible: true 
+                setHoverMenuState({
+                  agent: foundHoverAgent,
+                  x: screenPos.x + rect.left,
+                  y: screenPos.y + rect.top,
+                  visible: true
                 });
               }
             }
@@ -1555,7 +1555,9 @@ export default function StrategiesPage() {
       return;
     }
     activePath.points.push(pos);
-    redraw();
+    if (tool !== "eraser" || eraserMode !== "pixels") {
+      redraw();
+    }
     const now = Date.now();
     if (now - lastStrokeBroadcastTimeRef.current > 80) {
       broadcastStrokeUpdate(activePath, false);
@@ -1574,8 +1576,8 @@ export default function StrategiesPage() {
       if (canvas) {
         const toolCursor =
           tool === "eraser" ? "none" :
-          tool === "select" ? "default" :
-          "crosshair";
+            tool === "select" ? "default" :
+              "crosshair";
         canvas.style.cursor = toolCursor;
       }
       return;
@@ -1599,6 +1601,7 @@ export default function StrategiesPage() {
         scheduleAutoSave();
       }
       activePathIdRef.current = null;
+      redrawImmediate();
     }
 
     if (wasDragging && draggedAgentRef.current) {
@@ -2349,7 +2352,7 @@ export default function StrategiesPage() {
                 {(() => {
                   const compositions = getUniqueCompositions(strategies);
                   const compEntries = Array.from(compositions.entries());
-                  
+
                   const filteredStrategies = compositionFilter
                     ? strategies.filter(s => getAllyComposition(s).join(',') === compositionFilter)
                     : strategies;
@@ -2459,7 +2462,7 @@ export default function StrategiesPage() {
                                         <h3 className="strategy-card-title-premium" style={{ paddingRight: 30 }}>{s.name}</h3>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
 
-                                          <button 
+                                          <button
                                             className="tool-btn-premium"
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -2495,7 +2498,7 @@ export default function StrategiesPage() {
                                     </div>
                                     {menuOpenId === s.id && (
                                       <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(10, 14, 20, 0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, padding: 6, zIndex: 100, display: "flex", flexDirection: "column", gap: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 140 }}>
-                                        <button 
+                                        <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setMenuOpenId(null);
@@ -2511,7 +2514,7 @@ export default function StrategiesPage() {
                                         >
                                           Editar atributos
                                         </button>
-                                        <button 
+                                        <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setMenuOpenId(null);
@@ -2593,7 +2596,7 @@ export default function StrategiesPage() {
                     <span style={{ fontSize: 15, fontWeight: 900, color: "#ffffff", letterSpacing: 0.5 }}>
                       {current.name}
                     </span>
-                    <button 
+                    <button
                       className="tool-btn-premium"
                       onClick={() => openConfigModal()}
                       style={{ width: 24, height: 24, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)", border: "none", color: "white", borderRadius: 4 }}
@@ -2911,11 +2914,11 @@ export default function StrategiesPage() {
                           onClick={() => setEraserMode("pixels")}
                           className={`tool-btn-premium ${eraserMode === "pixels" ? "active" : ""}`}
                           title="Borrar píxeles en un radio"
-                          style={{ 
-                            width: "100%", 
-                            height: 28, 
-                            fontSize: 10, 
-                            fontWeight: 700, 
+                          style={{
+                            width: "100%",
+                            height: 28,
+                            fontSize: 10,
+                            fontWeight: 700,
                             justifyContent: "center",
                             border: eraserMode !== "pixels" ? "1px solid rgba(255,255,255,0.06)" : undefined
                           }}
@@ -2927,11 +2930,11 @@ export default function StrategiesPage() {
                           onClick={() => setEraserMode("lines")}
                           className={`tool-btn-premium ${eraserMode === "lines" ? "active" : ""}`}
                           title="Borrar trazos y agentes enteros"
-                          style={{ 
-                            width: "100%", 
-                            height: 28, 
-                            fontSize: 10, 
-                            fontWeight: 700, 
+                          style={{
+                            width: "100%",
+                            height: 28,
+                            fontSize: 10,
+                            fontWeight: 700,
                             justifyContent: "center",
                             border: eraserMode !== "lines" ? "1px solid rgba(255,255,255,0.06)" : undefined
                           }}
@@ -3266,10 +3269,10 @@ export default function StrategiesPage() {
                     color: "rgba(255,255,255,0.45)"
                   }}>
                     {tool === "select" ? "Seleccionar" :
-                     tool === "draw" ? "Lápiz" :
-                     tool === "arrow" ? "Vector" :
-                     tool === "eraser" ? "Borrador" :
-                     tool === "line-eraser" ? "Borrador de clic" : ""}
+                      tool === "draw" ? "Lápiz" :
+                        tool === "arrow" ? "Vector" :
+                          tool === "eraser" ? "Borrador" :
+                            tool === "line-eraser" ? "Borrador de clic" : ""}
                   </div>
                   <div style={{
                     fontSize: 12,
@@ -3297,12 +3300,12 @@ export default function StrategiesPage() {
                       );
                       const MoveIcon = (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                          <polyline points="5 9 2 12 5 15"/>
-                          <polyline points="9 5 12 2 15 5"/>
-                          <polyline points="19 9 22 12 19 15"/>
-                          <polyline points="9 19 12 22 15 19"/>
-                          <line x1="2" y1="12" x2="22" y2="12"/>
-                          <line x1="12" y1="2" x2="12" y2="22"/>
+                          <polyline points="5 9 2 12 5 15" />
+                          <polyline points="9 5 12 2 15 5" />
+                          <polyline points="19 9 22 12 19 15" />
+                          <polyline points="9 19 12 22 15 19" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <line x1="12" y1="2" x2="12" y2="22" />
                         </svg>
                       );
                       const Item = ({ icon, text }: { icon: React.ReactNode, text: string }) => (
