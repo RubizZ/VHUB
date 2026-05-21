@@ -23,9 +23,9 @@ const Icons = {
 
 const playerLinks = [
   { href: "/", icon: <Icons.Dashboard />, label: "Dashboard" },
+  { href: "/availability", icon: <Icons.Availability />, label: "Disponibilidad" },
   { href: "/strategies", icon: <Icons.Strategies />, label: "Estrategias" },
   { href: "/matches", icon: <Icons.Matches />, label: "Partidos" },
-  { href: "/availability", icon: <Icons.Availability />, label: "Disponibilidad" },
   { href: "/chat", icon: <Icons.Chat />, label: "Chat" },
   { href: "/stats", icon: <Icons.Stats />, label: "Estadísticas" },
 ];
