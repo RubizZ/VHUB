@@ -3233,6 +3233,8 @@ export default function StrategiesPage() {
                   ref={customCursorRef}
                   style={{
                     position: "absolute",
+                    left: 0,
+                    top: 0,
                     pointerEvents: "none",
                     border: "1.5px solid rgba(255,255,255,0.8)",
                     boxShadow: "0 0 0 1px rgba(0,0,0,0.3) inset, 0 0 0 1px rgba(0,0,0,0.3)",
@@ -3240,6 +3242,7 @@ export default function StrategiesPage() {
                     transform: "translate(-50%, -50%)",
                     display: "none",
                     zIndex: 10,
+                    willChange: "transform, width, height",
                   }}
                 />
 
