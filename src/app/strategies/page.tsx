@@ -207,6 +207,7 @@ export default function StrategiesPage() {
   const lastAgentBroadcastTimeRef = useRef<number>(0);
   const activePathIdRef = useRef<string | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const customCursorRef = useRef<HTMLDivElement | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [editingExternalStratId, setEditingExternalStratId] = useState<number | null>(null);
   const myUserId = session?.user?.id || "";
@@ -714,24 +715,7 @@ export default function StrategiesPage() {
     }
     ctx.restore();
 
-    // 4. Draw Custom Eraser Circle cursor in screen space
-    if (currentTool === "eraser" && mousePosRef.current && !panningRef.current) {
-      const r = (currentEraserSize / 2) * currentZoom;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, r, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(mousePosRef.current.canvasX, mousePosRef.current.canvasY, Math.max(1, r - 1), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.restore();
-    }
-
+    // 4. Custom Eraser Circle cursor is now handled natively via DOM for 0 lag.
     // 4b. Line-eraser highlight disabled (no preview)
 
     // 5. Draw Remote Cursors (collaboration) in screen space
@@ -1400,6 +1384,19 @@ export default function StrategiesPage() {
             }
           });
           lastCursorBroadcastTimeRef.current = now;
+        }
+      }
+
+      if (customCursorRef.current) {
+        if (tool === "eraser" && !panningRef.current) {
+          const r = eraserSize * zoomRef.current;
+          customCursorRef.current.style.display = "block";
+          customCursorRef.current.style.width = `${r}px`;
+          customCursorRef.current.style.height = `${r}px`;
+          customCursorRef.current.style.left = `${cx - rect.left}px`;
+          customCursorRef.current.style.top = `${cy - rect.top}px`;
+        } else {
+          customCursorRef.current.style.display = "none";
         }
       }
 
@@ -3230,12 +3227,26 @@ export default function StrategiesPage() {
               )}
 
               {/* Canvas Wrap */}
-              <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
+              <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
                 <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
-                  onMouseDown={(e) => { if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); startDraw(e); }} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; redrawImmediate(); }}
+                  onMouseDown={(e) => { if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); startDraw(e); }} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; if (customCursorRef.current) customCursorRef.current.style.display = "none"; redrawImmediate(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
                   onContextMenu={e => { e.preventDefault(); if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); }} />
+
+                <div
+                  ref={customCursorRef}
+                  style={{
+                    position: "absolute",
+                    pointerEvents: "none",
+                    border: "1.5px solid rgba(255,255,255,0.8)",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.3) inset, 0 0 0 1px rgba(0,0,0,0.3)",
+                    borderRadius: "50%",
+                    transform: "translate(-50%, -50%)",
+                    display: "none",
+                    zIndex: 10,
+                  }}
+                />
 
                 {/* Tool Guide */}
                 <div style={{
