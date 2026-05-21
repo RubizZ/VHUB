@@ -61,7 +61,7 @@ type UndoAction =
   | { type: 'move-agent'; agentId: string; oldX: number; oldY: number; newX: number; newY: number }
   | { type: 'clear-all'; paths: CanvasPath[]; agents: CanvasAgent[] };
 
-type Tool = "select" | "draw" | "arrow" | "eraser" | "line-eraser";
+type Tool = "select" | "draw" | "arrow" | "eraser";
 type View = "maps" | "strategies" | "editor";
 
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
@@ -140,7 +140,11 @@ export default function StrategiesPage() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
-  const [view, setView] = useState<View>("maps");
+  const [view, setView] = useState<View>(() => {
+    if (searchParams.get("strategy")) return "editor";
+    if (searchParams.get("map")) return "strategies";
+    return "maps";
+  });
   const [selectedMap, setSelectedMap] = useState<(ValorantMap & { activeInRotation?: boolean }) | null>(null);
   const [current, setCurrent] = useState<Strategy | null>(null);
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
@@ -156,6 +160,7 @@ export default function StrategiesPage() {
   const [hoverMenuState, setHoverMenuState] = useState<{ agent: CanvasAgent | null; x: number; y: number; visible: boolean }>({ agent: null, x: 0, y: 0, visible: false });
   const hoverMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hoveredAgentRef = useRef<CanvasAgent | null>(null);
+  const isAgentDroppedRef = useRef<boolean>(false);
 
   // Strategy Settings States
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -168,6 +173,7 @@ export default function StrategiesPage() {
   const [pencilSize, setPencilSize] = useState<number>(5);
   const [arrowSize, setArrowSize] = useState<number>(5);
   const [eraserSize, setEraserSize] = useState<number>(20);
+  const [eraserMode, setEraserMode] = useState<"pixels" | "lines">("pixels");
   const eraserSizeRef = useRef<number>(20);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -647,11 +653,15 @@ export default function StrategiesPage() {
           pCtx.scale(1 / scale, 1 / scale);
 
           const arrowScale = (path.thickness !== undefined ? path.thickness : 5) / 5;
-          pCtx.beginPath(); pCtx.fillStyle = path.color;
-          pCtx.moveTo(0, -10 * arrowScale);
-          pCtx.lineTo(24 * arrowScale, 0);
-          pCtx.lineTo(0, 10 * arrowScale);
-          pCtx.closePath(); pCtx.fill();
+          pCtx.beginPath();
+          pCtx.strokeStyle = path.color;
+          pCtx.lineWidth = path.thickness !== undefined ? path.thickness : 5;
+          pCtx.lineCap = "round";
+          pCtx.lineJoin = "round";
+          pCtx.moveTo(-16 * arrowScale, -10 * arrowScale);
+          pCtx.lineTo(0, 0);
+          pCtx.lineTo(-16 * arrowScale, 10 * arrowScale);
+          pCtx.stroke();
           pCtx.restore();
         }
       }
@@ -705,7 +715,7 @@ export default function StrategiesPage() {
     ctx.restore();
 
     // 4. Draw Custom Eraser Circle cursor in screen space
-    if (currentTool === "eraser" && mousePosRef.current) {
+    if (currentTool === "eraser" && mousePosRef.current && !panningRef.current) {
       const r = (currentEraserSize / 2) * currentZoom;
       ctx.save();
       ctx.beginPath();
@@ -1179,6 +1189,9 @@ export default function StrategiesPage() {
       cy = e.clientY;
     }
 
+    const isMiddleClick = "button" in e && e.button === 1;
+    if (isMiddleClick) return;
+
     const isRightClick = "button" in e && e.button === 2;
 
     // Left-click on agent with select tool → context menu or drag
@@ -1225,7 +1238,7 @@ export default function StrategiesPage() {
     const canvas = canvasRef.current;
 
     // ── Line Eraser: erase whole path on mousedown ──
-    if (canvas && tool === "line-eraser") {
+    if (canvas && tool === "eraser" && eraserMode === "lines") {
       const mapImg = mapImgRef.current;
       let scale = 1;
       if (mapImg && mapImg.complete) {
@@ -1233,7 +1246,7 @@ export default function StrategiesPage() {
         const rotatedH = mapImg.width;
         scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
       }
-      const hitRadius = 12 / (zoomRef.current * scale);
+      const hitRadius = (eraserSize / 2) / (zoomRef.current * scale);
       const hit = findPathAtPoint(pos.x, pos.y, hitRadius);
       if (hit) {
         const erasedId = hit.id;
@@ -1250,10 +1263,20 @@ export default function StrategiesPage() {
         scheduleAutoSave();
       }
       drawingRef.current = true;
+      const moveHandler = (e: MouseEvent) => globalMouseMoveRef.current(e);
+      const upHandler = () => globalMouseUpRef.current();
+      globalMouseMoveRef.current = (e: MouseEvent) => draw(e as unknown as React.MouseEvent);
+      globalMouseUpRef.current = () => {
+        window.removeEventListener("mousemove", moveHandler);
+        window.removeEventListener("mouseup", upHandler);
+        stopDraw();
+      };
+      window.addEventListener("mousemove", moveHandler);
+      window.addEventListener("mouseup", upHandler);
       return;
     }
 
-    if (canvas && tool === "eraser") {
+    if (canvas && tool === "eraser" && eraserMode === "pixels") {
       const rect = canvas.getBoundingClientRect();
       const mouseX = cx - rect.left;
       const mouseY = cy - rect.top;
@@ -1332,6 +1355,12 @@ export default function StrategiesPage() {
       cy = e.clientY;
     }
 
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
+    }
+
     if (panningRef.current) {
       // Update pan ref immediately (no React re-render) for lag-free panning
       const newPan = {
@@ -1350,11 +1379,8 @@ export default function StrategiesPage() {
     }
 
     const pos = getPos(e);
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      mousePosRef.current = { canvasX: cx - rect.left, canvasY: cy - rect.top };
 
+    if (canvas) {
       // ── Collaboration: Broadcast cursor position ──
       if (isSupabaseConfigured && channelRef.current) {
         const now = Date.now();
@@ -1397,19 +1423,24 @@ export default function StrategiesPage() {
           });
 
           if (foundHoverAgent) {
-            if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
-            hoverMenuTimeoutRef.current = null;
-            if (hoveredAgentRef.current !== foundHoverAgent) {
-              hoveredAgentRef.current = foundHoverAgent;
-              const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
-              setHoverMenuState({ 
-                agent: foundHoverAgent, 
-                x: screenPos.x + rect.left, 
-                y: screenPos.y + rect.top, 
-                visible: true 
-              });
+            if (isAgentDroppedRef.current) {
+              // Ignore hover immediately after dropping
+            } else {
+              if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
+              hoverMenuTimeoutRef.current = null;
+              if (hoveredAgentRef.current !== foundHoverAgent) {
+                hoveredAgentRef.current = foundHoverAgent;
+                const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
+                setHoverMenuState({ 
+                  agent: foundHoverAgent, 
+                  x: screenPos.x + rect.left, 
+                  y: screenPos.y + rect.top, 
+                  visible: true 
+                });
+              }
             }
           } else {
+            isAgentDroppedRef.current = false;
             if (!hoverMenuTimeoutRef.current && hoveredAgentRef.current) {
               hoverMenuTimeoutRef.current = setTimeout(() => {
                 hoveredAgentRef.current = null;
@@ -1421,7 +1452,7 @@ export default function StrategiesPage() {
 
           canvas.style.cursor = isOverAgent ? "pointer" : "default";
         }
-      } else if (tool === "line-eraser") {
+      } else if (tool === "eraser" && eraserMode === "lines") {
         const mapImg = mapImgRef.current;
         let scale = 1;
         if (mapImg && mapImg.complete) {
@@ -1429,7 +1460,7 @@ export default function StrategiesPage() {
           const rotatedH = mapImg.width;
           scale = Math.min(canvas.width / rotatedW, canvas.height / rotatedH);
         }
-        const hitRadius = 12 / (zoomRef.current * scale);
+        const hitRadius = (eraserSize / 2) / (zoomRef.current * scale);
         const pos2 = getPos(e);
         const hit = findPathAtPoint(pos2.x, pos2.y, hitRadius);
         hoveredPathIdRef.current = hit ? hit.id : null;
@@ -1439,10 +1470,10 @@ export default function StrategiesPage() {
           const screenPos = getScreenPos(a.x, a.y);
           const dx = screenPos.x - (cx - canvas.getBoundingClientRect().left);
           const dy = screenPos.y - (cy - canvas.getBoundingClientRect().top);
-          return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+          return Math.sqrt(dx * dx + dy * dy) <= (18 + eraserSize / 2) * zoomRef.current;
         });
 
-        canvas.style.cursor = (hit || hitAgent) ? "pointer" : "crosshair";
+        canvas.style.cursor = (hit || hitAgent) ? "pointer" : "none";
 
         // If dragging (mousedown held), erase paths and agents under cursor
         if (drawingRef.current) {
@@ -1474,7 +1505,7 @@ export default function StrategiesPage() {
       }
     }
 
-    if (drawingRef.current && tool === "eraser" && canvas) {
+    if (drawingRef.current && tool === "eraser" && eraserMode === "pixels" && canvas) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = cx - rect.left;
       const mouseY = cy - rect.top;
@@ -1525,7 +1556,10 @@ export default function StrategiesPage() {
       return;
     }
     const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
-    if (!activePath) return;
+    if (!activePath) {
+      if (tool === "eraser") redrawImmediate();
+      return;
+    }
     activePath.points.push(pos);
     redraw();
     const now = Date.now();
@@ -1547,7 +1581,6 @@ export default function StrategiesPage() {
         const toolCursor =
           tool === "eraser" ? "none" :
           tool === "select" ? "default" :
-          tool === "line-eraser" ? "crosshair" :
           "crosshair";
         canvas.style.cursor = toolCursor;
       }
@@ -1590,9 +1623,23 @@ export default function StrategiesPage() {
         const dy = agent.y - oldPos.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist >= 2) {
+          isAgentDroppedRef.current = true;
           undoStackRef.current.push({ type: 'move-agent', agentId: agent.instanceId, oldX: oldPos.x, oldY: oldPos.y, newX: agent.x, newY: agent.y });
           redoStackRef.current = [];
           updateUndoRedo();
+        } else {
+          isAgentDroppedRef.current = false;
+          hoveredAgentRef.current = agent;
+          if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const screenPos = getScreenPos(agent.x, agent.y);
+            setHoverMenuState({
+              agent,
+              x: screenPos.x + rect.left,
+              y: screenPos.y + rect.top,
+              visible: true
+            });
+          }
         }
       }
       broadcastAgentUpdate(agent, false);
@@ -1632,6 +1679,7 @@ export default function StrategiesPage() {
   const handleAgentDragStart = (e: React.DragEvent, agentId: string) => {
     e.dataTransfer.setData("text/plain", agentId);
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setDragImage(e.currentTarget as Element, 20, 20);
   };
 
   const handleCanvasDragOver = (e: React.DragEvent) => {
@@ -2504,6 +2552,16 @@ export default function StrategiesPage() {
           </div>
         )}
 
+        {view === "editor" && !current && (
+          <div className="editor-card-premium" style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <Skeleton width="100%" height={64} style={{ borderRadius: 16 }} />
+            <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
+              <Skeleton width={64} height="100%" style={{ borderRadius: 16 }} />
+              <Skeleton width="100%" height="100%" style={{ borderRadius: 16, flex: 1 }} />
+            </div>
+          </div>
+        )}
+
         {view === "editor" && current && (
           <div className="editor-card-premium">
 
@@ -2552,19 +2610,7 @@ export default function StrategiesPage() {
                         <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                       </svg>
                     </button>
-                    <span style={{
-                      fontSize: 9,
-                      fontWeight: 900,
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                      background: current.side === "attack" ? "rgba(255, 70, 85, 0.15)" : "rgba(59, 130, 246, 0.15)",
-                      color: current.side === "attack" ? "#ff4655" : "#3b82f6",
-                      border: current.side === "attack" ? "1px solid rgba(255, 70, 85, 0.25)" : "1px solid rgba(59, 130, 246, 0.25)",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5
-                    }}>
-                      {current.side === "attack" ? "Atacante" : "Defensor"}
-                    </span>
+
                     {collabUsers.length > 1 && (
                       <span style={{
                         fontSize: 8,
@@ -2748,14 +2794,7 @@ export default function StrategiesPage() {
                         <path d="M22 21H7" />
                         <path d="m5 11 9 9" />
                       </svg>
-                    ), "Borrador (pixel)"],
-                    ["line-eraser", (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                        <path d="M22 21H7" />
-                        <line x1="17" y1="3" x2="3" y2="17" />
-                      </svg>
-                    ), "Borrador de línea"]
+                    ), "Borrador"]
                   ] as [Tool, React.ReactNode, string][]).map(([t, icon, label]) => (
                     <button key={t} className={`tool-btn-premium ${tool === t ? "active" : ""}`} onClick={() => { setTool(t); hoveredPathIdRef.current = null; }} title={label} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                       {icon}
@@ -2870,6 +2909,44 @@ export default function StrategiesPage() {
                 {/* Tool-specific params: eraser */}
                 {tool === "eraser" && (
                   <>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 12, marginBottom: 12 }}>
+                      <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Modo</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+                        <button
+                          type="button"
+                          onClick={() => setEraserMode("pixels")}
+                          className={`tool-btn-premium ${eraserMode === "pixels" ? "active" : ""}`}
+                          title="Borrar píxeles en un radio"
+                          style={{ 
+                            width: "100%", 
+                            height: 28, 
+                            fontSize: 10, 
+                            fontWeight: 700, 
+                            justifyContent: "center",
+                            border: eraserMode !== "pixels" ? "1px solid rgba(255,255,255,0.06)" : undefined
+                          }}
+                        >
+                          Píxeles
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEraserMode("lines")}
+                          className={`tool-btn-premium ${eraserMode === "lines" ? "active" : ""}`}
+                          title="Borrar trazos y agentes enteros"
+                          style={{ 
+                            width: "100%", 
+                            height: 28, 
+                            fontSize: 10, 
+                            fontWeight: 700, 
+                            justifyContent: "center",
+                            border: eraserMode !== "lines" ? "1px solid rgba(255,255,255,0.06)" : undefined
+                          }}
+                        >
+                          Trazos
+                        </button>
+                      </div>
+                    </div>
+
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 6 }}>
                       <span style={{ fontSize: 8, fontWeight: 900, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5, textTransform: "uppercase" }}>Grosor</span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
@@ -3158,6 +3235,88 @@ export default function StrategiesPage() {
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
                   onContextMenu={e => { e.preventDefault(); if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); }} />
+
+                {/* Tool Guide */}
+                <div style={{
+                  position: "absolute",
+                  top: 24,
+                  right: 24,
+                  maxWidth: 220,
+                  textAlign: "right",
+                  pointerEvents: "none",
+                  zIndex: 5,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  gap: 6
+                }}>
+                  <div style={{
+                    fontSize: 10,
+                    fontWeight: 900,
+                    textTransform: "uppercase",
+                    letterSpacing: 1.5,
+                    color: "rgba(255,255,255,0.45)"
+                  }}>
+                    {tool === "select" ? "Seleccionar" :
+                     tool === "draw" ? "Lápiz" :
+                     tool === "arrow" ? "Vector" :
+                     tool === "eraser" ? "Borrador" :
+                     tool === "line-eraser" ? "Borrador de clic" : ""}
+                  </div>
+                  <div style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.25)",
+                    lineHeight: 1.4,
+                    textShadow: "0 1px 4px rgba(0,0,0,0.5)"
+                  }}>
+                    {(() => {
+                      const IconLeftClick = (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                          <rect x="5" y="2" width="14" height="20" rx="7" />
+                          <path d="M12 2v7" />
+                          <path d="M5 9h14" />
+                          <path d="M5 9C5 5.13 8.13 2 12 2v7H5z" fill="currentColor" opacity="0.8" stroke="none" />
+                        </svg>
+                      );
+                      const IconRightClick = (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                          <rect x="5" y="2" width="14" height="20" rx="7" />
+                          <path d="M12 2v7" />
+                          <path d="M5 9h14" />
+                          <path d="M19 9C19 5.13 15.87 2 12 2v7h7z" fill="currentColor" opacity="0.8" stroke="none" />
+                        </svg>
+                      );
+                      const MoveIcon = (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                          <polyline points="5 9 2 12 5 15"/>
+                          <polyline points="9 5 12 2 15 5"/>
+                          <polyline points="19 9 22 12 19 15"/>
+                          <polyline points="9 19 12 22 15 19"/>
+                          <line x1="2" y1="12" x2="22" y2="12"/>
+                          <line x1="12" y1="2" x2="12" y2="22"/>
+                        </svg>
+                      );
+                      const Item = ({ icon, text }: { icon: React.ReactNode, text: string }) => (
+                        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", textAlign: "left" }}>
+                          <div style={{ color: "rgba(255,255,255,0.3)" }}>{icon}</div>
+                          <span>{text}</span>
+                        </div>
+                      );
+
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {tool === "select" && <Item icon={IconLeftClick} text="Clic izquierdo para arrastrar agentes" />}
+                          {tool === "draw" && <Item icon={IconLeftClick} text="Clic izquierdo para dibujar a mano alzada" />}
+                          {tool === "arrow" && <Item icon={IconLeftClick} text="Clic izquierdo para dibujar flechas rectas" />}
+                          {tool === "eraser" && eraserMode === "pixels" && <Item icon={IconLeftClick} text="Clic izquierdo para eliminar en un radio" />}
+                          {tool === "eraser" && eraserMode === "lines" && <Item icon={IconLeftClick} text="Clic izquierdo para borrar trazos o agentes" />}
+                          <Item icon={IconRightClick} text="Clic derecho para mover la cámara" />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
 
                 {/* Floating Zoom & Perspective Controls */}
                 <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", alignItems: "center", gap: 8, zIndex: 10 }}>
