@@ -1392,8 +1392,7 @@ export default function StrategiesPage() {
           customCursorRef.current.style.display = "block";
           customCursorRef.current.style.width = `${r}px`;
           customCursorRef.current.style.height = `${r}px`;
-          customCursorRef.current.style.left = `${cx - rect.left}px`;
-          customCursorRef.current.style.top = `${cy - rect.top}px`;
+          customCursorRef.current.style.transform = `translate3d(${cx - rect.left}px, ${cy - rect.top}px, 0) translate(-50%, -50%)`;
         } else {
           customCursorRef.current.style.display = "none";
         }
@@ -1555,9 +1554,7 @@ export default function StrategiesPage() {
       return;
     }
     activePath.points.push(pos);
-    if (tool !== "eraser" || eraserMode !== "pixels") {
-      redraw();
-    }
+    redraw();
     const now = Date.now();
     if (now - lastStrokeBroadcastTimeRef.current > 80) {
       broadcastStrokeUpdate(activePath, false);
@@ -1601,7 +1598,6 @@ export default function StrategiesPage() {
         scheduleAutoSave();
       }
       activePathIdRef.current = null;
-      redrawImmediate();
     }
 
     if (wasDragging && draggedAgentRef.current) {
