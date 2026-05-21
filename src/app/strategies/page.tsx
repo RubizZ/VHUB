@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type ValorantMap } from "@/lib/maps";
 import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
@@ -136,6 +136,7 @@ function hsvToHSL(h: number, s: number, v: number): { h: number; s: number; l: n
 
 export default function StrategiesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
@@ -152,6 +153,9 @@ export default function StrategiesPage() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [compositionFilter, setCompositionFilter] = useState<string | null>(null);
+  const [hoverMenuState, setHoverMenuState] = useState<{ agent: CanvasAgent | null; x: number; y: number; visible: boolean }>({ agent: null, x: 0, y: 0, visible: false });
+  const hoverMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hoveredAgentRef = useRef<CanvasAgent | null>(null);
 
   // Strategy Settings States
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -171,6 +175,7 @@ export default function StrategiesPage() {
   const drawingRef = useRef(false);
   const draggedAgentRef = useRef<CanvasAgent | null>(null);
   const draggedAgentOldPosRef = useRef<{ x: number; y: number } | null>(null);
+  const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
   const undoStackRef = useRef<UndoAction[]>([]);
@@ -196,6 +201,8 @@ export default function StrategiesPage() {
   const lastAgentBroadcastTimeRef = useRef<number>(0);
   const activePathIdRef = useRef<string | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editingExternalStratId, setEditingExternalStratId] = useState<string | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -427,6 +434,7 @@ export default function StrategiesPage() {
     setView("strategies");
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    router.push(`?map=${map.id}`);
   };
 
   const openConfigModal = () => {
@@ -468,18 +476,42 @@ export default function StrategiesPage() {
     if (view === "editor") {
       setCurrent(null);
       setView("strategies");
+      if (selectedMap) {
+        router.push(`?map=${selectedMap.id}`);
+      } else {
+        router.push("?");
+      }
     } else if (view === "strategies") {
       setSelectedMap(null);
       setView("maps");
+      router.push("?");
     }
   };
 
+  const initialRouteHandled = useRef(false);
   useEffect(() => {
-    const mapParam = searchParams.get("map");
-    if (mapParam && allMaps.length > 0) {
-      const foundMap = allMaps.find(m => m.id.toLowerCase() === mapParam.toLowerCase() || m.name.toLowerCase() === mapParam.toLowerCase());
-      if (foundMap) {
-        goToMap(foundMap);
+    if (initialRouteHandled.current || allMaps.length === 0) return;
+    initialRouteHandled.current = true;
+    
+    const stratParam = searchParams.get("strategy");
+    if (stratParam) {
+      fetch(`/api/strategies?id=${stratParam}`).then(res => res.json()).then(data => {
+        if (data.strategy) {
+          const s = data.strategy;
+          const foundMap = allMaps.find(m => m.id === s.map_id);
+          if (foundMap) {
+            setSelectedMap(foundMap);
+            openEditor(s);
+          }
+        }
+      });
+    } else {
+      const mapParam = searchParams.get("map");
+      if (mapParam) {
+        const foundMap = allMaps.find(m => m.id.toLowerCase() === mapParam.toLowerCase() || m.name.toLowerCase() === mapParam.toLowerCase());
+        if (foundMap) {
+          goToMap(foundMap);
+        }
       }
     }
   }, [searchParams, allMaps]);
@@ -1148,6 +1180,29 @@ export default function StrategiesPage() {
     }
 
     const isRightClick = "button" in e && e.button === 2;
+
+    // Left-click on agent with select tool → context menu or drag
+    if (!isRightClick && tool === "select") {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = cx - rect.left;
+        const mouseY = cy - rect.top;
+        const found = [...agentsRef.current].reverse().find(a => {
+          const screenPos = getScreenPos(a.x, a.y);
+          const dx = screenPos.x - mouseX;
+          const dy = screenPos.y - mouseY;
+          return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+        });
+        if (found) {
+          agentClickStartRef.current = { x: cx, y: cy };
+          draggedAgentRef.current = found;
+          draggedAgentOldPosRef.current = { x: found.x, y: found.y };
+          return;
+        }
+      }
+    }
+
     if (isRightClick) {
       panningRef.current = true;
       panStartRef.current = { x: cx - panRef.current.x, y: cy - panRef.current.y };
@@ -1198,23 +1253,6 @@ export default function StrategiesPage() {
       return;
     }
 
-    if (canvas && tool === "select") {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = cx - rect.left;
-      const mouseY = cy - rect.top;
-
-      const found = [...agentsRef.current].reverse().find(a => {
-        const screenPos = getScreenPos(a.x, a.y);
-        const dx = screenPos.x - mouseX;
-        const dy = screenPos.y - mouseY;
-        return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
-      });
-      if (found) {
-        draggedAgentRef.current = found;
-        draggedAgentOldPosRef.current = { x: found.x, y: found.y };
-        return;
-      }
-    }
     if (canvas && tool === "eraser") {
       const rect = canvas.getBoundingClientRect();
       const mouseX = cx - rect.left;
@@ -1341,15 +1379,46 @@ export default function StrategiesPage() {
       if (tool === "select") {
         if (draggedAgentRef.current) {
           canvas.style.cursor = "grabbing";
+          if (hoveredAgentRef.current) {
+             hoveredAgentRef.current = null;
+             setHoverMenuState(prev => ({ ...prev, visible: false }));
+          }
         } else {
           const mouseX = cx - rect.left;
           const mouseY = cy - rect.top;
+          let foundHoverAgent: CanvasAgent | null = null;
           const isOverAgent = agentsRef.current.some(a => {
             const screenPos = getScreenPos(a.x, a.y);
             const dx = screenPos.x - mouseX;
             const dy = screenPos.y - mouseY;
-            return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+            const hit = Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+            if (hit) foundHoverAgent = a;
+            return hit;
           });
+
+          if (foundHoverAgent) {
+            if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
+            hoverMenuTimeoutRef.current = null;
+            if (hoveredAgentRef.current !== foundHoverAgent) {
+              hoveredAgentRef.current = foundHoverAgent;
+              const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
+              setHoverMenuState({ 
+                agent: foundHoverAgent, 
+                x: screenPos.x + rect.left, 
+                y: screenPos.y + rect.top, 
+                visible: true 
+              });
+            }
+          } else {
+            if (!hoverMenuTimeoutRef.current && hoveredAgentRef.current) {
+              hoverMenuTimeoutRef.current = setTimeout(() => {
+                hoveredAgentRef.current = null;
+                setHoverMenuState(prev => ({ ...prev, visible: false }));
+                hoverMenuTimeoutRef.current = null;
+              }, 300);
+            }
+          }
+
           canvas.style.cursor = isOverAgent ? "pointer" : "default";
         }
       } else if (tool === "line-eraser") {
@@ -1364,21 +1433,43 @@ export default function StrategiesPage() {
         const pos2 = getPos(e);
         const hit = findPathAtPoint(pos2.x, pos2.y, hitRadius);
         hoveredPathIdRef.current = hit ? hit.id : null;
-        canvas.style.cursor = hit ? "pointer" : "crosshair";
-        // If dragging (mousedown held), keep erasing paths under cursor
-        if (drawingRef.current && hit) {
-          const erasedId = hit.id;
-          const erasedIdx = pathsRef.current.findIndex(p => p.id === erasedId);
-          const erasedPath = pathsRef.current.find(p => p.id === erasedId)!;
-          undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
-          redoStackRef.current = [];
-          pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
-          loadedPathIdsRef.current.delete(erasedId);
-          hoveredPathIdRef.current = null;
-          updateUndoRedo();
-          redrawImmediate();
-          broadcastEraseElements([erasedId], []);
-          scheduleAutoSave();
+
+        // Check if cursor is over an agent
+        const hitAgent = agentsRef.current.find(a => {
+          const screenPos = getScreenPos(a.x, a.y);
+          const dx = screenPos.x - (cx - canvas.getBoundingClientRect().left);
+          const dy = screenPos.y - (cy - canvas.getBoundingClientRect().top);
+          return Math.sqrt(dx * dx + dy * dy) <= 18 * zoomRef.current;
+        });
+
+        canvas.style.cursor = (hit || hitAgent) ? "pointer" : "crosshair";
+
+        // If dragging (mousedown held), erase paths and agents under cursor
+        if (drawingRef.current) {
+          if (hit) {
+            const erasedId = hit.id;
+            const erasedIdx = pathsRef.current.findIndex(p => p.id === erasedId);
+            const erasedPath = pathsRef.current.find(p => p.id === erasedId)!;
+            undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
+            redoStackRef.current = [];
+            pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
+            loadedPathIdsRef.current.delete(erasedId);
+            hoveredPathIdRef.current = null;
+            updateUndoRedo();
+            redrawImmediate();
+            broadcastEraseElements([erasedId], []);
+            scheduleAutoSave();
+          }
+          if (hitAgent) {
+            const agentIdx = agentsRef.current.findIndex(a => a.instanceId === hitAgent.instanceId);
+            undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx });
+            redoStackRef.current = [];
+            agentsRef.current = agentsRef.current.filter(a => a.instanceId !== hitAgent.instanceId);
+            updateUndoRedo();
+            redrawImmediate();
+            broadcastEraseElements([], [hitAgent.instanceId]);
+            scheduleAutoSave();
+          }
         }
       }
     }
@@ -1486,16 +1577,23 @@ export default function StrategiesPage() {
     if (wasDragging && draggedAgentRef.current) {
       const agent = draggedAgentRef.current;
       const oldPos = draggedAgentOldPosRef.current;
+      const clickStart = agentClickStartRef.current;
       draggedAgentRef.current = null;
       draggedAgentOldPosRef.current = null;
+      agentClickStartRef.current = null;
       const canvas = canvasRef.current;
       if (canvas && tool === "select") {
         canvas.style.cursor = "default";
       }
-      if (oldPos && (oldPos.x !== agent.x || oldPos.y !== agent.y)) {
-        undoStackRef.current.push({ type: 'move-agent', agentId: agent.instanceId, oldX: oldPos.x, oldY: oldPos.y, newX: agent.x, newY: agent.y });
-        redoStackRef.current = [];
-        updateUndoRedo();
+      if (clickStart && oldPos) {
+        const dx = agent.x - oldPos.x;
+        const dy = agent.y - oldPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist >= 2) {
+          undoStackRef.current.push({ type: 'move-agent', agentId: agent.instanceId, oldX: oldPos.x, oldY: oldPos.y, newX: agent.x, newY: agent.y });
+          redoStackRef.current = [];
+          updateUndoRedo();
+        }
       }
       broadcastAgentUpdate(agent, false);
       loadedAgentIdsRef.current.add(agent.instanceId);
@@ -1589,6 +1687,7 @@ export default function StrategiesPage() {
     setSelectedSide(s.side as "attack" | "defense");
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    router.push(`?strategy=${s.id}`);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any;
@@ -1623,15 +1722,16 @@ export default function StrategiesPage() {
 
   // 2. Save Strategy Canvas Mutation
   const saveStrategyMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideSide?: "attack" | "defense") => {
       if (!current) return;
+      const sideToSave = overrideSide || current.side;
       const res = await fetch("/api/strategies", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: current.id,
           name: current.name,
-          side: current.side,
+          side: sideToSave,
           description: current.description,
           canvas_data: {
             paths: pathsRef.current,
@@ -1800,6 +1900,12 @@ export default function StrategiesPage() {
           redraw();
           updateUndoRedo();
         })
+        .on("broadcast", { event: "side-change" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          setSelectedSide(payload.side);
+          setCurrent(prev => prev ? { ...prev, side: payload.side } : prev);
+          redraw();
+        })
         .subscribe(async (status) => {
           if (status === "SUBSCRIBED") {
             await channel.track({
@@ -1859,6 +1965,10 @@ export default function StrategiesPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const d = (typeof remote.canvas_data === "string" ? JSON.parse(remote.canvas_data || "{}") : remote.canvas_data || {}) as any;
             syncCanvasLocalState(d.paths || [], d.agents || []);
+            if (remote.side && remote.side !== selectedSide) {
+              setSelectedSide(remote.side);
+              setCurrent(prev => prev ? { ...prev, side: remote.side } : prev);
+            }
             lastSavedAtRef.current = remote.updated_at;
             redraw();
             updateUndoRedo();
@@ -1890,45 +2000,95 @@ export default function StrategiesPage() {
 
   // 3. Create Strategy Mutation
   const createStratMutation = useMutation({
-    mutationFn: async () => {
-      if (!newName.trim() || !selectedMap) {
-        throw new Error("Nombre inválido o sin mapa seleccionado");
+    mutationFn: async (params?: { name?: string, side?: "attack" | "defense" }) => {
+      const finalName = params?.name || newName.trim() || "Nueva Estrategia";
+      const finalSide = params?.side || selectedSide;
+      if (!selectedMap) {
+        throw new Error("Sin mapa seleccionado");
       }
       const res = await fetch("/api/strategies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ map_id: selectedMap.id, name: newName, side: selectedSide })
+        body: JSON.stringify({ map_id: selectedMap.id, name: finalName, side: finalSide })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear estrategia");
-      return { id: data.id, map_id: selectedMap.id, name: newName, side: selectedSide };
+      return { id: data.id, map_id: selectedMap.id, name: finalName, side: finalSide, description: "" };
     },
     onSuccess: (data) => {
       if (!data) return;
-      setShowNewStrat(false);
-      setNewName("");
       queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
       openEditor({ id: data.id, map_id: data.map_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
     }
   });
 
-  const createStrat = () => {
-    createStratMutation.mutate();
+  const createStrat = (e?: React.MouseEvent) => {
+    if (e) {
+      let x = 1;
+      const existingNames = new Set(strategies.map(s => s.name));
+      while (existingNames.has(`Estrategia sin nombre ${x}`)) {
+        x++;
+      }
+      createStratMutation.mutate({ name: `Estrategia sin nombre ${x}`, side: "attack" });
+    } else {
+      createStratMutation.mutate();
+    }
+  };
+
+  const deleteStratMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/strategies?id=${id}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Error al eliminar estrategia");
+      }
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
+    }
+  });
+
+  const updateStratMutation = useMutation({
+    mutationFn: async (strat: Partial<Strategy> & { id: string }) => {
+      const res = await fetch("/api/strategies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(strat)
+      });
+      if (!res.ok) throw new Error("Error al actualizar");
+      return strat;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
+      setEditingExternalStratId(null);
+    }
+  });
+
+  const saveExternalConfig = () => {
+    if (!editingExternalStratId) return;
+    updateStratMutation.mutate({
+      id: editingExternalStratId,
+      name: configName,
+      description: configDescription,
+      side: configSide,
+      map_id: configMapId
+    });
   };
 
   const colors2 = ["#FF4655", "#3B82F6", "#22C55E", "#EAB308", "#F97316", "#A855F7", "#EC4899", "#FFFFFF"];
 
   return (
     <div className={`strategies-container-premium ${view === "editor" ? "in-editor" : ""}`}>
-      {view !== "editor" && (
+      {view === "maps" && (
         <div className="header-premium">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h1 className="gradient-text-valorant" style={{ fontSize: 32, fontWeight: 900 }}>Centro Táctico</h1>
               <p style={{ fontSize: 13, marginTop: 6, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
-                {view === "maps" ? "Selecciona un mapa para ver sus estrategias" :
-                  view === "strategies" ? `${selectedMap?.name.toUpperCase()} — Biblioteca de tácticas` :
-                    `Editor Táctico — ${current?.name}`}
+                Selecciona un mapa para ver sus estrategias
               </p>
             </div>
             {/* Global back button removed to place it closer inside the context */}
@@ -2124,9 +2284,10 @@ export default function StrategiesPage() {
                     boxShadow: "0 8px 24px rgba(255, 70, 85, 0.35)",
                     transition: "all 0.3s ease"
                   }}
-                  onClick={() => setShowNewStrat(true)}
+                  onClick={(e) => createStrat(e)}
+                  disabled={createStratMutation.isPending}
                 >
-                  + NUEVA ESTRATEGIA
+                  {createStratMutation.isPending ? "CREANDO..." : "+ NUEVA ESTRATEGIA"}
                 </button>
               </div>
             </div>
@@ -2250,28 +2411,79 @@ export default function StrategiesPage() {
                               {sideStrats.map(s => {
                                 const allyAgents = getAllyAgents(s);
                                 return (
-                                  <div key={s.id} className={`strategy-card-premium ${s.side === "attack" ? "atk" : "def"}`} onClick={() => openEditor(s)}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <h3 className="strategy-card-title-premium">{s.name}</h3>
-                                      <span className={`strategy-card-badge-premium ${s.side === "attack" ? "atk" : "def"}`}>
-                                        {s.side === "attack" ? "Atacante" : "Defensor"}
-                                      </span>
+                                  <div key={s.id} style={{ position: "relative" }} onMouseLeave={() => setMenuOpenId(null)}>
+                                    <div className={`strategy-card-premium ${s.side === "attack" ? "atk" : "def"}`} onClick={() => openEditor(s)}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <h3 className="strategy-card-title-premium" style={{ paddingRight: 30 }}>{s.name}</h3>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+                                          <button 
+                                            className="tool-btn-premium"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setMenuOpenId(menuOpenId === s.id ? null : s.id);
+                                            }}
+                                            style={{ width: 28, height: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", background: menuOpenId === s.id ? "rgba(255,255,255,0.1)" : "transparent", border: "none", color: "white" }}
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                              <circle cx="12" cy="5" r="1.5" />
+                                              <circle cx="12" cy="12" r="1.5" />
+                                              <circle cx="12" cy="19" r="1.5" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      </div>
+                                      {allyAgents.length > 0 && (
+                                        <div style={{ display: "flex", gap: 4, marginTop: 10, justifyContent: "center" }}>
+                                          {allyAgents.map(ca => {
+                                            const agent = agents.find(a => a.id === ca.id);
+                                            if (!agent) return null;
+                                            return (
+                                              <img
+                                                key={ca.instanceId}
+                                                src={agent.displayIcon}
+                                                alt={agent.name}
+                                                title={agent.name}
+                                                style={{ width: 32, height: 32, borderRadius: 6, border: `2px solid ${ROLE_COLORS[agent.role]}` }}
+                                              />
+                                            );
+                                          })}
+                                        </div>
+                                      )}
                                     </div>
-                                    {allyAgents.length > 0 && (
-                                      <div style={{ display: "flex", gap: 4, marginTop: 10, justifyContent: "center" }}>
-                                        {allyAgents.map(ca => {
-                                          const agent = agents.find(a => a.id === ca.id);
-                                          if (!agent) return null;
-                                          return (
-                                            <img
-                                              key={ca.instanceId}
-                                              src={agent.displayIcon}
-                                              alt={agent.name}
-                                              title={agent.name}
-                                              style={{ width: 32, height: 32, borderRadius: 6, border: `2px solid ${ROLE_COLORS[agent.role]}` }}
-                                            />
-                                          );
-                                        })}
+                                    {menuOpenId === s.id && (
+                                      <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(10, 14, 20, 0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, padding: 6, zIndex: 100, display: "flex", flexDirection: "column", gap: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 140 }}>
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMenuOpenId(null);
+                                            setConfigName(s.name);
+                                            setConfigSide(s.side as "attack" | "defense");
+                                            setConfigDescription(s.description || "");
+                                            setConfigMapId(s.map_id || selectedMap?.id || "");
+                                            setEditingExternalStratId(s.id);
+                                          }}
+                                          style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", padding: "8px 12px", textAlign: "left", borderRadius: 8, fontSize: 12, fontWeight: 700, transition: "all 0.2s ease" }}
+                                          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                        >
+                                          Editar atributos
+                                        </button>
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMenuOpenId(null);
+                                            if (confirm("¿Seguro que deseas borrar esta estrategia?")) {
+                                              deleteStratMutation.mutate(s.id);
+                                            }
+                                          }}
+                                          style={{ background: "transparent", border: "none", color: "#ff4655", cursor: "pointer", padding: "8px 12px", textAlign: "left", borderRadius: 8, fontSize: 12, fontWeight: 700, transition: "all 0.2s ease" }}
+                                          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,70,85,0.1)"}
+                                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                          disabled={deleteStratMutation.isPending}
+                                        >
+                                          Borrar estrategia
+                                        </button>
                                       </div>
                                     )}
                                   </div>
@@ -2329,6 +2541,17 @@ export default function StrategiesPage() {
                     <span style={{ fontSize: 15, fontWeight: 900, color: "#ffffff", letterSpacing: 0.5 }}>
                       {current.name}
                     </span>
+                    <button 
+                      className="tool-btn-premium"
+                      onClick={() => openConfigModal()}
+                      style={{ width: 24, height: 24, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)", border: "none", color: "white", borderRadius: 4 }}
+                      title="Editar atributos"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                      </svg>
+                    </button>
                     <span style={{
                       fontSize: 9,
                       fontWeight: 900,
@@ -2367,6 +2590,51 @@ export default function StrategiesPage() {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* Auto-save Status Indicator */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  background: "rgba(255, 255, 255, 0.02)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  color: saveStrategyMutation.isPending ? "#eab308" : "#22c55e",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  transition: "all 0.3s ease",
+                  userSelect: "none"
+                }}>
+                  {saveStrategyMutation.isPending ? (
+                    <>
+                      <div style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        border: "2px solid rgba(234, 179, 8, 0.2)",
+                        borderTopColor: "#eab308",
+                        animation: "spin 1s linear infinite"
+                      }} />
+                      <span style={{ color: "#eab308" }}>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#22c55e",
+                        boxShadow: "0 0 6px #22c55e"
+                      }} />
+                      <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>Guardado</span>
+                    </>
+                  )}
+                </div>
+
+                <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)" }} />
+
                 {/* ── Collaboration: Active Users Presence ── */}
                 {collabUsers.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 6 }}>
@@ -2424,8 +2692,6 @@ export default function StrategiesPage() {
                   </div>
                 )}
 
-                <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)" }} />
-
                 {/* Settings Button */}
                 <button
                   className="btn btn-secondary btn-sm"
@@ -2447,49 +2713,6 @@ export default function StrategiesPage() {
                   </svg>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>AJUSTES</span>
                 </button>
-
-                {/* Auto-save Status Indicator */}
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  background: "rgba(255, 255, 255, 0.02)",
-                  border: "1px solid rgba(255, 255, 255, 0.05)",
-                  color: saveStrategyMutation.isPending ? "#eab308" : "#22c55e",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 0.5,
-                  textTransform: "uppercase",
-                  transition: "all 0.3s ease",
-                  userSelect: "none"
-                }}>
-                  {saveStrategyMutation.isPending ? (
-                    <>
-                      <div style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        border: "2px solid rgba(234, 179, 8, 0.2)",
-                        borderTopColor: "#eab308",
-                        animation: "spin 1s linear infinite"
-                      }} />
-                      <span style={{ color: "#eab308" }}>Guardando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "#22c55e",
-                        boxShadow: "0 0 6px #22c55e"
-                      }} />
-                      <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>Guardado</span>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -2931,10 +3154,10 @@ export default function StrategiesPage() {
               {/* Canvas Wrap */}
               <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative" }}>
                 <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; redrawImmediate(); }}
+                  onMouseDown={(e) => { if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); startDraw(e); }} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; redrawImmediate(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
-                  onContextMenu={e => e.preventDefault()} />
+                  onContextMenu={e => { e.preventDefault(); if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); }} />
 
                 {/* Floating Zoom & Perspective Controls */}
                 <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", alignItems: "center", gap: 8, zIndex: 10 }}>
@@ -2967,7 +3190,19 @@ export default function StrategiesPage() {
                     <button
                       type="button"
                       className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`}
-                      onClick={() => setSelectedSide("attack")}
+                      onClick={() => {
+                        const newSide = "attack";
+                        setSelectedSide(newSide);
+                        setCurrent(prev => prev ? { ...prev, side: newSide } : prev);
+                        saveStrategyMutation.mutate(newSide);
+                        if (channelRef.current) {
+                          channelRef.current.send({
+                            type: "broadcast",
+                            event: "side-change",
+                            payload: { userId: myUserId, side: newSide }
+                          });
+                        }
+                      }}
                       title="Perspectiva de Ataque (ATK)"
                       style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
                     >
@@ -2981,7 +3216,19 @@ export default function StrategiesPage() {
                     <button
                       type="button"
                       className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`}
-                      onClick={() => setSelectedSide("defense")}
+                      onClick={() => {
+                        const newSide = "defense";
+                        setSelectedSide(newSide);
+                        setCurrent(prev => prev ? { ...prev, side: newSide } : prev);
+                        saveStrategyMutation.mutate(newSide);
+                        if (channelRef.current) {
+                          channelRef.current.send({
+                            type: "broadcast",
+                            event: "side-change",
+                            payload: { userId: myUserId, side: newSide }
+                          });
+                        }
+                      }}
                       title="Perspectiva de Defensa (DEF)"
                       style={{ padding: "0 8px", fontSize: 10, borderRadius: 6, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, height: '100%', border: 'none' }}
                     >
@@ -3000,16 +3247,64 @@ export default function StrategiesPage() {
 
             {/* Agent Selector Panel (Horizontal below canvas) */}
             <div className="editor-agents-panel-premium">
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Añadir como:</span>
-                <div className="pill-toggle-premium" style={{ padding: 2, borderRadius: 6 }}>
-                  <button className={`pill-btn-premium def ${activeTeam === "ally" ? "active" : ""}`} onClick={() => setActiveTeam("ally")} style={{ padding: "3px 8px", fontSize: 9, borderRadius: 4, textTransform: "uppercase", fontWeight: 800 }}>
-                    Aliado
-                  </button>
-                  <button className={`pill-btn-premium atk ${activeTeam === "enemy" ? "active" : ""}`} onClick={() => setActiveTeam("enemy")} style={{ padding: "3px 8px", fontSize: 9, borderRadius: 4, textTransform: "uppercase", fontWeight: 800 }}>
-                    Enemigo
-                  </button>
-                </div>
+              {/* Team toggle */}
+              <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+                <button
+                  onClick={() => setActiveTeam("ally")}
+                  className={`team-toggle-btn ${activeTeam === "ally" ? "active" : ""}`}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    background: activeTeam === "ally" ? "rgba(0, 212, 170, 0.08)" : "rgba(255, 255, 255, 0.01)",
+                    border: activeTeam === "ally" ? "1px solid rgba(0, 212, 170, 0.3)" : "1px solid rgba(255, 255, 255, 0.04)",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    height: 58,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxSizing: "border-box",
+                    color: activeTeam === "ally" ? "#00d4aa" : "rgba(255,255,255,0.35)"
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <span style={{ fontSize: 8, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5 }}>Aliado</span>
+                </button>
+                <button
+                  onClick={() => setActiveTeam("enemy")}
+                  className={`team-toggle-btn ${activeTeam === "enemy" ? "active" : ""}`}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    background: activeTeam === "enemy" ? "rgba(255, 70, 85, 0.08)" : "rgba(255, 255, 255, 0.01)",
+                    border: activeTeam === "enemy" ? "1px solid rgba(255, 70, 85, 0.3)" : "1px solid rgba(255, 255, 255, 0.04)",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    height: 58,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxSizing: "border-box",
+                    color: activeTeam === "enemy" ? "#ff4655" : "rgba(255,255,255,0.35)"
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="18" y1="8" x2="23" y2="13" />
+                    <line x1="23" y1="8" x2="18" y2="13" />
+                  </svg>
+                  <span style={{ fontSize: 8, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5 }}>Enemigo</span>
+                </button>
               </div>
 
               <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.08)", flexShrink: 0 }} />
@@ -3064,21 +3359,151 @@ export default function StrategiesPage() {
         )}
       </div>
 
-      {showNewStrat && (
+      {hoverMenuState.agent && (() => {
+        const ctxAgent = hoverMenuState.agent;
+        let screenX = hoverMenuState.x;
+        let screenY = hoverMenuState.y;
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const pos = getScreenPos(ctxAgent.x, ctxAgent.y);
+          screenX = pos.x + canvas.getBoundingClientRect().left;
+          screenY = pos.y + canvas.getBoundingClientRect().top;
+        }
+        return (
+          <div
+            onMouseEnter={() => {
+              if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
+              hoverMenuTimeoutRef.current = null;
+              hoveredAgentRef.current = ctxAgent;
+              setHoverMenuState(prev => ({ ...prev, visible: true }));
+            }}
+            onMouseLeave={() => {
+              if (!hoverMenuTimeoutRef.current) {
+                hoverMenuTimeoutRef.current = setTimeout(() => {
+                  hoveredAgentRef.current = null;
+                  setHoverMenuState(prev => ({ ...prev, visible: false }));
+                  hoverMenuTimeoutRef.current = null;
+                }, 300);
+              }
+            }}
+            style={{
+              position: "fixed",
+              left: screenX,
+              top: screenY,
+              zIndex: 10001,
+              pointerEvents: hoverMenuState.visible ? "auto" : "none",
+              opacity: hoverMenuState.visible ? 1 : 0,
+              transform: hoverMenuState.visible ? "translate(-50%, -50%) scale(1)" : "translate(-50%, -50%) scale(0.95)",
+              transition: "opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+          >
+            {/* Abilities row - above agent */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: -42,
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: 4
+              }}
+            >
+              {["Q", "E", "C", "X"].map(key => (
+                <div
+                  key={key}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    background: "rgba(10, 14, 20, 0.9)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: "rgba(255,255,255,0.6)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                    transition: "all 0.15s ease",
+                    cursor: "pointer"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                    e.currentTarget.style.background = "rgba(10, 14, 20, 0.9)";
+                  }}
+                >
+                  {key}
+                </div>
+              ))}
+            </div>
+
+            {/* Delete button - over agent border */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                const agentIdx = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
+                undoStackRef.current.push({ type: 'remove-agent', agent: ctxAgent, index: agentIdx });
+                redoStackRef.current = [];
+                agentsRef.current = agentsRef.current.filter(a => a.instanceId !== ctxAgent.instanceId);
+                updateUndoRedo();
+                redraw();
+                broadcastEraseElements([], [ctxAgent.instanceId]);
+                scheduleAutoSave();
+                setHoverMenuState(prev => ({ ...prev, visible: false }));
+              }}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: 14,
+                transform: "translateX(-50%)",
+                width: 24,
+                height: 24,
+                borderRadius: "50%",
+                background: "rgba(255, 70, 85, 0.9)",
+                border: "2px solid rgba(10, 14, 20, 0.8)",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 900,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(255, 70, 85, 0.5)",
+                zIndex: 10001,
+                lineHeight: 1,
+                padding: 0
+              }}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })()}
+
+      {editingExternalStratId && (
         <div className="modal-overlay-premium">
           <div className="modal-card-premium" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Nueva Estrategia</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la Táctica</h3>
+
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la táctica</label>
-              <input className="input-premium" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Control de Mid a A" autoFocus />
+              <input className="input-premium" value={configName} onChange={e => setConfigName(e.target.value)} placeholder="Ej: Control de Mid a A" />
             </div>
-            <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Bando inicial</label>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Bando de juego</label>
               <div className="pill-toggle-premium" style={{ width: '100%', padding: 4, borderRadius: 8, display: 'flex', gap: 4 }}>
                 <button
                   type="button"
-                  className={`pill-btn-premium atk ${selectedSide === "attack" ? "active" : ""}`}
-                  onClick={() => setSelectedSide("attack")}
+                  className={`pill-btn-premium atk ${configSide === "attack" ? "active" : ""}`}
+                  onClick={() => setConfigSide("attack")}
                   style={{ flex: 1, padding: "8px 0", fontSize: 11, borderRadius: 6, textTransform: "uppercase", fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -3091,8 +3516,8 @@ export default function StrategiesPage() {
                 </button>
                 <button
                   type="button"
-                  className={`pill-btn-premium def ${selectedSide === "defense" ? "active" : ""}`}
-                  onClick={() => setSelectedSide("defense")}
+                  className={`pill-btn-premium def ${configSide === "defense" ? "active" : ""}`}
+                  onClick={() => setConfigSide("defense")}
                   style={{ flex: 1, padding: "8px 0", fontSize: 11, borderRadius: 6, textTransform: "uppercase", fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -3102,10 +3527,42 @@ export default function StrategiesPage() {
                 </button>
               </div>
             </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Descripción</label>
+              <textarea
+                className="input-premium"
+                rows={3}
+                value={configDescription}
+                onChange={e => setConfigDescription(e.target.value)}
+                placeholder="Describe la ejecución, utilidades a usar, etc..."
+                style={{ resize: 'none', height: 'auto', paddingTop: 10, paddingBottom: 10 }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Cambiar Mapa</label>
+              <select
+                className="input-premium"
+                value={configMapId}
+                onChange={e => setConfigMapId(e.target.value)}
+                style={{ cursor: 'pointer' }}
+              >
+                {allMaps.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}{m.activeInRotation ? " ★" : ""}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", fontWeight: 600, marginTop: 4, display: 'block' }}>
+                ★ = En rotación activa.
+              </span>
+            </div>
+
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button className="btn btn-secondary" style={{ borderRadius: 10 }} onClick={() => setShowNewStrat(false)}>Cancelar</button>
-              <button className="btn btn-primary" style={{ borderRadius: 10, padding: "10px 20px" }} onClick={createStrat} disabled={createStratMutation.isPending}>
-                {createStratMutation.isPending ? "Creando..." : "Crear Estrategia"}
+              <button className="btn btn-secondary" style={{ borderRadius: 10 }} onClick={() => setEditingExternalStratId(null)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ borderRadius: 10, padding: "10px 20px" }} onClick={saveExternalConfig} disabled={updateStratMutation.isPending}>
+                {updateStratMutation.isPending ? "Guardando..." : "Guardar"}
               </button>
             </div>
           </div>

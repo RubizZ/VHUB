@@ -2812,6 +2812,14 @@ input:checked+.slider:before {
   margin-left: 8px;
   pointer-events: auto;
 }
+.team-toggle-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.team-toggle-btn.active:hover {
+  transform: translateY(-2px);
+}
 .agent-btn-premium-horizontal {
   display: flex;
   flex-direction: column;
