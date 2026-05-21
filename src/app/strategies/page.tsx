@@ -207,8 +207,8 @@ export default function StrategiesPage() {
   const lastAgentBroadcastTimeRef = useRef<number>(0);
   const activePathIdRef = useRef<string | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [editingExternalStratId, setEditingExternalStratId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [editingExternalStratId, setEditingExternalStratId] = useState<number | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1381,6 +1381,7 @@ export default function StrategiesPage() {
     const pos = getPos(e);
 
     if (canvas) {
+      const rect = canvas.getBoundingClientRect();
       // ── Collaboration: Broadcast cursor position ──
       if (isSupabaseConfigured && channelRef.current) {
         const now = Date.now();
@@ -1586,7 +1587,7 @@ export default function StrategiesPage() {
       }
       return;
     }
-    if (tool === "line-eraser") {
+    if (tool === "eraser" && eraserMode === "lines") {
       drawingRef.current = false;
       return;
     }
@@ -1806,7 +1807,7 @@ export default function StrategiesPage() {
       scheduleAutoSave();
       return;
     }
-    saveStrategyMutation.mutate();
+    saveStrategyMutation.mutate(undefined);
   }, [saveStrategyMutation, scheduleAutoSave]);
 
   // ── Collaboration: Wire up auto-save ref ──
@@ -2079,12 +2080,12 @@ export default function StrategiesPage() {
       }
       createStratMutation.mutate({ name: `Estrategia sin nombre ${x}`, side: "attack" });
     } else {
-      createStratMutation.mutate();
+      createStratMutation.mutate(undefined);
     }
   };
 
   const deleteStratMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: number) => {
       const res = await fetch(`/api/strategies?id=${id}`, {
         method: "DELETE"
       });
@@ -2100,7 +2101,7 @@ export default function StrategiesPage() {
   });
 
   const updateStratMutation = useMutation({
-    mutationFn: async (strat: Partial<Strategy> & { id: string }) => {
+    mutationFn: async (strat: Partial<Strategy> & { id: number }) => {
       const res = await fetch("/api/strategies", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
