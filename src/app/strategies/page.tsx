@@ -1239,7 +1239,6 @@ export default function StrategiesPage() {
         undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
         redoStackRef.current = [];
         pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
-        loadedPathIdsRef.current.delete(erasedId);
         if (hoveredPathIdRef.current === erasedId) hoveredPathIdRef.current = null;
         updateUndoRedo();
         redrawImmediate();
@@ -1482,7 +1481,6 @@ export default function StrategiesPage() {
             undoStackRef.current.push({ type: 'remove-path', path: erasedPath, index: erasedIdx });
             redoStackRef.current = [];
             pathsRef.current = pathsRef.current.filter(p => p.id !== erasedId);
-            loadedPathIdsRef.current.delete(erasedId);
             hoveredPathIdRef.current = null;
             updateUndoRedo();
             redrawImmediate();
@@ -1550,12 +1548,10 @@ export default function StrategiesPage() {
       return;
     }
     if (!drawingRef.current) {
-      if (tool === "eraser") redrawImmediate();
       return;
     }
     const activePath = pathsRef.current.find(p => p.id === activePathIdRef.current);
     if (!activePath) {
-      if (tool === "eraser") redrawImmediate();
       return;
     }
     activePath.points.push(pos);
