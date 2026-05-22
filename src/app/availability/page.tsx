@@ -117,6 +117,7 @@ export default function AvailabilityPage() {
     const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
     const weekScrollRef = useRef<HTMLDivElement>(null);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
+    const abortControllers = useRef<Record<number, AbortController>>({});
     const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<
         "above" | "below" | "in-view"
     >("in-view");
@@ -272,6 +273,13 @@ export default function AvailabilityPage() {
             if (!myPlayerId) {
                 throw new Error("No estás vinculado a ningún jugador. Contacta con tu administrador.");
             }
+            
+            if (abortControllers.current[eventId]) {
+                abortControllers.current[eventId].abort();
+            }
+            const controller = new AbortController();
+            abortControllers.current[eventId] = controller;
+
             const res = await fetch("/api/availability", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -280,6 +288,7 @@ export default function AvailabilityPage() {
                     player_id: myPlayerId,
                     status,
                 }),
+                signal: controller.signal
             });
 
             if (!res.ok) {
@@ -292,7 +301,7 @@ export default function AvailabilityPage() {
             setUpdatingEventId(eventId);
             await queryClient.cancelQueries({ queryKey: ["events"] });
             const previousEvents = queryClient.getQueryData(["events"]);
-            
+
             queryClient.setQueryData(["events"], (old: any) => {
                 if (!old?.events) return old;
                 return {
@@ -312,13 +321,15 @@ export default function AvailabilityPage() {
                     })
                 };
             });
-            
+
             return { previousEvents };
         },
         onSuccess: () => {
             setTimeout(() => setUpdatingEventId(null), 500);
         },
         onError: (err: any, variables, context: any) => {
+            if (err.name === 'AbortError') return;
+            
             if (context?.previousEvents) {
                 queryClient.setQueryData(["events"], context.previousEvents);
             }
@@ -2691,19 +2702,19 @@ export default function AvailabilityPage() {
                                                             ).current = el;
                                                     }}
                                                     className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${isInactive
-                                                            ? hasPlayed
-                                                                ? "played-card"
-                                                                : "faded-card"
-                                                            : myStatus ===
-                                                                "unavailable"
-                                                                ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
+                                                        ? hasPlayed
+                                                            ? "played-card"
+                                                            : "faded-card"
+                                                        : myStatus ===
+                                                            "unavailable"
+                                                            ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
+                                                            : ev.type ===
+                                                                "match"
+                                                                ? "hover-lift-match"
                                                                 : ev.type ===
-                                                                    "match"
-                                                                    ? "hover-lift-match"
-                                                                    : ev.type ===
-                                                                        "playoffs"
-                                                                        ? "hover-lift-playoffs"
-                                                                        : "hover-lift-practice"
+                                                                    "playoffs"
+                                                                    ? "hover-lift-playoffs"
+                                                                    : "hover-lift-practice"
                                                         }`}
                                                     style={{
                                                         marginBottom: 12,
@@ -3293,18 +3304,18 @@ export default function AvailabilityPage() {
                                                                                                 fontWeight: 800,
                                                                                                 color: "white",
                                                                                                 border: `2px solid ${ps ===
-                                                                                                        "played"
-                                                                                                        ? "var(--val-purple)"
+                                                                                                    "played"
+                                                                                                    ? "var(--val-purple)"
+                                                                                                    : ps ===
+                                                                                                        "available"
+                                                                                                        ? "var(--val-cyan)"
                                                                                                         : ps ===
-                                                                                                            "available"
-                                                                                                            ? "var(--val-cyan)"
+                                                                                                            "maybe"
+                                                                                                            ? "var(--val-yellow)"
                                                                                                             : ps ===
-                                                                                                                "maybe"
-                                                                                                                ? "var(--val-yellow)"
-                                                                                                                : ps ===
-                                                                                                                    "unavailable"
-                                                                                                                    ? "var(--val-red)"
-                                                                                                                    : "rgba(255,255,255,0.1)"
+                                                                                                                "unavailable"
+                                                                                                                ? "var(--val-red)"
+                                                                                                                : "rgba(255,255,255,0.1)"
                                                                                                     }`,
                                                                                                 boxShadow:
                                                                                                     ps !==
@@ -3920,10 +3931,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "available" ? "pending" : "available",
                                                                                     )
-                                                                                } disabled={updatingEventId === ev.id}
+                                                                                }
                                                                                 className="transition-smooth"
                                                                                 style={{
-                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -3998,10 +4008,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "maybe" ? "pending" : "maybe",
                                                                                     )
-                                                                                } disabled={updatingEventId === ev.id}
+                                                                                }
                                                                                 className="transition-smooth"
                                                                                 style={{
-                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -4076,10 +4085,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "unavailable" ? "pending" : "unavailable",
                                                                                     )
-                                                                                } disabled={updatingEventId === ev.id}
+                                                                                }
                                                                                 className="transition-smooth"
                                                                                 style={{
-                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -5084,14 +5092,14 @@ export default function AvailabilityPage() {
                                         alignItems: "end",
                                         padding: 24,
                                         boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${isRed ||
-                                                myStatus === "unavailable" ||
-                                                myStatus === "pending"
-                                                ? "transparent"
-                                                : evColorBase
+                                            myStatus === "unavailable" ||
+                                            myStatus === "pending"
+                                            ? "transparent"
+                                            : evColorBase
                                             }44`,
                                         borderBottom: `2px solid ${myStatus === "pending"
-                                                ? "rgba(255,255,255,0.1)"
-                                                : evColorBase
+                                            ? "rgba(255,255,255,0.1)"
+                                            : evColorBase
                                             }`,
                                         overflow: "hidden",
                                     }}
@@ -5648,14 +5656,14 @@ export default function AvailabilityPage() {
                                                                     fontWeight: 800,
                                                                     color: "white",
                                                                     border: `2px solid ${ps === "played"
-                                                                            ? "var(--val-purple)"
-                                                                            : ps === "available"
-                                                                                ? "var(--val-cyan)"
-                                                                                : ps === "maybe"
-                                                                                    ? "var(--val-yellow)"
-                                                                                    : ps === "unavailable"
-                                                                                        ? "var(--val-red)"
-                                                                                        : "rgba(255,255,255,0.1)"
+                                                                        ? "var(--val-purple)"
+                                                                        : ps === "available"
+                                                                            ? "var(--val-cyan)"
+                                                                            : ps === "maybe"
+                                                                                ? "var(--val-yellow)"
+                                                                                : ps === "unavailable"
+                                                                                    ? "var(--val-red)"
+                                                                                    : "rgba(255,255,255,0.1)"
                                                                         }`,
                                                                     boxShadow:
                                                                         ps !== "pending"
