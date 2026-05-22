@@ -288,14 +288,40 @@ export default function AvailabilityPage() {
             }
             return res.json();
         },
-        onMutate: ({ eventId }) => {
+        onMutate: async ({ eventId, status }) => {
             setUpdatingEventId(eventId);
+            await queryClient.cancelQueries({ queryKey: ["events"] });
+            const previousEvents = queryClient.getQueryData(["events"]);
+            
+            queryClient.setQueryData(["events"], (old: any) => {
+                if (!old?.events) return old;
+                return {
+                    ...old,
+                    events: old.events.map((ev: any) => {
+                        if (ev.id === eventId) {
+                            const newAvail = [...(ev.availability || [])];
+                            const existingIdx = newAvail.findIndex((a: any) => a.player_id === myPlayerId);
+                            if (existingIdx !== -1) {
+                                newAvail[existingIdx] = { ...newAvail[existingIdx], status };
+                            } else {
+                                newAvail.push({ player_id: myPlayerId, status, player: { name: session?.user?.name || "Yo", avatar_color: "#E11D48" } });
+                            }
+                            return { ...ev, availability: newAvail };
+                        }
+                        return ev;
+                    })
+                };
+            });
+            
+            return { previousEvents };
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["events"] });
-            setTimeout(() => setUpdatingEventId(null), 1000);
+            setTimeout(() => setUpdatingEventId(null), 500);
         },
-        onError: (err: any) => {
+        onError: (err: any, variables, context: any) => {
+            if (context?.previousEvents) {
+                queryClient.setQueryData(["events"], context.previousEvents);
+            }
             alert(err.message);
             setUpdatingEventId(null);
         }
