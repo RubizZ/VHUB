@@ -16,7 +16,7 @@ export async function GET() {
   const players = await db.player.findMany({
     where: { teamId: session.user.teamId },
     orderBy: { id: 'asc' },
-    include: { user: { select: { email: true, name: true, dataConsent: true } } }
+    include: { user: { select: { email: true, name: true, dataConsent: true, lastActiveAt: true } } }
   });
   return NextResponse.json({ players });
 }

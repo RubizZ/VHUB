@@ -7,7 +7,7 @@ import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
 import { LandingPage } from "@/components/LandingPage";
 
-interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; }
+interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; user?: { lastActiveAt?: string }; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
 
 export default function Dashboard() {
@@ -224,7 +224,11 @@ export default function Dashboard() {
                       <div style={{ fontWeight: 500, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
                       <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>{p.role}</div>
                     </div>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 10px var(--val-cyan)" }} />
+                    {p.user?.lastActiveAt && (new Date().getTime() - new Date(p.user.lastActiveAt).getTime()) < 3 * 60 * 1000 ? (
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 10px var(--val-cyan)" }} title="En Línea" />
+                    ) : (
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255, 255, 255, 0.2)" }} title="Desconectado" />
+                    )}
                   </Link>
                 ))}
               </div>

@@ -40,6 +40,7 @@ model User {
   teamId        String?
   calendarToken String?           @unique @default(cuid(2))
   dataConsent   Boolean           @default(false)
+  lastActiveAt  DateTime?
   accounts      Account[]
   sessions      Session[]
   joinRequests  TeamJoinRequest[]
