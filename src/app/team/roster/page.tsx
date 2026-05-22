@@ -22,12 +22,12 @@ export default function TeamRosterPage() {
   const queryClient = useQueryClient();
 
   const [editing, setEditing] = useState<Player | null>(null);
-  const [form, setForm] = useState({ email: "", role: "flex", avatar_color: "#FF4655" });
+  const [form, setForm] = useState({ email: "", role: "flex", avatar_color: "#E11D48" });
   const [error, setError] = useState("");
 
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
   
-  const colors = ["#FF4655", "#00D4AA", "#A855F7", "#3B82F6", "#F59E0B", "#FF6B35", "#E040FB", "#00BCD4"];
+  const colors = ["#E11D48", "#10B981", "#A855F7", "#3B82F6", "#EAB308", "#FF6B35", "#E040FB", "#00BCD4"];
   const roles = [
     { value: "duelist", label: "Duelista" }, { value: "initiator", label: "Iniciador" },
     { value: "controller", label: "Controlador" }, { value: "sentinel", label: "Centinela" }, { value: "flex", label: "Flex" }
@@ -76,7 +76,7 @@ export default function TeamRosterPage() {
     },
     onSuccess: () => {
       setEditing(null);
-      setForm({ email: "", role: "flex", avatar_color: "#FF4655" });
+      setForm({ email: "", role: "flex", avatar_color: "#E11D48" });
       setError("");
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },

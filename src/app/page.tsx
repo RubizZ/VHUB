@@ -256,7 +256,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))
-                ) : players.slice(0, 7).map(p => (
+                ) : [...players].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                   <Link href={`/player/${p.id}`} key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
                     <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       {p.name.charAt(0)}
@@ -354,7 +354,9 @@ function EventItem({ event }: { event: any }) {
         <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {event.title || (event.type === 'match' ? 'Partido Premier' : event.type === 'practice' ? 'Práctica Premier' : event.type === 'playoffs' ? 'Playoffs Premier' : 'Evento')}
         </div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(event.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} • {event.time}</div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          {new Date(`${event.date}T${event.time}:00Z`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} • {new Date(`${event.date}T${event.time}:00Z`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+        </div>
       </div>
       
       {attendees.length > 0 && (

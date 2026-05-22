@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           teamId: teamId,
           name: selectedUser.name || "Jugador",
           role: playerRole || "flex",
-          avatar_color: avatar_color || "#FF4655"
+          avatar_color: avatar_color || "#E11D48"
         }
       });
 

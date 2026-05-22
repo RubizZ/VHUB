@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const userName = session.user.name || "Anónimo";
 
   // Get avatar color from player profile if available
-  let userColor = "#FF4655";
+  let userColor = "#E11D48";
   const playerId = (session.user as any).playerId;
   if (playerId) {
     const player = await db.player.findUnique({

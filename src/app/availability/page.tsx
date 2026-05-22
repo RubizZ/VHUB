@@ -3895,9 +3895,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "available" ? "pending" : "available",
                                                                                     )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
+                                                                                } disabled={updatingEventId === ev.id}
+className="transition-smooth"
+style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -3972,9 +3972,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "maybe" ? "pending" : "maybe",
                                                                                     )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
+                                                                                } disabled={updatingEventId === ev.id}
+className="transition-smooth"
+style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -4049,9 +4049,9 @@ export default function AvailabilityPage() {
                                                                                         ev.id,
                                                                                         myStatus === "unavailable" ? "pending" : "unavailable",
                                                                                     )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
+                                                                                } disabled={updatingEventId === ev.id}
+className="transition-smooth"
+style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
