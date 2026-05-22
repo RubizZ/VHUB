@@ -876,8 +876,8 @@ export default function AvailabilityPage() {
                         const weekMap =
                             viewMode === "week"
                                 ? weekDays
-                                      .flatMap((d) => d.events)
-                                      .find((e) => e.map_obj)?.map_obj
+                                    .flatMap((d) => d.events)
+                                    .find((e) => e.map_obj)?.map_obj
                                 : null;
 
                         return (
@@ -1063,10 +1063,10 @@ export default function AvailabilityPage() {
                                                         background: d.empty
                                                             ? "rgba(0,0,0,0.1)"
                                                             : d.isToday
-                                                              ? "rgba(255,70,85,0.06)"
-                                                              : d.isPast
-                                                                ? "rgba(0,0,0,0.4)"
-                                                                : "transparent",
+                                                                ? "rgba(255,70,85,0.06)"
+                                                                : d.isPast
+                                                                    ? "rgba(0,0,0,0.4)"
+                                                                    : "transparent",
                                                         position: "relative",
                                                         opacity: d.isPast
                                                             ? 0.25
@@ -1153,367 +1153,367 @@ export default function AvailabilityPage() {
                                                             >
                                                                 {isLoadingEvents
                                                                     ? (() => {
-                                                                          const hash =
-                                                                              (i *
-                                                                                  43 +
-                                                                                  d.day *
-                                                                                      17) %
-                                                                              12;
-                                                                          if (
-                                                                              hash <
-                                                                              3
-                                                                          ) {
-                                                                              return null;
-                                                                          } else if (
-                                                                              hash <
-                                                                              7
-                                                                          ) {
-                                                                              const width =
-                                                                                  70 +
-                                                                                  ((hash *
-                                                                                      7) %
-                                                                                      31);
-                                                                              return (
-                                                                                  <Skeleton
-                                                                                      width={`${width}%`}
-                                                                                      height={
-                                                                                          16
-                                                                                      }
-                                                                                      style={{
-                                                                                          borderRadius: 4,
-                                                                                      }}
-                                                                                  />
-                                                                              );
-                                                                          } else if (
-                                                                              hash <
-                                                                              10
-                                                                          ) {
-                                                                              const w1 =
-                                                                                  80 +
-                                                                                  ((hash *
-                                                                                      3) %
-                                                                                      21);
-                                                                              const w2 =
-                                                                                  60 +
-                                                                                  ((hash *
-                                                                                      9) %
-                                                                                      21);
-                                                                              return (
-                                                                                  <>
-                                                                                      <Skeleton
-                                                                                          width={`${w1}%`}
-                                                                                          height={
-                                                                                              16
-                                                                                          }
-                                                                                          style={{
-                                                                                              borderRadius: 4,
-                                                                                          }}
-                                                                                      />
-                                                                                      <Skeleton
-                                                                                          width={`${w2}%`}
-                                                                                          height={
-                                                                                              16
-                                                                                          }
-                                                                                          style={{
-                                                                                              borderRadius: 4,
-                                                                                          }}
-                                                                                      />
-                                                                                  </>
-                                                                              );
-                                                                          } else {
-                                                                              const w1 =
-                                                                                  90 +
-                                                                                  ((hash *
-                                                                                      2) %
-                                                                                      11);
-                                                                              const w2 =
-                                                                                  75 +
-                                                                                  ((hash *
-                                                                                      5) %
-                                                                                      16);
-                                                                              const w3 =
-                                                                                  50 +
-                                                                                  ((hash *
-                                                                                      8) %
-                                                                                      21);
-                                                                              return (
-                                                                                  <>
-                                                                                      <Skeleton
-                                                                                          width={`${w1}%`}
-                                                                                          height={
-                                                                                              16
-                                                                                          }
-                                                                                          style={{
-                                                                                              borderRadius: 4,
-                                                                                          }}
-                                                                                      />
-                                                                                      <Skeleton
-                                                                                          width={`${w2}%`}
-                                                                                          height={
-                                                                                              16
-                                                                                          }
-                                                                                          style={{
-                                                                                              borderRadius: 4,
-                                                                                          }}
-                                                                                      />
-                                                                                      <Skeleton
-                                                                                          width={`${w3}%`}
-                                                                                          height={
-                                                                                              16
-                                                                                          }
-                                                                                          style={{
-                                                                                              borderRadius: 4,
-                                                                                          }}
-                                                                                      />
-                                                                                  </>
-                                                                              );
-                                                                          }
-                                                                      })()
+                                                                        const hash =
+                                                                            (i *
+                                                                                43 +
+                                                                                d.day *
+                                                                                17) %
+                                                                            12;
+                                                                        if (
+                                                                            hash <
+                                                                            3
+                                                                        ) {
+                                                                            return null;
+                                                                        } else if (
+                                                                            hash <
+                                                                            7
+                                                                        ) {
+                                                                            const width =
+                                                                                70 +
+                                                                                ((hash *
+                                                                                    7) %
+                                                                                    31);
+                                                                            return (
+                                                                                <Skeleton
+                                                                                    width={`${width}%`}
+                                                                                    height={
+                                                                                        16
+                                                                                    }
+                                                                                    style={{
+                                                                                        borderRadius: 4,
+                                                                                    }}
+                                                                                />
+                                                                            );
+                                                                        } else if (
+                                                                            hash <
+                                                                            10
+                                                                        ) {
+                                                                            const w1 =
+                                                                                80 +
+                                                                                ((hash *
+                                                                                    3) %
+                                                                                    21);
+                                                                            const w2 =
+                                                                                60 +
+                                                                                ((hash *
+                                                                                    9) %
+                                                                                    21);
+                                                                            return (
+                                                                                <>
+                                                                                    <Skeleton
+                                                                                        width={`${w1}%`}
+                                                                                        height={
+                                                                                            16
+                                                                                        }
+                                                                                        style={{
+                                                                                            borderRadius: 4,
+                                                                                        }}
+                                                                                    />
+                                                                                    <Skeleton
+                                                                                        width={`${w2}%`}
+                                                                                        height={
+                                                                                            16
+                                                                                        }
+                                                                                        style={{
+                                                                                            borderRadius: 4,
+                                                                                        }}
+                                                                                    />
+                                                                                </>
+                                                                            );
+                                                                        } else {
+                                                                            const w1 =
+                                                                                90 +
+                                                                                ((hash *
+                                                                                    2) %
+                                                                                    11);
+                                                                            const w2 =
+                                                                                75 +
+                                                                                ((hash *
+                                                                                    5) %
+                                                                                    16);
+                                                                            const w3 =
+                                                                                50 +
+                                                                                ((hash *
+                                                                                    8) %
+                                                                                    21);
+                                                                            return (
+                                                                                <>
+                                                                                    <Skeleton
+                                                                                        width={`${w1}%`}
+                                                                                        height={
+                                                                                            16
+                                                                                        }
+                                                                                        style={{
+                                                                                            borderRadius: 4,
+                                                                                        }}
+                                                                                    />
+                                                                                    <Skeleton
+                                                                                        width={`${w2}%`}
+                                                                                        height={
+                                                                                            16
+                                                                                        }
+                                                                                        style={{
+                                                                                            borderRadius: 4,
+                                                                                        }}
+                                                                                    />
+                                                                                    <Skeleton
+                                                                                        width={`${w3}%`}
+                                                                                        height={
+                                                                                            16
+                                                                                        }
+                                                                                        style={{
+                                                                                            borderRadius: 4,
+                                                                                        }}
+                                                                                    />
+                                                                                </>
+                                                                            );
+                                                                        }
+                                                                    })()
                                                                     : d.events.map(
-                                                                          (
-                                                                              ev: any,
-                                                                          ) => {
-                                                                              const ea =
-                                                                                  avail[
-                                                                                      ev
-                                                                                          .id
-                                                                                  ] ||
-                                                                                  [];
-                                                                                  const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
-                                                                              const myStatus =
-                                                                                  ea.find(
-                                                                                      (
-                                                                                          a,
-                                                                                      ) =>
-                                                                                          String(
-                                                                                              a.player_id,
-                                                                                          ) ===
-                                                                                          String(
-                                                                                              myPlayerId,
-                                                                                          ),
-                                                                                  )
-                                                                                      ?.status ||
-                                                                                  "pending";
-                                                                              const isCancelled =
-                                                                                  ev.status ===
-                                                                                  "cancelled";
-                                                                              const isNoPlayers =
-                                                                                  ev.status ===
-                                                                                  "no_players";
-                                                                              const isNotPlayed =
-                                                                                  ev.status ===
-                                                                                  "not_played";
+                                                                        (
+                                                                            ev: any,
+                                                                        ) => {
+                                                                            const ea =
+                                                                                avail[
+                                                                                ev
+                                                                                    .id
+                                                                                ] ||
+                                                                                [];
+                                                                            const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
+                                                                            const myStatus =
+                                                                                ea.find(
+                                                                                    (
+                                                                                        a,
+                                                                                    ) =>
+                                                                                        String(
+                                                                                            a.player_id,
+                                                                                        ) ===
+                                                                                        String(
+                                                                                            myPlayerId,
+                                                                                        ),
+                                                                                )
+                                                                                    ?.status ||
+                                                                                "pending";
+                                                                            const isCancelled =
+                                                                                ev.status ===
+                                                                                "cancelled";
+                                                                            const isNoPlayers =
+                                                                                ev.status ===
+                                                                                "no_players";
+                                                                            const isNotPlayed =
+                                                                                ev.status ===
+                                                                                "not_played";
 
-                                                                              const unavailable =
-                                                                                  ea.filter(
-                                                                                      (
-                                                                                          a,
-                                                                                      ) =>
-                                                                                          a.status ===
-                                                                                          "unavailable",
-                                                                                  ).length;
-                                                                              const isImpossible =
-                                                                                  isMounted &&
-                                                                                  (
-                                                                                      ev as any
-                                                                                  )
-                                                                                      .localDate >=
-                                                                                      todayStr &&
-                                                                                  players.length >=
-                                                                                      5 &&
-                                                                                  players.length -
-                                                                                      unavailable <
-                                                                                      5;
+                                                                            const unavailable =
+                                                                                ea.filter(
+                                                                                    (
+                                                                                        a,
+                                                                                    ) =>
+                                                                                        a.status ===
+                                                                                        "unavailable",
+                                                                                ).length;
+                                                                            const isImpossible =
+                                                                                isMounted &&
+                                                                                (
+                                                                                    ev as any
+                                                                                )
+                                                                                    .localDate >=
+                                                                                todayStr &&
+                                                                                players.length >=
+                                                                                5 &&
+                                                                                players.length -
+                                                                                unavailable <
+                                                                                5;
 
-                                                                              const isRed =
-                                                                                  isCancelled ||
-                                                                                  isNoPlayers ||
-                                                                                  isNotPlayed ||
-                                                                                  isImpossible;
-                                                                              const evColor =
-                                                                                  ev.type ===
-                                                                                  "playoffs"
-                                                                                      ? "var(--val-yellow)"
-                                                                                      : ev.type ===
-                                                                                          "match"
+                                                                            const isRed =
+                                                                                isCancelled ||
+                                                                                isNoPlayers ||
+                                                                                isNotPlayed ||
+                                                                                isImpossible;
+                                                                            const evColor =
+                                                                                ev.type ===
+                                                                                    "playoffs"
+                                                                                    ? "var(--val-yellow)"
+                                                                                    : ev.type ===
+                                                                                        "match"
                                                                                         ? "var(--val-red)"
                                                                                         : "var(--val-cyan)";
-                                                                              const evColorDark =
-                                                                                  ev.type ===
-                                                                                  "playoffs"
-                                                                                      ? "var(--val-yellow-dark)"
-                                                                                      : ev.type ===
-                                                                                          "match"
+                                                                            const evColorDark =
+                                                                                ev.type ===
+                                                                                    "playoffs"
+                                                                                    ? "var(--val-yellow-dark)"
+                                                                                    : ev.type ===
+                                                                                        "match"
                                                                                         ? "var(--val-red-dark)"
                                                                                         : "#008a6e";
-                                                                              const isFirstUpcoming =
-                                                                                  ev.id ===
-                                                                                  firstUpcomingId;
+                                                                            const isFirstUpcoming =
+                                                                                ev.id ===
+                                                                                firstUpcomingId;
 
-                                                                              const hoverBorderColor =
-                                                                                  myStatus ===
-                                                                                  "available"
-                                                                                      ? ev.type ===
+                                                                            const hoverBorderColor =
+                                                                                myStatus ===
+                                                                                    "available"
+                                                                                    ? ev.type ===
                                                                                         "match"
-                                                                                          ? "rgba(255, 255, 255, 0.65)"
-                                                                                          : evColorDark
-                                                                                      : evColor;
+                                                                                        ? "rgba(255, 255, 255, 0.65)"
+                                                                                        : evColorDark
+                                                                                    : evColor;
 
-                                                                              const hoverSheenActive =
-                                                                                  myStatus ===
-                                                                                  "available"
-                                                                                      ? ev.type ===
+                                                                            const hoverSheenActive =
+                                                                                myStatus ===
+                                                                                    "available"
+                                                                                    ? ev.type ===
                                                                                         "match"
-                                                                                          ? "rgba(255, 255, 255, 0.15)"
-                                                                                          : "rgba(0, 0, 0, 0.12)"
-                                                                                      : "rgba(255, 255, 255, 0.12)";
+                                                                                        ? "rgba(255, 255, 255, 0.15)"
+                                                                                        : "rgba(0, 0, 0, 0.12)"
+                                                                                    : "rgba(255, 255, 255, 0.12)";
 
-                                                                              const hoverInsetShadow =
-                                                                                  myStatus ===
-                                                                                  "available"
-                                                                                      ? ev.type ===
+                                                                            const hoverInsetShadow =
+                                                                                myStatus ===
+                                                                                    "available"
+                                                                                    ? ev.type ===
                                                                                         "match"
-                                                                                          ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
-                                                                                          : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                      : `inset 0 0 5px ${evColor}`;
+                                                                                        ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
+                                                                                        : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
+                                                                                    : `inset 0 0 5px ${evColor}`;
 
-                                                                              return (
-                                                                                  <div
-                                                                                      key={
-                                                                                          ev.id
-                                                                                      }
-                                                                                      onClick={() =>
-                                                                                          setSelectedEventId(
-                                                                                              ev.id,
-                                                                                          )
-                                                                                      }
-                                                                                      className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
-                                                                                      style={{
-                                                                                          fontSize: 10,
-                                                                                          padding:
-                                                                                              "4px 6px",
-                                                                                          borderRadius: 4,
-                                                                                          background:
-                                                                                              isRed
-                                                                                                  ? "transparent"
-                                                                                                  : myStatus ===
-                                                                                                      "unavailable"
+                                                                            return (
+                                                                                <div
+                                                                                    key={
+                                                                                        ev.id
+                                                                                    }
+                                                                                    onClick={() =>
+                                                                                        setSelectedEventId(
+                                                                                            ev.id,
+                                                                                        )
+                                                                                    }
+                                                                                    className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                    style={{
+                                                                                        fontSize: 10,
+                                                                                        padding:
+                                                                                            "4px 6px",
+                                                                                        borderRadius: 4,
+                                                                                        background:
+                                                                                            isRed
+                                                                                                ? "transparent"
+                                                                                                : myStatus ===
+                                                                                                    "unavailable"
                                                                                                     ? "transparent"
                                                                                                     : myStatus ===
                                                                                                         "pending"
-                                                                                                      ? "transparent"
-                                                                                                      : ev.status ===
-                                                                                                              "completed" ||
-                                                                                                          (ev.linkedMatches &&
-                                                                                                              ev
-                                                                                                                  .linkedMatches
-                                                                                                                  .length >
-                                                                                                                  0)
-                                                                                                        ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
-                                                                                                        : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                          ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                          : evColor,
-                                                                                          color:
-                                                                                              isRed ||
-                                                                                              myStatus ===
-                                                                                                  "unavailable" ||
-                                                                                              myStatus ===
-                                                                                                  "pending"
-                                                                                                  ? evColor
-                                                                                                  : "white",
-                                                                                          fontWeight: 700,
-                                                                                          whiteSpace:
-                                                                                              "nowrap",
-                                                                                          overflow:
-                                                                                              "hidden",
-                                                                                          textOverflow:
-                                                                                              "ellipsis",
-                                                                                          cursor: "pointer",
-                                                                                          textDecoration:
-                                                                                              isCancelled ||
-                                                                                              isNoPlayers ||
-                                                                                              isNotPlayed ||
-                                                                                              isImpossible ||
-                                                                                              myStatus ===
-                                                                                                  "unavailable"
-                                                                                                  ? "line-through"
-                                                                                                  : "none",
-                                                                                          opacity:
-                                                                                              isCancelled ||
-                                                                                              isNoPlayers ||
-                                                                                              isNotPlayed ||
-                                                                                              isImpossible
-                                                                                                  ? 0.4
-                                                                                                  : myStatus ===
+                                                                                                        ? "transparent"
+                                                                                                        : ev.status ===
+                                                                                                            "completed" ||
+                                                                                                            (ev.linkedMatches &&
+                                                                                                                ev
+                                                                                                                    .linkedMatches
+                                                                                                                    .length >
+                                                                                                                0)
+                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
+                                                                                                            : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
+                                                                                                                ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                : evColor,
+                                                                                        color:
+                                                                                            isRed ||
+                                                                                                myStatus ===
+                                                                                                "unavailable" ||
+                                                                                                myStatus ===
+                                                                                                "pending"
+                                                                                                ? evColor
+                                                                                                : "white",
+                                                                                        fontWeight: 700,
+                                                                                        whiteSpace:
+                                                                                            "nowrap",
+                                                                                        overflow:
+                                                                                            "hidden",
+                                                                                        textOverflow:
+                                                                                            "ellipsis",
+                                                                                        cursor: "pointer",
+                                                                                        textDecoration:
+                                                                                            isCancelled ||
+                                                                                                isNoPlayers ||
+                                                                                                isNotPlayed ||
+                                                                                                isImpossible ||
+                                                                                                myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "line-through"
+                                                                                                : "none",
+                                                                                        opacity:
+                                                                                            isCancelled ||
+                                                                                                isNoPlayers ||
+                                                                                                isNotPlayed ||
+                                                                                                isImpossible
+                                                                                                ? 0.4
+                                                                                                : myStatus ===
                                                                                                     "unavailable"
                                                                                                     ? 0.85
                                                                                                     : 1,
-                                                                                          border:
-                                                                                              isRed ||
-                                                                                              myStatus ===
-                                                                                                  "unavailable"
-                                                                                                  ? `1px solid ${evColor}`
-                                                                                                  : myStatus ===
-                                                                                                      "pending"
+                                                                                        border:
+                                                                                            isRed ||
+                                                                                                myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? `1px solid ${evColor}`
+                                                                                                : myStatus ===
+                                                                                                    "pending"
                                                                                                     ? `1px dashed ${evColor}`
                                                                                                     : "1px solid rgba(255,255,255,0.1)",
-                                                                                          boxShadow:
-                                                                                              isFirstUpcoming
-                                                                                                  ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
-                                                                                                  : "none",
-                                                                                          zIndex: isFirstUpcoming
-                                                                                              ? 5
-                                                                                              : undefined,
-                                                                                          ["--hover-border-color" as any]:
-                                                                                              hoverBorderColor,
-                                                                                          ["--hover-sheen-active" as any]:
-                                                                                              hoverSheenActive,
-                                                                                          ["--hover-inset-shadow" as any]:
-                                                                                              hoverInsetShadow,
-                                                                                          ["--hover-color" as any]:
-                                                                                              evColor,
-                                                                                      }}
-                                                                                      title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
-                                                                                  >
-                                                                                      {isFirstUpcoming && (
-                                                                                          <span
-                                                                                              style={{
-                                                                                                  marginRight: 4,
-                                                                                                  background:
-                                                                                                      ev.type ===
-                                                                                                      "match"
-                                                                                                          ? "var(--val-red)"
-                                                                                                          : ev.type ===
-                                                                                                              "playoffs"
+                                                                                        boxShadow:
+                                                                                            isFirstUpcoming
+                                                                                                ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                                                                                : "none",
+                                                                                        zIndex: isFirstUpcoming
+                                                                                            ? 5
+                                                                                            : undefined,
+                                                                                        ["--hover-border-color" as any]:
+                                                                                            hoverBorderColor,
+                                                                                        ["--hover-sheen-active" as any]:
+                                                                                            hoverSheenActive,
+                                                                                        ["--hover-inset-shadow" as any]:
+                                                                                            hoverInsetShadow,
+                                                                                        ["--hover-color" as any]:
+                                                                                            evColor,
+                                                                                    }}
+                                                                                    title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
+                                                                                >
+                                                                                    {isFirstUpcoming && (
+                                                                                        <span
+                                                                                            style={{
+                                                                                                marginRight: 4,
+                                                                                                background:
+                                                                                                    ev.type ===
+                                                                                                        "match"
+                                                                                                        ? "var(--val-red)"
+                                                                                                        : ev.type ===
+                                                                                                            "playoffs"
                                                                                                             ? "var(--val-yellow)"
                                                                                                             : "var(--val-cyan)",
-                                                                                                  color:
-                                                                                                      ev.type ===
-                                                                                                      "playoffs"
-                                                                                                          ? "black"
-                                                                                                          : "white",
-                                                                                                  padding:
-                                                                                                      "1px 3px",
-                                                                                                  borderRadius: 3,
-                                                                                                  fontSize: 7,
-                                                                                                  fontWeight: 900,
-                                                                                                  boxShadow:
-                                                                                                      "0 0 8px rgba(255,255,255,0.2)",
-                                                                                              }}
-                                                                                          >
-                                                                                              PRÓXIMO
-                                                                                          </span>
-                                                                                      )}
-                                                                                      {
-                                                                                          ev.localTime
-                                                                                      }{" "}
-                                                                                      {getEventDisplayName(
-                                                                                          ev,
-                                                                                      )}
-                                                                                  </div>
-                                                                              );
-                                                                          },
-                                                                      )}
+                                                                                                color:
+                                                                                                    ev.type ===
+                                                                                                        "playoffs"
+                                                                                                        ? "black"
+                                                                                                        : "white",
+                                                                                                padding:
+                                                                                                    "1px 3px",
+                                                                                                borderRadius: 3,
+                                                                                                fontSize: 7,
+                                                                                                fontWeight: 900,
+                                                                                                boxShadow:
+                                                                                                    "0 0 8px rgba(255,255,255,0.2)",
+                                                                                            }}
+                                                                                        >
+                                                                                            PRÓXIMO
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {
+                                                                                        ev.localTime
+                                                                                    }{" "}
+                                                                                    {getEventDisplayName(
+                                                                                        ev,
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        },
+                                                                    )}
                                                             </div>
                                                         </>
                                                     )}
@@ -1591,7 +1591,7 @@ export default function AvailabilityPage() {
                                                                 >
                                                                     {
                                                                         dayNames[
-                                                                            idx
+                                                                        idx
                                                                         ]
                                                                     }
                                                                 </div>
@@ -1691,15 +1691,15 @@ export default function AvailabilityPage() {
                                                                             "relative",
                                                                         borderRight:
                                                                             idx <
-                                                                            6
+                                                                                6
                                                                                 ? "1px solid var(--border-color)"
                                                                                 : "none",
                                                                         background:
                                                                             d.isToday
                                                                                 ? "rgba(255,70,85,0.02)"
                                                                                 : d.isPast
-                                                                                  ? "rgba(0,0,0,0.4)"
-                                                                                  : "transparent",
+                                                                                    ? "rgba(0,0,0,0.4)"
+                                                                                    : "transparent",
                                                                         opacity:
                                                                             d.isPast
                                                                                 ? 0.25
@@ -1744,7 +1744,7 @@ export default function AvailabilityPage() {
                                                                                 right: 0,
                                                                                 height:
                                                                                     now.getHours() *
-                                                                                        60 +
+                                                                                    60 +
                                                                                     now.getMinutes(),
                                                                                 background:
                                                                                     "rgba(0,0,0,0.4)",
@@ -1768,7 +1768,7 @@ export default function AvailabilityPage() {
                                                                                     "absolute",
                                                                                 top:
                                                                                     now.getHours() *
-                                                                                        60 +
+                                                                                    60 +
                                                                                     now.getMinutes(),
                                                                                 left: 0,
                                                                                 right: 0,
@@ -1804,448 +1804,448 @@ export default function AvailabilityPage() {
                                                                     {/* Events */}
                                                                     {isLoadingEvents
                                                                         ? (() => {
-                                                                              const skeletons =
-                                                                                  [];
-                                                                              // Organically calculate quantity of skeletons: 1, 2, or 3 per column
-                                                                              const numEvents =
-                                                                                  ((idx *
-                                                                                      11 +
-                                                                                      17) %
-                                                                                      3) +
-                                                                                  1;
+                                                                            const skeletons =
+                                                                                [];
+                                                                            // Organically calculate quantity of skeletons: 1, 2, or 3 per column
+                                                                            const numEvents =
+                                                                                ((idx *
+                                                                                    11 +
+                                                                                    17) %
+                                                                                    3) +
+                                                                                1;
 
-                                                                              for (
-                                                                                  let s = 0;
-                                                                                  s <
-                                                                                  numEvents;
-                                                                                  s++
-                                                                              ) {
-                                                                                  // Event start hours completely dispersed using non-overlapping slots:
-                                                                                  // s=0 (Morning: 9:00 - 12:00)
-                                                                                  // s=1 (Afternoon: 14:00 - 17:00)
-                                                                                  // s=2 (Evening/Night: 19:00 - 22:00)
-                                                                                  let startHour = 9;
-                                                                                  if (
-                                                                                      s ===
-                                                                                      0
-                                                                                  ) {
-                                                                                      startHour =
-                                                                                          9 +
-                                                                                          ((idx *
-                                                                                              7) %
-                                                                                              4);
-                                                                                  } else if (
-                                                                                      s ===
-                                                                                      1
-                                                                                  ) {
-                                                                                      startHour =
-                                                                                          14 +
-                                                                                          ((idx *
-                                                                                              13) %
-                                                                                              4);
-                                                                                  } else if (
-                                                                                      s ===
-                                                                                      2
-                                                                                  ) {
-                                                                                      startHour =
-                                                                                          19 +
-                                                                                          ((idx *
-                                                                                              17) %
-                                                                                              4);
-                                                                                  }
+                                                                            for (
+                                                                                let s = 0;
+                                                                                s <
+                                                                                numEvents;
+                                                                                s++
+                                                                            ) {
+                                                                                // Event start hours completely dispersed using non-overlapping slots:
+                                                                                // s=0 (Morning: 9:00 - 12:00)
+                                                                                // s=1 (Afternoon: 14:00 - 17:00)
+                                                                                // s=2 (Evening/Night: 19:00 - 22:00)
+                                                                                let startHour = 9;
+                                                                                if (
+                                                                                    s ===
+                                                                                    0
+                                                                                ) {
+                                                                                    startHour =
+                                                                                        9 +
+                                                                                        ((idx *
+                                                                                            7) %
+                                                                                            4);
+                                                                                } else if (
+                                                                                    s ===
+                                                                                    1
+                                                                                ) {
+                                                                                    startHour =
+                                                                                        14 +
+                                                                                        ((idx *
+                                                                                            13) %
+                                                                                            4);
+                                                                                } else if (
+                                                                                    s ===
+                                                                                    2
+                                                                                ) {
+                                                                                    startHour =
+                                                                                        19 +
+                                                                                        ((idx *
+                                                                                            17) %
+                                                                                            4);
+                                                                                }
 
-                                                                                  // Randomize duration: 1h, 1.5h, or 2h
-                                                                                  const durationSeed =
-                                                                                      (idx *
-                                                                                          5 +
-                                                                                          s *
-                                                                                              13) %
-                                                                                      3;
-                                                                                  const height =
-                                                                                      60 +
-                                                                                      durationSeed *
-                                                                                          30; // 60px, 90px, or 120px
+                                                                                // Randomize duration: 1h, 1.5h, or 2h
+                                                                                const durationSeed =
+                                                                                    (idx *
+                                                                                        5 +
+                                                                                        s *
+                                                                                        13) %
+                                                                                    3;
+                                                                                const height =
+                                                                                    60 +
+                                                                                    durationSeed *
+                                                                                    30; // 60px, 90px, or 120px
 
-                                                                                  skeletons.push(
-                                                                                      {
-                                                                                          top:
-                                                                                              startHour *
-                                                                                              60,
-                                                                                          height,
-                                                                                      },
-                                                                                  );
-                                                                              }
+                                                                                skeletons.push(
+                                                                                    {
+                                                                                        top:
+                                                                                            startHour *
+                                                                                            60,
+                                                                                        height,
+                                                                                    },
+                                                                                );
+                                                                            }
 
-                                                                              return skeletons.map(
-                                                                                  (
-                                                                                      sk,
-                                                                                      sIdx,
-                                                                                  ) => (
-                                                                                      <div
-                                                                                          key={
-                                                                                              sIdx
-                                                                                          }
-                                                                                          style={{
-                                                                                              position:
-                                                                                                  "absolute",
-                                                                                              top: sk.top,
-                                                                                              height: sk.height,
-                                                                                              left: 4,
-                                                                                              right: 4,
-                                                                                              zIndex: 10,
-                                                                                          }}
-                                                                                      >
-                                                                                          <Skeleton
-                                                                                              width="100%"
-                                                                                              height="100%"
-                                                                                              style={{
-                                                                                                  borderRadius: 6,
-                                                                                              }}
-                                                                                          />
-                                                                                      </div>
-                                                                                  ),
-                                                                              );
-                                                                          })()
+                                                                            return skeletons.map(
+                                                                                (
+                                                                                    sk,
+                                                                                    sIdx,
+                                                                                ) => (
+                                                                                    <div
+                                                                                        key={
+                                                                                            sIdx
+                                                                                        }
+                                                                                        style={{
+                                                                                            position:
+                                                                                                "absolute",
+                                                                                            top: sk.top,
+                                                                                            height: sk.height,
+                                                                                            left: 4,
+                                                                                            right: 4,
+                                                                                            zIndex: 10,
+                                                                                        }}
+                                                                                    >
+                                                                                        <Skeleton
+                                                                                            width="100%"
+                                                                                            height="100%"
+                                                                                            style={{
+                                                                                                borderRadius: 6,
+                                                                                            }}
+                                                                                        />
+                                                                                    </div>
+                                                                                ),
+                                                                            );
+                                                                        })()
                                                                         : d.events.map(
-                                                                              (
-                                                                                  ev: any,
-                                                                              ) => {
-                                                                                  const [
-                                                                                      h,
-                                                                                      m,
-                                                                                  ] =
-                                                                                      ev.localTime
-                                                                                          .split(
-                                                                                              ":",
-                                                                                          )
-                                                                                          .map(
-                                                                                              Number,
-                                                                                          );
+                                                                            (
+                                                                                ev: any,
+                                                                            ) => {
+                                                                                const [
+                                                                                    h,
+                                                                                    m,
+                                                                                ] =
+                                                                                    ev.localTime
+                                                                                        .split(
+                                                                                            ":",
+                                                                                        )
+                                                                                        .map(
+                                                                                            Number,
+                                                                                        );
 
-                                                                                  const top =
-                                                                                      h *
-                                                                                          60 +
-                                                                                      m;
-                                                                                  let duration = 1.5;
-                                                                                  if (
-                                                                                      ev.localEndTime
-                                                                                  ) {
-                                                                                      const [
-                                                                                          eh,
-                                                                                          em,
-                                                                                      ] =
-                                                                                          ev.localEndTime
-                                                                                              .split(
-                                                                                                  ":",
-                                                                                              )
-                                                                                              .map(
-                                                                                                  Number,
-                                                                                              );
-                                                                                      duration =
-                                                                                          eh -
-                                                                                          h +
-                                                                                          (em -
-                                                                                              m) /
-                                                                                              60;
-                                                                                  }
-                                                                                  const height =
-                                                                                      duration *
-                                                                                      60;
+                                                                                const top =
+                                                                                    h *
+                                                                                    60 +
+                                                                                    m;
+                                                                                let duration = 1.5;
+                                                                                if (
+                                                                                    ev.localEndTime
+                                                                                ) {
+                                                                                    const [
+                                                                                        eh,
+                                                                                        em,
+                                                                                    ] =
+                                                                                        ev.localEndTime
+                                                                                            .split(
+                                                                                                ":",
+                                                                                            )
+                                                                                            .map(
+                                                                                                Number,
+                                                                                            );
+                                                                                    duration =
+                                                                                        eh -
+                                                                                        h +
+                                                                                        (em -
+                                                                                            m) /
+                                                                                        60;
+                                                                                }
+                                                                                const height =
+                                                                                    duration *
+                                                                                    60;
 
-                                                                                  const ea =
-                                                                                      avail[
-                                                                                          ev
-                                                                                              .id
-                                                                                      ] ||
-                                                                                      [];
-                                                                                      const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
-                                                                                  const myStatus =
-                                                                                      ea.find(
-                                                                                          (
-                                                                                              a,
-                                                                                          ) =>
-                                                                                              String(
-                                                                                                  a.player_id,
-                                                                                              ) ===
-                                                                                              String(
-                                                                                                  myPlayerId,
-                                                                                              ),
-                                                                                      )
-                                                                                          ?.status ||
-                                                                                      "pending";
-                                                                                  const isCancelled =
-                                                                                      ev.status ===
-                                                                                      "cancelled";
-                                                                                  const isNoPlayers =
-                                                                                      ev.status ===
-                                                                                      "no_players";
-                                                                                  const isNotPlayed =
-                                                                                      ev.status ===
-                                                                                      "not_played";
-                                                                                  const unavailable =
-                                                                                      ea.filter(
-                                                                                          (
-                                                                                              a,
-                                                                                          ) =>
-                                                                                              a.status ===
-                                                                                              "unavailable",
-                                                                                      ).length;
-                                                                                  const isImpossible =
-                                                                                      isMounted &&
-                                                                                      (
-                                                                                          ev as any
-                                                                                      )
-                                                                                          .localDate >=
-                                                                                          todayStr &&
-                                                                                      players.length >=
-                                                                                          5 &&
-                                                                                      players.length -
-                                                                                          unavailable <
-                                                                                          5;
+                                                                                const ea =
+                                                                                    avail[
+                                                                                    ev
+                                                                                        .id
+                                                                                    ] ||
+                                                                                    [];
+                                                                                const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
+                                                                                const myStatus =
+                                                                                    ea.find(
+                                                                                        (
+                                                                                            a,
+                                                                                        ) =>
+                                                                                            String(
+                                                                                                a.player_id,
+                                                                                            ) ===
+                                                                                            String(
+                                                                                                myPlayerId,
+                                                                                            ),
+                                                                                    )
+                                                                                        ?.status ||
+                                                                                    "pending";
+                                                                                const isCancelled =
+                                                                                    ev.status ===
+                                                                                    "cancelled";
+                                                                                const isNoPlayers =
+                                                                                    ev.status ===
+                                                                                    "no_players";
+                                                                                const isNotPlayed =
+                                                                                    ev.status ===
+                                                                                    "not_played";
+                                                                                const unavailable =
+                                                                                    ea.filter(
+                                                                                        (
+                                                                                            a,
+                                                                                        ) =>
+                                                                                            a.status ===
+                                                                                            "unavailable",
+                                                                                    ).length;
+                                                                                const isImpossible =
+                                                                                    isMounted &&
+                                                                                    (
+                                                                                        ev as any
+                                                                                    )
+                                                                                        .localDate >=
+                                                                                    todayStr &&
+                                                                                    players.length >=
+                                                                                    5 &&
+                                                                                    players.length -
+                                                                                    unavailable <
+                                                                                    5;
 
-                                                                                  const isRed =
-                                                                                      isCancelled ||
-                                                                                      isNoPlayers ||
-                                                                                      isNotPlayed ||
-                                                                                      isImpossible;
-                                                                                  const evColor =
-                                                                                      ev.type ===
-                                                                                      "playoffs"
-                                                                                          ? "var(--val-yellow)"
-                                                                                          : ev.type ===
-                                                                                              "match"
+                                                                                const isRed =
+                                                                                    isCancelled ||
+                                                                                    isNoPlayers ||
+                                                                                    isNotPlayed ||
+                                                                                    isImpossible;
+                                                                                const evColor =
+                                                                                    ev.type ===
+                                                                                        "playoffs"
+                                                                                        ? "var(--val-yellow)"
+                                                                                        : ev.type ===
+                                                                                            "match"
                                                                                             ? "var(--val-red)"
                                                                                             : "var(--val-cyan)";
-                                                                                  const evColorDark =
-                                                                                      ev.type ===
-                                                                                      "playoffs"
-                                                                                          ? "var(--val-yellow-dark)"
-                                                                                          : ev.type ===
-                                                                                              "match"
+                                                                                const evColorDark =
+                                                                                    ev.type ===
+                                                                                        "playoffs"
+                                                                                        ? "var(--val-yellow-dark)"
+                                                                                        : ev.type ===
+                                                                                            "match"
                                                                                             ? "var(--val-red-dark)"
                                                                                             : "#008a6e";
-                                                                                  const isFirstUpcoming =
-                                                                                      ev.id ===
-                                                                                      firstUpcomingId;
+                                                                                const isFirstUpcoming =
+                                                                                    ev.id ===
+                                                                                    firstUpcomingId;
 
-                                                                                  const hoverBorderColor =
-                                                                                      myStatus ===
-                                                                                      "available"
-                                                                                          ? ev.type ===
+                                                                                const hoverBorderColor =
+                                                                                    myStatus ===
+                                                                                        "available"
+                                                                                        ? ev.type ===
                                                                                             "match"
-                                                                                              ? "rgba(255, 255, 255, 0.65)"
-                                                                                              : evColorDark
-                                                                                          : evColor;
+                                                                                            ? "rgba(255, 255, 255, 0.65)"
+                                                                                            : evColorDark
+                                                                                        : evColor;
 
-                                                                                  const hoverSheenActive =
-                                                                                      myStatus ===
-                                                                                      "available"
-                                                                                          ? ev.type ===
+                                                                                const hoverSheenActive =
+                                                                                    myStatus ===
+                                                                                        "available"
+                                                                                        ? ev.type ===
                                                                                             "match"
-                                                                                              ? "rgba(255, 255, 255, 0.15)"
-                                                                                              : "rgba(0, 0, 0, 0.12)"
-                                                                                          : "rgba(255, 255, 255, 0.12)";
+                                                                                            ? "rgba(255, 255, 255, 0.15)"
+                                                                                            : "rgba(0, 0, 0, 0.12)"
+                                                                                        : "rgba(255, 255, 255, 0.12)";
 
-                                                                                  const hoverInsetShadow =
-                                                                                      myStatus ===
-                                                                                      "available"
-                                                                                          ? ev.type ===
+                                                                                const hoverInsetShadow =
+                                                                                    myStatus ===
+                                                                                        "available"
+                                                                                        ? ev.type ===
                                                                                             "match"
-                                                                                              ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
-                                                                                              : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                          : `inset 0 0 5px ${evColor}`;
+                                                                                            ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
+                                                                                            : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
+                                                                                        : `inset 0 0 5px ${evColor}`;
 
-                                                                                  return (
-                                                                                      <div
-                                                                                          key={
-                                                                                              ev.id
-                                                                                          }
-                                                                                          onClick={() =>
-                                                                                              setSelectedEventId(
-                                                                                                  ev.id,
-                                                                                              )
-                                                                                          }
-                                                                                          className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
-                                                                                          style={{
-                                                                                              position:
-                                                                                                  "absolute",
-                                                                                              top: top,
-                                                                                              left: 4,
-                                                                                              right: 4,
-                                                                                              height: height,
-                                                                                              fontSize: 10,
-                                                                                              padding:
-                                                                                                  "6px",
-                                                                                              borderRadius: 8,
-                                                                                              zIndex: isFirstUpcoming
-                                                                                                  ? 25
-                                                                                                  : 10,
-                                                                                              background:
-                                                                                                  isRed
-                                                                                                      ? "transparent"
-                                                                                                      : myStatus ===
-                                                                                                          "unavailable"
+                                                                                return (
+                                                                                    <div
+                                                                                        key={
+                                                                                            ev.id
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            setSelectedEventId(
+                                                                                                ev.id,
+                                                                                            )
+                                                                                        }
+                                                                                        className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                        style={{
+                                                                                            position:
+                                                                                                "absolute",
+                                                                                            top: top,
+                                                                                            left: 4,
+                                                                                            right: 4,
+                                                                                            height: height,
+                                                                                            fontSize: 10,
+                                                                                            padding:
+                                                                                                "6px",
+                                                                                            borderRadius: 8,
+                                                                                            zIndex: isFirstUpcoming
+                                                                                                ? 25
+                                                                                                : 10,
+                                                                                            background:
+                                                                                                isRed
+                                                                                                    ? "transparent"
+                                                                                                    : myStatus ===
+                                                                                                        "unavailable"
                                                                                                         ? "transparent"
                                                                                                         : myStatus ===
                                                                                                             "pending"
-                                                                                                          ? "transparent"
-                                                                                                          : ev.status ===
-                                                                                                                  "completed" ||
-                                                                                                              (ev.linkedMatches &&
-                                                                                                                  ev
-                                                                                                                      .linkedMatches
-                                                                                                                      .length >
-                                                                                                                      0)
-                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
-                                                                                                            : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                              ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                              : evColor,
-                                                                                              color:
-                                                                                                  isRed ||
-                                                                                                  myStatus ===
-                                                                                                      "unavailable" ||
-                                                                                                  myStatus ===
-                                                                                                      "pending"
-                                                                                                      ? evColor
-                                                                                                      : "white",
-                                                                                              fontWeight: 700,
-                                                                                              cursor: "pointer",
-                                                                                              boxShadow:
-                                                                                                  isFirstUpcoming
-                                                                                                      ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
-                                                                                                      : myStatus ===
-                                                                                                              "pending" ||
-                                                                                                          myStatus ===
-                                                                                                              "unavailable" ||
-                                                                                                          isRed
+                                                                                                            ? "transparent"
+                                                                                                            : ev.status ===
+                                                                                                                "completed" ||
+                                                                                                                (ev.linkedMatches &&
+                                                                                                                    ev
+                                                                                                                        .linkedMatches
+                                                                                                                        .length >
+                                                                                                                    0)
+                                                                                                                ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
+                                                                                                                : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
+                                                                                                                    ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                    : evColor,
+                                                                                            color:
+                                                                                                isRed ||
+                                                                                                    myStatus ===
+                                                                                                    "unavailable" ||
+                                                                                                    myStatus ===
+                                                                                                    "pending"
+                                                                                                    ? evColor
+                                                                                                    : "white",
+                                                                                            fontWeight: 700,
+                                                                                            cursor: "pointer",
+                                                                                            boxShadow:
+                                                                                                isFirstUpcoming
+                                                                                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                                                                                    : myStatus ===
+                                                                                                        "pending" ||
+                                                                                                        myStatus ===
+                                                                                                        "unavailable" ||
+                                                                                                        isRed
                                                                                                         ? "none"
                                                                                                         : "0 4px 12px rgba(0,0,0,0.3)",
-                                                                                              border:
-                                                                                                  isRed ||
-                                                                                                  myStatus ===
-                                                                                                      "unavailable"
-                                                                                                      ? `1px solid ${evColor}`
-                                                                                                      : myStatus ===
-                                                                                                          "pending"
+                                                                                            border:
+                                                                                                isRed ||
+                                                                                                    myStatus ===
+                                                                                                    "unavailable"
+                                                                                                    ? `1px solid ${evColor}`
+                                                                                                    : myStatus ===
+                                                                                                        "pending"
                                                                                                         ? `2px dashed ${evColor}`
                                                                                                         : "1px solid rgba(255,255,255,0.1)",
-                                                                                              display:
-                                                                                                  "flex",
-                                                                                              flexDirection:
-                                                                                                  height <
-                                                                                                  40
-                                                                                                      ? "row"
-                                                                                                      : "column",
-                                                                                              alignItems:
-                                                                                                  height <
-                                                                                                  40
-                                                                                                      ? "center"
-                                                                                                      : "flex-start",
-                                                                                              justifyContent:
-                                                                                                  height <
-                                                                                                  40
-                                                                                                      ? "center"
-                                                                                                      : "flex-start",
-                                                                                              gap:
-                                                                                                  height <
-                                                                                                  40
-                                                                                                      ? 4
-                                                                                                      : 2,
-                                                                                              overflow:
-                                                                                                  "hidden",
-                                                                                              opacity:
-                                                                                                  isRed
-                                                                                                      ? 0.4
-                                                                                                      : myStatus ===
+                                                                                            display:
+                                                                                                "flex",
+                                                                                            flexDirection:
+                                                                                                height <
+                                                                                                    40
+                                                                                                    ? "row"
+                                                                                                    : "column",
+                                                                                            alignItems:
+                                                                                                height <
+                                                                                                    40
+                                                                                                    ? "center"
+                                                                                                    : "flex-start",
+                                                                                            justifyContent:
+                                                                                                height <
+                                                                                                    40
+                                                                                                    ? "center"
+                                                                                                    : "flex-start",
+                                                                                            gap:
+                                                                                                height <
+                                                                                                    40
+                                                                                                    ? 4
+                                                                                                    : 2,
+                                                                                            overflow:
+                                                                                                "hidden",
+                                                                                            opacity:
+                                                                                                isRed
+                                                                                                    ? 0.4
+                                                                                                    : myStatus ===
                                                                                                         "unavailable"
                                                                                                         ? 0.85
                                                                                                         : 1,
-                                                                                              textDecoration:
-                                                                                                  myStatus ===
-                                                                                                      "unavailable" ||
-                                                                                                  isRed
-                                                                                                      ? "line-through"
-                                                                                                      : "none",
-                                                                                              ["--hover-border-color" as any]:
-                                                                                                  hoverBorderColor,
-                                                                                              ["--hover-sheen-active" as any]:
-                                                                                                  hoverSheenActive,
-                                                                                              ["--hover-inset-shadow" as any]:
-                                                                                                  hoverInsetShadow,
-                                                                                              ["--hover-color" as any]:
-                                                                                                  evColor,
-                                                                                          }}
-                                                                                      >
-                                                                                          {isFirstUpcoming && (
-                                                                                              <div
-                                                                                                  style={{
-                                                                                                      background:
-                                                                                                          "rgba(255,255,255,0.18)",
-                                                                                                      color: "white",
-                                                                                                      padding:
-                                                                                                          "1px 4px",
-                                                                                                      borderRadius: 4,
-                                                                                                      fontSize: 7,
-                                                                                                      fontWeight: 900,
-                                                                                                      textTransform:
-                                                                                                          "uppercase",
-                                                                                                      letterSpacing: 0.5,
-                                                                                                      marginBottom:
-                                                                                                          height <
-                                                                                                          40
-                                                                                                              ? 0
-                                                                                                              : 2,
-                                                                                                  }}
-                                                                                              >
-                                                                                                  PRÓXIMO
-                                                                                              </div>
-                                                                                          )}
-                                                                                          <div
-                                                                                              style={{
-                                                                                                  whiteSpace:
-                                                                                                      height <
-                                                                                                      40
-                                                                                                          ? "nowrap"
-                                                                                                          : "normal",
-                                                                                                  overflow:
-                                                                                                      "hidden",
-                                                                                                  textOverflow:
-                                                                                                      "ellipsis",
-                                                                                                  lineHeight: 1.2,
-                                                                                              }}
-                                                                                          >
-                                                                                              {getEventDisplayName(
-                                                                                                  ev,
-                                                                                              )}
-                                                                                          </div>
-                                                                                          <div
-                                                                                              style={{
-                                                                                                  fontSize: 8,
-                                                                                                  opacity: 0.7,
-                                                                                                  fontWeight: 600,
-                                                                                                  textTransform:
-                                                                                                      "uppercase",
-                                                                                              }}
-                                                                                          >
-                                                                                              {ev.map
-                                                                                                  ? maps.find(
-                                                                                                        (
-                                                                                                            m: any,
-                                                                                                        ) =>
-                                                                                                            m.id ===
-                                                                                                            ev.map,
-                                                                                                    )
-                                                                                                        ?.name ||
-                                                                                                    ev.map
-                                                                                                  : ev.type ===
-                                                                                                      "playoffs"
+                                                                                            textDecoration:
+                                                                                                myStatus ===
+                                                                                                    "unavailable" ||
+                                                                                                    isRed
+                                                                                                    ? "line-through"
+                                                                                                    : "none",
+                                                                                            ["--hover-border-color" as any]:
+                                                                                                hoverBorderColor,
+                                                                                            ["--hover-sheen-active" as any]:
+                                                                                                hoverSheenActive,
+                                                                                            ["--hover-inset-shadow" as any]:
+                                                                                                hoverInsetShadow,
+                                                                                            ["--hover-color" as any]:
+                                                                                                evColor,
+                                                                                        }}
+                                                                                    >
+                                                                                        {isFirstUpcoming && (
+                                                                                            <div
+                                                                                                style={{
+                                                                                                    background:
+                                                                                                        "rgba(255,255,255,0.18)",
+                                                                                                    color: "white",
+                                                                                                    padding:
+                                                                                                        "1px 4px",
+                                                                                                    borderRadius: 4,
+                                                                                                    fontSize: 7,
+                                                                                                    fontWeight: 900,
+                                                                                                    textTransform:
+                                                                                                        "uppercase",
+                                                                                                    letterSpacing: 0.5,
+                                                                                                    marginBottom:
+                                                                                                        height <
+                                                                                                            40
+                                                                                                            ? 0
+                                                                                                            : 2,
+                                                                                                }}
+                                                                                            >
+                                                                                                PRÓXIMO
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div
+                                                                                            style={{
+                                                                                                whiteSpace:
+                                                                                                    height <
+                                                                                                        40
+                                                                                                        ? "nowrap"
+                                                                                                        : "normal",
+                                                                                                overflow:
+                                                                                                    "hidden",
+                                                                                                textOverflow:
+                                                                                                    "ellipsis",
+                                                                                                lineHeight: 1.2,
+                                                                                            }}
+                                                                                        >
+                                                                                            {getEventDisplayName(
+                                                                                                ev,
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div
+                                                                                            style={{
+                                                                                                fontSize: 8,
+                                                                                                opacity: 0.7,
+                                                                                                fontWeight: 600,
+                                                                                                textTransform:
+                                                                                                    "uppercase",
+                                                                                            }}
+                                                                                        >
+                                                                                            {ev.map
+                                                                                                ? maps.find(
+                                                                                                    (
+                                                                                                        m: any,
+                                                                                                    ) =>
+                                                                                                        m.id ===
+                                                                                                        ev.map,
+                                                                                                )
+                                                                                                    ?.name ||
+                                                                                                ev.map
+                                                                                                : ev.type ===
+                                                                                                    "playoffs"
                                                                                                     ? "Pick & Ban"
                                                                                                     : "Por decidir"}
-                                                                                          </div>
-                                                                                      </div>
-                                                                                  );
-                                                                              },
-                                                                          )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            },
+                                                                        )}
                                                                 </div>
                                                             ),
                                                         )}
@@ -2664,22 +2664,21 @@ export default function AvailabilityPage() {
                                                                 firstUpcomingRef as any
                                                             ).current = el;
                                                     }}
-                                                    className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${
-                                                        isInactive
+                                                    className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${isInactive
                                                             ? hasPlayed
                                                                 ? "played-card"
                                                                 : "faded-card"
                                                             : myStatus ===
                                                                 "unavailable"
-                                                              ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
-                                                              : ev.type ===
-                                                                  "match"
-                                                                ? "hover-lift-match"
+                                                                ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
                                                                 : ev.type ===
-                                                                    "playoffs"
-                                                                  ? "hover-lift-playoffs"
-                                                                  : "hover-lift-practice"
-                                                    }`}
+                                                                    "match"
+                                                                    ? "hover-lift-match"
+                                                                    : ev.type ===
+                                                                        "playoffs"
+                                                                        ? "hover-lift-playoffs"
+                                                                        : "hover-lift-practice"
+                                                        }`}
                                                     style={{
                                                         marginBottom: 12,
                                                         borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
@@ -2695,15 +2694,15 @@ export default function AvailabilityPage() {
                                                                 ? "var(--val-red)"
                                                                 : ev.type ===
                                                                     "playoffs"
-                                                                  ? "var(--val-yellow)"
-                                                                  : "var(--val-cyan)",
+                                                                    ? "var(--val-yellow)"
+                                                                    : "var(--val-cyan)",
                                                         ["--hover-glow-color" as any]:
                                                             ev.type === "match"
                                                                 ? "rgba(255, 70, 85, 0.3)"
                                                                 : ev.type ===
                                                                     "playoffs"
-                                                                  ? "rgba(245, 158, 11, 0.3)"
-                                                                  : "rgba(0, 212, 170, 0.3)",
+                                                                    ? "rgba(245, 158, 11, 0.3)"
+                                                                    : "rgba(0, 212, 170, 0.3)",
                                                     }}
                                                 >
                                                     <div
@@ -2747,12 +2746,12 @@ export default function AvailabilityPage() {
                                                                         className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}
                                                                     >
                                                                         {ev.type ===
-                                                                        "match"
+                                                                            "match"
                                                                             ? "Partido"
                                                                             : ev.type ===
                                                                                 "playoffs"
-                                                                              ? "Playoffs"
-                                                                              : "Práctica"}
+                                                                                ? "Playoffs"
+                                                                                : "Práctica"}
                                                                     </span>
                                                                     {isFirstUpcoming && (
                                                                         <span
@@ -2776,11 +2775,11 @@ export default function AvailabilityPage() {
                                                                             "-0.5px",
                                                                         textDecoration:
                                                                             isCancelled ||
-                                                                            ev.status ===
+                                                                                ev.status ===
                                                                                 "no_players" ||
-                                                                            ev.status ===
+                                                                                ev.status ===
                                                                                 "not_played" ||
-                                                                            isImpossible
+                                                                                isImpossible
                                                                                 ? "line-through"
                                                                                 : undefined,
                                                                         textShadow:
@@ -2953,12 +2952,12 @@ export default function AvailabilityPage() {
                                                                 const mapObj =
                                                                     ev.map
                                                                         ? maps.find(
-                                                                              (
-                                                                                  m: any,
-                                                                              ) =>
-                                                                                  m.id ===
-                                                                                  ev.map,
-                                                                          )
+                                                                            (
+                                                                                m: any,
+                                                                            ) =>
+                                                                                m.id ===
+                                                                                ev.map,
+                                                                        )
                                                                         : null;
                                                                 if (!mapObj)
                                                                     return null;
@@ -2987,12 +2986,12 @@ export default function AvailabilityPage() {
                                                                             cursor: "pointer",
                                                                             ["--hover-color" as any]:
                                                                                 ev.type ===
-                                                                                "match"
+                                                                                    "match"
                                                                                     ? "var(--val-red)"
                                                                                     : "var(--val-cyan)",
                                                                             ["--hover-glow-color" as any]:
                                                                                 ev.type ===
-                                                                                "match"
+                                                                                    "match"
                                                                                     ? "rgba(255, 70, 85, 0.2)"
                                                                                     : "rgba(0, 212, 170, 0.2)",
                                                                         }}
@@ -3099,12 +3098,12 @@ export default function AvailabilityPage() {
                                                                     padding: 16,
                                                                     border:
                                                                         confirmed >=
-                                                                        5
+                                                                            5
                                                                             ? "1px solid rgba(0, 212, 170, 0.25)"
                                                                             : "1px solid var(--border-color)",
                                                                     boxShadow:
                                                                         confirmed >=
-                                                                        5
+                                                                            5
                                                                             ? "0 4px 20px rgba(0, 212, 170, 0.03)"
                                                                             : "none",
                                                                     transition:
@@ -3173,7 +3172,7 @@ export default function AvailabilityPage() {
                                                                                 fontWeight: 800,
                                                                                 color:
                                                                                     confirmed >=
-                                                                                    5
+                                                                                        5
                                                                                         ? "var(--val-cyan)"
                                                                                         : "var(--text-secondary)",
                                                                             }}
@@ -3222,7 +3221,8 @@ export default function AvailabilityPage() {
                                                                                         p.id
                                                                                     }
                                                                                     title={p.name}
-                                                                                    style={{ textDecoration: "none", color: "inherit",
+                                                                                    style={{
+                                                                                        textDecoration: "none", color: "inherit",
                                                                                         display:
                                                                                             "flex",
                                                                                         flexDirection:
@@ -3266,29 +3266,28 @@ export default function AvailabilityPage() {
                                                                                                 fontSize: 14,
                                                                                                 fontWeight: 800,
                                                                                                 color: "white",
-                                                                                                border: `2px solid ${
-                                                                                                    ps ===
-                                                                                                    "played"
+                                                                                                border: `2px solid ${ps ===
+                                                                                                        "played"
                                                                                                         ? "var(--val-purple)"
                                                                                                         : ps ===
                                                                                                             "available"
-                                                                                                          ? "var(--val-cyan)"
-                                                                                                          : ps ===
-                                                                                                              "maybe"
-                                                                                                            ? "var(--val-yellow)"
+                                                                                                            ? "var(--val-cyan)"
                                                                                                             : ps ===
-                                                                                                                "unavailable"
-                                                                                                              ? "var(--val-red)"
-                                                                                                              : "rgba(255,255,255,0.1)"
-                                                                                                }`,
+                                                                                                                "maybe"
+                                                                                                                ? "var(--val-yellow)"
+                                                                                                                : ps ===
+                                                                                                                    "unavailable"
+                                                                                                                    ? "var(--val-red)"
+                                                                                                                    : "rgba(255,255,255,0.1)"
+                                                                                                    }`,
                                                                                                 boxShadow:
                                                                                                     ps !==
-                                                                                                    "pending"
+                                                                                                        "pending"
                                                                                                         ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
                                                                                                         : "none",
                                                                                                 opacity:
                                                                                                     ps !==
-                                                                                                    "pending"
+                                                                                                        "pending"
                                                                                                         ? 1
                                                                                                         : 0.4,
                                                                                                 transition:
@@ -3313,18 +3312,18 @@ export default function AvailabilityPage() {
                                                                                                     "50%",
                                                                                                 background:
                                                                                                     ps ===
-                                                                                                    "played"
+                                                                                                        "played"
                                                                                                         ? "var(--val-purple)"
                                                                                                         : ps ===
                                                                                                             "available"
-                                                                                                          ? "var(--val-cyan)"
-                                                                                                          : ps ===
-                                                                                                              "maybe"
-                                                                                                            ? "var(--val-yellow)"
+                                                                                                            ? "var(--val-cyan)"
                                                                                                             : ps ===
-                                                                                                                "unavailable"
-                                                                                                              ? "var(--val-red)"
-                                                                                                              : "rgba(255,255,255,0.15)",
+                                                                                                                "maybe"
+                                                                                                                ? "var(--val-yellow)"
+                                                                                                                : ps ===
+                                                                                                                    "unavailable"
+                                                                                                                    ? "var(--val-red)"
+                                                                                                                    : "rgba(255,255,255,0.15)",
                                                                                                 border: "2px solid #11141b",
                                                                                                 display:
                                                                                                     "flex",
@@ -3336,7 +3335,7 @@ export default function AvailabilityPage() {
                                                                                                 fontWeight: 900,
                                                                                                 color:
                                                                                                     ps ===
-                                                                                                    "maybe"
+                                                                                                        "maybe"
                                                                                                         ? "black"
                                                                                                         : "white",
                                                                                                 boxShadow:
@@ -3344,18 +3343,18 @@ export default function AvailabilityPage() {
                                                                                             }}
                                                                                         >
                                                                                             {ps ===
-                                                                                            "played"
+                                                                                                "played"
                                                                                                 ? "🎮"
                                                                                                 : ps ===
                                                                                                     "available"
-                                                                                                  ? "✓"
-                                                                                                  : ps ===
-                                                                                                      "maybe"
-                                                                                                    ? "?"
+                                                                                                    ? "✓"
                                                                                                     : ps ===
-                                                                                                        "unavailable"
-                                                                                                      ? "✗"
-                                                                                                      : "•"}
+                                                                                                        "maybe"
+                                                                                                        ? "?"
+                                                                                                        : ps ===
+                                                                                                            "unavailable"
+                                                                                                            ? "✗"
+                                                                                                            : "•"}
                                                                                         </div>
                                                                                     </div>
                                                                                     <div
@@ -3564,57 +3563,57 @@ export default function AvailabilityPage() {
 
                                                             {(isCancelled ||
                                                                 ev.status ===
-                                                                    "no_players" ||
+                                                                "no_players" ||
                                                                 ev.status ===
-                                                                    "not_played" ||
+                                                                "not_played" ||
                                                                 isImpossible) && (
-                                                                <div
-                                                                    style={{
-                                                                        padding:
-                                                                            "10px 14px",
-                                                                        borderRadius: 8,
-                                                                        background:
-                                                                            "rgba(255, 70, 85, 0.06)",
-                                                                        border: "1px solid rgba(255, 70, 85, 0.2)",
-                                                                        color: "var(--val-red)",
-                                                                        fontSize: 12,
-                                                                        fontWeight: 600,
-                                                                        display:
-                                                                            "flex",
-                                                                        alignItems:
-                                                                            "center",
-                                                                        gap: 8,
-                                                                        boxShadow:
-                                                                            "0 4px 20px rgba(255, 70, 85, 0.05)",
-                                                                    }}
-                                                                >
-                                                                    <span
+                                                                    <div
                                                                         style={{
-                                                                            fontSize: 14,
+                                                                            padding:
+                                                                                "10px 14px",
+                                                                            borderRadius: 8,
+                                                                            background:
+                                                                                "rgba(255, 70, 85, 0.06)",
+                                                                            border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                                            color: "var(--val-red)",
+                                                                            fontSize: 12,
+                                                                            fontWeight: 600,
+                                                                            display:
+                                                                                "flex",
+                                                                            alignItems:
+                                                                                "center",
+                                                                            gap: 8,
+                                                                            boxShadow:
+                                                                                "0 4px 20px rgba(255, 70, 85, 0.05)",
                                                                         }}
                                                                     >
-                                                                        ⚠️
-                                                                    </span>
-                                                                    <span>
-                                                                        {isCancelled &&
-                                                                            "Cancelado: Ya se jugaron 2 partidos esta semana."}
-                                                                        {ev.status ===
-                                                                            "no_players" &&
-                                                                            "Sin asistencia: No hay suficientes jugadores confirmados."}
-                                                                        {ev.status ===
-                                                                            "not_played" &&
-                                                                            "No jugado: Evento cancelado/no disputado."}
-                                                                        {isImpossible &&
-                                                                            ev.status ===
+                                                                        <span
+                                                                            style={{
+                                                                                fontSize: 14,
+                                                                            }}
+                                                                        >
+                                                                            ⚠️
+                                                                        </span>
+                                                                        <span>
+                                                                            {isCancelled &&
+                                                                                "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                                                                            {ev.status ===
+                                                                                "no_players" &&
+                                                                                "Sin asistencia: No hay suficientes jugadores confirmados."}
+                                                                            {ev.status ===
+                                                                                "not_played" &&
+                                                                                "No jugado: Evento cancelado/no disputado."}
+                                                                            {isImpossible &&
+                                                                                ev.status ===
                                                                                 "scheduled" &&
-                                                                            "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                                                "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
 
                                                             {/* Linked Matches */}
                                                             {matches.length >
-                                                            0 ? (
+                                                                0 ? (
                                                                 <div
                                                                     style={{
                                                                         marginTop: 8,
@@ -3649,7 +3648,7 @@ export default function AvailabilityPage() {
                                                                             ) => {
                                                                                 const ourWin =
                                                                                     m.our_team_side ===
-                                                                                    "Blue"
+                                                                                        "Blue"
                                                                                         ? m.team_blue_won
                                                                                         : !m.team_blue_won;
                                                                                 const isBlue =
@@ -3778,9 +3777,9 @@ export default function AvailabilityPage() {
                                                                 !(
                                                                     isCancelled ||
                                                                     ev.status ===
-                                                                        "no_players" ||
+                                                                    "no_players" ||
                                                                     ev.status ===
-                                                                        "not_played" ||
+                                                                    "not_played" ||
                                                                     isImpossible
                                                                 ) && (
                                                                     <div
@@ -3896,8 +3895,9 @@ export default function AvailabilityPage() {
                                                                                         myStatus === "available" ? "pending" : "available",
                                                                                     )
                                                                                 } disabled={updatingEventId === ev.id}
-className="transition-smooth"
-style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
+                                                                                className="transition-smooth"
+                                                                                style={{
+                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -3914,22 +3914,22 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                     gap: 6,
                                                                                     border:
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "1px solid var(--val-cyan)"
                                                                                             : "1px solid rgba(0, 212, 170, 0.15)",
                                                                                     background:
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "var(--val-cyan)"
                                                                                             : "rgba(0, 212, 170, 0.03)",
                                                                                     color:
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "white"
                                                                                             : "rgba(0, 212, 170, 0.85)",
                                                                                     boxShadow:
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "0 0 15px rgba(0, 212, 170, 0.3)"
                                                                                             : "none",
                                                                                     transform:
@@ -3942,7 +3942,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "translateY(-2px)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "var(--val-cyan)"
                                                                                             : "rgba(0, 212, 170, 0.1)";
                                                                                 }}
@@ -3953,7 +3953,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "scale(1)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "available"
+                                                                                            "available"
                                                                                             ? "var(--val-cyan)"
                                                                                             : "rgba(0, 212, 170, 0.03)";
                                                                                 }}
@@ -3973,8 +3973,9 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         myStatus === "maybe" ? "pending" : "maybe",
                                                                                     )
                                                                                 } disabled={updatingEventId === ev.id}
-className="transition-smooth"
-style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
+                                                                                className="transition-smooth"
+                                                                                style={{
+                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -3991,22 +3992,22 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                     gap: 6,
                                                                                     border:
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "1px solid var(--val-yellow)"
                                                                                             : "1px solid rgba(245, 158, 11, 0.15)",
                                                                                     background:
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "var(--val-yellow)"
                                                                                             : "rgba(245, 158, 11, 0.03)",
                                                                                     color:
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "black"
                                                                                             : "rgba(245, 158, 11, 0.85)",
                                                                                     boxShadow:
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "0 0 15px rgba(245, 158, 11, 0.3)"
                                                                                             : "none",
                                                                                     transform:
@@ -4019,7 +4020,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "translateY(-2px)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "var(--val-yellow)"
                                                                                             : "rgba(245, 158, 11, 0.1)";
                                                                                 }}
@@ -4030,7 +4031,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "scale(1)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "maybe"
+                                                                                            "maybe"
                                                                                             ? "var(--val-yellow)"
                                                                                             : "rgba(245, 158, 11, 0.03)";
                                                                                 }}
@@ -4050,8 +4051,9 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         myStatus === "unavailable" ? "pending" : "unavailable",
                                                                                     )
                                                                                 } disabled={updatingEventId === ev.id}
-className="transition-smooth"
-style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId === ev.id ? "not-allowed" : "pointer", 
+                                                                                className="transition-smooth"
+                                                                                style={{
+                                                                                    opacity: updatingEventId === ev.id ? 0.5 : 1,
                                                                                     flex: 1,
                                                                                     fontSize: 11,
                                                                                     fontWeight: 800,
@@ -4068,22 +4070,22 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                     gap: 6,
                                                                                     border:
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "1px solid var(--val-red)"
                                                                                             : "1px solid rgba(255, 70, 85, 0.15)",
                                                                                     background:
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "var(--val-red)"
                                                                                             : "rgba(255, 70, 85, 0.03)",
                                                                                     color:
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "white"
                                                                                             : "rgba(255, 70, 85, 0.85)",
                                                                                     boxShadow:
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "0 0 15px rgba(255, 70, 85, 0.3)"
                                                                                             : "none",
                                                                                     transform:
@@ -4096,7 +4098,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "translateY(-2px)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "var(--val-red)"
                                                                                             : "rgba(255, 70, 85, 0.1)";
                                                                                 }}
@@ -4107,7 +4109,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                                         "scale(1)";
                                                                                     e.currentTarget.style.background =
                                                                                         myStatus ===
-                                                                                        "unavailable"
+                                                                                            "unavailable"
                                                                                             ? "var(--val-red)"
                                                                                             : "rgba(255, 70, 85, 0.03)";
                                                                                 }}
@@ -4143,22 +4145,22 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                     ? upcomingEv.type === "match"
                                         ? "var(--val-red)"
                                         : upcomingEv.type === "playoffs"
-                                          ? "var(--val-yellow)"
-                                          : "var(--val-cyan)"
+                                            ? "var(--val-yellow)"
+                                            : "var(--val-cyan)"
                                     : "var(--val-cyan)";
                                 const upcomingGlow = upcomingEv
                                     ? upcomingEv.type === "match"
                                         ? "rgba(255, 70, 85, 0.25)"
                                         : upcomingEv.type === "playoffs"
-                                          ? "rgba(234, 180, 8, 0.25)"
-                                          : "rgba(0, 212, 170, 0.25)"
+                                            ? "rgba(234, 180, 8, 0.25)"
+                                            : "rgba(0, 212, 170, 0.25)"
                                     : "rgba(0, 212, 170, 0.25)";
                                 const upcomingBorder = upcomingEv
                                     ? upcomingEv.type === "match"
                                         ? "rgba(255, 70, 85, 0.4)"
                                         : upcomingEv.type === "playoffs"
-                                          ? "rgba(234, 180, 8, 0.4)"
-                                          : "rgba(0, 212, 170, 0.4)"
+                                            ? "rgba(234, 180, 8, 0.4)"
+                                            : "rgba(0, 212, 170, 0.4)"
                                     : "rgba(0, 212, 170, 0.4)";
 
                                 return (
@@ -4166,7 +4168,7 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                         onClick={() => {
                                             const card =
                                                 eventRefsMap.current[
-                                                    firstUpcomingId
+                                                firstUpcomingId
                                                 ];
                                             if (card) {
                                                 card.scrollIntoView({
@@ -4192,12 +4194,12 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                             transform: "translateX(-50%)",
                                             top:
                                                 upcomingScrollPosition ===
-                                                "above"
+                                                    "above"
                                                     ? 20
                                                     : "auto",
                                             bottom:
                                                 upcomingScrollPosition ===
-                                                "below"
+                                                    "below"
                                                     ? 20
                                                     : "auto",
                                             padding: "10px 20px",
@@ -4761,9 +4763,9 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                         readOnly
                                         value={
                                             !isMounted ||
-                                            (exportTab === "team"
-                                                ? !calendarToken
-                                                : !userCalendarToken)
+                                                (exportTab === "team"
+                                                    ? !calendarToken
+                                                    : !userCalendarToken)
                                                 ? "Cargando enlace..."
                                                 : `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`
                                         }
@@ -4810,54 +4812,54 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                     {/* Botón de Regenerar junto con el enlace */}
                                     {(exportTab === "personal" ||
                                         canManage) && (
-                                        <button
-                                            className="btn btn-ghost"
-                                            style={{
-                                                padding: "0 12px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                color: "var(--val-red)",
-                                                border: "1px solid rgba(255, 70, 85, 0.2)",
-                                                background:
-                                                    "rgba(255, 70, 85, 0.03)",
-                                                transition: "all 0.2s ease",
-                                            }}
-                                            onClick={() =>
-                                                regenerateToken(exportTab)
-                                            }
-                                            disabled={
-                                                isRegenerating ||
-                                                (exportTab === "team"
-                                                    ? !calendarToken
-                                                    : !userCalendarToken)
-                                            }
-                                            title={
-                                                exportTab === "team"
-                                                    ? "Regenerar Enlace de Seguridad del Equipo"
-                                                    : "Regenerar Enlace de Seguridad Personal"
-                                            }
-                                        >
-                                            <svg
-                                                viewBox="0 0 24 24"
-                                                width="14"
-                                                height="14"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
+                                            <button
+                                                className="btn btn-ghost"
                                                 style={{
-                                                    flexShrink: 0,
-                                                    animation: isRegenerating
-                                                        ? "spin 1s linear infinite"
-                                                        : "none",
+                                                    padding: "0 12px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    color: "var(--val-red)",
+                                                    border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                    background:
+                                                        "rgba(255, 70, 85, 0.03)",
+                                                    transition: "all 0.2s ease",
                                                 }}
+                                                onClick={() =>
+                                                    regenerateToken(exportTab)
+                                                }
+                                                disabled={
+                                                    isRegenerating ||
+                                                    (exportTab === "team"
+                                                        ? !calendarToken
+                                                        : !userCalendarToken)
+                                                }
+                                                title={
+                                                    exportTab === "team"
+                                                        ? "Regenerar Enlace de Seguridad del Equipo"
+                                                        : "Regenerar Enlace de Seguridad Personal"
+                                                }
                                             >
-                                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.72" />
-                                            </svg>
-                                        </button>
-                                    )}
+                                                <svg
+                                                    viewBox="0 0 24 24"
+                                                    width="14"
+                                                    height="14"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        animation: isRegenerating
+                                                            ? "spin 1s linear infinite"
+                                                            : "none",
+                                                    }}
+                                                >
+                                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.72" />
+                                                </svg>
+                                            </button>
+                                        )}
                                 </div>
                                 <p
                                     style={{
@@ -5019,8 +5021,8 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                         ev.type === "playoffs"
                             ? "var(--val-yellow)"
                             : ev.type === "match"
-                              ? "var(--val-red)"
-                              : "var(--val-cyan)";
+                                ? "var(--val-red)"
+                                : "var(--val-cyan)";
                     const evColor =
                         isRed || myStatus === "unavailable"
                             ? "rgba(255,255,255,0.05)"
@@ -5050,23 +5052,21 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                             isRed || myStatus === "unavailable"
                                                 ? "rgba(0,0,0,0.5)"
                                                 : myStatus === "pending"
-                                                  ? "rgba(10, 11, 20, 0.6)"
-                                                  : evColorBase,
+                                                    ? "rgba(10, 11, 20, 0.6)"
+                                                    : evColorBase,
                                         display: "flex",
                                         alignItems: "end",
                                         padding: 24,
-                                        boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${
-                                            isRed ||
-                                            myStatus === "unavailable" ||
-                                            myStatus === "pending"
+                                        boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${isRed ||
+                                                myStatus === "unavailable" ||
+                                                myStatus === "pending"
                                                 ? "transparent"
                                                 : evColorBase
-                                        }44`,
-                                        borderBottom: `2px solid ${
-                                            myStatus === "pending"
+                                            }44`,
+                                        borderBottom: `2px solid ${myStatus === "pending"
                                                 ? "rgba(255,255,255,0.1)"
                                                 : evColorBase
-                                        }`,
+                                            }`,
                                         overflow: "hidden",
                                     }}
                                 >
@@ -5081,8 +5081,8 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                     myStatus === "unavailable"
                                                     ? 0.2
                                                     : myStatus === "pending"
-                                                      ? 0.75
-                                                      : 0.45,
+                                                        ? 0.75
+                                                        : 0.45,
                                             );
                                         })()}
 
@@ -5102,13 +5102,13 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                         "center",
                                                     opacity:
                                                         isRed ||
-                                                        myStatus ===
+                                                            myStatus ===
                                                             "unavailable"
                                                             ? 0.25
                                                             : myStatus ===
                                                                 "pending"
-                                                              ? 0.8
-                                                              : 0.45,
+                                                                ? 0.8
+                                                                : 0.45,
                                                     pointerEvents: "none",
                                                     zIndex: 0,
                                                 }}
@@ -5168,8 +5168,8 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                 {ev.type === "match"
                                                     ? "Partido"
                                                     : ev.type === "playoffs"
-                                                      ? "Playoffs"
-                                                      : "Práctica"}
+                                                        ? "Playoffs"
+                                                        : "Práctica"}
                                             </span>
                                         </div>
                                         <h2
@@ -5199,39 +5199,39 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                         isNoPlayers ||
                                         isNotPlayed ||
                                         isImpossible) && (
-                                        <div
-                                            style={{
-                                                padding: "12px 16px",
-                                                borderRadius: 8,
-                                                background:
-                                                    "rgba(255, 70, 85, 0.06)",
-                                                border: "1px solid rgba(255, 70, 85, 0.2)",
-                                                color: "var(--val-red)",
-                                                fontSize: 13,
-                                                fontWeight: 600,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 10,
-                                                boxShadow:
-                                                    "0 4px 20px rgba(255, 70, 85, 0.05)",
-                                            }}
-                                        >
-                                            <span style={{ fontSize: 16 }}>
-                                                ⚠️
-                                            </span>
-                                            <span>
-                                                {isCancelled &&
-                                                    "Cancelado: Ya se jugaron 2 partidos esta semana."}
-                                                {isNoPlayers &&
-                                                    "Sin asistencia: No hay suficientes jugadores confirmados."}
-                                                {isNotPlayed &&
-                                                    "No jugado: Evento cancelado/no disputado."}
-                                                {isImpossible &&
-                                                    ev.status === "scheduled" &&
-                                                    "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
-                                            </span>
-                                        </div>
-                                    )}
+                                            <div
+                                                style={{
+                                                    padding: "12px 16px",
+                                                    borderRadius: 8,
+                                                    background:
+                                                        "rgba(255, 70, 85, 0.06)",
+                                                    border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                    color: "var(--val-red)",
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 10,
+                                                    boxShadow:
+                                                        "0 4px 20px rgba(255, 70, 85, 0.05)",
+                                                }}
+                                            >
+                                                <span style={{ fontSize: 16 }}>
+                                                    ⚠️
+                                                </span>
+                                                <span>
+                                                    {isCancelled &&
+                                                        "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                                                    {isNoPlayers &&
+                                                        "Sin asistencia: No hay suficientes jugadores confirmados."}
+                                                    {isNotPlayed &&
+                                                        "No jugado: Evento cancelado/no disputado."}
+                                                    {isImpossible &&
+                                                        ev.status === "scheduled" &&
+                                                        "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                                                </span>
+                                            </div>
+                                        )}
                                     <div
                                         style={{
                                             display: "flex",
@@ -5350,8 +5350,8 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                 {ev.map
                                                     ? ev.map_obj?.name || ev.map
                                                     : ev.type === "playoffs"
-                                                      ? "Pick & Ban"
-                                                      : "Por decidir"}
+                                                        ? "Pick & Ban"
+                                                        : "Por decidir"}
                                             </div>
                                         </div>
                                     </div>
@@ -5589,7 +5589,8 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                         href={`/player/${p.id}`}
                                                         key={p.id}
                                                         title={p.name}
-                                                        style={{ textDecoration: "none", color: "inherit",
+                                                        style={{
+                                                            textDecoration: "none", color: "inherit",
                                                             display: "flex",
                                                             flexDirection: "column",
                                                             alignItems: "center",
@@ -5620,17 +5621,16 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                     fontSize: 14,
                                                                     fontWeight: 800,
                                                                     color: "white",
-                                                                    border: `2px solid ${
-                                                                        ps === "played"
+                                                                    border: `2px solid ${ps === "played"
                                                                             ? "var(--val-purple)"
                                                                             : ps === "available"
-                                                                              ? "var(--val-cyan)"
-                                                                              : ps === "maybe"
-                                                                                ? "var(--val-yellow)"
-                                                                                : ps === "unavailable"
-                                                                                  ? "var(--val-red)"
-                                                                                  : "rgba(255,255,255,0.1)"
-                                                                    }`,
+                                                                                ? "var(--val-cyan)"
+                                                                                : ps === "maybe"
+                                                                                    ? "var(--val-yellow)"
+                                                                                    : ps === "unavailable"
+                                                                                        ? "var(--val-red)"
+                                                                                        : "rgba(255,255,255,0.1)"
+                                                                        }`,
                                                                     boxShadow:
                                                                         ps !== "pending"
                                                                             ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
@@ -5654,12 +5654,12 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                         ps === "played"
                                                                             ? "var(--val-purple)"
                                                                             : ps === "available"
-                                                                              ? "var(--val-cyan)"
-                                                                              : ps === "maybe"
-                                                                                ? "var(--val-yellow)"
-                                                                                : ps === "unavailable"
-                                                                                  ? "var(--val-red)"
-                                                                                  : "rgba(255,255,255,0.15)",
+                                                                                ? "var(--val-cyan)"
+                                                                                : ps === "maybe"
+                                                                                    ? "var(--val-yellow)"
+                                                                                    : ps === "unavailable"
+                                                                                        ? "var(--val-red)"
+                                                                                        : "rgba(255,255,255,0.15)",
                                                                     border: "2px solid #11141b",
                                                                     display: "flex",
                                                                     alignItems: "center",
@@ -5673,12 +5673,12 @@ style={{ opacity: updatingEventId === ev.id ? 0.5 : 1, cursor: updatingEventId =
                                                                 {ps === "played"
                                                                     ? "🎮"
                                                                     : ps === "available"
-                                                                      ? "✓"
-                                                                      : ps === "maybe"
-                                                                        ? "?"
-                                                                        : ps === "unavailable"
-                                                                          ? "✗"
-                                                                          : "•"}
+                                                                        ? "✓"
+                                                                        : ps === "maybe"
+                                                                            ? "?"
+                                                                            : ps === "unavailable"
+                                                                                ? "✗"
+                                                                                : "•"}
                                                             </div>
                                                         </div>
                                                         <div
