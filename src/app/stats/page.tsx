@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Skeleton } from "@/components/Skeleton";
+import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -646,24 +647,28 @@ export default function StatsPage() {
                                     zIndex: 1,
                                 }}
                             >
-                                <div
-                                    style={{
-                                        width: 80,
-                                        height: 80,
-                                        borderRadius: "24px",
-                                        background: `linear-gradient(135deg, ${selected.avatar_color}, #000)`,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 32,
-                                        color: "#fff",
-                                        fontWeight: 900,
-                                        boxShadow: `0 10px 20px ${selected.avatar_color}44`,
-                                        border: `2px solid ${selected.avatar_color}`,
-                                    }}
-                                >
-                                    {(selected.riot_name || selected.name)[0]}
-                                </div>
+                                <Link href={`/player/${selected.id}`} style={{ textDecoration: "none" }}>
+                                    <div
+                                        style={{
+                                            width: 80,
+                                            height: 80,
+                                            borderRadius: "24px",
+                                            background: `linear-gradient(135deg, ${selected.avatar_color}, #000)`,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: 32,
+                                            color: "#fff",
+                                            fontWeight: 900,
+                                            boxShadow: `0 10px 20px ${selected.avatar_color}44`,
+                                            border: `2px solid ${selected.avatar_color}`,
+                                            cursor: "pointer",
+                                        }}
+                                        title="Ver Perfil"
+                                    >
+                                        {(selected.riot_name || selected.name)[0]}
+                                    </div>
+                                </Link>
                                 <div>
                                     <h3
                                         className="gradient-text"

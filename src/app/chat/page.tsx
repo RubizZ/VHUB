@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -170,9 +171,11 @@ export default function ChatPage() {
                 const isMe = String(m.player_id) === String((session?.user as any)?.playerId);
                 return (
                   <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
-                    <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                      {m.player_name?.[0] || "?"}
-                    </div>
+                    <Link href={`/player/${m.player_id}`} style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+                      <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                        {m.player_name?.[0] || "?"}
+                      </div>
+                    </Link>
                     <div>
                       <div className="chat-msg-header">
                         <span className="chat-msg-name" style={{ color: m.avatar_color }}>{m.player_name}</span>

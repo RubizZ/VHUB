@@ -10,6 +10,7 @@ import React, {
     useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -3215,12 +3216,13 @@ export default function AvailabilityPage() {
                                                                                     ?.status ||
                                                                                 "pending";
                                                                             return (
-                                                                                <div
+                                                                                <Link
+                                                                                    href={`/player/${p.id}`}
                                                                                     key={
                                                                                         p.id
                                                                                     }
                                                                                     title={p.name}
-                                                                                    style={{
+                                                                                    style={{ textDecoration: "none", color: "inherit",
                                                                                         display:
                                                                                             "flex",
                                                                                         flexDirection:
@@ -3379,7 +3381,7 @@ export default function AvailabilityPage() {
                                                                                             )[0]
                                                                                         }
                                                                                     </div>
-                                                                                </div>
+                                                                                </Link>
                                                                             );
                                                                         },
                                                                     )}
@@ -5583,10 +5585,11 @@ export default function AvailabilityPage() {
                                                             p.id,
                                                     )?.status || "pending";
                                                 return (
-                                                    <div
+                                                    <Link
+                                                        href={`/player/${p.id}`}
                                                         key={p.id}
                                                         title={p.name}
-                                                        style={{
+                                                        style={{ textDecoration: "none", color: "inherit",
                                                             display: "flex",
                                                             flexDirection: "column",
                                                             alignItems: "center",
@@ -5692,7 +5695,7 @@ export default function AvailabilityPage() {
                                                         >
                                                             {p.name.split(" ")[0]}
                                                         </div>
-                                                    </div>
+                                                    </Link>
                                                 );
                                             })}
                                         </div>

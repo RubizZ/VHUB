@@ -9,7 +9,9 @@ interface RiotError {
   message?: string;
 }
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 

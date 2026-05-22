@@ -25,11 +25,11 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [playersRes, eventsRes, chatRes, stratsRes, matchesRes] = await Promise.all([
-          fetch("/api/players").then(r => r.json()),
-          fetch("/api/events").then(r => r.json()),
-          fetch("/api/chat?channel=general&limit=1").then(r => r.json()),
-          fetch("/api/strategies").then(r => r.json()),
-          fetch("/api/matches").then(r => r.json())
+          fetch("/api/players").then(async r => { if (!r.ok) return { players: [] }; const text = await r.text(); return text ? JSON.parse(text) : { players: [] }; }),
+          fetch("/api/events").then(async r => { if (!r.ok) return { events: [] }; const text = await r.text(); return text ? JSON.parse(text) : { events: [] }; }),
+          fetch("/api/chat?channel=general&limit=1").then(async r => { if (!r.ok) return { total: 0 }; const text = await r.text(); return text ? JSON.parse(text) : { total: 0 }; }),
+          fetch("/api/strategies").then(async r => { if (!r.ok) return { strategies: [] }; const text = await r.text(); return text ? JSON.parse(text) : { strategies: [] }; }),
+          fetch("/api/matches").then(async r => { if (!r.ok) return { matches: [] }; const text = await r.text(); return text ? JSON.parse(text) : { matches: [] }; })
         ]);
 
         setPlayers(playersRes.players || []);
@@ -216,7 +216,7 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : players.slice(0, 6).map(p => (
-                  <Link href="/team/roster" key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
+                  <Link href={`/player/${p.id}`} key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
                     <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       {p.name.charAt(0)}
                     </div>

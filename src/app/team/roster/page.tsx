@@ -3,6 +3,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -202,13 +203,15 @@ export default function TeamRosterPage() {
                   border: "1px solid var(--border-color)",
                   transition: "all 0.2s"
                 }}>
-                  <div style={{ 
-                    width: 40, height: 40, borderRadius: "50%", background: p.avatar_color, 
-                    display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800,
-                    boxShadow: `0 0 10px ${p.avatar_color}33`
-                  }}>
-                    {p.name[0]}
-                  </div>
+                  <Link href={`/player/${p.id}`} style={{ textDecoration: "none" }}>
+                    <div style={{ 
+                      width: 40, height: 40, borderRadius: "50%", background: p.avatar_color, 
+                      display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800,
+                      boxShadow: `0 0 10px ${p.avatar_color}33`, cursor: "pointer"
+                    }}>
+                      {p.name[0]}
+                    </div>
+                  </Link>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{p.riot_name ? `${p.riot_name}#${p.riot_tag}` : p.name}</div>
                     {p.riot_name && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{p.name}</div>}
