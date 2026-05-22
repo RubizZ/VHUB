@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { LandingPage } from "@/components/LandingPage";
 
 interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; user?: { lastActiveAt?: string }; }
-interface Event { id: number; title: string; type: string; date: string; time: string; description: string; }
+interface Event { id: number; title: string; type: string; date: string; time: string; description: string; availability?: any[]; }
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
