@@ -32,8 +32,21 @@ export async function GET(req: NextRequest) {
       { updated_at: 'desc' }
     ]
   });
+
+  const activeCutoff = new Date(Date.now() - 15000);
+  const presences = await db.strategyPresence.findMany({
+    where: {
+      strategyId: { in: strategies.map(s => s.id) },
+      updatedAt: { gte: activeCutoff }
+    }
+  });
+
+  const strategiesWithPresence = strategies.map(s => ({
+    ...s,
+    active_users: presences.filter(p => p.strategyId === s.id)
+  }));
   
-  return NextResponse.json({ strategies });
+  return NextResponse.json({ strategies: strategiesWithPresence });
 }
 
 export async function POST(req: NextRequest) {
