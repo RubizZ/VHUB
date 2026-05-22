@@ -234,6 +234,10 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Sidebar Column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
             {/* Roster Preview */}
             <div className="card glass-card">
@@ -241,7 +245,7 @@ export default function Dashboard() {
                 <h3 className="card-title">👥 Plantilla</h3>
                 <Link href="/team/roster" className="btn btn-ghost btn-sm">Gestionar</Link>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {loading ? (
                   Array.from({ length: 7 }).map((_, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)" }}>
@@ -269,30 +273,6 @@ export default function Dashboard() {
                   </Link>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* Sidebar Column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-
-
-
-            {/* Quick Actions Stack */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <ActionCard
-                title="Nueva Estrategia"
-                desc="Crea y comparte tácticas de mapa"
-                href="/strategies"
-                icon="🗺️"
-                color="var(--val-purple)"
-              />
-              <ActionCard
-                title="Disponibilidad"
-                desc="Gestiona los horarios del equipo"
-                href="/availability"
-                icon="📅"
-                color="var(--val-yellow)"
-              />
             </div>
 
           </div>
@@ -357,7 +337,8 @@ function MatchRow({ match }: { match: any }) {
 
 function EventItem({ event }: { event: any }) {
   const isMatch = event.type === 'match' || event.type === 'playoffs';
-  const attendees = event.availability?.filter((a: any) => a.status === 'available' || a.status === 'maybe') || [];
+  const attendees = (event.availability?.filter((a: any) => a.status === 'available' || a.status === 'maybe') || [])
+    .sort((a: any, b: any) => a.status === 'available' ? -1 : 1);
 
   return (
     <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
@@ -382,8 +363,7 @@ function EventItem({ event }: { event: any }) {
             <div key={a.player?.id || a.player_id} style={{
               width: 22, height: 22, borderRadius: "50%", background: a.player?.avatar_color || "#555",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff",
-              opacity: a.status === 'maybe' ? 0.6 : 1,
-              border: a.status === 'maybe' ? "1px dashed rgba(255,255,255,0.7)" : "2px solid rgba(20,20,26,1)",
+              border: a.status === 'available' ? "2px solid var(--val-cyan)" : "2px solid var(--val-yellow)",
               boxSizing: "border-box",
               marginLeft: -6,
               position: "relative"
