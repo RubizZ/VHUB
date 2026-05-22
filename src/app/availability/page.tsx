@@ -3196,7 +3196,13 @@ export default function AvailabilityPage() {
                                                                         gap: 12,
                                                                     }}
                                                                 >
-                                                                    {players.map(
+                                                                    {[...players].sort((a, b) => {
+                                                                        const order: Record<string, number> = { confirmed: 1, maybe: 2, pending: 3, declined: 4 };
+                                                                        const stA = ea.find(att => att.player_id === a.id)?.status || "pending";
+                                                                        const stB = ea.find(att => att.player_id === b.id)?.status || "pending";
+                                                                        if (order[stA] !== order[stB]) return (order[stA] || 5) - (order[stB] || 5);
+                                                                        return (a.name || "").localeCompare(b.name || "");
+                                                                    }).map(
                                                                         (p) => {
                                                                             const ps =
                                                                                 ea.find(
@@ -5563,7 +5569,13 @@ export default function AvailabilityPage() {
                                                 gap: 12,
                                             }}
                                         >
-                                            {players.map((p) => {
+                                            {[...players].sort((a, b) => {
+                                                const order: Record<string, number> = { confirmed: 1, maybe: 2, pending: 3, declined: 4 };
+                                                const stA = ea.find(att => att.player_id === a.id)?.status || "pending";
+                                                const stB = ea.find(att => att.player_id === b.id)?.status || "pending";
+                                                if (order[stA] !== order[stB]) return (order[stA] || 5) - (order[stB] || 5);
+                                                return (a.name || "").localeCompare(b.name || "");
+                                            }).map((p) => {
                                                 const ps =
                                                     ea.find(
                                                         (a) =>
