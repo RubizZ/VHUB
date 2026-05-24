@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
     
     const activeSeason = seasons.find(s => {
       const now = new Date();
+      if (!s.starts_at || !s.ends_at) return false;
       return new Date(s.starts_at) <= now && new Date(s.ends_at) >= now;
     });
 

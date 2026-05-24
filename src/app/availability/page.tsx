@@ -18,6 +18,7 @@ interface Player {
     id: string;
     name: string;
     avatar_color: string;
+    image?: string | null;
 }
 interface LinkedMatch {
     id: number;
