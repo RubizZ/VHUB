@@ -583,7 +583,7 @@ export async function GET(req: NextRequest) {
                   status: 'played', 
                   note: null, 
                   updated_at: new Date(),
-                  player: { id: pId, name: "Auto", avatar_color: "#999" } 
+                  player: { id: pId, name: "Auto", avatar_color: "#999", image: null } 
                 });
               }
             }
