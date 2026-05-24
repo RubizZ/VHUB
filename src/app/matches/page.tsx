@@ -74,6 +74,17 @@ export default function MatchesPage() {
   });
   const premierHistory = historyData?.history || [];
 
+  // 1.7 Fetch current premier points
+  const { data: premierDetailsData } = useQuery<{ details: any }>({
+    queryKey: ["premier", "details"],
+    queryFn: async () => {
+      const r = await fetch("/api/team/premier/details");
+      if (!r.ok) return { details: null };
+      return r.json();
+    }
+  });
+  const currentPremierPoints = premierDetailsData?.details?.placement?.points || 0;
+
   // Set default active season once loaded
   useEffect(() => {
     if (matchesData?.activeSeasonId && !hasInitializedSeason) {
@@ -520,16 +531,27 @@ export default function MatchesPage() {
                 ))}
               </>
             ) : (
-              groupedEvents.map(group => (
-                <div key={group.id} style={{ position: "relative", paddingLeft: 60 }}>
-                  <div style={{ position: "absolute", left: 29, top: 0, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
-                  <EventGroupCard 
-                    group={group} 
-                    onMatchClick={(m: Match) => loadMatch(m)} 
-                    matchPoints={matchPoints}
-                  />
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
+                
+                {/* Node with current premier points */}
+                <div style={{ position: "relative", paddingLeft: 60, display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
+                  <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
+                    {currentPremierPoints} PTS PREMIER
+                  </div>
                 </div>
-              ))
+
+                {groupedEvents.map(group => (
+                  <div key={group.id} style={{ position: "relative", paddingLeft: 60 }}>
+                    <EventGroupCard 
+                      group={group} 
+                      onMatchClick={(m: Match) => loadMatch(m)} 
+                      matchPoints={matchPoints}
+                    />
+                  </div>
+                ))}
+              </div>
             )}
             {matches.length === 0 && !loading && (
               <div style={{ gridColumn: "1 / -1" }}>
