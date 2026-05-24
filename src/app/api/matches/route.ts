@@ -341,8 +341,8 @@ export async function POST(req: NextRequest) {
               team_red_name: existing.team_red_name || redTeamName,
               team_blue_tag: existing.team_blue_tag || blueTeamRiotTag,
               team_red_tag: existing.team_red_tag || redTeamRiotTag,
-              team_blue_icon: existing.team_blue_icon || blueTeam?.customization?.image || null,
-              team_red_icon: existing.team_red_icon || redTeam?.customization?.image || null,
+              team_blue_icon: existing.team_blue_icon || blueTeam?.roster?.customization?.image || null,
+              team_red_icon: existing.team_red_icon || redTeam?.roster?.customization?.image || null,
             } 
           });
           continue;
@@ -415,8 +415,8 @@ export async function POST(req: NextRequest) {
                 team_red_name: redTeamName,
                 team_blue_tag: blueTeamRiotTag,
                 team_red_tag: redTeamRiotTag,
-                team_blue_icon: blueTeam?.customization?.image || null,
-                team_red_icon: redTeam?.customization?.image || null,
+                team_blue_icon: blueTeam?.roster?.customization?.image || null,
+                team_red_icon: redTeam?.roster?.customization?.image || null,
                 raw_data: matchData as object
               }
             });
