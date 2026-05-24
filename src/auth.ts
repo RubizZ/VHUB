@@ -91,7 +91,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: true,
               role: true,
               playerId: true,
-              teamId: true
+              teamId: true,
+              image: true
             }
           });
 
@@ -104,6 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.id = dbUser.id;
           session.user.name = dbUser.name;
           session.user.email = dbUser.email || "";
+          session.user.image = dbUser.image;
           (session.user as any).role = dbUser.role;
           (session.user as any).playerId = dbUser.playerId;
           (session.user as any).teamId = dbUser.teamId;

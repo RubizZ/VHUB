@@ -1,0 +1,13 @@
+const { Client } = require('pg');
+
+async function run() {
+  const client = new Client({
+    connectionString: "postgresql://vhub:vhub_dev@localhost:5432/vhub"
+  });
+  await client.connect();
+  const res = await client.query('SELECT id, name, image FROM "User"');
+  console.log("Users:", res.rows);
+  await client.end();
+}
+
+run();
