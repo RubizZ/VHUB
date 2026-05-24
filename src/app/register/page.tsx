@@ -86,7 +86,7 @@ export default function RegisterPage() {
             )}
 
             <div className="form-group" style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>NOMBRE O ALIAS</label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>NOMBRE DE USUARIO</label>
               <input 
                 type="text" 
                 value={name} 
