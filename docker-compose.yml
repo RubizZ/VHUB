@@ -19,6 +19,8 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
       - NEXT_TELEMETRY_DISABLED=1
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_URL_PREFIX=http://localhost:9000/avatars
     env_file:
       - .env
     depends_on:
