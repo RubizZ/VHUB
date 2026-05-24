@@ -815,7 +815,7 @@ export default function AvailabilityPage() {
                     <div
                         className="card"
                         style={{
-                            background: "rgba(255, 70, 85, 0.1)",
+                            background: "rgba(133, 107, 77, 0.1)",
                             border: "1px solid var(--val-red)",
                             color: "var(--val-red)",
                             marginBottom: 20,
@@ -1100,7 +1100,7 @@ export default function AvailabilityPage() {
                                                         background: d.empty
                                                             ? "rgba(0,0,0,0.1)"
                                                             : d.isToday
-                                                                ? "rgba(255,70,85,0.06)"
+                                                                ? "rgba(133, 107, 77, 0.06)"
                                                                 : d.isPast
                                                                     ? "rgba(0,0,0,0.4)"
                                                                     : "transparent",
@@ -1113,7 +1113,7 @@ export default function AvailabilityPage() {
                                                             : "none",
                                                         animationDelay: `${(i % 7) * 0.05}s`,
                                                         boxShadow: d.isToday
-                                                            ? "inset 0 0 20px rgba(255,70,85,0.1)"
+                                                            ? "inset 0 0 20px rgba(133, 107, 77, 0.1)"
                                                             : "none",
                                                         zIndex: d.isToday
                                                             ? 2
@@ -1367,22 +1367,22 @@ export default function AvailabilityPage() {
                                                                                 isNoPlayers ||
                                                                                 isNotPlayed ||
                                                                                 isImpossible;
-                                                                            const evColor =
+                                                                            const color =
                                                                                 ev.type ===
                                                                                     "playoffs"
                                                                                     ? "var(--val-yellow)"
                                                                                     : ev.type ===
                                                                                         "match"
-                                                                                        ? "var(--val-red)"
-                                                                                        : "var(--val-cyan)";
+                                                                                        ? "var(--val-match)"
+                                                                                        : "var(--val-practice)";
                                                                             const evColorDark =
                                                                                 ev.type ===
                                                                                     "playoffs"
                                                                                     ? "var(--val-yellow-dark)"
                                                                                     : ev.type ===
                                                                                         "match"
-                                                                                        ? "var(--val-red-dark)"
-                                                                                        : "#008a6e";
+                                                                                        ? "#5c4a35"
+                                                                                        : "#808080";
                                                                             const isFirstUpcoming =
                                                                                 ev.id ===
                                                                                 firstUpcomingId;
@@ -1394,7 +1394,7 @@ export default function AvailabilityPage() {
                                                                                         "match"
                                                                                         ? "rgba(255, 255, 255, 0.65)"
                                                                                         : evColorDark
-                                                                                    : evColor;
+                                                                                    : color;
 
                                                                             const hoverSheenActive =
                                                                                 myStatus ===
@@ -1412,7 +1412,7 @@ export default function AvailabilityPage() {
                                                                                         "match"
                                                                                         ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
                                                                                         : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                    : `inset 0 0 5px ${evColor}`;
+                                                                                    : `inset 0 0 5px ${color}`;
 
                                                                             return (
                                                                                 <div
@@ -1446,17 +1446,17 @@ export default function AvailabilityPage() {
                                                                                                                     .linkedMatches
                                                                                                                     .length >
                                                                                                                 0)
-                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
+                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${color}`
                                                                                                             : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                                ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                                : evColor,
+                                                                                                                ? `repeating-linear-gradient(45deg, ${color}, ${color} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                : color,
                                                                                         color:
                                                                                             isRed ||
                                                                                                 myStatus ===
                                                                                                 "unavailable" ||
                                                                                                 myStatus ===
                                                                                                 "pending"
-                                                                                                ? evColor
+                                                                                                ? color
                                                                                                 : "white",
                                                                                         fontWeight: 700,
                                                                                         whiteSpace:
@@ -1489,14 +1489,14 @@ export default function AvailabilityPage() {
                                                                                             isRed ||
                                                                                                 myStatus ===
                                                                                                 "unavailable"
-                                                                                                ? `1px solid ${evColor}`
+                                                                                                ? `1px solid ${color}`
                                                                                                 : myStatus ===
                                                                                                     "pending"
-                                                                                                    ? `1px dashed ${evColor}`
+                                                                                                    ? `1px dashed ${color}`
                                                                                                     : "1px solid rgba(255,255,255,0.1)",
                                                                                         boxShadow:
                                                                                             isFirstUpcoming
-                                                                                                ? `0 0 10px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                                                                                ? `0 0 10px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
                                                                                                 : "none",
                                                                                         zIndex: isFirstUpcoming
                                                                                             ? 5
@@ -1508,7 +1508,7 @@ export default function AvailabilityPage() {
                                                                                         ["--hover-inset-shadow" as any]:
                                                                                             hoverInsetShadow,
                                                                                         ["--hover-color" as any]:
-                                                                                            evColor,
+                                                                                            color,
                                                                                     }}
                                                                                     title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
                                                                                 >
@@ -1519,11 +1519,11 @@ export default function AvailabilityPage() {
                                                                                                 background:
                                                                                                     ev.type ===
                                                                                                         "match"
-                                                                                                        ? "var(--val-red)"
+                                                                                                        ? "var(--val-match)"
                                                                                                         : ev.type ===
                                                                                                             "playoffs"
                                                                                                             ? "var(--val-yellow)"
-                                                                                                            : "var(--val-cyan)",
+                                                                                                            : "var(--val-practice)",
                                                                                                 color:
                                                                                                     ev.type ===
                                                                                                         "playoffs"
@@ -1646,7 +1646,7 @@ export default function AvailabilityPage() {
                                                                         borderRadius: 6,
                                                                         background:
                                                                             d.isToday
-                                                                                ? "rgba(255,70,85,0.1)"
+                                                                                ? "rgba(133, 107, 77, 0.1)"
                                                                                 : "transparent",
                                                                     }}
                                                                 >
@@ -1733,7 +1733,7 @@ export default function AvailabilityPage() {
                                                                                 : "none",
                                                                         background:
                                                                             d.isToday
-                                                                                ? "rgba(255,70,85,0.02)"
+                                                                                ? "rgba(133, 107, 77, 0.02)"
                                                                                 : d.isPast
                                                                                     ? "rgba(0,0,0,0.4)"
                                                                                     : "transparent",
@@ -2045,22 +2045,22 @@ export default function AvailabilityPage() {
                                                                                     isNoPlayers ||
                                                                                     isNotPlayed ||
                                                                                     isImpossible;
-                                                                                const evColor =
+                                                                                const evTypeColor =
                                                                                     ev.type ===
                                                                                         "playoffs"
                                                                                         ? "var(--val-yellow)"
                                                                                         : ev.type ===
                                                                                             "match"
-                                                                                            ? "var(--val-red)"
-                                                                                            : "var(--val-cyan)";
+                                                                                            ? "var(--val-match)"
+                                                                                            : "var(--val-practice)";
                                                                                 const evColorDark =
                                                                                     ev.type ===
                                                                                         "playoffs"
                                                                                         ? "var(--val-yellow-dark)"
                                                                                         : ev.type ===
                                                                                             "match"
-                                                                                            ? "var(--val-red-dark)"
-                                                                                            : "#008a6e";
+                                                                                            ? "#5c4a35"
+                                                                                            : "#808080";
                                                                                 const isFirstUpcoming =
                                                                                     ev.id ===
                                                                                     firstUpcomingId;
@@ -2072,7 +2072,7 @@ export default function AvailabilityPage() {
                                                                                             "match"
                                                                                             ? "rgba(255, 255, 255, 0.65)"
                                                                                             : evColorDark
-                                                                                        : evColor;
+                                                                                        : evTypeColor;
 
                                                                                 const hoverSheenActive =
                                                                                     myStatus ===
@@ -2090,7 +2090,7 @@ export default function AvailabilityPage() {
                                                                                             "match"
                                                                                             ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
                                                                                             : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                        : `inset 0 0 5px ${evColor}`;
+                                                                                        : `inset 0 0 5px ${evTypeColor}`;
 
                                                                                 return (
                                                                                     <div
@@ -2133,23 +2133,23 @@ export default function AvailabilityPage() {
                                                                                                                         .linkedMatches
                                                                                                                         .length >
                                                                                                                     0)
-                                                                                                                ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evColor}`
+                                                                                                                ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evTypeColor}`
                                                                                                                 : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                                    ? `repeating-linear-gradient(45deg, ${evColor}, ${evColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                                    : evColor,
+                                                                                                                    ? `repeating-linear-gradient(45deg, ${evTypeColor}, ${evTypeColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                    : evTypeColor,
                                                                                             color:
                                                                                                 isRed ||
                                                                                                     myStatus ===
                                                                                                     "unavailable" ||
                                                                                                     myStatus ===
                                                                                                     "pending"
-                                                                                                    ? evColor
+                                                                                                    ? evTypeColor
                                                                                                     : "white",
                                                                                             fontWeight: 700,
                                                                                             cursor: "pointer",
                                                                                             boxShadow:
                                                                                                 isFirstUpcoming
-                                                                                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(0, 212, 170, 0.4)"}`
+                                                                                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
                                                                                                     : myStatus ===
                                                                                                         "pending" ||
                                                                                                         myStatus ===
@@ -2161,10 +2161,10 @@ export default function AvailabilityPage() {
                                                                                                 isRed ||
                                                                                                     myStatus ===
                                                                                                     "unavailable"
-                                                                                                    ? `1px solid ${evColor}`
+                                                                                                    ? `1px solid ${evTypeColor}`
                                                                                                     : myStatus ===
                                                                                                         "pending"
-                                                                                                        ? `2px dashed ${evColor}`
+                                                                                                        ? `2px dashed ${evTypeColor}`
                                                                                                         : "1px solid rgba(255,255,255,0.1)",
                                                                                             display:
                                                                                                 "flex",
@@ -2210,7 +2210,7 @@ export default function AvailabilityPage() {
                                                                                             ["--hover-inset-shadow" as any]:
                                                                                                 hoverInsetShadow,
                                                                                             ["--hover-color" as any]:
-                                                                                                evColor,
+                                                                                                evTypeColor,
                                                                                         }}
                                                                                     >
                                                                                         {isFirstUpcoming && (
@@ -2718,28 +2718,28 @@ export default function AvailabilityPage() {
                                                         }`}
                                                     style={{
                                                         marginBottom: 12,
-                                                        borderLeft: `4px solid ${ev.type === "match" ? "var(--val-red)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-cyan)"}`,
+                                                        borderLeft: `4px solid ${ev.type === "match" ? "var(--val-match)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-practice)"}`,
                                                         scrollMarginTop:
                                                             "100px",
                                                         animationDelay: `${Math.min(idx, 5) * 0.1}s`,
                                                         boxShadow:
                                                             isFirstUpcoming
-                                                                ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(255, 70, 85, 0.25)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.25)" : "rgba(0, 212, 170, 0.25)"}`
+                                                                ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(133, 107, 77, 0.25)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.25)" : "rgba(184, 184, 184, 0.25)"}`
                                                                 : undefined,
                                                         ["--hover-color" as any]:
                                                             ev.type === "match"
-                                                                ? "var(--val-red)"
+                                                                ? "var(--val-match)"
                                                                 : ev.type ===
                                                                     "playoffs"
                                                                     ? "var(--val-yellow)"
-                                                                    : "var(--val-cyan)",
+                                                                    : "var(--val-practice)",
                                                         ["--hover-glow-color" as any]:
                                                             ev.type === "match"
-                                                                ? "rgba(255, 70, 85, 0.3)"
+                                                                ? "rgba(133, 107, 77, 0.3)"
                                                                 : ev.type ===
                                                                     "playoffs"
                                                                     ? "rgba(245, 158, 11, 0.3)"
-                                                                    : "rgba(0, 212, 170, 0.3)",
+                                                                    : "rgba(184, 184, 184, 0.3)",
                                                     }}
                                                 >
                                                     <div
@@ -2780,7 +2780,7 @@ export default function AvailabilityPage() {
                                                                     }}
                                                                 >
                                                                     <span
-                                                                        className={`tag ${ev.type === "match" ? "tag-red" : ev.type === "playoffs" ? "tag-gold" : "tag-green"}`}
+                                                                        className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"}`}
                                                                     >
                                                                         {ev.type ===
                                                                             "match"
@@ -3024,13 +3024,13 @@ export default function AvailabilityPage() {
                                                                             ["--hover-color" as any]:
                                                                                 ev.type ===
                                                                                     "match"
-                                                                                    ? "var(--val-red)"
-                                                                                    : "var(--val-cyan)",
+                                                                                    ? "var(--val-match)"
+                                                                                    : "var(--val-practice)",
                                                                             ["--hover-glow-color" as any]:
                                                                                 ev.type ===
                                                                                     "match"
-                                                                                    ? "rgba(255, 70, 85, 0.2)"
-                                                                                    : "rgba(0, 212, 170, 0.2)",
+                                                                                    ? "rgba(133, 107, 77, 0.2)"
+                                                                                    : "rgba(184, 184, 184, 0.2)",
                                                                         }}
                                                                     >
                                                                         <div
@@ -3610,8 +3610,8 @@ export default function AvailabilityPage() {
                                                                                 "10px 14px",
                                                                             borderRadius: 8,
                                                                             background:
-                                                                                "rgba(255, 70, 85, 0.06)",
-                                                                            border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                                                "rgba(133, 107, 77, 0.06)",
+                                                                            border: "1px solid rgba(133, 107, 77, 0.2)",
                                                                             color: "var(--val-red)",
                                                                             fontSize: 12,
                                                                             fontWeight: 600,
@@ -3621,7 +3621,7 @@ export default function AvailabilityPage() {
                                                                                 "center",
                                                                             gap: 8,
                                                                             boxShadow:
-                                                                                "0 4px 20px rgba(255, 70, 85, 0.05)",
+                                                                                "0 4px 20px rgba(133, 107, 77, 0.05)",
                                                                         }}
                                                                     >
                                                                         <span
@@ -3723,7 +3723,7 @@ export default function AvailabilityPage() {
                                                                                             background:
                                                                                                 "rgba(255,255,255,0.02)",
                                                                                             cursor: "pointer",
-                                                                                            border: `1px solid ${ourWin ? "rgba(0,212,170,0.2)" : "rgba(255,70,85,0.2)"}`,
+                                                                                            border: `1px solid ${ourWin ? "rgba(0, 212, 170, 0.2)" : "rgba(255, 70, 85, 0.2)"}`,
                                                                                         }}
                                                                                     >
                                                                                         <div
@@ -3766,7 +3766,7 @@ export default function AvailabilityPage() {
                                                                                                 }
                                                                                             </span>
                                                                                             {ev.type === "playoffs" && (
-                                                                                                <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(0, 212, 170, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                                                                                <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(184, 184, 184, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
                                                                                                     {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
                                                                                                 </span>
                                                                                             )}
@@ -3816,78 +3816,7 @@ export default function AvailabilityPage() {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                            ) : (
-                                                                !(
-                                                                    isCancelled ||
-                                                                    ev.status ===
-                                                                    "no_players" ||
-                                                                    ev.status ===
-                                                                    "not_played" ||
-                                                                    isImpossible
-                                                                ) && (
-                                                                    <div
-                                                                        style={{
-                                                                            marginTop: 8,
-                                                                        }}
-                                                                    >
-                                                                        <div
-                                                                            style={{
-                                                                                fontSize: 11,
-                                                                                fontWeight: 800,
-                                                                                color: "var(--text-muted)",
-                                                                                textTransform:
-                                                                                    "uppercase",
-                                                                                letterSpacing: 1,
-                                                                                marginBottom: 8,
-                                                                            }}
-                                                                        >
-                                                                            Partidos
-                                                                            Jugados
-                                                                        </div>
-                                                                        <div
-                                                                            style={{
-                                                                                padding:
-                                                                                    "12px 16px",
-                                                                                borderRadius: 8,
-                                                                                background:
-                                                                                    "rgba(255, 255, 255, 0.02)",
-                                                                                border: "1px dashed rgba(255, 255, 255, 0.08)",
-                                                                                color: "var(--text-muted)",
-                                                                                fontSize: 12,
-                                                                                fontStyle:
-                                                                                    "italic",
-                                                                                display:
-                                                                                    "flex",
-                                                                                alignItems:
-                                                                                    "center",
-                                                                                gap: 10,
-                                                                            }}
-                                                                        >
-                                                                            <span
-                                                                                style={{
-                                                                                    fontSize: 14,
-                                                                                    opacity: 0.6,
-                                                                                }}
-                                                                            >
-                                                                                📡
-                                                                            </span>
-                                                                            <span>
-                                                                                Aquí
-                                                                                se
-                                                                                mostrarán
-                                                                                los
-                                                                                partidos
-                                                                                que
-                                                                                se
-                                                                                jueguen
-                                                                                durante
-                                                                                este
-                                                                                evento.
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            )}
+                                                            ) : null}
 
                                                             {/* Actions Panel */}
                                                             {myPlayerId &&
@@ -4183,25 +4112,25 @@ export default function AvailabilityPage() {
                                 );
                                 const upcomingColor = upcomingEv
                                     ? upcomingEv.type === "match"
-                                        ? "var(--val-red)"
+                                        ? "var(--val-match)"
                                         : upcomingEv.type === "playoffs"
                                             ? "var(--val-yellow)"
-                                            : "var(--val-cyan)"
-                                    : "var(--val-cyan)";
+                                            : "var(--val-practice)"
+                                    : "var(--val-practice)";
                                 const upcomingGlow = upcomingEv
                                     ? upcomingEv.type === "match"
-                                        ? "rgba(255, 70, 85, 0.25)"
+                                        ? "rgba(133, 107, 77, 0.25)"
                                         : upcomingEv.type === "playoffs"
                                             ? "rgba(234, 180, 8, 0.25)"
-                                            : "rgba(0, 212, 170, 0.25)"
-                                    : "rgba(0, 212, 170, 0.25)";
+                                            : "rgba(184, 184, 184, 0.25)"
+                                    : "rgba(184, 184, 184, 0.25)";
                                 const upcomingBorder = upcomingEv
                                     ? upcomingEv.type === "match"
-                                        ? "rgba(255, 70, 85, 0.4)"
+                                        ? "rgba(133, 107, 77, 0.4)"
                                         : upcomingEv.type === "playoffs"
                                             ? "rgba(234, 180, 8, 0.4)"
-                                            : "rgba(0, 212, 170, 0.4)"
-                                    : "rgba(0, 212, 170, 0.4)";
+                                            : "rgba(184, 184, 184, 0.4)"
+                                    : "rgba(184, 184, 184, 0.4)";
 
                                 return (
                                     <div
@@ -4860,9 +4789,9 @@ export default function AvailabilityPage() {
                                                     alignItems: "center",
                                                     justifyContent: "center",
                                                     color: "var(--val-red)",
-                                                    border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                    border: "1px solid rgba(133, 107, 77, 0.2)",
                                                     background:
-                                                        "rgba(255, 70, 85, 0.03)",
+                                                        "rgba(133, 107, 77, 0.03)",
                                                     transition: "all 0.2s ease",
                                                 }}
                                                 onClick={() =>
@@ -5061,8 +4990,8 @@ export default function AvailabilityPage() {
                         ev.type === "playoffs"
                             ? "var(--val-yellow)"
                             : ev.type === "match"
-                                ? "var(--val-red)"
-                                : "var(--val-cyan)";
+                                ? "var(--val-match)"
+                                : "var(--val-practice)";
                     const evColor =
                         isRed || myStatus === "unavailable"
                             ? "rgba(255,255,255,0.05)"
@@ -5197,13 +5126,7 @@ export default function AvailabilityPage() {
                                             }}
                                         >
                                             <span
-                                                className="tag"
-                                                style={{
-                                                    background:
-                                                        "rgba(255,255,255,0.2)",
-                                                    color: "white",
-                                                    border: "1px solid rgba(255,255,255,0.3)",
-                                                }}
+                                                className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"}`}
                                             >
                                                 {ev.type === "match"
                                                     ? "Partido"
@@ -5244,8 +5167,8 @@ export default function AvailabilityPage() {
                                                     padding: "12px 16px",
                                                     borderRadius: 8,
                                                     background:
-                                                        "rgba(255, 70, 85, 0.06)",
-                                                    border: "1px solid rgba(255, 70, 85, 0.2)",
+                                                        "rgba(133, 107, 77, 0.06)",
+                                                    border: "1px solid rgba(133, 107, 77, 0.2)",
                                                     color: "var(--val-red)",
                                                     fontSize: 13,
                                                     fontWeight: 600,
@@ -5253,7 +5176,7 @@ export default function AvailabilityPage() {
                                                     alignItems: "center",
                                                     gap: 10,
                                                     boxShadow:
-                                                        "0 4px 20px rgba(255, 70, 85, 0.05)",
+                                                        "0 4px 20px rgba(133, 107, 77, 0.05)",
                                                 }}
                                             >
                                                 <span style={{ fontSize: 16 }}>
@@ -5298,7 +5221,7 @@ export default function AvailabilityPage() {
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    color: "var(--val-red)",
+                                                    color: "var(--text-primary)",
                                                 }}
                                             >
                                                 <svg
@@ -5362,7 +5285,7 @@ export default function AvailabilityPage() {
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    color: "var(--val-cyan)",
+                                                    color: "var(--text-primary)",
                                                 }}
                                             >
                                                 <svg
@@ -5467,7 +5390,7 @@ export default function AvailabilityPage() {
                                                                         borderRadius: 10,
                                                                         background:
                                                                             "rgba(255,255,255,0.03)",
-                                                                        border: `1px solid ${isWin ? "rgba(0,255,163,0.2)" : "rgba(255,70,85,0.2)"}`,
+                                                                        border: `1px solid ${isWin ? "rgba(0,255,163,0.2)" : "rgba(133, 107, 77, 0.2)"}`,
                                                                         display:
                                                                             "flex",
                                                                         justifyContent:
@@ -5508,7 +5431,7 @@ export default function AvailabilityPage() {
                                                                             }
                                                                         </span>
                                                                         {ev.type === "playoffs" && (
-                                                                            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(0, 212, 170, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                                                            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-yellow)", fontWeight: 800, textTransform: "uppercase", background: "rgba(234, 180, 8, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
                                                                                 {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
                                                                             </span>
                                                                         )}

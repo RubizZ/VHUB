@@ -126,6 +126,9 @@ export default function MatchesPage() {
     onSuccess: (data) => {
       setSuccess(`Sincronización completada: ${data.synced} partidos procesados.`);
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+      if (data.synced > 0) {
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+      }
     },
     onError: (err: any) => {
       setError(err.message || "Error al sincronizar");
@@ -577,9 +580,9 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
       case "match":
         return {
           label: "PARTIDO PREMIER",
-          color: "var(--val-cyan)",
-          bg: "rgba(0, 212, 170, 0.08)",
-          border: "rgba(0, 212, 170, 0.25)",
+          color: "var(--val-match)",
+          bg: "rgba(133, 107, 77, 0.15)",
+          border: "rgba(133, 107, 77, 0.3)",
           icon: (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -589,9 +592,9 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
       case "practice":
         return {
           label: "ENTRENAMIENTO",
-          color: "rgba(255, 180, 0, 0.95)",
-          bg: "rgba(255, 180, 0, 0.08)",
-          border: "rgba(255, 180, 0, 0.25)",
+          color: "var(--val-practice)",
+          bg: "rgba(184, 184, 184, 0.15)",
+          border: "rgba(184, 184, 184, 0.3)",
           icon: (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M22 10v6M2 10v6M4 10h16M12 4v16" />

@@ -344,7 +344,7 @@ function EventItem({ event }: { event: any }) {
     <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
       <div style={{
         width: 36, height: 36, borderRadius: 8,
-        background: isMatch ? "rgba(255, 70, 85, 0.1)" : "rgba(0, 212, 170, 0.1)",
+        background: isMatch ? "rgba(133, 107, 77, 0.2)" : "rgba(184, 184, 184, 0.2)",
         display: "flex", alignItems: "center", justifyContent: "center",
         flexShrink: 0
       }}>

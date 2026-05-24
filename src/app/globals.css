@@ -11,6 +11,8 @@
   --val-yellow-dark: #B45309;
   --val-gold: #D4AF37;
   --val-orange: #FF6B35;
+  --val-practice: #b8b8b8;
+  --val-match: #856b4d;
   --bg-primary: #0A0A0F;
   --bg-secondary: #12121A;
   --bg-card: rgba(18, 18, 26, 0.8);
@@ -179,7 +181,9 @@ body::before {
 .nav-link-icon {
   font-size: 18px;
   width: 24px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-badge {
@@ -342,8 +346,8 @@ body::before {
 
 .hover-lift-match:hover {
   transform: translateY(-2px);
-  border-color: var(--val-red) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 70, 85, 0.35) !important;
+  border-color: var(--val-match) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(133, 107, 77, 0.35) !important;
 }
 
 .hover-lift-playoffs:hover {
@@ -354,8 +358,8 @@ body::before {
 
 .hover-lift-practice:hover {
   transform: translateY(-2px);
-  border-color: var(--val-cyan) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 212, 170, 0.35) !important;
+  border-color: var(--val-practice) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(184, 184, 184, 0.35) !important;
 }
 
 .gradient-text {
@@ -1054,6 +1058,16 @@ select option {
 .tag-red {
   background: rgba(255, 70, 85, 0.15);
   color: var(--val-red);
+}
+
+.tag-match {
+  background: rgba(133, 107, 77, 0.15);
+  color: var(--val-match);
+}
+
+.tag-practice {
+  background: rgba(184, 184, 184, 0.15);
+  color: var(--val-practice);
 }
 
 .tag-neutral {
