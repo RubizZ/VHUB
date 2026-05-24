@@ -89,6 +89,7 @@ model Player {
   riot_tag     String?
   role         String             @default("flex")
   avatar_color String             @default("#FF4655")
+  image        String?
   created_at   DateTime           @default(now())
   availability Availability[]
   stats        MatchPlayerStats[]

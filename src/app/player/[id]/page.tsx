@@ -12,6 +12,8 @@ interface PlayerData {
   riot_tag: string;
   role: string;
   avatar_color: string;
+  puuid: string | null;
+  image: string | null;
   team?: { name: string; premierTeam?: { tag: string | null } };
   user?: { email: string; lastActiveAt: string };
 }
@@ -88,9 +90,10 @@ export default function PlayerProfilePage() {
             <div className="profile-avatar" style={{
               width: 140, height: 140, borderRadius: 32, fontSize: 60, fontWeight: 900, color: "#fff",
               background: player.avatar_color, boxShadow: `0 10px 30px ${player.avatar_color}44`,
-              display: "flex", alignItems: "center", justifyContent: "center", border: "4px solid rgba(255,255,255,0.1)"
+              display: "flex", alignItems: "center", justifyContent: "center", border: "4px solid rgba(255,255,255,0.1)",
+              position: "relative", overflow: "hidden"
             }}>
-              {player.name[0]}
+              {player.image ? <img src={player.image} alt={player.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 28 }} /> : player.name[0]}
             </div>
             {isOnline ? (
               <div className="status-badge-online" style={{

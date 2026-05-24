@@ -15,6 +15,7 @@ interface PlayerData {
   avatar_color: string;
   puuid: string | null;
   dataConsent: boolean;
+  image: string | null;
   team?: { name: string; premierTeam?: { tag: string | null } };
 }
 
@@ -22,6 +23,8 @@ export default function ProfilePage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // 1. Fetch Profile
   const {
@@ -83,6 +86,40 @@ export default function ProfilePage() {
     updateProfileMutation.mutate(updates);
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploadingAvatar(true);
+      const res = await fetch("/api/players/me/avatar", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al subir avatar");
+      
+      queryClient.setQueryData(["player", "me"], (old: any) => {
+        if (!old?.player) return old;
+        return {
+          ...old,
+          player: {
+            ...old.player,
+            image: data.url
+          }
+        };
+      });
+      setMessage({ text: "Avatar actualizado", type: "success" });
+    } catch (err: any) {
+      setMessage({ text: err.message || "Error al subir avatar", type: "error" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const saving = updateProfileMutation.isPending;
 
   if (loading) {
@@ -104,12 +141,31 @@ export default function ProfilePage() {
         <div className="hero-glow" style={{ background: `radial-gradient(circle at 10% 50%, ${player?.avatar_color}33 0%, transparent 70%)` }} />
         <div style={{ display: "flex", alignItems: "center", gap: 40, padding: 40, position: "relative" }}>
           <div className="avatar-container" style={{ position: "relative" }}>
-            <div className="profile-avatar" style={{
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: "none" }} 
+              accept="image/*" 
+              onChange={handleAvatarUpload}
+            />
+            <div className="profile-avatar" onClick={() => !uploadingAvatar && fileInputRef.current?.click()} style={{
               width: 140, height: 140, borderRadius: 32, fontSize: 60, fontWeight: 900, color: "#fff",
               background: player?.avatar_color, boxShadow: `0 10px 30px ${player?.avatar_color}44`,
-              display: "flex", alignItems: "center", justifyContent: "center", border: "4px solid rgba(255,255,255,0.1)"
+              display: "flex", alignItems: "center", justifyContent: "center", border: "4px solid rgba(255,255,255,0.1)",
+              cursor: "pointer", position: "relative", overflow: "hidden"
             }}>
-              {player?.name[0]}
+              {uploadingAvatar ? (
+                <div style={{ width: 40, height: 40, border: "4px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+              ) : player?.image ? (
+                <img src={player.image} alt={player.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 28 }} />
+              ) : (
+                player?.name[0]
+              )}
+              {!uploadingAvatar && (
+                <div className="avatar-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.2s" }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                </div>
+              )}
             </div>
             <div className="status-badge-online">En Línea</div>
           </div>
@@ -269,6 +325,12 @@ export default function ProfilePage() {
           border-color: #fff;
           transform: scale(1.1);
           box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+        .profile-avatar:hover .avatar-overlay {
+          opacity: 1 !important;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
