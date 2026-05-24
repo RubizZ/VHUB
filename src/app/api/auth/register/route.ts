@@ -11,13 +11,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
-    // Check if user already exists
-    const existingUser = await db.user.findUnique({
+    // Check if email already exists
+    const existingUserEmail = await db.user.findUnique({
       where: { email }
     });
 
-    if (existingUser) {
+    if (existingUserEmail) {
       return NextResponse.json({ error: "El correo ya está en uso" }, { status: 400 });
+    }
+
+    // Check if username already exists
+    const existingUserName = await db.user.findUnique({
+      where: { name }
+    });
+
+    if (existingUserName) {
+      return NextResponse.json({ error: "El nombre de usuario ya está en uso" }, { status: 400 });
     }
 
     let teamIdToJoin = null;
