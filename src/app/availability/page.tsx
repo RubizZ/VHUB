@@ -3329,12 +3329,14 @@ export default function AvailabilityPage() {
                                                                                                         : 0.4,
                                                                                                 transition:
                                                                                                     "all 0.3s ease",
+                                                                                                overflow: "hidden",
                                                                                             }}
                                                                                         >
-                                                                                            {
-                                                                                                p
-                                                                                                    .name[0]
-                                                                                            }
+                                                                                            {p.image ? (
+                                                                                                <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                                                            ) : (
+                                                                                                p.name[0]
+                                                                                            )}
                                                                                         </div>
                                                                                         {/* Status Emblem Indicator */}
                                                                                         <div
