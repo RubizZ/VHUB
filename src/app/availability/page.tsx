@@ -3682,6 +3682,7 @@ export default function AvailabilityPage() {
                                                                         {matches.map(
                                                                             (
                                                                                 m: LinkedMatch,
+                                                                                mIdx: number
                                                                             ) => {
                                                                                 const ourWin =
                                                                                     m.our_team_side ===
@@ -3764,6 +3765,11 @@ export default function AvailabilityPage() {
                                                                                                     m.map_name
                                                                                                 }
                                                                                             </span>
+                                                                                            {ev.type === "playoffs" && (
+                                                                                                <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(0, 212, 170, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                                                                                    {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
+                                                                                                </span>
+                                                                                            )}
                                                                                             <span
                                                                                                 style={{
                                                                                                     marginLeft: 8,
@@ -5437,7 +5443,7 @@ export default function AvailabilityPage() {
                                                     }}
                                                 >
                                                     {ev.linkedMatches.map(
-                                                        (m: any) => {
+                                                        (m: any, mIdx: number) => {
                                                             const isBlue =
                                                                 m.our_team_side ===
                                                                 "Blue";
@@ -5501,6 +5507,11 @@ export default function AvailabilityPage() {
                                                                                 m.map_name
                                                                             }
                                                                         </span>
+                                                                        {ev.type === "playoffs" && (
+                                                                            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(0, 212, 170, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                                                                {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     <div
                                                                         style={{

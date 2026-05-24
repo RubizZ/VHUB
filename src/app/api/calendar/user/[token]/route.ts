@@ -119,13 +119,14 @@ export async function GET(
         else titleText = "Evento";
       }
 
-      const displayTitle = confirmedCount < 5 ? `${titleText} [Provisional]` : titleText;
+      const isProvisional = confirmedCount < 5 && played.length === 0;
+      const displayTitle = isProvisional ? `${titleText} [Provisional]` : titleText;
       const eventUrl = `${origin}/availability?eventId=${ev.id}`;
       const mapName = ev.map_obj?.name || ev.map || "Por definir";
 
       let description = `🗺️ Mapa: ${mapName}\n`;
       description += `👤 Tu Estado: ${myStatus.toUpperCase()}\n`;
-      if (confirmedCount < 5) {
+      if (isProvisional) {
         description += `⏳ Convocatoria provisional: Se requieren al menos 5 confirmados para disputar el evento.\n`;
       }
       if (ev.description) {
@@ -146,7 +147,7 @@ export async function GET(
       let htmlContent = `<div>
         <p><strong>🗺️ Mapa:</strong> ${mapName}</p>
         <p><strong>👤 Tu Estado:</strong> <span style="text-transform: uppercase;">${myStatus}</span></p>
-        ${confirmedCount < 5 ? `<p style="color: #d97706; margin: 4px 0 0 0;"><strong>⏳ Convocatoria provisional:</strong> Se requieren al menos 5 confirmados para disputar el evento.</p>` : ""}
+        ${isProvisional ? `<p style="color: #d97706; margin: 4px 0 0 0;"><strong>⏳ Convocatoria provisional:</strong> Se requieren al menos 5 confirmados para disputar el evento.</p>` : ""}
         ${ev.description ? `<p><strong>📝 Notas:</strong> ${ev.description}</p>` : ""}
         <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
       `;
@@ -176,7 +177,7 @@ export async function GET(
         description,
         htmlContent,
         url: eventUrl,
-        status: ev.status === "cancelled" ? "CANCELLED" : (confirmedCount < 5 ? "TENTATIVE" : "CONFIRMED"),
+        status: ev.status === "cancelled" ? "CANCELLED" : (isProvisional ? "TENTATIVE" : "CONFIRMED"),
         categories: [ev.type],
         productId: "VHUB/PersonalCalendar",
       };

@@ -37,57 +37,68 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card animate-in">
-        <div className="logo" style={{ marginBottom: 16 }}>
-          <img src="/logo.png" alt="V-HUB Logo" style={{ width: 80, height: 80, borderRadius: 20 }} />
+    <div className="auth-layout">
+      <div className="auth-brand-section">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+          <img src="/logo.png" alt="V-HUB Logo" style={{ width: '64px', height: '64px', borderRadius: '16px', boxShadow: '0 0 20px rgba(255, 70, 85, 0.4)' }} />
+          <h1 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '2px', color: 'var(--text-primary)' }}>V-HUB</h1>
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>V-HUB</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Inicia sesión para acceder al panel del equipo</p>
-        
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div style={{ background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 20, border: "1px solid rgba(255, 70, 85, 0.2)" }}>
-              {error}
+        <p style={{ fontSize: '18px', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '400px' }}>
+          La plataforma definitiva para gestionar tu equipo de Valorant. 
+          Estrategias, calendario, estadísticas y mucho más en un solo lugar.
+        </p>
+      </div>
+
+      <div className="auth-form-section">
+        <div className="auth-card">
+          <h2 className="auth-title">Iniciar Sesión</h2>
+          <p className="auth-subtitle">Introduce tus credenciales para acceder al panel</p>
+          
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div style={{ background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: "12px 16px", borderRadius: "12px", fontSize: "14px", marginBottom: "24px", border: "1px solid rgba(255, 70, 85, 0.2)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                {error}
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: "20px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>CORREO ELECTRÓNICO</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="ejemplo@vhub.com" 
+                required 
+                style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)", color: "#fff", transition: "all 0.2s" }}
+              />
             </div>
-          )}
 
-          <div className="form-group" style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>EMAIL</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              placeholder="ejemplo@vhub.com" 
-              required 
-              style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
-            />
+            <div className="form-group" style={{ marginBottom: "32px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>CONTRASEÑA</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="••••••••" 
+                required 
+                style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)", color: "#fff", transition: "all 0.2s" }}
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="btn btn-primary" 
+              style={{ width: "100%", padding: "16px", fontSize: "16px", fontWeight: 700, borderRadius: "12px", letterSpacing: "1px" }}
+            >
+              {loading ? "INICIANDO SESIÓN..." : "INICIAR SESIÓN"}
+            </button>
+          </form>
+
+          <div style={{ marginTop: "32px", textAlign: "center", fontSize: "14px", color: "var(--text-muted)", paddingTop: "24px", borderTop: "1px solid var(--border-color)" }}>
+            ¿No tienes cuenta? <Link href="/register" style={{ color: "var(--text-primary)", fontWeight: 600, textDecoration: "none", borderBottom: "1px solid var(--val-red)", paddingBottom: "2px", transition: "all 0.2s" }}>Regístrate aquí</Link>
           </div>
-
-          <div className="form-group" style={{ marginBottom: 32 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>CONTRASEÑA</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              placeholder="••••••••" 
-              required 
-              style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "var(--bg-glass)", border: "1px solid var(--border-color)", color: "#fff" }}
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="btn btn-primary" 
-            style={{ width: "100%", padding: "14px", fontSize: 16, fontWeight: 700 }}
-          >
-            {loading ? "Iniciando sesión..." : "INICIAR SESIÓN"}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 32, textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-          ¿No tienes cuenta? <Link href="/register" style={{ color: "var(--val-red)", textDecoration: "none" }}>Regístrate aquí</Link>
         </div>
       </div>
     </div>

@@ -143,8 +143,50 @@ export interface HenrikMatch {
     blue: HenrikMatchPlayer[];
   };
   teams: {
-    red: { has_won: boolean; rounds_won: number; rounds_lost: number };
-    blue: { has_won: boolean; rounds_won: number; rounds_lost: number };
+    red: { 
+      has_won: boolean; 
+      rounds_won: number; 
+      rounds_lost: number;
+      roster?: {
+        id: string;
+        name: string;
+        tag: string;
+        members: string[];
+        customization?: {
+          icon: string;
+          image: string;
+          primary_color: string;
+          secondary_color: string;
+          tertiary_color: string;
+        };
+      };
+      customization?: {
+        name: string;
+        tag: string;
+      };
+    };
+    blue: { 
+      has_won: boolean; 
+      rounds_won: number; 
+      rounds_lost: number;
+      roster?: {
+        id: string;
+        name: string;
+        tag: string;
+        members: string[];
+        customization?: {
+          icon: string;
+          image: string;
+          primary_color: string;
+          secondary_color: string;
+          tertiary_color: string;
+        };
+      };
+      customization?: {
+        name: string;
+        tag: string;
+      };
+    };
   };
   rounds: any[];
   kills: any[];

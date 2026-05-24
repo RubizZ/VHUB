@@ -489,8 +489,9 @@ export async function GET(req: NextRequest) {
     for (const ev of events) {
       const startDt = new Date(`${ev.date}T${ev.time}:00Z`);
       const isPast = startDt < nowDt;
-      // Consideramos "tiempo prudente" como 4 horas después del inicio
-      const isWayPast = new Date(startDt.getTime() + 4 * 60 * 60 * 1000) < nowDt;
+      // Consideramos "tiempo prudente" como 4 horas después del inicio (8 horas para playoffs por el bracket)
+      const maxHours = ev.type === 'playoffs' ? 8 : 4;
+      const isWayPast = new Date(startDt.getTime() + maxHours * 60 * 60 * 1000) < nowDt;
 
       const confirmedCount = ev.availability.filter((a: any) => a.status === 'available').length;
       const matches = matchesByEvent[ev.id] || [];

@@ -12,6 +12,9 @@ interface Match {
   id: number; riot_match_id: string; map_name: string; game_mode: string;
   game_start: string; game_length_ms: number; queue_id: string;
   team_blue_score: number; team_red_score: number; team_blue_won: boolean;
+  team_blue_name?: string | null; team_red_name?: string | null;
+  team_blue_tag?: string | null; team_red_tag?: string | null;
+  team_blue_icon?: string | null; team_red_icon?: string | null;
   event_id: number | null;
   our_team_side?: "Blue" | "Red";
   isHidden?: boolean;
@@ -509,9 +512,19 @@ export default function MatchesPage() {
                   <p style={{ color: "var(--text-secondary)", marginTop: 4 }}>{formatDate(selected.game_start)} • {selected.queue_id || "Premier"}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-                   <ScoreBlock label="Tu Equipo" score={selected.our_team_side === "Blue" ? selected.team_blue_score : selected.team_red_score} color="var(--val-cyan)" win={selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won} />
+                   <ScoreBlock 
+                     label={selected.our_team_side === "Blue" ? (selected.team_blue_name || "Tu Equipo") : (selected.team_red_name || "Tu Equipo")} 
+                     score={selected.our_team_side === "Blue" ? selected.team_blue_score : selected.team_red_score} 
+                     color="var(--val-cyan)" 
+                     win={selected.our_team_side === "Blue" ? selected.team_blue_won : !selected.team_blue_won} 
+                   />
                    <div style={{ fontSize: 24, fontWeight: 200, color: "var(--text-muted)" }}>VS</div>
-                   <ScoreBlock label="Rival" score={selected.our_team_side === "Blue" ? selected.team_red_score : selected.team_blue_score} color="var(--val-red)" win={selected.our_team_side === "Blue" ? !selected.team_blue_won : selected.team_blue_won} />
+                   <ScoreBlock 
+                     label={selected.our_team_side === "Blue" ? (selected.team_red_name || "Rival") : (selected.team_blue_name || "Rival")} 
+                     score={selected.our_team_side === "Blue" ? selected.team_red_score : selected.team_blue_score} 
+                     color="var(--val-red)" 
+                     win={selected.our_team_side === "Blue" ? !selected.team_blue_won : selected.team_blue_won} 
+                   />
                 </div>
               </div>
             </div>
@@ -801,6 +814,8 @@ function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
   }
 
   const isWin = match.team_blue_won === (match.our_team_side === 'Blue');
+  const enemyTeamName = match.our_team_side === 'Blue' ? (match.team_red_name || "Rival") : (match.team_blue_name || "Rival");
+
   return (
     <div 
       className="card glass-card hover-lift" 
@@ -816,7 +831,10 @@ function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
            <div style={{ fontWeight: 800, fontSize: 18 }}>{match.map_name}</div>
-           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+             <span style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600 }}>VS</span> {enemyTeamName}
+           </div>
+           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 6 }}>
              {new Date(match.game_start).toLocaleDateString("es-ES", {
                day: "2-digit",
                month: "short",

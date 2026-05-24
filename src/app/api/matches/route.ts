@@ -203,6 +203,12 @@ export async function GET(req: NextRequest) {
         team_blue_score: m.team_blue_score,
         team_red_score: m.team_red_score,
         team_blue_won: m.team_blue_won,
+        team_blue_name: m.team_blue_name,
+        team_red_name: m.team_red_name,
+        team_blue_tag: m.team_blue_tag,
+        team_red_tag: m.team_red_tag,
+        team_blue_icon: m.team_blue_icon,
+        team_red_icon: m.team_red_icon,
         event_id: m.event_id,
         premier_season_id: m.premier_season_id,
         our_team_side: ourSide,
@@ -256,6 +262,14 @@ export async function POST(req: NextRequest) {
         include: { player: true }
       });
 
+      const dbTeam = await db.team.findUnique({
+        where: { id: teamId },
+        include: { players: true }
+      });
+
+      if (!dbTeam) return NextResponse.json({ error: "Equipo no encontrado" }, { status: 400 });
+      const ourPuuids = new Set(dbTeam.players.map(p => p.puuid).filter(Boolean));
+
       if (!requestingUser?.dataConsent) {
         return NextResponse.json({
           error: "No has dado tu consentimiento para procesar tus datos de juego. Actívalo en tu perfil."
@@ -308,19 +322,60 @@ export async function POST(req: NextRequest) {
           where: { riot_match_id: matchData.metadata.matchid }
         });
 
+          const blueTeam = matchData.teams.blue;
+          const redTeam = matchData.teams.red;
+
+          const blueTeamName = blueTeam?.customization?.name || blueTeam?.roster?.name;
+          const redTeamName = redTeam?.customization?.name || redTeam?.roster?.name;
+          
+          const blueTeamRiotTag = blueTeam?.roster?.tag || blueTeam?.customization?.tag;
+          const redTeamRiotTag = redTeam?.roster?.tag || redTeam?.customization?.tag;
+
         if (existing) {
-          if (!existing.teamId) {
-            await db.match.update({ where: { id: existing.id }, data: { teamId } });
-            synced++;
-          }
+          // Update team link and opponent names if missing
+          await db.match.update({ 
+            where: { id: existing.id }, 
+            data: { 
+              teamId: existing.teamId || teamId,
+              team_blue_name: existing.team_blue_name || blueTeamName,
+              team_red_name: existing.team_red_name || redTeamName,
+              team_blue_tag: existing.team_blue_tag || blueTeamRiotTag,
+              team_red_tag: existing.team_red_tag || redTeamRiotTag,
+              team_blue_icon: existing.team_blue_icon || blueTeam?.customization?.image || null,
+              team_red_icon: existing.team_red_icon || redTeam?.customization?.image || null,
+            } 
+          });
           continue;
         }
 
         try {
           const map = MAPS.find(m => m.name.toLowerCase() === matchData.metadata.map.toLowerCase());
 
-          const blueTeam = matchData.teams.blue;
-          const redTeam = matchData.teams.red;
+          const teamNameLower = dbTeam.name.toLowerCase();
+          const teamTagLower = dbTeam.tag ? dbTeam.tag.toLowerCase() : "";
+
+          const matchesBlueName = 
+            (blueTeamName && (blueTeamName.toLowerCase() === teamNameLower || blueTeamName.toLowerCase().includes(teamNameLower) || (teamTagLower && blueTeamName.toLowerCase() === teamTagLower))) ||
+            (blueTeamRiotTag && teamTagLower && blueTeamRiotTag.toLowerCase() === teamTagLower);
+
+          const matchesRedName = 
+            (redTeamName && (redTeamName.toLowerCase() === teamNameLower || redTeamName.toLowerCase().includes(teamNameLower) || (teamTagLower && redTeamName.toLowerCase() === teamTagLower))) ||
+            (redTeamRiotTag && teamTagLower && redTeamRiotTag.toLowerCase() === teamTagLower);
+          
+          let playersInMatch = 0;
+          for (const p of matchData.players.all_players) {
+            if (ourPuuids.has(p.puuid)) {
+              playersInMatch++;
+            }
+          }
+
+          const isOurTeamByPlayers = playersInMatch >= 2;
+          const isOurTeamByName = matchesBlueName || matchesRedName;
+
+          if (!isOurTeamByPlayers && !isOurTeamByName) {
+            console.log(`[Sync] Partido ${matchData.metadata.matchid} descartado. No coincide el nombre (${blueTeamName}, ${redTeamName} != ${dbTeam.name}) y solo hubo ${playersInMatch} jugador(es) del roster actual.`);
+            continue;
+          }
 
           // Create match and stats in a transaction
           const newMatch = await db.$transaction(async (tx) => {
@@ -356,6 +411,12 @@ export async function POST(req: NextRequest) {
                 team_blue_score: blueTeam?.rounds_won || 0,
                 team_red_score: redTeam?.rounds_won || 0,
                 team_blue_won: blueTeam?.has_won || false,
+                team_blue_name: blueTeamName,
+                team_red_name: redTeamName,
+                team_blue_tag: blueTeamRiotTag,
+                team_red_tag: redTeamRiotTag,
+                team_blue_icon: blueTeam?.customization?.image || null,
+                team_red_icon: redTeam?.customization?.image || null,
                 raw_data: matchData as object
               }
             });
@@ -416,9 +477,10 @@ export async function POST(req: NextRequest) {
           for (const ev of candidateEvents) {
             const evHour = parseInt(ev.time.split(':')[0], 10);
             // El partido debería empezar después del evento (o en la misma hora)
-            // y dentro de una ventana razonable (4 horas)
+            // y dentro de una ventana razonable (4 horas, o 8 horas para playoffs)
             const diff = gameStartHour - evHour;
-            if (diff >= -1 && diff < 4 && diff < bestDiff) {
+            const maxDiff = ev.type === 'playoffs' ? 8 : 4;
+            if (diff >= -1 && diff < maxDiff && diff < bestDiff) {
               bestDiff = diff;
               bestEvent = ev;
             }

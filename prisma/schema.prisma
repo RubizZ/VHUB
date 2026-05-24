@@ -30,7 +30,7 @@ model Team {
 
 model User {
   id            String            @id @default(cuid(2))
-  name          String?
+  name          String?           @unique
   email         String?           @unique
   emailVerified DateTime?
   image         String?
@@ -100,7 +100,7 @@ model Player {
 }
 
 model Map {
-  id                  String        @id
+  id                  String     @id
   name                String
   displayIcon         String?
   splash              String?
@@ -114,17 +114,17 @@ model Map {
 }
 
 model Strategy {
-  id             Int         @id @default(autoincrement())
-  teamId         String
-  map_id         String
-  name           String
-  side           String      @default("attack")
-  description    String?
-  canvas_data    Json?       @default("{}")
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @updatedAt
-  team           Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  map            Map         @relation(fields: [map_id], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  teamId      String
+  map_id      String
+  name        String
+  side        String   @default("attack")
+  description String?
+  canvas_data Json?    @default("{}")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  map         Map      @relation(fields: [map_id], references: [id], onDelete: Cascade)
 }
 
 model Season {
@@ -202,6 +202,12 @@ model Match {
   team_blue_score   Int                @default(0)
   team_red_score    Int                @default(0)
   team_blue_won     Boolean            @default(false)
+  team_blue_name    String?
+  team_red_name     String?
+  team_blue_tag     String?
+  team_red_tag      String?
+  team_blue_icon    String?
+  team_red_icon     String?
   event_id          Int?
   raw_data          Json?
   events            Event[]
@@ -245,7 +251,7 @@ model TeamJoinRequest {
 model Agent {
   id               String   @id
   name             String
-  role             String   // e.g. "duelist", "initiator", "controller", "sentinel"
+  role             String // e.g. "duelist", "initiator", "controller", "sentinel"
   displayIcon      String
   killfeedPortrait String?
   fullPortrait     String?
@@ -255,12 +261,12 @@ model Agent {
 }
 
 model StrategyPresence {
-  id          String   @id @default(cuid(2))
-  strategyId  Int
-  userId      String
-  userName    String
-  userColor   String   @default("#FF4655")
-  updatedAt   DateTime @default(now()) @updatedAt
+  id         String   @id @default(cuid(2))
+  strategyId Int
+  userId     String
+  userName   String
+  userColor  String   @default("#FF4655")
+  updatedAt  DateTime @default(now()) @updatedAt
 
   @@unique([strategyId, userId])
 }

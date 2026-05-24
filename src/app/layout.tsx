@@ -13,12 +13,12 @@ export const metadata: Metadata = {
   title: "V-HUB — Valorant Premier Platform",
   description: "Plataforma de gestión para equipos de Valorant Premier: estrategias, disponibilidad, chat y estadísticas en tiempo real",
   manifest: "/manifest.json",
-  icons: { 
+  icons: {
     icon: [
       { url: "/favicon.ico" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/icon-512.png" 
+    apple: "/icon-512.png"
   },
 };
 
@@ -33,16 +33,16 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await auth();
-  
+
   const { headers } = await import("next/headers");
   const h = await headers();
-  const pathname = h.get("x-url") || h.get("x-invoke-path") || ""; 
+  const pathname = h.get("x-url") || h.get("x-invoke-path") || "";
   const isPublicPage = pathname === "/login" || pathname === "/register";
   const isOnboardingPage = pathname === "/onboarding";
 
   // Si hay sesión, verificar que el usuario siga existiendo y tenga equipo
   if (session?.user?.id) {
-    const hasTeam = !!(session.user as any).teamId;
+    const hasTeam = !!session.user.teamId;
 
     if (!hasTeam && !isPublicPage && !isOnboardingPage) {
       redirect("/onboarding");
