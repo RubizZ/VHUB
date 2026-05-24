@@ -219,9 +219,21 @@ export default function TeamSettingsPage() {
                         onFocus={(e) => { e.currentTarget.style.borderColor = "var(--val-yellow)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(245, 158, 11, 0.15)"; }}
                         onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.boxShadow = "none"; }}
                       >
-                        <option value="NONE" style={{ background: "#111" }}>Sin Región</option>
-                        <option value="EU_IBIT" style={{ background: "#111" }}>Iberia e Italia</option>
-                        <option value="EU_WE" style={{ background: "#111" }}>Europa Occidental</option>
+                        <option value="NONE" style={{ background: "#111" }}>Sin Región / No participamos</option>
+                        <option value="EU_IBIT" style={{ background: "#111" }}>Europa (Iberia, Italia, Balcanes)</option>
+                        <option value="EU_FRANCE" style={{ background: "#111" }}>Europa (Francia)</option>
+                        <option value="EU_DACH" style={{ background: "#111" }}>Europa (DACH - DE/AT/CH)</option>
+                        <option value="EU_NORTH" style={{ background: "#111" }}>Europa (Norte)</option>
+                        <option value="EU_EAST" style={{ background: "#111" }}>Europa (Este)</option>
+                        <option value="EU_TURKEY" style={{ background: "#111" }}>Europa (Turquía)</option>
+                        <option value="EU_MIDDLE_EAST" style={{ background: "#111" }}>Europa (Oriente Medio)</option>
+                        <option value="NA_EAST" style={{ background: "#111" }}>Norteamérica Este</option>
+                        <option value="NA_WEST" style={{ background: "#111" }}>Norteamérica Oeste</option>
+                        <option value="LATAM_NORTH" style={{ background: "#111" }}>LATAM Norte</option>
+                        <option value="LATAM_SOUTH" style={{ background: "#111" }}>LATAM Sur</option>
+                        <option value="BR" style={{ background: "#111" }}>Brasil</option>
+                        <option value="AP" style={{ background: "#111" }}>Asia Pacífico</option>
+                        <option value="KR" style={{ background: "#111" }}>Corea</option>
                       </select>
                     </div>
                   </div>
