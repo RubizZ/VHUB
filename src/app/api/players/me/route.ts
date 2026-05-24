@@ -79,39 +79,3 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function DELETE() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const userId = session.user.id;
-  const playerId = session.user.playerId;
-
-  try {
-    await db.$transaction(async (tx) => {
-      if (playerId) {
-        // 1. Borrar mensajes del jugador
-        await tx.message.deleteMany({ where: { player_id: playerId } });
-
-        // 2. Borrar disponibilidades del jugador
-        await tx.availability.deleteMany({ where: { player_id: playerId } });
-
-        // 3. Desvincular estadísticas de partidas (poner a null el player_id en MatchPlayerStats)
-        await tx.matchPlayerStats.updateMany({
-          where: { player_id: playerId },
-          data: { player_id: null }
-        });
-
-        // 4. Borrar el Player
-        await tx.player.delete({ where: { id: playerId } });
-      }
-
-      // 5. Borrar el User (al borrar User se borran por cascade: accounts, sessions, joinRequests)
-      await tx.user.delete({ where: { id: userId } });
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[DELETE /api/players/me] Error deleting account:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}

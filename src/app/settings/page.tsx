@@ -137,25 +137,6 @@ export default function AccountSettingsPage() {
     }
   });
 
-  // 5. Account Deletion Mutation
-  const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/players/me", {
-        method: "DELETE",
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Error al eliminar la cuenta");
-      return d;
-    },
-    onSuccess: async () => {
-      window.alert("Tu cuenta ha sido eliminada correctamente.");
-      await signOut({ callbackUrl: "/" });
-    },
-    onError: (err: any) => {
-      window.alert(err.message || "Hubo un error al eliminar tu cuenta. Por favor, inténtalo de nuevo.");
-    }
-  });
-
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     saveProfileMutation.mutate(form.name);
@@ -171,20 +152,6 @@ export default function AccountSettingsPage() {
 
   const handleSavePrivacy = async (consent: boolean) => {
     savePrivacyMutation.mutate(consent);
-  };
-
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      "⚠ ATENCIÓN: ¿Estás completamente seguro de que deseas eliminar tu cuenta de forma permanente?\n\nEsta acción es irreversible: se borrarán todos tus datos, disponibilidades, mensajes y estadísticas de equipo. No podrás recuperar tu cuenta."
-    );
-    if (!confirmed) return;
-
-    const secondConfirm = window.confirm(
-      "CONFIRMACIÓN FINAL:\n\n¿Realmente deseas proceder con la eliminación definitiva de tu cuenta?"
-    );
-    if (!secondConfirm) return;
-
-    deleteAccountMutation.mutate();
   };
 
   const renderLocalMessage = (msg: { text: string; type: string }) => {
@@ -399,30 +366,6 @@ export default function AccountSettingsPage() {
             </div>
           )}
 
-          <div className="card glass-card premium-border" style={{ padding: 40 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(255, 70, 85, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚠️</div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--val-red)" }}>Zona de Peligro</h3>
-                <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>Acciones irreversibles de la cuenta</p>
-              </div>
-            </div>
-            
-            <div className="danger-zone" style={{ padding: 24, background: "rgba(255, 70, 85, 0.03)", borderRadius: 20, border: "1px solid rgba(255, 70, 85, 0.1)" }}>
-              <h4 style={{ margin: "0 0 8px 0", color: "var(--val-red)", fontSize: 15, fontWeight: 800 }}>Zona Crítica</h4>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.5 }}>
-                La eliminación de la cuenta es permanente. Se borrarán todos tus datos tácticos, mensajes y estadísticas de equipo.
-              </p>
-              <button 
-                className="btn btn-ghost" 
-                style={{ width: "100%", color: "var(--val-red)", borderColor: "rgba(255, 70, 85, 0.2)", height: 48, borderRadius: 12, fontSize: 12, fontWeight: 800 }}
-                onClick={handleDeleteAccount}
-                disabled={deleteAccountMutation.isPending}
-              >
-                 {deleteAccountMutation.isPending ? "ELIMINANDO..." : "ELIMINAR MI CUENTA"}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
