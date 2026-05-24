@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
   }
 
   const leaderboard = data.leaderboard;
-  const myTeamName = config?.name;
+  const myTeamId = data?.details?.id;
   
   return (
     <div className="page-container" style={{ padding: "40px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
@@ -79,7 +79,7 @@ export default function LeaderboardPage() {
             </thead>
             <tbody>
               {leaderboard.map((team: any) => {
-                const isMyTeam = myTeamName && team.name.toLowerCase() === myTeamName.toLowerCase();
+                const isMyTeam = myTeamId && team.id === myTeamId;
                 return (
                   <tr 
                     key={team.id} 
