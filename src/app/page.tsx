@@ -500,7 +500,7 @@ function PremierStats() {
       <Link href="/team/settings" className="card stat-card hover-lift" style={{ background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(20, 20, 20, 0) 100%)", borderLeft: "4px solid var(--val-gold)", '--glow-color': 'var(--val-gold)', textDecoration: "none", color: "inherit" } as any}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Clasificación División</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 }}>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-gold)" }}>#{details?.placement?.place ?? (myRank?.ranking !== undefined ? myRank.ranking + 1 : "---")}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-gold)" }}>#{details?.placement?.place ? details.placement.place : (myRank?.ranking !== undefined ? myRank.ranking + 1 : "---")}</div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Ranking actual</div>
         </div>
         <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-secondary)" }}>
