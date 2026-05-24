@@ -11,7 +11,8 @@ export async function GET() {
 
   try {
     const team = await prisma.team.findUnique({
-      where: { id: session.user.teamId }
+      where: { id: session.user.teamId },
+      include: { premierTeam: true }
     });
 
     return NextResponse.json({ team });
@@ -29,12 +30,32 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, logo_url, tag, division } = body;
+    const { name, logo_url, premier_name, tag, division, conference } = body;
 
     const updatedTeam = await prisma.team.update({
       where: { id: session.user.teamId },
-      data: { name, logo_url, tag, division: division ? Number(division) : null }
+      data: { name, logo_url },
+      include: { premierTeam: true }
     });
+
+    if (premier_name || tag || division !== undefined || conference) {
+      await prisma.premierTeam.upsert({
+        where: { teamId: session.user.teamId },
+        create: {
+          teamId: session.user.teamId,
+          name: premier_name || name,
+          tag: tag || "TAG",
+          conference: conference || "NONE",
+          division: division ? Number(division) : null,
+        },
+        update: {
+          ...(premier_name !== undefined && { name: premier_name }),
+          ...(tag !== undefined && { tag }),
+          ...(conference !== undefined && { conference }),
+          ...(division !== undefined && { division: division ? Number(division) : null }),
+        }
+      });
+    }
 
     return NextResponse.json({ team: updatedTeam });
   } catch (error) {

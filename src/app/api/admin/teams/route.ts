@@ -12,7 +12,8 @@ export async function GET() {
     include: {
       _count: {
         select: { players: true, users: true }
-      }
+      },
+      premierTeam: true
     },
     orderBy: { created_at: 'desc' }
   });
@@ -39,8 +40,15 @@ export async function POST(req: NextRequest) {
         name,
         slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
         logo_url,
-        conference,
-        tag: tag?.toUpperCase() || null
+        ...(conference && conference !== "NONE" ? {
+          premierTeam: {
+            create: {
+              name,
+              tag: tag?.toUpperCase() || "TAG",
+              conference
+            }
+          }
+        } : {})
       }
     });
 

@@ -65,13 +65,16 @@ async function ensureWeeklyEvents(teamId: string) {
 
     console.log(`[ensureWeeklyEvents] Temporada seleccionada: ${activeSeason?.id}`);
 
-    const team = await db.team.findUnique({ where: { id: teamId } });
+    const team = await db.team.findUnique({ 
+      where: { id: teamId },
+      include: { premierTeam: true }
+    });
     if (!team) {
       console.error(`[ensureWeeklyEvents] ERROR: Equipo ${teamId} NO encontrado en DB.`);
       return;
     }
 
-    if (!team.conference) {
+    if (!team.premierTeam?.conference) {
       console.warn(`[ensureWeeklyEvents] Equipo ${teamId} sin conferencia.`);
       // No salimos, intentamos generar igual con datos genéricos
     }
@@ -131,7 +134,7 @@ async function ensureWeeklyEvents(teamId: string) {
     const eventsToCreate: any[] = [];
 
     // Pre-procesar scheduled_events filtrados por conferencia del equipo
-    const teamConference = team.conference?.toLowerCase() || '';
+    const teamConference = team.premierTeam?.conference?.toLowerCase() || '';
     const conferenceSchedules = activeSeason.scheduled_events?.filter(
       (se: any) => se.conference?.toLowerCase() === teamConference
     ) || [];

@@ -174,7 +174,13 @@ async function main() {
                 slug: "vhub-elite",
                 logo_url: "/logo.png",
                 inviteCode: "VHUB-JOIN-2026",
-                conference: "EU_IBIT",
+                premierTeam: {
+                    create: {
+                        name: "V-HUB Elite",
+                        tag: "VHUB",
+                        conference: "EU_IBIT"
+                    }
+                },
                 matchHistoryConsent: true,
             },
         });
@@ -225,7 +231,13 @@ async function main() {
                 slug: "vhub-elite",
                 logo_url: "/logo.png",
                 inviteCode: "VHUB-JOIN-2026",
-                conference: "EU_IBIT",
+                premierTeam: {
+                    create: {
+                        name: "V-HUB Elite",
+                        tag: "VHUB",
+                        conference: "EU_IBIT"
+                    }
+                },
                 matchHistoryConsent: true,
             },
         });

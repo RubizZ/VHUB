@@ -14,10 +14,8 @@ model Team {
   inviteCode          String?           @unique @default(cuid(2))
   created_at          DateTime          @default(now())
   updated_at          DateTime          @updatedAt
-  conference          String
   matchHistoryConsent Boolean           @default(false)
-  division            Int?
-  tag                 String?
+  premierTeam         PremierTeam?
   calendarToken       String?           @unique @default(cuid(2))
   strategies          Strategy[]
   events              Event[]
@@ -269,4 +267,14 @@ model StrategyPresence {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@unique([strategyId, userId])
+}
+
+model PremierTeam {
+  id         String   @id @default(cuid(2))
+  teamId     String   @unique
+  name       String
+  tag        String
+  conference String
+  division   Int?
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }

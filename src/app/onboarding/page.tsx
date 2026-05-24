@@ -18,6 +18,8 @@ export default function OnboardingPage() {
   const [teamName, setTeamName] = useState("");
   const [conference, setConference] = useState("NONE");
   const [joinSlug, setJoinSlug] = useState("");
+  const [premierName, setPremierName] = useState("");
+  const [teamTag, setTeamTag] = useState("");
 
   // 1. Query for pending request
   const { data: requestData } = useQuery({
@@ -41,7 +43,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: teamName, conference })
+        body: JSON.stringify({ name: teamName, conference, team_tag: teamTag, premier_name: premierName })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear el equipo");
@@ -227,9 +229,41 @@ export default function OnboardingPage() {
                   <option value="KR">Corea</option>
                 </select>
               </div>
+
+              {conference !== "NONE" && (
+                <div style={{ display: "flex", gap: "16px", marginBottom: "32px" }}>
+                  <div className="form-group" style={{ flex: 2 }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>NOMBRE EN PREMIER</label>
+                    <input 
+                      type="text" 
+                      value={premierName} 
+                      onChange={(e) => setPremierName(e.target.value)} 
+                      placeholder="Ej. G2 Esports" 
+                      required 
+                      style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)", color: "#fff", transition: "all 0.2s" }}
+                    />
+                    <span style={{ display: "block", marginTop: "8px", fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+                      El nombre oficial que usáis dentro del juego.
+                    </span>
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px" }}>TAG (#)</label>
+                    <input 
+                      type="text" 
+                      value={teamTag} 
+                      onChange={(e) => setTeamTag(e.target.value.toUpperCase().replace('#', '').slice(0, 4))} 
+                      placeholder="Ej. G2" 
+                      required 
+                      style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)", color: "#fff", transition: "all 0.2s" }}
+                    />
+                    <span style={{ display: "block", marginTop: "8px", fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+                      Máx. 4 letras.
+                    </span>
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "12px" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setMode("create_name")} style={{ flex: 1, padding: "16px", borderRadius: "12px", fontWeight: 600 }}>Atrás</button>
-                <button type="button" className="btn btn-secondary" onClick={() => { setConference("NONE"); setMode("create_confirm"); }} style={{ flex: 1, padding: "16px", borderRadius: "12px", fontWeight: 600 }}>Saltar</button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: "16px", borderRadius: "12px", fontWeight: 700 }}>CONTINUAR</button>
               </div>
             </form>
@@ -256,6 +290,14 @@ export default function OnboardingPage() {
                     {conference === "NONE" ? "No participa" : conference}
                   </span>
                 </div>
+                {conference !== "NONE" && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
+                    <span style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Equipo Premier:</span>
+                    <span style={{ fontWeight: "600", fontSize: "14px", textAlign: "right", color: "var(--val-cyan)" }}>
+                      {premierName} #{teamTag}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: "12px" }}>

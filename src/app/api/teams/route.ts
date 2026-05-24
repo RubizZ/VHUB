@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { name, conference } = body;
+    const { name, conference, team_tag, premier_name } = body;
 
     if (!name || !conference) {
       return NextResponse.json({ error: "Nombre y región son requeridos" }, { status: 400 });
@@ -39,8 +39,20 @@ export async function POST(req: Request) {
     const result = await db.$transaction(async (tx) => {
       // 1. Create the Team
       const team = await tx.team.create({
-        data: { name, slug, conference }
+        data: { name, slug }
       });
+
+      // 1.5 Create PremierTeam if applicable
+      if (conference && conference !== "NONE") {
+        await tx.premierTeam.create({
+          data: {
+            teamId: team.id,
+            name: premier_name || name,
+            tag: team_tag || "TAG",
+            conference: conference,
+          }
+        });
+      }
 
       // 2. Create the Player profile for the founder
       const player = await tx.player.create({

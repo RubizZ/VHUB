@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const player = await db.player.findUnique({
     where: { id },
     include: { 
-      team: { select: { name: true, tag: true } },
+      team: { select: { name: true, premierTeam: true } },
       user: { select: { email: true, lastActiveAt: true } } 
     }
   });

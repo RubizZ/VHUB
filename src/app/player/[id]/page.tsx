@@ -12,7 +12,7 @@ interface PlayerData {
   riot_tag: string;
   role: string;
   avatar_color: string;
-  team?: { name: string; tag: string };
+  team?: { name: string; premierTeam?: { tag: string | null } };
   user?: { email: string; lastActiveAt: string };
 }
 
@@ -110,7 +110,7 @@ export default function PlayerProfilePage() {
               <h1 style={{ fontSize: 48, fontWeight: 900, margin: 0, letterSpacing: "-1.5px" }}>{player.riot_name ? `${player.riot_name}#${player.riot_tag}` : player.name}</h1>
               {player.team && <span className="team-badge" style={{
                 background: "rgba(255, 70, 85, 0.1)", color: "var(--val-red)", padding: "4px 12px", borderRadius: 8, fontSize: 14, fontWeight: 800, border: "1px solid rgba(255, 70, 85, 0.2)"
-              }}>#{player.team.tag}</span>}
+              }}>{player?.team?.premierTeam?.tag ? `#${player.team.premierTeam.tag}` : ""}</span>}
             </div>
             {player.riot_name && <p style={{ fontSize: 18, color: "var(--text-secondary)", margin: 0 }}>{player.name}</p>}
             <div style={{ display: "flex", gap: 16, marginTop: 24 }}>

@@ -344,11 +344,16 @@ function EventItem({ event }: { event: any }) {
     <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
       <div style={{
         width: 36, height: 36, borderRadius: 8,
-        background: isMatch ? "rgba(133, 107, 77, 0.2)" : "rgba(184, 184, 184, 0.2)",
+        background: isMatch ? "rgba(245, 158, 11, 0.15)" : "rgba(255, 255, 255, 0.05)",
+        color: isMatch ? "var(--val-yellow)" : "var(--text-secondary)",
         display: "flex", alignItems: "center", justifyContent: "center",
         flexShrink: 0
       }}>
-        <span style={{ fontSize: 16 }}>{isMatch ? "🔥" : "🎯"}</span>
+        {isMatch ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h5v5"/><path d="M19.5 4 14 9.5"/><path d="M9.5 14.5 4 20"/><path d="M9.5 4h-5v5"/><path d="M4.5 4 10 9.5"/><path d="M14.5 14.5 20 20"/></svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

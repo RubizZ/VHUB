@@ -13,45 +13,48 @@ export async function GET() {
 
   try {
     const team = await prisma.team.findUnique({
-      where: { id: teamId }
+      where: { id: teamId },
+      include: { premierTeam: true }
     });
 
-    if (!team || !team.name || !team.tag) {
-      console.log("[API Premier] Team config missing for ID:", teamId, { name: team?.name, tag: team?.tag });
+    const pTeam = team?.premierTeam;
+
+    if (!pTeam || !pTeam.name || !pTeam.tag) {
+      console.log("[API Premier] Team config missing for ID:", teamId, { name: pTeam?.name, tag: pTeam?.tag });
       return NextResponse.json({ 
         error: "Configura el nombre y el tag de Premier en los ajustes de equipo",
         config_required: true 
       });
     }
 
-    console.log("[API Premier] Fetching for:", team.name, team.tag);
+    console.log("[API Premier] Fetching for:", pTeam.name, pTeam.tag);
 
     // Fetch data from Henrik API in parallel
     const [premierDetails, history, leaderboard] = await Promise.all([
-      getPremierTeam(team.name, team.tag),
-      getPremierHistory(team.name, team.tag),
-      team.division ? getPremierLeaderboard('eu', team.conference, team.division) : Promise.resolve([])
+      getPremierTeam(pTeam.name, pTeam.tag),
+      getPremierHistory(pTeam.name, pTeam.tag),
+      pTeam.division ? getPremierLeaderboard('eu', pTeam.conference, pTeam.division) : Promise.resolve([])
     ]);
 
     if (!premierDetails) {
-      console.log("[API Premier] Team not found in Henrik API:", team.name, team.tag);
+      console.log("[API Premier] Team not found in Henrik API:", pTeam.name, pTeam.tag);
       return NextResponse.json({ 
-        error: `No se encontró el equipo "${team.name}#${team.tag}" en la API de Premier.`,
+        error: `No se encontró el equipo "${pTeam.name}#${pTeam.tag}" en la API de Premier.`,
         config_required: true 
       });
     }
 
-    console.log("[API Premier] Success for:", team.name);
+    console.log("[API Premier] Success for:", pTeam.name);
 
     return NextResponse.json({
       details: premierDetails,
       history: history?.league_matches || [],
       leaderboard: Array.isArray(leaderboard) ? leaderboard : (leaderboard as any).leaderboard || [],
       config: {
-        name: team.name,
-        tag: team.tag,
-        conference: team.conference,
-        division: team.division
+        name: pTeam.name,
+        tag: pTeam.tag,
+        conference: pTeam.conference,
+        division: pTeam.division
       }
     });
   } catch (error) {

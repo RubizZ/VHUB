@@ -10,10 +10,12 @@ interface Team {
   id: string;
   name: string;
   slug: string;
-  conference: string;
-  tag?: string;
+  premierTeam?: {
+    conference: string;
+    tag?: string;
+    division?: number;
+  };
   logo_url?: string;
-  division?: number;
   _count: {
     players: number;
     users: number;
@@ -58,8 +60,8 @@ export default function AdminTeamsPage() {
     setFormData({ 
       name: team.name, 
       slug: team.slug, 
-      conference: team.conference || "EMEA", 
-      tag: team.tag || "" 
+      conference: team.premierTeam?.conference || "EMEA", 
+      tag: team.premierTeam?.tag || "" 
     });
     setShowModal(true);
   };
@@ -171,7 +173,7 @@ export default function AdminTeamsPage() {
                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: "-0.5px" }}>{team.name}</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                   <span style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace" }}>/{team.slug}</span>
-                  {team.tag && <span className="tag-badge">#{team.tag}</span>}
+                  {team.premierTeam?.tag && <span className="tag-badge">#{team.premierTeam.tag}</span>}
                 </div>
               </div>
 
@@ -189,7 +191,7 @@ export default function AdminTeamsPage() {
               <div className="team-card-footer">
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-cyan)" }} />
-                   <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", letterSpacing: 1 }}>{team.conference.toUpperCase()}</span>
+                   <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", letterSpacing: 1 }}>{team.premierTeam?.conference?.toUpperCase() || "NONE"}</span>
                 </div>
                 <button 
                   className="delete-btn" 

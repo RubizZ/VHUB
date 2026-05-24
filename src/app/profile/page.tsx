@@ -15,7 +15,7 @@ interface PlayerData {
   avatar_color: string;
   puuid: string | null;
   dataConsent: boolean;
-  team?: { name: string; tag: string };
+  team?: { name: string; premierTeam?: { tag: string | null } };
 }
 
 export default function ProfilePage() {
@@ -117,7 +117,7 @@ export default function ProfilePage() {
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
               <h1 style={{ fontSize: 48, fontWeight: 900, margin: 0, letterSpacing: "-1.5px" }}>{player?.name}</h1>
-              {player?.team && <span className="team-badge">#{player.team.tag}</span>}
+              {player?.team?.premierTeam?.tag && <span className="team-badge">#{player.team.premierTeam.tag}</span>}
             </div>
             <p style={{ fontSize: 18, color: "var(--text-secondary)", margin: 0 }}>{session?.user?.email}</p>
             <div style={{ display: "flex", gap: 16, marginTop: 24 }}>

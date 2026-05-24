@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
 
       const dbTeam = await db.team.findUnique({
         where: { id: teamId },
-        include: { players: true }
+        include: { players: true, premierTeam: true }
       });
 
       if (!dbTeam) return NextResponse.json({ error: "Equipo no encontrado" }, { status: 400 });
@@ -352,7 +352,7 @@ export async function POST(req: NextRequest) {
           const map = MAPS.find(m => m.name.toLowerCase() === matchData.metadata.map.toLowerCase());
 
           const teamNameLower = dbTeam.name.toLowerCase();
-          const teamTagLower = dbTeam.tag ? dbTeam.tag.toLowerCase() : "";
+          const teamTagLower = dbTeam.premierTeam?.tag ? dbTeam.premierTeam.tag.toLowerCase() : "";
 
           const matchesBlueName = 
             (blueTeamName && (blueTeamName.toLowerCase() === teamNameLower || blueTeamName.toLowerCase().includes(teamNameLower) || (teamTagLower && blueTeamName.toLowerCase() === teamTagLower))) ||
