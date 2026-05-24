@@ -417,7 +417,7 @@ function PremierStats() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/team/premier")
+    fetch("/api/team/premier/details")
       .then(r => r.json())
       .then(d => {
         if (d.error) {

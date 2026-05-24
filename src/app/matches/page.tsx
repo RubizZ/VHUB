@@ -52,7 +52,7 @@ export default function MatchesPage() {
   } = useQuery<{ matches: Match[]; seasons: { id: string; name: string }[]; activeSeasonId: string }>({
     queryKey: ["matches", selectedSeason],
     queryFn: async () => {
-      const url = selectedSeason ? `/api/matches?season=${encodeURIComponent(selectedSeason)}` : "/api/matches";
+      const url = selectedSeason ? `/api/matches/premier?season=${encodeURIComponent(selectedSeason)}` : "/api/matches/premier";
       const r = await fetch(url);
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error al cargar los partidos");
@@ -62,6 +62,17 @@ export default function MatchesPage() {
 
   const matches = matchesData?.matches || [];
   const seasons = matchesData?.seasons || [];
+
+  // 1.5 Fetch premier history for the points timeline
+  const { data: historyData } = useQuery<{ history: any[] }>({
+    queryKey: ["premier", "history"],
+    queryFn: async () => {
+      const r = await fetch("/api/team/premier/history");
+      if (!r.ok) return { history: [] };
+      return r.json();
+    }
+  });
+  const premierHistory = historyData?.history || [];
 
   // Set default active season once loaded
   useEffect(() => {
@@ -285,6 +296,29 @@ export default function MatchesPage() {
     return groups;
   }, [matches]);
 
+  const matchPoints = useMemo(() => {
+    const pointsMap = new Map<number, { diff: number, total: number }>();
+    if (!premierHistory.length || !matches.length) return pointsMap;
+    
+    matches.forEach(m => {
+      const matchTime = new Date(m.game_start).getTime();
+      let closest: any = null;
+      let minDiff = Infinity;
+      premierHistory.forEach(h => {
+        const historyTime = new Date(h.started_at).getTime();
+        const diff = Math.abs(historyTime - matchTime);
+        if (diff < 5 * 60 * 60 * 1000 && diff < minDiff) {
+           minDiff = diff;
+           closest = h;
+        }
+      });
+      if (closest) {
+         pointsMap.set(m.id, { diff: closest.points_after - closest.points_before, total: closest.points_after });
+      }
+    });
+    return pointsMap;
+  }, [matches, premierHistory]);
+
   const blueTeam = stats.filter(s => s.team_id === "Blue");
   const redTeam = stats.filter(s => s.team_id === "Red");
 
@@ -487,11 +521,14 @@ export default function MatchesPage() {
               </>
             ) : (
               groupedEvents.map(group => (
-                <EventGroupCard 
-                  key={group.id} 
-                  group={group} 
-                  onMatchClick={(m: Match) => loadMatch(m)} 
-                />
+                <div key={group.id} style={{ position: "relative", paddingLeft: 60 }}>
+                  <div style={{ position: "absolute", left: 29, top: 0, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
+                  <EventGroupCard 
+                    group={group} 
+                    onMatchClick={(m: Match) => loadMatch(m)} 
+                    matchPoints={matchPoints}
+                  />
+                </div>
               ))
             )}
             {matches.length === 0 && !loading && (
@@ -574,7 +611,7 @@ interface EventGroup {
   matches: Match[];
 }
 
-function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchClick: (m: Match) => void }) {
+function EventGroupCard({ group, onMatchClick, matchPoints }: { group: EventGroup, onMatchClick: (m: Match) => void, matchPoints: Map<number, { diff: number, total: number }> }) {
   const getEventBadge = (type: string) => {
     switch (type.toLowerCase()) {
       case "match":
@@ -665,7 +702,7 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
         gap: 16,
         borderRadius: "16px",
         position: "relative",
-        overflow: "hidden"
+        // overflow: "hidden" // Removed to allow absolute dots to escape
       }}
     >
       <div 
@@ -722,14 +759,14 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
         {group.matches.map(m => (
-          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} />
+          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} points={matchPoints.get(m.id)} />
         ))}
       </div>
     </div>
   );
 }
 
-function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
+function MatchCard({ match, onClick, points }: { match: Match, onClick: () => void, points?: { diff: number, total: number } }) {
   if (match.isHidden) {
     return (
       <div 

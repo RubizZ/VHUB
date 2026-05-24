@@ -9,10 +9,10 @@ export default function LeaderboardPage() {
   const { data: session } = useSession();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["premier", "team"],
+    queryKey: ["premier", "leaderboard"],
     queryFn: async () => {
-      const res = await fetch("/api/team/premier");
-      if (!res.ok) throw new Error("Error fetching premier data");
+      const res = await fetch("/api/team/premier/leaderboard");
+      if (!res.ok) throw new Error("Error fetching premier leaderboard data");
       return res.json();
     }
   });
@@ -32,6 +32,11 @@ export default function LeaderboardPage() {
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
           <div style={{ width: 40, height: 40, border: "4px solid var(--val-gold)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         </div>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
