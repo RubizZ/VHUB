@@ -1,6 +1,0 @@
-feat: Mejoras en onboarding, sincronización de partidos e iCal
-
-- Onboarding: Refactorización del flujo de creación de equipo en varios pasos, haciendo opcional la región de Premier.
-- Partidos: Añadida verificación para que solo se sincronicen los partidos de Premier jugados con el equipo actual.
-- Partidos: El esquema de BD ahora guarda los nombres y tags de los equipos rivales de Premier, mostrándolos en la interfaz del historial.
-- Calendario: Corregida lógica del iCal para no marcar como provisionales los partidos que ya se han jugado.
