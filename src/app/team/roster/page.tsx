@@ -14,6 +14,7 @@ interface Player {
   riot_tag: string; 
   role: string; 
   avatar_color: string; 
+  image?: string | null;
   user?: { email: string };
 }
 
@@ -220,9 +221,13 @@ export default function TeamRosterPage() {
                     <div style={{ 
                       width: 40, height: 40, borderRadius: "50%", background: p.avatar_color, 
                       display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800,
-                      boxShadow: `0 0 10px ${p.avatar_color}33`, cursor: "pointer"
+                      boxShadow: `0 0 10px ${p.avatar_color}33`, cursor: "pointer", overflow: "hidden"
                     }}>
-                      {p.name[0]}
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        p.name[0]
+                      )}
                     </div>
                   </Link>
                   <div style={{ flex: 1, minWidth: 0 }}>

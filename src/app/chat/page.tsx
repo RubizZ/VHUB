@@ -14,6 +14,7 @@ interface Message {
   player_id: string; 
   player_name: string; 
   avatar_color: string; 
+  player_image?: string | null;
   content: string; 
   created_at: string; 
 }
@@ -131,8 +132,12 @@ export default function ChatPage() {
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--val-red)" }}>{session?.user?.name}</div>
               <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>{session?.user?.role?.toUpperCase()}</div>
             </div>
-            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 28, height: 28, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: 13 }}>
-              {session?.user?.name?.[0]}
+            <div className="chat-avatar" style={{ background: "var(--val-red)", color: "#fff", width: 28, height: 28, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: 13, overflow: "hidden" }}>
+              {session?.user?.image ? (
+                <img src={session.user.image} alt={session.user.name || "User"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                session?.user?.name?.[0]
+              )}
             </div>
           </div>
         </div>
@@ -172,8 +177,12 @@ export default function ChatPage() {
                 return (
                   <div key={m.id} className={`chat-message ${isMe ? "is-me" : ""} animate-fade-in`}>
                     <Link href={`/player/${m.player_id}`} style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }}>
-                      <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                        {m.player_name?.[0] || "?"}
+                      <div className="chat-avatar" style={{ background: m.avatar_color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", overflow: "hidden" }}>
+                        {m.player_image ? (
+                          <img src={m.player_image} alt={m.player_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          m.player_name?.[0] || "?"
+                        )}
                       </div>
                     </Link>
                     <div>

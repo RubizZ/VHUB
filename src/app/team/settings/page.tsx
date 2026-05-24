@@ -1,9 +1,8 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
 import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +24,8 @@ export default function TeamSettingsPage() {
 
   const [form, setForm] = useState<TeamForm>({ name: "", slug: "", logo_url: "", inviteCode: null, premier_name: "", tag: "", division: "", conference: "NONE" });
   const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const canManage = session?.user?.role === "team_admin" || session?.user?.role === "super_admin";
 
@@ -92,6 +93,39 @@ export default function TeamSettingsPage() {
     saveTeamMutation.mutate();
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setMessage("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/team/logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error uploading logo");
+
+      setForm((prev) => ({ ...prev, logo_url: data.url }));
+      setMessage("✅ Logo subido correctamente");
+      setTimeout(() => setMessage(""), 3000);
+      queryClient.invalidateQueries({ queryKey: ["currentTeam"] });
+      // Update session if it's cached somewhere
+    } catch (err: any) {
+      console.error(err);
+      setMessage("❌ Error al subir el logo");
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const loading = teamLoading;
 
   if (!canManage) {
@@ -151,15 +185,41 @@ export default function TeamSettingsPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: 800, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>URL del Logo</label>
-                    <input 
-                      placeholder="https://ejemplo.com/logo.png"
-                      value={form.logo_url || ""} 
-                      onChange={e => setForm({ ...form, logo_url: e.target.value })} 
-                      style={{ width: "100%", padding: "16px", borderRadius: "12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 14, transition: "all 0.2s", outline: "none" }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = "var(--val-cyan)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(0, 212, 170, 0.15)"; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.boxShadow = "none"; }}
-                    />
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: 800, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>Logo del Equipo</label>
+                    <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: "none" }} 
+                        accept="image/*" 
+                        onChange={handleLogoUpload}
+                      />
+                      <div 
+                        onClick={() => !uploadingLogo && fileInputRef.current?.click()} 
+                        style={{
+                          width: 80, height: 80, borderRadius: 16, background: "rgba(0,0,0,0.3)", 
+                          border: "2px dashed rgba(255,255,255,0.2)", display: "flex", 
+                          alignItems: "center", justifyContent: "center", cursor: "pointer", 
+                          position: "relative", overflow: "hidden", transition: "all 0.2s"
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--val-cyan)"; e.currentTarget.style.background = "rgba(0, 212, 170, 0.1)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(0,0,0,0.3)"; }}
+                      >
+                        {uploadingLogo ? (
+                          <div style={{ width: 24, height: 24, border: "3px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                        ) : form.logo_url ? (
+                          <img src={form.logo_url} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 8px 0" }}>Haz clic en el recuadro para subir un archivo de imagen (PNG, JPG) desde tu ordenador.</p>
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn" style={{ padding: "8px 16px", fontSize: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}>
+                          Seleccionar Imagen
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.08)", margin: "8px 0" }} />

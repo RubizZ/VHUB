@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession, signIn } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Modern SVG Icons
 const Icons = {
@@ -41,7 +42,20 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
   const role = session?.user?.role;
   const userName = session?.user?.name || "Usuario";
   const userEmail = session?.user?.email || "";
+  const userImage = session?.user?.image;
   const loading = status === "loading";
+
+  const { data: teamData } = useQuery({
+    queryKey: ["currentTeam"],
+    queryFn: async () => {
+      const res = await fetch("/api/team/current");
+      if (!res.ok) throw new Error("Error loading team data");
+      return res.json();
+    },
+    enabled: !!session,
+  });
+
+  const team = teamData?.team;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -56,10 +70,16 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon">VH</div>
+        <div className="sidebar-brand-icon" style={{ overflow: "hidden" }}>
+          {team?.logo_url ? (
+            <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            team?.name?.[0]?.toUpperCase() || "VH"
+          )}
+        </div>
         <div className="sidebar-brand-text">
-          <h1>V-HUB</h1>
-          <span className="brand-tag">PREMIER PLATFORM</span>
+          <h1 style={{ fontSize: team?.name?.length > 12 ? "16px" : "20px" }}>{team?.name || "V-HUB"}</h1>
+          <span className="brand-tag">{team?.premierTeam?.tag ? `#${team.premierTeam.tag}` : "PREMIER PLATFORM"}</span>
         </div>
       </div>
 
@@ -135,7 +155,13 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
             className={`vhub-user-card ${isDropdownOpen ? 'active' : ''}`}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className="vhub-avatar">{userName.charAt(0)}</div>
+            <div className="vhub-avatar" style={{ overflow: "hidden" }}>
+              {userImage ? (
+                <img src={userImage} alt={userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                userName.charAt(0)
+              )}
+            </div>
             <div className="vhub-meta">
               <span className="vhub-username">{userName}</span>
               <div className="vhub-status">Conectado</div>

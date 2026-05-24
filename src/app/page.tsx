@@ -7,7 +7,7 @@ import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
 import { LandingPage } from "@/components/LandingPage";
 
-interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; user?: { lastActiveAt?: string }; }
+interface Player { id: number; name: string; riot_name: string; riot_tag: string; role: string; avatar_color: string; image?: string | null; user?: { lastActiveAt?: string }; }
 interface Event { id: number; title: string; type: string; date: string; time: string; description: string; availability?: any[]; }
 
 export default function Dashboard() {
@@ -258,8 +258,12 @@ export default function Dashboard() {
                   ))
                 ) : [...players].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                   <Link href={`/player/${p.id}`} key={p.id} className="hover-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit" }}>
-                    <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                      {p.name.charAt(0)}
+                    <div style={{ background: p.avatar_color, color: "#fff", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        p.name.charAt(0)
+                      )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 500, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
@@ -373,9 +377,14 @@ function EventItem({ event }: { event: any }) {
               border: a.status === 'available' ? "2px solid var(--val-cyan)" : "2px solid var(--val-yellow)",
               boxSizing: "border-box",
               marginLeft: -6,
-              position: "relative"
+              position: "relative",
+              overflow: "hidden"
             }} title={`${a.player?.name || 'User'} (${a.status})`}>
-              {a.player?.name?.charAt(0) || "?"}
+              {a.player?.image ? (
+                <img src={a.player.image} alt={a.player?.name || 'User'} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                a.player?.name?.charAt(0) || "?"
+              )}
             </div>
           ))}
         </div>

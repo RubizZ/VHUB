@@ -376,7 +376,8 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
-                avatar_color: true
+                avatar_color: true,
+                image: true
               }
             }
           }

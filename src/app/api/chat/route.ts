@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       player: {
         select: {
           name: true,
-          avatar_color: true
+          avatar_color: true,
+          image: true
         }
       }
     }
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
     player_id: m.player_id,
     player_name: m.player?.name || "Desconocido",
     avatar_color: m.player?.avatar_color || "#999",
+    player_image: m.player?.image || null,
     content: m.content,
     created_at: m.created_at
   }));

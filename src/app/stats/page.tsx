@@ -13,6 +13,7 @@ interface Player {
     riot_tag: string;
     role: string;
     avatar_color: string;
+    image?: string | null;
 }
 interface ModeStats {
     gamesPlayed: number;
@@ -277,9 +278,14 @@ export default function StatsPage() {
                                             color: "#fff",
                                             fontWeight: 800,
                                             boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                                            overflow: "hidden"
                                         }}
                                     >
-                                        {p.name[0]}
+                                        {p.image ? (
+                                            <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                        ) : (
+                                            p.name[0]
+                                        )}
                                     </div>
                                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                         {p.name}
@@ -663,10 +669,15 @@ export default function StatsPage() {
                                             boxShadow: `0 10px 20px ${selected.avatar_color}44`,
                                             border: `2px solid ${selected.avatar_color}`,
                                             cursor: "pointer",
+                                            overflow: "hidden",
                                         }}
                                         title="Ver Perfil"
                                     >
-                                        {(selected.riot_name || selected.name)[0]}
+                                        {selected.image ? (
+                                            <img src={selected.image} alt={selected.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                        ) : (
+                                            (selected.riot_name || selected.name)[0]
+                                        )}
                                     </div>
                                 </Link>
                                 <div>

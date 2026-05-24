@@ -25,7 +25,13 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       <div className="mobile-menu-content animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="mobile-menu-header">
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="vhub-avatar" style={{ width: 40, height: 40, fontSize: 18 }}>{session?.user?.name?.[0]}</div>
+            <div className="vhub-avatar" style={{ width: 40, height: 40, fontSize: 18, overflow: "hidden" }}>
+              {session?.user?.image ? (
+                <img src={session.user.image} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                session?.user?.name?.[0]
+              )}
+            </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 16 }}>{session?.user?.name}</div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>{role?.replace('_', ' ')}</div>

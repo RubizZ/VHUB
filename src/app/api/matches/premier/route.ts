@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
 
     const whereClause: Prisma.MatchWhereInput = {
       teamId,
-      queue_id: { equals: "Premier", mode: "insensitive" }
+      OR: [
+        { queue_id: { equals: "Premier", mode: "insensitive" } },
+        { events: { some: { type: { in: ["match", "playoffs"] } } } }
+      ]
     };
 
     if (seasonParam && seasonParam !== 'all' && seasonParam !== "") {
