@@ -12,12 +12,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const seasonParam = searchParams.get("season");
 
+    const validEvents = await db.event.findMany({
+      where: { teamId, type: { in: ["match", "playoffs"] } },
+      select: { id: true }
+    });
+    const validEventIds = validEvents.map(e => e.id);
+
     const whereClause: Prisma.MatchWhereInput = {
       teamId,
       OR: [
         { queue_id: { equals: "Premier", mode: "insensitive" } },
         { game_mode: { equals: "Premier", mode: "insensitive" } },
-        { events: { some: { type: { in: ["match", "playoffs"] } } } }
+        { event: { type: { in: ["match", "playoffs"] } } },
+        { event_id: { in: validEventIds } }
       ]
     };
 
@@ -58,7 +65,7 @@ export async function GET(req: NextRequest) {
           }
         },
         season: true,
-        events: true // to know which event it belongs to
+        event: true // to know which event it belongs to
       },
       orderBy: { game_start: 'desc' },
       take: 100
@@ -70,6 +77,12 @@ export async function GET(req: NextRequest) {
     });
 
     const playerMap = new Map(teamPlayers.map(p => [p.puuid, p]));
+
+    const matchEventIds = [...new Set(matches.map(m => m.event_id).filter(Boolean))] as number[];
+    const eventsForMatches = matchEventIds.length > 0 ? await db.event.findMany({
+      where: { id: { in: matchEventIds } }
+    }) : [];
+    const eventMapById = new Map(eventsForMatches.map(e => [e.id, e]));
 
     const formattedMatches = matches.map(match => {
       const hasConsent = match.player_stats.some(s => {
@@ -93,14 +106,22 @@ export async function GET(req: NextRequest) {
       })?.team_id || "Blue";
 
       let eventData = null;
-      if (match.events && match.events.length > 0) {
-        const e = match.events[0];
+      const matchedEvent = match.event_id ? eventMapById.get(match.event_id) : null;
+      if (matchedEvent) {
         eventData = {
-          id: e.id,
-          title: e.title,
-          type: e.type,
-          date: e.date,
-          time: e.time
+          id: matchedEvent.id,
+          title: matchedEvent.title,
+          type: matchedEvent.type,
+          date: matchedEvent.date,
+          time: matchedEvent.time
+        };
+      } else if (match.event) {
+        eventData = {
+          id: match.event.id,
+          title: match.event.title,
+          type: match.event.type,
+          date: match.event.date,
+          time: match.event.time
         };
       }
 

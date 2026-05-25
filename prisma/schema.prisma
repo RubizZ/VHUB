@@ -154,7 +154,7 @@ model Event {
   created_at        DateTime       @default(now())
   availability      Availability[]
   map_obj           Map?           @relation(fields: [map], references: [id])
-  match             Match?         @relation(fields: [match_id], references: [riot_match_id])
+  matches           Match[]        @relation("EventToMatch")
   season            Season?        @relation(fields: [premier_season_id], references: [id])
   team              Team?          @relation(fields: [teamId], references: [id])
 
@@ -209,7 +209,7 @@ model Match {
   team_red_icon     String?
   event_id          Int?
   raw_data          Json?
-  events            Event[]
+  event             Event?             @relation("EventToMatch", fields: [event_id], references: [id])
   season            Season?            @relation(fields: [premier_season_id], references: [id])
   team              Team?              @relation(fields: [teamId], references: [id])
   player_stats      MatchPlayerStats[]

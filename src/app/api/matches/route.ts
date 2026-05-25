@@ -106,10 +106,8 @@ export async function GET(req: NextRequest) {
         { queue_id: { equals: "Premier", mode: "insensitive" } },
         { game_mode: { equals: "Premier", mode: "insensitive" } },
         {
-          events: {
-            some: {
-              type: { in: ["match", "practice", "playoffs"] }
-            }
+          event: {
+            type: { in: ["match", "practice", "playoffs"] }
           }
         }
       ]
