@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { getPremierSeasons } from "@/lib/henrik-api";
+import { getGameSeasons } from "@/lib/valorant-api";
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 const SYNC_CACHE = new Map<string, number>();
@@ -30,8 +31,8 @@ async function ensureWeeklyEvents(teamId: string) {
     // 1. Sincronizar temporadas en DB
     let valActs: any[] = [];
     try {
-      const valRes = await fetch('https://valorant-api.com/v1/seasons').then(r => r.json());
-      valActs = (valRes?.data || []).filter((s: any) => s.type === 'EAresSeasonType::Act');
+      const valRes = await getGameSeasons();
+      valActs = (valRes || []).filter((s: any) => s.type === 'EAresSeasonType::Act');
     } catch (e) {
       console.warn("Failed to fetch valorant-api seasons", e);
     }

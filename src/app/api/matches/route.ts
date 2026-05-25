@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { MAPS } from "@/lib/maps";
 import { auth } from "@/auth";
 import { getMatches, getPremierSeasons } from "@/lib/henrik-api";
+import { getGameSeasons } from "@/lib/valorant-api";
 import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -292,8 +293,8 @@ export async function POST(req: NextRequest) {
         
         let valActs: any[] = [];
         try {
-          const valRes = await fetch('https://valorant-api.com/v1/seasons').then(r => r.json());
-          valActs = (valRes?.data || []).filter((s: any) => s.type === 'EAresSeasonType::Act');
+          const valRes = await getGameSeasons();
+          valActs = (valRes || []).filter((s: any) => s.type === 'EAresSeasonType::Act');
         } catch (e) {
           console.warn("Failed to fetch valorant-api seasons", e);
         }

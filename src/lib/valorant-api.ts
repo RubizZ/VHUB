@@ -35,3 +35,10 @@ export async function getAgents() {
 export async function getCompetitiveTiers() {
   return await valorantApi.competitiveTiersEndpoints.getCompetitiveTiersV1();
 }
+
+/**
+ * Fetch all game seasons dynamically from the API.
+ */
+export async function getGameSeasons() {
+  return await valorantApi.seasonsEndpoints.getSeasonsV1();
+}
