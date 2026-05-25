@@ -5150,6 +5150,18 @@ export default function AvailabilityPage() {
                                                         ? "Playoffs"
                                                         : "Práctica"}
                                             </span>
+                                            {ev.season?.name && (
+                                                <span
+                                                    className="tag tag-neutral"
+                                                    style={{
+                                                        fontSize: 10,
+                                                        fontWeight: 600,
+                                                        background: "rgba(255,255,255,0.05)"
+                                                    }}
+                                                >
+                                                    {ev.season.name}
+                                                </span>
+                                            )}
                                         </div>
                                         <h2
                                             style={{
