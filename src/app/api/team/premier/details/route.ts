@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getPremierTeam } from "@/lib/henrik-api";
+import { getPremierTeam, getPremierLeaderboard } from "@/lib/henrik-api";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -26,7 +26,10 @@ export async function GET() {
       });
     }
 
-    const premierDetails = await getPremierTeam(pTeam.name, pTeam.tag);
+    const [premierDetails, leaderboard] = await Promise.all([
+      getPremierTeam(pTeam.name, pTeam.tag),
+      pTeam.division && pTeam.conference ? getPremierLeaderboard('eu', pTeam.conference, pTeam.division) : Promise.resolve([])
+    ]);
 
     if (!premierDetails) {
       return NextResponse.json({ 
@@ -37,6 +40,7 @@ export async function GET() {
 
     return NextResponse.json({
       details: premierDetails,
+      leaderboard: Array.isArray(leaderboard) ? leaderboard : (leaderboard as any).leaderboard || [],
       config: {
         name: pTeam.name,
         tag: pTeam.tag,
