@@ -340,23 +340,33 @@ function MatchRow({ match }: { match: any }) {
 }
 
 function EventItem({ event }: { event: any }) {
-  const isMatch = event.type === 'match' || event.type === 'playoffs';
+  const isPlayoffs = event.type === 'playoffs';
+  const isMatch = event.type === 'match';
+  const isPractice = event.type === 'practice';
   const attendees = (event.availability?.filter((a: any) => a.status === 'available' || a.status === 'maybe') || [])
     .sort((a: any, b: any) => a.status === 'available' ? -1 : 1);
+
+  const iconColor = isPlayoffs ? 'var(--val-cyan)' : isMatch ? 'var(--val-gold)' : 'var(--text-muted)';
+  const iconBg = isPlayoffs ? 'rgba(0,212,170,0.12)' : isMatch ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.05)';
 
   return (
     <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
       <div style={{
         width: 36, height: 36, borderRadius: 8,
-        background: isMatch ? "rgba(245, 158, 11, 0.15)" : "rgba(255, 255, 255, 0.05)",
-        color: isMatch ? "var(--val-yellow)" : "var(--text-secondary)",
+        background: iconBg,
+        color: iconColor,
         display: "flex", alignItems: "center", justifyContent: "center",
         flexShrink: 0
       }}>
-        {isMatch ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h5v5"/><path d="M19.5 4 14 9.5"/><path d="M9.5 14.5 4 20"/><path d="M9.5 4h-5v5"/><path d="M4.5 4 10 9.5"/><path d="M14.5 14.5 20 20"/></svg>
-        ) : (
+        {isPractice ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        ) : (
+          /* Valorant Premier logo */
+          <svg width="18" height="18" viewBox="0 0 64 64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 2L4 18v20l28 24 28-24V18L32 2zm0 6.5L56 22v16.5L32 57.5 8 38.5V22L32 8.5z"/>
+            <path d="M32 14L12 25v14l20 17 20-17V25L32 14zm0 5l16 9.5V37L32 51 16 37v-8.5L32 19z"/>
+            <path d="M32 24l-8 5v8l8 7 8-7v-8l-8-5z"/>
+          </svg>
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
