@@ -346,11 +346,11 @@ function EventItem({ event }: { event: any }) {
   const attendees = (event.availability?.filter((a: any) => a.status === 'available' || a.status === 'maybe') || [])
     .sort((a: any, b: any) => a.status === 'available' ? -1 : 1);
 
-  const iconColor = isPlayoffs ? 'var(--val-cyan)' : isMatch ? 'var(--val-gold)' : 'var(--text-muted)';
-  const iconBg = isPlayoffs ? 'rgba(0,212,170,0.12)' : isMatch ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.05)';
+  const iconColor = isPlayoffs ? 'var(--val-cyan)' : isMatch ? 'var(--val-match)' : 'var(--val-practice)';
+  const iconBg = isPlayoffs ? 'rgba(0,212,170,0.12)' : isMatch ? 'rgba(133,107,77,0.12)' : 'rgba(184,184,184,0.06)';
 
   return (
-    <Link href="/availability" className="hover-lift" style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
+    <Link href="/availability" className={`hover-lift ${isMatch ? 'hover-lift-match' : isPlayoffs ? 'hover-lift-playoffs' : 'hover-lift-practice'}`} style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.02)", textDecoration: "none", color: "inherit", marginBottom: 4 }}>
       <div style={{
         width: 36, height: 36, borderRadius: 8,
         background: iconBg,
@@ -358,16 +358,7 @@ function EventItem({ event }: { event: any }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         flexShrink: 0
       }}>
-        {isPractice ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        ) : (
-          /* Valorant Premier logo */
-          <svg width="18" height="18" viewBox="0 0 64 64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M32 2L4 18v20l28 24 28-24V18L32 2zm0 6.5L56 22v16.5L32 57.5 8 38.5V22L32 8.5z"/>
-            <path d="M32 14L12 25v14l20 17 20-17V25L32 14zm0 5l16 9.5V37L32 51 16 37v-8.5L32 19z"/>
-            <path d="M32 24l-8 5v8l8 7 8-7v-8l-8-5z"/>
-          </svg>
-        )}
+        <img src="/valorant-premier-logo.svg" alt="Valorant Premier" style={{ width: 20, height: 20, display: 'block', objectFit: 'contain' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -380,11 +371,13 @@ function EventItem({ event }: { event: any }) {
       
       {attendees.length > 0 && (
         <div style={{ display: "flex", gap: -4, alignItems: "center", flexShrink: 0 }}>
-          {attendees.map((a: any) => (
+          {attendees.map((a: any) => {
+            const availBorder = a.status === 'available' ? (isMatch ? '2px solid var(--val-match)' : isPlayoffs ? '2px solid var(--val-cyan)' : '2px solid var(--val-practice)') : '2px solid var(--val-yellow)';
+            return (
             <div key={a.player?.id || a.player_id} style={{
               width: 22, height: 22, borderRadius: "50%", background: a.player?.avatar_color || "#555",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff",
-              border: a.status === 'available' ? "2px solid var(--val-cyan)" : "2px solid var(--val-yellow)",
+              border: availBorder,
               boxSizing: "border-box",
               marginLeft: -6,
               position: "relative",
@@ -396,7 +389,8 @@ function EventItem({ event }: { event: any }) {
                 a.player?.name?.charAt(0) || "?"
               )}
             </div>
-          ))}
+          )
+          })}
         </div>
       )}
     </Link>
