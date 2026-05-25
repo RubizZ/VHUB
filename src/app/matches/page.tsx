@@ -532,6 +532,32 @@ export default function MatchesPage() {
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
                 <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
                 
+                {/* Node: Playoffs Tournament */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(0,212,170,0.5)", zIndex: 10 }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ color: "var(--val-cyan)", fontWeight: 900, fontSize: 14, textTransform: "uppercase", letterSpacing: 1 }}>
+                      Playoffs Premier
+                    </div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 500 }}>
+                      Torneo de eliminación directa (8 equipos)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Node: 600 PTS Qualification */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)", zIndex: 10 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ color: "var(--val-gold)", fontWeight: 800, fontSize: 13 }}>
+                      600 PTS
+                    </div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 500 }}>
+                      Clasificación a Playoffs
+                    </div>
+                  </div>
+                </div>
+
                 {/* Node with current premier points */}
                 <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
