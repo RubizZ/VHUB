@@ -909,8 +909,22 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
              })}
            </div>
         </div>
-        <div className={`tag ${isWin ? 'tag-green' : 'tag-red'}`} style={{ height: "fit-content" }}>
-          {isWin ? 'VICTORIA' : 'DERROTA'}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {points && points.diff !== 0 && (
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4, 
+              fontWeight: 800, 
+              fontSize: 13, 
+              color: points.diff > 0 ? 'var(--val-cyan)' : 'var(--val-red)' 
+            }}>
+              {points.diff > 0 ? "+" : ""}{points.diff} PTS
+            </div>
+          )}
+          <div className={`tag ${isWin ? 'tag-green' : 'tag-red'}`} style={{ height: "fit-content" }}>
+            {isWin ? 'VICTORIA' : 'DERROTA'}
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
