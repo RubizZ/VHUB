@@ -533,7 +533,7 @@ export default function MatchesPage() {
                 <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
                 
                 {/* Node with current premier points */}
-                <div style={{ position: "relative", paddingLeft: 60, display: "flex", alignItems: "center" }}>
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
                   <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
                     {currentPremierPoints} PTS PREMIER
@@ -541,7 +541,7 @@ export default function MatchesPage() {
                 </div>
 
                 {groupedEvents.map(group => (
-                  <div key={group.id} style={{ position: "relative", paddingLeft: 60 }}>
+                  <div key={group.id} style={{ position: "relative", paddingLeft: 80 }}>
                     <EventGroupCard 
                       group={group} 
                       onMatchClick={(m: Match) => loadMatch(m)} 
@@ -881,7 +881,7 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
       {/* Timeline Node */}
       <div style={{ 
         position: "absolute", 
-        left: -44, 
+        left: -56, 
         top: "50%", 
         transform: "translateY(-50%)", 
         display: "flex", 
@@ -894,6 +894,25 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
           border: `3px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
           boxShadow: `0 0 10px ${isWin ? 'rgba(0, 212, 170, 0.4)' : 'rgba(255, 70, 85, 0.4)'}`
         }} />
+        {points && (
+           <div style={{ 
+             position: "absolute",
+             left: "100%",
+             marginLeft: 8,
+             fontSize: 10, 
+             fontWeight: 800, 
+             color: "var(--text-primary)", 
+             display: "flex", 
+             flexDirection: "column", 
+             gap: 2,
+             whiteSpace: "nowrap"
+           }}>
+              <span style={{ color: "var(--val-gold)" }}>{points.total} PTS</span>
+              <span style={{ color: points.diff > 0 ? "var(--val-cyan)" : "var(--val-red)", fontSize: 9 }}>
+                {points.diff > 0 ? `+${points.diff}` : points.diff}
+              </span>
+           </div>
+        )}
       </div>
 
       <div 
