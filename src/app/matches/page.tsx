@@ -540,57 +540,15 @@ export default function MatchesPage() {
                   </div>
                 </div>
 
-                {groupedEvents.map(group => {
-                  const latestMatch = group.matches[0];
-                  const points = latestMatch ? matchPoints.get(latestMatch.id) : null;
-                  const isWin = latestMatch ? latestMatch.team_blue_won === (latestMatch.our_team_side === 'Blue') : false;
-                  const nodeColor = isWin ? 'var(--val-cyan)' : 'var(--val-red)';
-                  
-                  return (
-                    <div key={group.id} style={{ position: "relative", paddingLeft: 80 }}>
-                      <div style={{ 
-                        position: "absolute", 
-                        left: 24, 
-                        top: "50%", 
-                        transform: "translateY(-50%)", 
-                        display: "flex", 
-                        alignItems: "center",
-                        zIndex: 10
-                      }}>
-                        <div style={{ 
-                          width: 12, height: 12, borderRadius: "50%", 
-                          background: "var(--bg-primary, rgba(15,15,20,1))", 
-                          border: `3px solid ${nodeColor}`,
-                          boxShadow: `0 0 10px ${isWin ? 'rgba(0, 212, 170, 0.4)' : 'rgba(255, 70, 85, 0.4)'}`
-                        }} />
-                        {points && (
-                           <div style={{ 
-                             position: "absolute",
-                             left: "100%",
-                             marginLeft: 8,
-                             fontSize: 10, 
-                             fontWeight: 800, 
-                             color: "var(--text-primary)", 
-                             display: "flex", 
-                             flexDirection: "column", 
-                             gap: 2,
-                             whiteSpace: "nowrap"
-                           }}>
-                              <span style={{ color: "var(--val-gold)" }}>{points.total} PTS</span>
-                              <span style={{ color: points.diff > 0 ? "var(--val-cyan)" : "var(--val-red)", fontSize: 9 }}>
-                                {points.diff > 0 ? `+${points.diff}` : points.diff}
-                              </span>
-                           </div>
-                        )}
-                      </div>
-
-                      <EventGroupCard 
-                        group={group} 
-                        onMatchClick={(m: Match) => loadMatch(m)} 
-                      />
-                    </div>
-                  );
-                })}
+                {groupedEvents.map(group => (
+                  <div key={group.id} style={{ position: "relative", paddingLeft: 80 }}>
+                    <EventGroupCard 
+                      group={group} 
+                      onMatchClick={(m: Match) => loadMatch(m)} 
+                      matchPoints={matchPoints}
+                    />
+                  </div>
+                ))}
               </div>
             )}
             {matches.length === 0 && !loading && (
@@ -673,7 +631,7 @@ interface EventGroup {
   matches: Match[];
 }
 
-function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchClick: (m: Match) => void }) {
+function EventGroupCard({ group, onMatchClick, matchPoints }: { group: EventGroup, onMatchClick: (m: Match) => void, matchPoints: Map<number, { diff: number, total: number }> }) {
   const getEventBadge = (type: string) => {
     switch (type.toLowerCase()) {
       case "match":
@@ -821,14 +779,14 @@ function EventGroupCard({ group, onMatchClick }: { group: EventGroup, onMatchCli
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
         {group.matches.map(m => (
-          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} />
+          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} points={matchPoints?.get(m.id)} />
         ))}
       </div>
     </div>
   );
 }
 
-function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
+function MatchCard({ match, onClick, points }: { match: Match, onClick: () => void, points?: { diff: number, total: number } }) {
   if (match.isHidden) {
     return (
       <div 
@@ -920,6 +878,43 @@ function MatchCard({ match, onClick }: { match: Match, onClick: () => void }) {
 
   return (
     <div style={{ position: "relative" }}>
+      {/* Timeline Node - precisely aligned with the vertical line at left: 29 */}
+      <div style={{ 
+        position: "absolute", 
+        left: -80, 
+        top: "50%", 
+        transform: "translateY(-50%)", 
+        display: "flex", 
+        alignItems: "center",
+        zIndex: 10
+      }}>
+        <div style={{ 
+          width: 12, height: 12, borderRadius: "50%", 
+          background: "var(--bg-primary, rgba(15,15,20,1))", 
+          border: `3px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
+          boxShadow: `0 0 10px ${isWin ? 'rgba(0, 212, 170, 0.4)' : 'rgba(255, 70, 85, 0.4)'}`
+        }} />
+        {points && (
+           <div style={{ 
+             position: "absolute",
+             left: "100%",
+             marginLeft: 8,
+             fontSize: 10, 
+             fontWeight: 800, 
+             color: "var(--text-primary)", 
+             display: "flex", 
+             flexDirection: "column", 
+             gap: 2,
+             whiteSpace: "nowrap"
+           }}>
+              <span style={{ color: "var(--val-gold)" }}>{points.total} PTS</span>
+              <span style={{ color: points.diff > 0 ? "var(--val-cyan)" : "var(--val-red)", fontSize: 9 }}>
+                {points.diff > 0 ? `+${points.diff}` : points.diff}
+              </span>
+           </div>
+        )}
+      </div>
+
       <div 
         className="card glass-card hover-lift" 
         onClick={onClick} 
