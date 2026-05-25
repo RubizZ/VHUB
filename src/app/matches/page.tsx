@@ -530,11 +530,20 @@ export default function MatchesPage() {
               </>
             ) : (
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
-                <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5, borderRadius: 2 }} />
+                <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, zIndex: 0 }}>
+                  {currentPremierPoints < 600 ? (
+                    <>
+                      <div style={{ height: 100, borderLeft: "2px dashed rgba(255,255,255,0.2)" }} />
+                      <div style={{ height: "calc(100% - 100px)", background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
+                    </>
+                  ) : (
+                    <div style={{ height: "100%", background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
+                  )}
+                </div>
                 
                 {/* Node: Playoffs Tournament */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(0,212,170,0.5)", zIndex: 10 }} />
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: currentPremierPoints >= 600 ? 1 : 0.4 }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: currentPremierPoints >= 600 ? "0 0 10px rgba(0,212,170,0.5)" : "none", zIndex: 10 }} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <div style={{ color: "var(--val-cyan)", fontWeight: 900, fontSize: 14, textTransform: "uppercase", letterSpacing: 1 }}>
                       Playoffs Premier
@@ -546,7 +555,7 @@ export default function MatchesPage() {
                 </div>
 
                 {/* Node: 600 PTS Qualification */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: currentPremierPoints >= 600 ? 1 : 0.4 }}>
                   <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)", zIndex: 10 }} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ color: "var(--val-gold)", fontWeight: 800, fontSize: 13 }}>
@@ -561,8 +570,14 @@ export default function MatchesPage() {
                 {/* Node with current premier points */}
                 <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
-                  <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
-                    {currentPremierPoints} PTS PREMIER
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
+                      {currentPremierPoints} PTS PREMIER
+                    </div>
+                    <div style={{ color: "var(--text-primary)", fontSize: 11, fontWeight: 800, backgroundColor: "rgba(255,255,255,0.1)", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6, border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 8px var(--val-cyan)" }} />
+                      ESTÁS AQUÍ
+                    </div>
                   </div>
                 </div>
 
