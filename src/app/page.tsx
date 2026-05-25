@@ -510,7 +510,7 @@ function PremierStats() {
         <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Clasificación División</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 }}>
           <div style={{ fontSize: 32, fontWeight: 800, color: "var(--val-gold)" }}>
-            #{details?.placement?.place ?? (myRank?.ranking !== undefined ? myRank.ranking + 1 : "---")}
+            #{details?.placement?.place !== undefined ? details.placement.place + 1 : (myRank?.ranking !== undefined ? myRank.ranking + 1 : "---")}
           </div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Ranking actual</div>
         </div>
