@@ -50,6 +50,7 @@ interface Ev {
     linkedMatches?: LinkedMatch[];
     map_obj?: any;
     premier_season_id?: string;
+    season?: { name: string };
     availability?: {
         player_id: string;
         status: string;
@@ -2791,6 +2792,18 @@ export default function AvailabilityPage() {
                                                                                 ? "Playoffs"
                                                                                 : "Práctica"}
                                                                     </span>
+                                                                    {ev.season?.name && (
+                                                                        <span
+                                                                            className="tag tag-neutral"
+                                                                            style={{
+                                                                                fontSize: 10,
+                                                                                fontWeight: 600,
+                                                                                background: "rgba(255,255,255,0.05)"
+                                                                            }}
+                                                                        >
+                                                                            {ev.season.name}
+                                                                        </span>
+                                                                    )}
                                                                     {isFirstUpcoming && (
                                                                         <span
                                                                             className="tag tag-neutral"

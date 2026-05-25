@@ -392,6 +392,7 @@ export async function GET(req: NextRequest) {
         ...(seasonParam ? { premier_season_id: seasonParam } : {})
       },
       include: {
+        season: { select: { name: true } },
         availability: {
           include: {
             player: {
