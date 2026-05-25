@@ -570,14 +570,8 @@ export default function MatchesPage() {
                 {/* Node with current premier points */}
                 <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
-                      {currentPremierPoints} PTS PREMIER
-                    </div>
-                    <div style={{ color: "var(--text-primary)", fontSize: 11, fontWeight: 800, backgroundColor: "rgba(255,255,255,0.1)", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6, border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--val-cyan)", boxShadow: "0 0 8px var(--val-cyan)" }} />
-                      ESTÁS AQUÍ
-                    </div>
+                  <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
+                    {currentPremierPoints} PTS PREMIER
                   </div>
                 </div>
 
