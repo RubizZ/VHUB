@@ -20,8 +20,31 @@ export async function GET(req: NextRequest) {
       ]
     };
 
-    if (seasonParam && seasonParam !== 'all' && seasonParam !== "") {
+    const seasons = await db.season.findMany({
+      where: { matches: { some: { teamId } } },
+      orderBy: { starts_at: 'desc' }
+    });
+    
+    let activeSeasonId = null;
+    const nowTime = new Date();
+    const activeSeason = seasons.find(s => {
+      if (!s.starts_at || !s.ends_at) return false;
+      return new Date(s.starts_at) <= nowTime && new Date(s.ends_at) >= nowTime;
+    });
+    
+    if (activeSeason) {
+      activeSeasonId = activeSeason.id;
+    } else if (seasons.length > 0) {
+      activeSeasonId = seasons[0].id;
+    }
+
+    if (seasonParam === 'all') {
+      // Do not filter by season
+    } else if (seasonParam && seasonParam !== "") {
       whereClause.premier_season_id = seasonParam;
+    } else if (activeSeasonId) {
+      // Default to active season if no parameter is provided
+      whereClause.premier_season_id = activeSeasonId;
     }
 
     const matches = await db.match.findMany({
@@ -87,21 +110,10 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const seasons = await db.season.findMany({
-      where: { matches: { some: { teamId } } },
-      orderBy: { starts_at: 'desc' }
-    });
-    
-    const activeSeason = seasons.find(s => {
-      const now = new Date();
-      if (!s.starts_at || !s.ends_at) return false;
-      return new Date(s.starts_at) <= now && new Date(s.ends_at) >= now;
-    });
-
     return NextResponse.json({
       matches: formattedMatches,
       seasons: seasons.map(s => ({ id: s.id, name: s.name })),
-      activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0].id : null)
+      activeSeasonId: activeSeasonId
     });
 
   } catch (error: any) {

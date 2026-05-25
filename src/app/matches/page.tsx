@@ -42,7 +42,6 @@ export default function MatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
-  const [hasInitializedSeason, setHasInitializedSeason] = useState(false);
 
   // 1. Fetch matches & seasons
   const {
@@ -85,13 +84,7 @@ export default function MatchesPage() {
   });
   const currentPremierPoints = premierDetailsData?.details?.placement?.points || 0;
 
-  // Set default active season once loaded
-  useEffect(() => {
-    if (matchesData?.activeSeasonId && !hasInitializedSeason) {
-      setSelectedSeason(matchesData.activeSeasonId);
-      setHasInitializedSeason(true);
-    }
-  }, [matchesData, hasInitializedSeason]);
+
 
   // 2. Fetch selected match details
   const {
@@ -374,9 +367,14 @@ export default function MatchesPage() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, gap: 16 }}>
            <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
-              <SeasonTab active={selectedSeason === null} label="Todas" onClick={() => setSelectedSeason(null)} />
+              <SeasonTab active={selectedSeason === "all"} label="Todas" onClick={() => setSelectedSeason("all")} />
               {seasons.map(s => (
-                <SeasonTab key={s.id} active={selectedSeason === s.id} label={s.name || s.id} onClick={() => setSelectedSeason(s.id)} />
+                <SeasonTab 
+                  key={s.id} 
+                  active={selectedSeason === s.id || (selectedSeason === null && s.id === matchesData?.activeSeasonId)} 
+                  label={s.name || s.id} 
+                  onClick={() => setSelectedSeason(s.id)} 
+                />
               ))}
            </div>
            {matches.length > 0 && (
