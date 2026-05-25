@@ -323,6 +323,18 @@ export default function MatchesPage() {
     return pointsMap;
   }, [matches, premierHistory]);
 
+  const isActiveSeason = !selectedSeason || selectedSeason === matchesData?.activeSeasonId;
+
+  const displayPremierPoints = useMemo(() => {
+    if (isActiveSeason) return currentPremierPoints;
+    if (matches.length > 0) {
+      const latestMatch = matches[0]; // matches are sorted newest first
+      const points = matchPoints.get(latestMatch.id);
+      if (points) return points.total;
+    }
+    return 0;
+  }, [isActiveSeason, currentPremierPoints, matches, matchPoints]);
+
   const blueTeam = stats.filter(s => s.team_id === "Blue");
   const redTeam = stats.filter(s => s.team_id === "Red");
 
@@ -531,7 +543,7 @@ export default function MatchesPage() {
             ) : (
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
                 <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, zIndex: 0 }}>
-                  {currentPremierPoints < 600 ? (
+                  {displayPremierPoints < 600 ? (
                     <>
                       <div style={{ height: 100, borderLeft: "2px dashed rgba(255,255,255,0.2)" }} />
                       <div style={{ height: "calc(100% - 100px)", background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
@@ -542,8 +554,8 @@ export default function MatchesPage() {
                 </div>
                 
                 {/* Node: Playoffs Tournament */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: currentPremierPoints >= 600 ? 1 : 0.4 }}>
-                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: currentPremierPoints >= 600 ? "0 0 10px rgba(0,212,170,0.5)" : "none", zIndex: 10 }} />
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: displayPremierPoints >= 600 ? 1 : 0.4 }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: displayPremierPoints >= 600 ? "0 0 10px rgba(0,212,170,0.5)" : "none", zIndex: 10 }} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <div style={{ color: "var(--val-cyan)", fontWeight: 900, fontSize: 14, textTransform: "uppercase", letterSpacing: 1 }}>
                       Playoffs Premier
@@ -555,7 +567,7 @@ export default function MatchesPage() {
                 </div>
 
                 {/* Node: 600 PTS Qualification */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: currentPremierPoints >= 600 ? 1 : 0.4 }}>
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: displayPremierPoints >= 600 ? 1 : 0.4 }}>
                   <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)", zIndex: 10 }} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ color: "var(--val-gold)", fontWeight: 800, fontSize: 13 }}>
@@ -571,7 +583,7 @@ export default function MatchesPage() {
                 <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
                   <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
-                    {currentPremierPoints} PTS PREMIER
+                    {displayPremierPoints} PTS PREMIER
                   </div>
                 </div>
 
