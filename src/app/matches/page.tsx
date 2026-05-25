@@ -879,17 +879,36 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
   const enemyTeamName = match.our_team_side === 'Blue' ? (match.team_red_name || "Rival") : (match.team_blue_name || "Rival");
 
   return (
-    <div 
-      className="card glass-card hover-lift" 
-      onClick={onClick} 
-      style={{ 
-        cursor: "pointer", 
-        padding: 20, 
-        borderLeft: `4px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
-        '--hover-color': isWin ? 'var(--val-cyan)' : 'var(--val-red)',
-        '--hover-glow-color': isWin ? 'rgba(0, 212, 170, 0.15)' : 'rgba(255, 70, 85, 0.15)'
-      } as CSSProperties}
-    >
+    <div style={{ position: "relative" }}>
+      {/* Timeline Node */}
+      <div style={{ 
+        position: "absolute", 
+        left: -44, 
+        top: "50%", 
+        transform: "translateY(-50%)", 
+        display: "flex", 
+        alignItems: "center",
+        zIndex: 10
+      }}>
+        <div style={{ 
+          width: 12, height: 12, borderRadius: "50%", 
+          background: "var(--bg-primary, rgba(15,15,20,1))", 
+          border: `3px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
+          boxShadow: `0 0 10px ${isWin ? 'rgba(0, 212, 170, 0.4)' : 'rgba(255, 70, 85, 0.4)'}`
+        }} />
+      </div>
+
+      <div 
+        className="card glass-card hover-lift" 
+        onClick={onClick} 
+        style={{ 
+          cursor: "pointer", 
+          padding: 20, 
+          borderLeft: `4px solid ${isWin ? 'var(--val-cyan)' : 'var(--val-red)'}`,
+          '--hover-color': isWin ? 'var(--val-cyan)' : 'var(--val-red)',
+          '--hover-glow-color': isWin ? 'rgba(0, 212, 170, 0.15)' : 'rgba(255, 70, 85, 0.15)'
+        } as CSSProperties}
+      >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
            <div style={{ fontWeight: 800, fontSize: 18 }}>{match.map_name}</div>
@@ -910,18 +929,6 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
            </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {points && points.diff !== 0 && (
-            <div style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: 4, 
-              fontWeight: 800, 
-              fontSize: 13, 
-              color: points.diff > 0 ? 'var(--val-cyan)' : 'var(--val-red)' 
-            }}>
-              {points.diff > 0 ? "+" : ""}{points.diff} PTS
-            </div>
-          )}
           <div className={`tag ${isWin ? 'tag-green' : 'tag-red'}`} style={{ height: "fit-content" }}>
             {isWin ? 'VICTORIA' : 'DERROTA'}
           </div>
@@ -939,6 +946,7 @@ function MatchCard({ match, onClick, points }: { match: Match, onClick: () => vo
            <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{match.queue_id || "Premier"}</div>
            <div style={{ fontSize: 11, color: "var(--val-red)", fontWeight: 800, marginTop: 2 }}>DETALLES →</div>
         </div>
+      </div>
       </div>
     </div>
   );
