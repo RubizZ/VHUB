@@ -549,6 +549,14 @@ export default function MatchesPage() {
                     />
                   </div>
                 ))}
+
+                {/* Node for starting season at 0 points */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", marginTop: 8 }}>
+                  <div style={{ position: "absolute", left: 24, width: 12, height: 12, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "3px solid rgba(255,255,255,0.2)", zIndex: 10 }} />
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>
+                    0 PTS PREMIER
+                  </div>
+                </div>
               </div>
             )}
             {matches.length === 0 && !loading && (
