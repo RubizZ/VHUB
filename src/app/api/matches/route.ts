@@ -289,20 +289,43 @@ export async function POST(req: NextRequest) {
       try {
         console.log("[API Matches Sync] Sincronizando metadatos de temporadas...");
         const seasons = await getPremierSeasons('eu');
+        
+        let valActs: any[] = [];
+        try {
+          const valRes = await fetch('https://valorant-api.com/v1/seasons').then(r => r.json());
+          valActs = (valRes?.data || []).filter((s: any) => s.type === 'EAresSeasonType::Act');
+        } catch (e) {
+          console.warn("Failed to fetch valorant-api seasons", e);
+        }
+
         if (seasons && seasons.length > 0) {
           for (const s of seasons) {
             const starts = s.starts_at ? new Date(s.starts_at) : null;
             const ends = s.ends_at ? new Date(s.ends_at) : null;
+            
+            let resolvedName = `Temporada ${s.id.substring(0, 8)}`;
+            if (starts) {
+              const startT = starts.getTime();
+              const endT = ends ? ends.getTime() : startT + 1000000;
+              const midT = startT + (endT - startT) / 2;
+              const matched = valActs.find((act: any) => {
+                const aStart = new Date(act.startTime).getTime();
+                const aEnd = new Date(act.endTime).getTime();
+                return midT >= aStart && midT <= aEnd;
+              });
+              if (matched) resolvedName = matched.title || matched.displayName || resolvedName;
+            }
+
             await db.season.upsert({
               where: { id: s.id },
               update: {
-                name: (s as any).name || `Temporada ${s.id.substring(0, 8)}`,
+                name: (s as any).name || resolvedName,
                 starts_at: starts && !isNaN(starts.getTime()) ? starts : null,
                 ends_at: ends && !isNaN(ends.getTime()) ? ends : null
               },
               create: {
                 id: s.id,
-                name: (s as any).name || `Temporada ${s.id.substring(0, 8)}`,
+                name: (s as any).name || resolvedName,
                 starts_at: starts && !isNaN(starts.getTime()) ? starts : null,
                 ends_at: ends && !isNaN(ends.getTime()) ? ends : null
               }
