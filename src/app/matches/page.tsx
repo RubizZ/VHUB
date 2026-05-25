@@ -509,37 +509,76 @@ export default function MatchesPage() {
         {!selected ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {loading && matches.length === 0 ? (
-              <>
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
+                {/* Vertical line */}
+                <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, background: "linear-gradient(to bottom, rgba(212,175,55,0.5), rgba(212,175,55,0.1))", zIndex: 0 }} />
+
+                {/* Node: Playoffs (top) */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: 0.4 }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", zIndex: 10 }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <Skeleton width={140} height={14} />
+                    <Skeleton width={200} height={11} />
+                  </div>
+                </div>
+
+                {/* Node: 600 PTS */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: 0.4 }}>
+                  <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "rgba(15,15,20,1)", border: "4px solid var(--val-gold)", zIndex: 10 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Skeleton width={60} height={13} />
+                    <Skeleton width={120} height={11} />
+                  </div>
+                </div>
+
+                {/* Current points pill */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", zIndex: 10 }} />
+                  <Skeleton width={140} height={36} style={{ borderRadius: 8 }} />
+                </div>
+
+                {/* Event group skeletons */}
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="card glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16, borderRadius: "16px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <Skeleton width={120} height={16} />
-                        <Skeleton width={180} height={24} style={{ marginTop: 4 }} />
+                  <div key={i} style={{ position: "relative", paddingLeft: 80 }}>
+                    {/* Match node on the line */}
+                    <div style={{ position: "absolute", left: 23, top: 22, width: 13, height: 13, borderRadius: "50%", background: "rgba(133,107,77,0.8)", border: "3px solid rgba(15,15,20,1)", zIndex: 10 }} />
+                    <div className="card glass-card" style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
+                      {/* Header row */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <Skeleton width={90} height={18} style={{ borderRadius: 6 }} />
+                            <Skeleton width={60} height={18} style={{ borderRadius: 6 }} />
+                          </div>
+                          <Skeleton width={160} height={13} />
+                        </div>
+                        <Skeleton width={100} height={13} />
                       </div>
-                      <Skeleton width={140} height={16} />
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+                      {/* Match sub-cards */}
                       {Array.from({ length: 2 }).map((_, j) => (
-                        <div key={j} className="card glass-card" style={{ padding: 20, borderLeft: '4px solid var(--border-color)' }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              <Skeleton width={120} height={20} />
-                              <Skeleton width={80} height={12} />
-                            </div>
-                            <Skeleton width={80} height={24} />
+                        <div key={j} className="card glass-card" style={{ padding: 16, borderLeft: "4px solid rgba(133,107,77,0.4)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                            <Skeleton width={110} height={18} />
+                            <Skeleton width={75} height={11} />
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <Skeleton width={40} height={32} />
-                            <Skeleton width={10} height={12} />
-                            <Skeleton width={40} height={32} />
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Skeleton width={36} height={36} style={{ borderRadius: 6 }} />
+                            <Skeleton width={14} height={14} />
+                            <Skeleton width={36} height={36} style={{ borderRadius: 6 }} />
                           </div>
+                          <Skeleton width={70} height={22} style={{ borderRadius: 6 }} />
                         </div>
                       ))}
                     </div>
                   </div>
                 ))}
-              </>
+
+                {/* Node: 0 PTS (bottom) */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", marginTop: 4 }}>
+                  <div style={{ position: "absolute", left: 24, width: 12, height: 12, borderRadius: "50%", background: "rgba(15,15,20,1)", border: "3px solid rgba(255,255,255,0.2)", zIndex: 10 }} />
+                  <Skeleton width={90} height={13} />
+                </div>
+              </div>
             ) : (
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
                 <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, zIndex: 0 }}>
