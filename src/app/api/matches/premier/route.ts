@@ -16,8 +16,7 @@ export async function GET(req: NextRequest) {
       teamId,
       OR: [
         { queue_id: { equals: "Premier", mode: "insensitive" } },
-        { events: { some: { type: { in: ["match", "playoffs"] } } } },
-        { premier_season_id: { not: null } }
+        { events: { some: { type: { in: ["match", "playoffs"] } } } }
       ]
     };
 
