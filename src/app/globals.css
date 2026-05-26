@@ -201,10 +201,12 @@ body::before {
 /* ── Main Content ── */
 .main-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   margin-left: var(--sidebar-width);
   position: relative;
   z-index: 1;
-  min-height: 100vh;
+  min-height: 0;
   max-width: calc(100% - var(--sidebar-width));
 }
 
@@ -245,27 +247,32 @@ body::before {
   border-top: 1px solid var(--border-color);
   backdrop-filter: blur(20px);
   z-index: 100;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  padding: 0; /* padding moved to inner container so centering works reliably */
 }
 
 .bottom-nav-inner {
-  display: flex;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   align-items: center;
   height: 100%;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .bottom-nav-link {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   text-decoration: none;
   color: var(--text-muted);
   font-size: 10px;
   font-weight: 500;
   transition: var(--transition);
-  padding: 4px 12px;
+  padding: 0 8px;
+  width: auto;
+  height: 100%;
   border-radius: var(--radius-sm);
 }
 
@@ -286,6 +293,16 @@ body::before {
 
 .bottom-nav-link-icon {
   font-size: 20px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav-link span {
+  display: block;
+  line-height: 1;
 }
 
 /* ── Cards ── */
@@ -509,6 +526,25 @@ select option {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
+/* Dashboard specific responsive grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Stats ── */
 .stat-value {
   font-size: 28px;
@@ -629,7 +665,10 @@ select option {
   padding: 12px;
   border-radius: var(--radius-lg);
   transition: var(--transition);
-  max-width: 85%;
+  max-width: min(85%, calc(100% - 80px));
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .chat-message:hover {
@@ -688,6 +727,10 @@ select option {
   padding: 10px 16px;
   border-radius: 0 16px 16px 16px;
   border: 1px solid var(--border-color);
+  word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .is-me .chat-msg-content {
@@ -1226,8 +1269,10 @@ select option {
 
   .main-content {
     margin-left: 0;
-    padding-bottom: var(--bottom-nav-height);
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
     max-width: 100%;
+    min-height: calc(100vh - var(--bottom-nav-height));
+    overflow-y: auto;
   }
 
   .page-header {
@@ -1251,6 +1296,8 @@ select option {
   .chat-container {
     height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - 24px);
   }
+
+  /* Nota: el padding para dejar espacio a la bottom-nav se aplica en .main-content */
 
   .strategy-toolbar {
     justify-content: center;
@@ -1828,9 +1875,9 @@ input:checked+.slider:before {
     --sidebar-width: 0px;
   }
 
+  /* Hide the sidebar on tablet and smaller to avoid overlapping the bottom nav */
   .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    display: none;
   }
 
   .main-content {
@@ -1937,9 +1984,19 @@ input:checked+.slider:before {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  align-items: center;
 }
 
+
 .mobile-menu-content {
+  /* wrapper that centers the card; no background here */
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  width: 100%;
+}
+
+.mobile-menu-card {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -1947,6 +2004,27 @@ input:checked+.slider:before {
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  display: inline-block;
+  box-sizing: border-box;
+  width: auto;
+  max-width: 720px;
+}
+
+@media (max-width: 640px) {
+  .mobile-menu-overlay {
+    align-items: stretch;
+  }
+
+    .mobile-menu-content {
+      align-items: stretch;
+    }
+
+    .mobile-menu-card {
+      align-self: stretch;
+      width: 100%;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      padding: 20px;
+    }
 }
 
 .mobile-menu-header {
@@ -3136,7 +3214,8 @@ input:checked+.slider:before {
 
 /* ── Full Integration in Chat Mode (No Padding & Border Radius) ── */
 .chat-page-container {
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: #0a0e14;
