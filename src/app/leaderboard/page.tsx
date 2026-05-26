@@ -57,8 +57,8 @@ export default function LeaderboardPage() {
   const myTeamId = data?.details?.id;
   
   return (
-    <div className="page-container" style={{ padding: "40px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ marginBottom: 40 }}>
+    <div className="page-container" style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <span style={{ fontSize: 24 }}>🏆</span>
           <h1 style={{ fontSize: 32, fontWeight: 900, textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>
@@ -72,14 +72,14 @@ export default function LeaderboardPage() {
 
       <div className="card glass-card" style={{ overflow: "hidden", padding: 0 }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
+          <table className="leaderboard-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.2)" }}>
-                <th style={{ padding: "20px 24px", textAlign: "left", fontSize: 13, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: 1, width: 80 }}>Pos</th>
-                <th style={{ padding: "20px 24px", textAlign: "left", fontSize: 13, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: 1 }}>Equipo</th>
-                <th style={{ padding: "20px 24px", textAlign: "center", fontSize: 13, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: 1 }}>Puntos</th>
-                <th style={{ padding: "20px 24px", textAlign: "center", fontSize: 13, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: 1 }}>Victorias</th>
-                <th style={{ padding: "20px 24px", textAlign: "center", fontSize: 13, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: 1 }}>Derrotas</th>
+                <th className="col-pos">Pos</th>
+                <th className="col-team">Equipo</th>
+                <th className="col-pts">Puntos</th>
+                <th className="col-w hide-mobile">Victorias</th>
+                <th className="col-l hide-mobile">Derrotas</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
                       transition: "background 0.2s",
                     }}
                   >
-                    <td style={{ padding: "16px 24px" }}>
+                    <td className="col-pos">
                       <div style={{ 
                         fontSize: 18, 
                         fontWeight: 900, 
@@ -104,12 +104,10 @@ export default function LeaderboardPage() {
                         #{team.ranking + 1}
                       </div>
                     </td>
-                    <td style={{ padding: "16px 24px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{ 
-                          width: 40, height: 40, borderRadius: 8, overflow: "hidden", 
+                    <td className="col-team">
+                      <div className="team-cell">
+                        <div className="team-logo" style={{ 
                           background: team.customization?.primary || "rgba(255,255,255,0.1)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
                           border: isMyTeam ? "2px solid var(--val-gold)" : "1px solid rgba(255,255,255,0.1)"
                         }}>
                           {team.customization?.image ? (
@@ -119,7 +117,7 @@ export default function LeaderboardPage() {
                           )}
                         </div>
                         <div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: isMyTeam ? "var(--val-gold)" : "#fff" }}>
+                          <div className="team-name" style={{ color: isMyTeam ? "var(--val-gold)" : "#fff" }}>
                             {team.name}
                             {isMyTeam && <span style={{ marginLeft: 8, fontSize: 10, background: "var(--val-gold)", color: "#000", padding: "2px 6px", borderRadius: 4, fontWeight: 900, verticalAlign: "middle" }}>TÚ</span>}
                           </div>
@@ -127,17 +125,17 @@ export default function LeaderboardPage() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                    <td className="col-pts">
                       <div style={{ fontSize: 18, fontWeight: 800, color: "var(--val-gold)", textShadow: "0 0 15px rgba(212,175,55,0.3)" }}>
                         {team.score}
                       </div>
                     </td>
-                    <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                    <td className="col-w hide-mobile">
                       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--val-cyan)" }}>
                         {team.wins}
                       </div>
                     </td>
-                    <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                    <td className="col-l hide-mobile">
                       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--val-red)" }}>
                         {team.losses}
                       </div>
@@ -152,6 +150,67 @@ export default function LeaderboardPage() {
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        
+        /* Table Base Styles */
+        .leaderboard-table th, .leaderboard-table td {
+          padding: 16px 24px;
+        }
+        .leaderboard-table th {
+          font-size: 13px;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+        
+        .col-pos { text-align: left; width: 80px; }
+        .col-team { text-align: left; }
+        .col-pts { text-align: center; }
+        .col-w { text-align: center; }
+        .col-l { text-align: center; }
+        
+        .team-cell {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .team-logo {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .team-name {
+          font-size: 16px;
+          font-weight: 800;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 640px) {
+          .leaderboard-table th, .leaderboard-table td {
+            padding: 12px 12px;
+          }
+          .team-cell {
+            gap: 12px;
+          }
+          .team-logo {
+            width: 32px;
+            height: 32px;
+          }
+          .team-name {
+            font-size: 14px;
+          }
+          .hide-mobile {
+            display: none !important;
+          }
+          .leaderboard-table {
+            min-width: 100% !important;
+          }
         }
       `}</style>
     </div>

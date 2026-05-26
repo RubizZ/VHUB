@@ -240,73 +240,117 @@ export default function StatsPage() {
                     className="card glass-card"
                     style={{ marginBottom: 24, padding: "16px" }}
                 >
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        {players.map((p) => {
-                            const hasRiot = p.riot_name && p.riot_tag;
-                            return (
-                                <button
-                                    key={p.id}
-                                    className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`}
-                                    onClick={() => {
-                                        setSelected(p);
-                                        setCurrentPage(1);
-                                        setSelectedSeason("all");
-                                        setHasInitializedTab(false);
-                                    }}
-                                    style={{
-                                        borderColor:
-                                            selected?.id === p.id
-                                                ? p.avatar_color
-                                                : undefined,
-                                        boxShadow:
-                                            selected?.id === p.id
-                                                ? `0 0 15px ${p.avatar_color}44`
-                                                : undefined,
-                                        opacity: hasRiot ? 1 : 0.65,
-                                    }}
-                                >
-                                    <div
+                    <div className="mobile-hidden" style={{ width: "100%" }}>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                            {players.map((p) => {
+                                const hasRiot = p.riot_name && p.riot_tag;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        className={`btn ${selected?.id === p.id ? "btn-primary" : "btn-secondary"} hover-lift`}
+                                        onClick={() => {
+                                            setSelected(p);
+                                            setCurrentPage(1);
+                                            setSelectedSeason("all");
+                                            setHasInitializedTab(false);
+                                        }}
                                         style={{
-                                            width: 24,
-                                            height: 24,
-                                            borderRadius: "50%",
-                                            background: p.avatar_color,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontSize: 12,
-                                            color: "#fff",
-                                            fontWeight: 800,
-                                            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-                                            overflow: "hidden"
+                                            borderColor:
+                                                selected?.id === p.id
+                                                    ? p.avatar_color
+                                                    : undefined,
+                                            boxShadow:
+                                                selected?.id === p.id
+                                                    ? `0 0 15px ${p.avatar_color}44`
+                                                    : undefined,
+                                            opacity: hasRiot ? 1 : 0.65,
                                         }}
                                     >
-                                        {p.image ? (
-                                            <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                        ) : (
-                                            p.name[0]
-                                        )}
-                                    </div>
-                                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                        {p.name}
-                                        {!hasRiot && (
-                                            <span
-                                                style={{
-                                                    fontSize: 10,
-                                                    background: "rgba(255, 70, 85, 0.15)",
-                                                    color: "var(--val-red)",
-                                                    padding: "1px 6px",
-                                                    borderRadius: 4,
-                                                    fontWeight: 700
-                                                }}
-                                            >
-                                                SIN ID
-                                            </span>
-                                        )}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                        <div
+                                            style={{
+                                                width: 24,
+                                                height: 24,
+                                                borderRadius: "50%",
+                                                background: p.avatar_color,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                fontSize: 12,
+                                                color: "#fff",
+                                                fontWeight: 800,
+                                                boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                                                overflow: "hidden"
+                                            }}
+                                        >
+                                            {p.image ? (
+                                                <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            ) : (
+                                                p.name[0]
+                                            )}
+                                        </div>
+                                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            {p.name}
+                                            {!hasRiot && (
+                                                <span
+                                                    style={{
+                                                        fontSize: 10,
+                                                        background: "rgba(255, 70, 85, 0.15)",
+                                                        color: "var(--val-red)",
+                                                        padding: "1px 6px",
+                                                        borderRadius: 4,
+                                                        fontWeight: 700
+                                                    }}
+                                                >
+                                                    SIN ID
+                                                </span>
+                                            )}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="desktop-hidden" style={{ width: "100%" }}>
+                        <select
+                            value={selected?.id || ""}
+                            onChange={(e) => {
+                                const p = players.find(x => String(x.id) === e.target.value);
+                                if (p) {
+                                    setSelected(p);
+                                    setCurrentPage(1);
+                                    setSelectedSeason("all");
+                                    setHasInitializedTab(false);
+                                }
+                            }}
+                            className="input"
+                            style={{
+                                width: "100%",
+                                padding: "14px 16px",
+                                borderRadius: "12px",
+                                background: "rgba(255,255,255,0.05)",
+                                color: "var(--text-primary)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                fontSize: "16px",
+                                fontWeight: 600,
+                                outline: "none",
+                                cursor: "pointer",
+                                appearance: "none",
+                                backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E\")",
+                                backgroundRepeat: "no-repeat",
+                                backgroundPosition: "right 16px center",
+                                backgroundSize: "12px auto"
+                            }}
+                        >
+                            <option value="" disabled style={{ background: "#0c0d12" }}>Selecciona un jugador...</option>
+                            {players.map((p) => {
+                                const hasRiot = p.riot_name && p.riot_tag;
+                                return (
+                                    <option key={p.id} value={p.id} style={{ background: "#0c0d12", color: hasRiot ? "white" : "gray" }}>
+                                        {p.name} {hasRiot ? "" : "(SIN ID)"}
+                                    </option>
+                                );
+                            })}
+                        </select>
                     </div>
                 </div>
 
