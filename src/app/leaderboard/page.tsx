@@ -117,11 +117,21 @@ export default function LeaderboardPage() {
                           )}
                         </div>
                         <div>
-                          <div className="team-name" style={{ color: isMyTeam ? "var(--val-gold)" : "#fff" }}>
-                            {team.name}
-                            {isMyTeam && <span style={{ marginLeft: 8, fontSize: 10, background: "var(--val-gold)", color: "#000", padding: "2px 6px", borderRadius: 4, fontWeight: 900, verticalAlign: "middle" }}>TÚ</span>}
+                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                            <div className="team-name" style={{ color: isMyTeam ? "var(--val-gold)" : "#fff" }}>
+                              {team.name}
+                            </div>
+                            <div className="show-mobile-inline" style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                              #{team.tag}
+                            </div>
+                            {isMyTeam && <span style={{ fontSize: 10, background: "var(--val-gold)", color: "#000", padding: "2px 6px", borderRadius: 4, fontWeight: 900 }}>TÚ</span>}
                           </div>
-                          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>#{team.tag}</div>
+                          <div className="hide-mobile" style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>#{team.tag}</div>
+                          <div className="show-mobile-block" style={{ fontSize: 12, marginTop: 2 }}>
+                            <span style={{ color: "var(--val-cyan)", fontWeight: 700 }}>{team.wins}V</span>
+                            <span style={{ color: "var(--text-muted)", margin: "0 4px" }}>-</span>
+                            <span style={{ color: "var(--val-red)", fontWeight: 700 }}>{team.losses}D</span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -190,6 +200,9 @@ export default function LeaderboardPage() {
           font-weight: 800;
         }
         
+        .show-mobile-inline { display: none; }
+        .show-mobile-block { display: none; }
+        
         /* Responsive Styles */
         @media (max-width: 640px) {
           .leaderboard-table th, .leaderboard-table td {
@@ -208,6 +221,9 @@ export default function LeaderboardPage() {
           .hide-mobile {
             display: none !important;
           }
+          .show-mobile-inline { display: inline-block !important; }
+          .show-mobile-block { display: block !important; }
+          
           .leaderboard-table {
             min-width: 100% !important;
           }
