@@ -571,6 +571,21 @@ select option {
   gap: 2px;
 }
 
+/* Week view scroll container styling */
+.availability-wrapper .week-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.availability-wrapper .week-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .avail-cell {
   padding: 8px;
   text-align: center;
@@ -1271,7 +1286,6 @@ select option {
     margin-left: 0;
     padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
     max-width: 100%;
-    min-height: calc(100vh - var(--bottom-nav-height));
     overflow-y: auto;
   }
 
@@ -1295,6 +1309,12 @@ select option {
 
   .chat-container {
     height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - 24px);
+  }
+
+  /* Constrain availability wrapper height on mobile so week view scrolls internally */
+  .availability-wrapper {
+    height: calc(100vh - var(--bottom-nav-height) - 16px);
+    max-height: calc(100vh - var(--bottom-nav-height) - 16px);
   }
 
   /* Nota: el padding para dejar espacio a la bottom-nav se aplica en .main-content */
@@ -3426,5 +3446,85 @@ input[type="range"].color-picker-slider::-moz-range-thumb:hover {
   .color-picker-panel-premium {
     left: 16px;
     top: 60px;
+  }
+}
+
+/* Availability wrapper full-height behavior */
+.availability-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Availability header actions responsiveness */
+.availability-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.availability-actions .glass-card {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .availability-actions {
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Keep view toggles in a horizontally scrollable pill on small screens */
+  .availability-actions .glass-card {
+    width: auto;
+    max-width: 60%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 8px;
+    box-sizing: border-box;
+  }
+
+  .availability-actions .glass-card::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .availability-actions .glass-card::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+  }
+
+  .availability-actions > .btn-primary,
+  .availability-actions > .btn-ghost {
+    flex-shrink: 0;
+  }
+}
+
+/* Desktop: force availability week view to scroll internally (avoid page-level scroll) */
+@media (min-width: 769px) {
+  .availability-wrapper {
+    /* reserve viewport space up to the top of the bottom-nav */
+    height: calc(100vh - var(--bottom-nav-height));
+    max-height: calc(100vh - var(--bottom-nav-height));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .availability-wrapper .week-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .availability-wrapper .week-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
