@@ -823,7 +823,7 @@ export default function AvailabilityPage() {
                     </div>
                     {canManage && (
                             <button
-                                className="btn btn-primary mobile-hidden"
+                                className="btn btn-primary"
                                 onClick={() => setShowNew(true)}
                             >
                                 + Nuevo Evento
@@ -833,30 +833,7 @@ export default function AvailabilityPage() {
                 </div>
             </div>
 
-            {canManage && (
-                <button
-                    className="btn btn-primary desktop-hidden"
-                    onClick={() => setShowNew(true)}
-                    style={{
-                        position: "fixed",
-                        bottom: "80px",
-                        right: "20px",
-                        width: "56px",
-                        height: "56px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "28px",
-                        boxShadow: "0 4px 15px rgba(220, 38, 38, 0.4)",
-                        zIndex: 100,
-                        padding: 0,
-                        lineHeight: 1
-                    }}
-                >
-                    +
-                </button>
-            )}
+
 
             <div
                 className="page-content animate-in"
