@@ -33,7 +33,15 @@ const playerLinks = [
   { href: "/leaderboard", icon: <Icons.Leaderboard />, label: "Clasificación" },
 ];
 
-export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void }) {
+export function Sidebar({ 
+  onShowDisclaimer,
+  isOpen = false,
+  onClose
+}: { 
+  onShowDisclaimer?: () => void,
+  isOpen?: boolean,
+  onClose?: () => void
+}) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -67,8 +75,12 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleLinkClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon" style={{ overflow: "hidden" }}>
           {team?.logo_url ? (
@@ -90,6 +102,7 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
             key={l.href}
             href={l.href}
             className={`nav-link ${pathname === l.href ? "active" : ""}`}
+            onClick={handleLinkClick}
           >
             <span className="nav-link-icon">{l.icon}</span>
             {l.label}
@@ -99,10 +112,10 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
         {!loading && (role === "team_admin" || role === "super_admin") && (
           <>
             <div className="nav-separator">GESTIÓN DE EQUIPO</div>
-            <Link href="/team/roster" className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`}>
+            <Link href="/team/roster" className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`} onClick={handleLinkClick}>
               <span className="nav-link-icon"><Icons.Roster /></span> Plantilla
             </Link>
-            <Link href="/team/settings" className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`}>
+            <Link href="/team/settings" className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`} onClick={handleLinkClick}>
               <span className="nav-link-icon"><Icons.Settings /></span> Ajustes de Equipo
             </Link>
           </>
@@ -111,13 +124,13 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
         {!loading && role === "super_admin" && (
           <>
             <div className="nav-separator">SISTEMA</div>
-            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`}>
+            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} onClick={handleLinkClick}>
               <span className="nav-link-icon"><Icons.Admin /></span> Panel Global
             </Link>
-            <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`}>
+            <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`} onClick={handleLinkClick}>
               <span className="nav-link-icon"><Icons.Org /></span> Equipos
             </Link>
-            <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`}>
+            <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`} onClick={handleLinkClick}>
               <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
             </Link>
           </>
@@ -134,17 +147,17 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
               </div>
 
               <div className="vhub-dropdown-menu">
-                <Link href="/profile" className="vhub-menu-item" onClick={() => setIsDropdownOpen(false)}>
+                <Link href="/profile" className="vhub-menu-item" onClick={() => { setIsDropdownOpen(false); handleLinkClick(); }}>
                   <span className="vhub-icon"><Icons.Profile /></span> Ver Mi Perfil
                 </Link>
-                <Link href="/settings" className="vhub-menu-item" onClick={() => setIsDropdownOpen(false)}>
+                <Link href="/settings" className="vhub-menu-item" onClick={() => { setIsDropdownOpen(false); handleLinkClick(); }}>
                   <span className="vhub-icon"><Icons.Settings /></span> Ajustes de Cuenta
                 </Link>
-                <button className="vhub-menu-item vhub-menu-item-riot" onClick={() => signIn("riot-games")}>
+                <button className="vhub-menu-item vhub-menu-item-riot" onClick={() => { setIsDropdownOpen(false); handleLinkClick(); signIn("riot-games"); }}>
                   <span className="vhub-icon"><Icons.Riot /></span> Vincular Riot ID
                 </button>
                 <div className="vhub-sep"></div>
-                <button className="vhub-menu-item vhub-menu-item-logout" onClick={() => signOut()}>
+                <button className="vhub-menu-item vhub-menu-item-logout" onClick={() => { setIsDropdownOpen(false); handleLinkClick(); signOut(); }}>
                   <span className="vhub-icon"><Icons.Logout /></span> Cerrar Sesión
                 </button>
               </div>
@@ -171,7 +184,10 @@ export function Sidebar({ onShowDisclaimer }: { onShowDisclaimer?: () => void })
         </div>
 
         <button 
-          onClick={() => onShowDisclaimer?.()}
+          onClick={() => {
+            if (onShowDisclaimer) onShowDisclaimer();
+            handleLinkClick();
+          }}
           className="disclaimer-btn"
         >
           <svg 

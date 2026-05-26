@@ -3699,6 +3699,216 @@ export default function AvailabilityPage() {
                                                                         </span>
                                                                     </div>
                                                                 </div>
+
+                                                                {/* Actions Panel (Integrated) */}
+                                                                {myPlayerId &&
+                                                                    !isPast &&
+                                                                    ev.status !== "completed" && (
+                                                                        <div
+                                                                            style={{
+                                                                                display: "flex",
+                                                                                alignItems: "center",
+                                                                                gap: 12,
+                                                                                marginTop: 14,
+                                                                                paddingTop: 12,
+                                                                                borderTop: "1px solid rgba(255,255,255,0.05)",
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                style={{
+                                                                                    fontSize: 10,
+                                                                                    fontWeight: 800,
+                                                                                    color: "var(--text-muted)",
+                                                                                    textTransform:
+                                                                                        "uppercase",
+                                                                                    letterSpacing: 0.5,
+                                                                                }}
+                                                                            >
+                                                                                Mi Estado:
+                                                                            </div>
+                                                                            <div
+                                                                                style={{
+                                                                                    display: "flex",
+                                                                                    gap: 8,
+                                                                                    flex: 1,
+                                                                                }}
+                                                                            >
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        setAvailability(
+                                                                                            ev.id,
+                                                                                            myStatus === "available" ? "pending" : "available",
+                                                                                        )
+                                                                                    }
+                                                                                    className="transition-smooth"
+                                                                                    style={{
+                                                                                        flex: 1,
+                                                                                        fontSize: 11,
+                                                                                        fontWeight: 800,
+                                                                                        padding:
+                                                                                            "8px 12px",
+                                                                                        borderRadius: 8,
+                                                                                        cursor: "pointer",
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                        justifyContent:
+                                                                                            "center",
+                                                                                        gap: 6,
+                                                                                        border:
+                                                                                            myStatus ===
+                                                                                                "available"
+                                                                                                ? "1px solid var(--val-cyan)"
+                                                                                                : "1px solid rgba(0, 212, 170, 0.15)",
+                                                                                        background:
+                                                                                            myStatus ===
+                                                                                                "available"
+                                                                                                ? "var(--val-cyan)"
+                                                                                                : "rgba(0, 212, 170, 0.03)",
+                                                                                        color:
+                                                                                            myStatus ===
+                                                                                                "available"
+                                                                                                ? "white"
+                                                                                                : "rgba(0, 212, 170, 0.85)",
+                                                                                        boxShadow:
+                                                                                            myStatus ===
+                                                                                                "available"
+                                                                                                ? "0 0 15px rgba(0, 212, 170, 0.3)"
+                                                                                                : "none",
+                                                                                        transform:
+                                                                                            "scale(1)",
+                                                                                    }}
+                                                                                    onMouseEnter={(e) => {
+                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
+                                                                                        e.currentTarget.style.background = myStatus === "available" ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.1)";
+                                                                                    }}
+                                                                                    onMouseLeave={(e) => {
+                                                                                        e.currentTarget.style.transform = "scale(1)";
+                                                                                        e.currentTarget.style.background = myStatus === "available" ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.03)";
+                                                                                    }}
+                                                                                >
+                                                                                    <span>SÍ</span> <span>✅</span>
+                                                                                </button>
+
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        setAvailability(
+                                                                                            ev.id,
+                                                                                            myStatus === "maybe" ? "pending" : "maybe",
+                                                                                        )
+                                                                                    }
+                                                                                    className="transition-smooth"
+                                                                                    style={{
+                                                                                        flex: 1,
+                                                                                        fontSize: 11,
+                                                                                        fontWeight: 800,
+                                                                                        padding:
+                                                                                            "8px 12px",
+                                                                                        borderRadius: 8,
+                                                                                        cursor: "pointer",
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                        justifyContent:
+                                                                                            "center",
+                                                                                        gap: 6,
+                                                                                        border:
+                                                                                            myStatus ===
+                                                                                                "maybe"
+                                                                                                ? "1px solid var(--val-yellow)"
+                                                                                                : "1px solid rgba(245, 158, 11, 0.15)",
+                                                                                        background:
+                                                                                            myStatus ===
+                                                                                                "maybe"
+                                                                                                ? "var(--val-yellow)"
+                                                                                                : "rgba(245, 158, 11, 0.03)",
+                                                                                        color:
+                                                                                            myStatus ===
+                                                                                                "maybe"
+                                                                                                ? "black"
+                                                                                                : "rgba(245, 158, 11, 0.85)",
+                                                                                        boxShadow:
+                                                                                            myStatus ===
+                                                                                                "maybe"
+                                                                                                ? "0 0 15px rgba(245, 158, 11, 0.3)"
+                                                                                                : "none",
+                                                                                        transform:
+                                                                                            "scale(1)",
+                                                                                    }}
+                                                                                    onMouseEnter={(e) => {
+                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
+                                                                                        e.currentTarget.style.background = myStatus === "maybe" ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.1)";
+                                                                                    }}
+                                                                                    onMouseLeave={(e) => {
+                                                                                        e.currentTarget.style.transform = "scale(1)";
+                                                                                        e.currentTarget.style.background = myStatus === "maybe" ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.03)";
+                                                                                    }}
+                                                                                >
+                                                                                    <span>DUDA</span> <span>⚠️</span>
+                                                                                </button>
+
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        setAvailability(
+                                                                                            ev.id,
+                                                                                            myStatus === "unavailable" ? "pending" : "unavailable",
+                                                                                        )
+                                                                                    }
+                                                                                    className="transition-smooth"
+                                                                                    style={{
+                                                                                        flex: 1,
+                                                                                        fontSize: 11,
+                                                                                        fontWeight: 800,
+                                                                                        padding:
+                                                                                            "8px 12px",
+                                                                                        borderRadius: 8,
+                                                                                        cursor: "pointer",
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                        justifyContent:
+                                                                                            "center",
+                                                                                        gap: 6,
+                                                                                        border:
+                                                                                            myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "1px solid var(--val-red)"
+                                                                                                : "1px solid rgba(255, 70, 85, 0.15)",
+                                                                                        background:
+                                                                                            myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "var(--val-red)"
+                                                                                                : "rgba(255, 70, 85, 0.03)",
+                                                                                        color:
+                                                                                            myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "white"
+                                                                                                : "rgba(255, 70, 85, 0.85)",
+                                                                                        boxShadow:
+                                                                                            myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "0 0 15px rgba(255, 70, 85, 0.3)"
+                                                                                                : "none",
+                                                                                        transform:
+                                                                                            "scale(1)",
+                                                                                    }}
+                                                                                    onMouseEnter={(e) => {
+                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
+                                                                                        e.currentTarget.style.background = myStatus === "unavailable" ? "var(--val-red)" : "rgba(255, 70, 85, 0.1)";
+                                                                                    }}
+                                                                                    onMouseLeave={(e) => {
+                                                                                        e.currentTarget.style.transform = "scale(1)";
+                                                                                        e.currentTarget.style.background = myStatus === "unavailable" ? "var(--val-red)" : "rgba(255, 70, 85, 0.03)";
+                                                                                    }}
+                                                                                >
+                                                                                    <span>NO</span> <span>❌</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                             </div>
 
                                                             {(isCancelled ||
@@ -3921,281 +4131,7 @@ export default function AvailabilityPage() {
                                                                 </div>
                                                             ) : null}
 
-                                                            {/* Actions Panel */}
-                                                            {myPlayerId &&
-                                                                !isPast &&
-                                                                ev.status !== "completed" && (
-                                                                    <div
-                                                                        style={{
-                                                                            padding:
-                                                                                "6px 12px",
-                                                                            borderRadius: 12,
-                                                                            display:
-                                                                                "flex",
-                                                                            alignItems:
-                                                                                "center",
-                                                                            gap: 16,
-                                                                            background:
-                                                                                "rgba(255,255,255,0.02)",
-                                                                            border: "1px solid rgba(255,255,255,0.05)",
-                                                                            backdropFilter:
-                                                                                "blur(5px)",
-                                                                        }}
-                                                                    >
-                                                                        <div
-                                                                            style={{
-                                                                                fontSize: 10,
-                                                                                fontWeight: 800,
-                                                                                color: "var(--text-secondary)",
-                                                                                textTransform:
-                                                                                    "uppercase",
-                                                                                letterSpacing: 1,
-                                                                            }}
-                                                                        >
-                                                                            Mi
-                                                                            Estado:
-                                                                        </div>
-                                                                        <div
-                                                                            style={{
-                                                                                display:
-                                                                                    "flex",
-                                                                                gap: 8,
-                                                                                flex: 1,
-                                                                            }}
-                                                                        >
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    setAvailability(
-                                                                                        ev.id,
-                                                                                        myStatus === "available" ? "pending" : "available",
-                                                                                    )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
-                                                                                    flex: 1,
-                                                                                    fontSize: 11,
-                                                                                    fontWeight: 800,
-                                                                                    padding:
-                                                                                        "8px 12px",
-                                                                                    borderRadius: 8,
-                                                                                    cursor: "pointer",
-                                                                                    display:
-                                                                                        "flex",
-                                                                                    alignItems:
-                                                                                        "center",
-                                                                                    justifyContent:
-                                                                                        "center",
-                                                                                    gap: 6,
-                                                                                    border:
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "1px solid var(--val-cyan)"
-                                                                                            : "1px solid rgba(0, 212, 170, 0.15)",
-                                                                                    background:
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "var(--val-cyan)"
-                                                                                            : "rgba(0, 212, 170, 0.03)",
-                                                                                    color:
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "white"
-                                                                                            : "rgba(0, 212, 170, 0.85)",
-                                                                                    boxShadow:
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "0 0 15px rgba(0, 212, 170, 0.3)"
-                                                                                            : "none",
-                                                                                    transform:
-                                                                                        "scale(1)",
-                                                                                }}
-                                                                                onMouseEnter={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "translateY(-2px)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "var(--val-cyan)"
-                                                                                            : "rgba(0, 212, 170, 0.1)";
-                                                                                }}
-                                                                                onMouseLeave={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "scale(1)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "available"
-                                                                                            ? "var(--val-cyan)"
-                                                                                            : "rgba(0, 212, 170, 0.03)";
-                                                                                }}
-                                                                            >
-                                                                                <span>
-                                                                                    SÍ
-                                                                                </span>{" "}
-                                                                                <span>
-                                                                                    ✅
-                                                                                </span>
-                                                                            </button>
 
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    setAvailability(
-                                                                                        ev.id,
-                                                                                        myStatus === "maybe" ? "pending" : "maybe",
-                                                                                    )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
-                                                                                    flex: 1,
-                                                                                    fontSize: 11,
-                                                                                    fontWeight: 800,
-                                                                                    padding:
-                                                                                        "8px 12px",
-                                                                                    borderRadius: 8,
-                                                                                    cursor: "pointer",
-                                                                                    display:
-                                                                                        "flex",
-                                                                                    alignItems:
-                                                                                        "center",
-                                                                                    justifyContent:
-                                                                                        "center",
-                                                                                    gap: 6,
-                                                                                    border:
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "1px solid var(--val-yellow)"
-                                                                                            : "1px solid rgba(245, 158, 11, 0.15)",
-                                                                                    background:
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "var(--val-yellow)"
-                                                                                            : "rgba(245, 158, 11, 0.03)",
-                                                                                    color:
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "black"
-                                                                                            : "rgba(245, 158, 11, 0.85)",
-                                                                                    boxShadow:
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "0 0 15px rgba(245, 158, 11, 0.3)"
-                                                                                            : "none",
-                                                                                    transform:
-                                                                                        "scale(1)",
-                                                                                }}
-                                                                                onMouseEnter={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "translateY(-2px)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "var(--val-yellow)"
-                                                                                            : "rgba(245, 158, 11, 0.1)";
-                                                                                }}
-                                                                                onMouseLeave={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "scale(1)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "maybe"
-                                                                                            ? "var(--val-yellow)"
-                                                                                            : "rgba(245, 158, 11, 0.03)";
-                                                                                }}
-                                                                            >
-                                                                                <span>
-                                                                                    DUDA
-                                                                                </span>{" "}
-                                                                                <span>
-                                                                                    ⚠️
-                                                                                </span>
-                                                                            </button>
-
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    setAvailability(
-                                                                                        ev.id,
-                                                                                        myStatus === "unavailable" ? "pending" : "unavailable",
-                                                                                    )
-                                                                                }
-                                                                                className="transition-smooth"
-                                                                                style={{
-                                                                                    flex: 1,
-                                                                                    fontSize: 11,
-                                                                                    fontWeight: 800,
-                                                                                    padding:
-                                                                                        "8px 12px",
-                                                                                    borderRadius: 8,
-                                                                                    cursor: "pointer",
-                                                                                    display:
-                                                                                        "flex",
-                                                                                    alignItems:
-                                                                                        "center",
-                                                                                    justifyContent:
-                                                                                        "center",
-                                                                                    gap: 6,
-                                                                                    border:
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "1px solid var(--val-red)"
-                                                                                            : "1px solid rgba(255, 70, 85, 0.15)",
-                                                                                    background:
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "var(--val-red)"
-                                                                                            : "rgba(255, 70, 85, 0.03)",
-                                                                                    color:
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "white"
-                                                                                            : "rgba(255, 70, 85, 0.85)",
-                                                                                    boxShadow:
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "0 0 15px rgba(255, 70, 85, 0.3)"
-                                                                                            : "none",
-                                                                                    transform:
-                                                                                        "scale(1)",
-                                                                                }}
-                                                                                onMouseEnter={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "translateY(-2px)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "var(--val-red)"
-                                                                                            : "rgba(255, 70, 85, 0.1)";
-                                                                                }}
-                                                                                onMouseLeave={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.currentTarget.style.transform =
-                                                                                        "scale(1)";
-                                                                                    e.currentTarget.style.background =
-                                                                                        myStatus ===
-                                                                                            "unavailable"
-                                                                                            ? "var(--val-red)"
-                                                                                            : "rgba(255, 70, 85, 0.03)";
-                                                                                }}
-                                                                            >
-                                                                                <span>
-                                                                                    NO
-                                                                                </span>{" "}
-                                                                                <span>
-                                                                                    ❌
-                                                                                </span>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
                                                         </div>
                                                     </div>
                                                 </div>

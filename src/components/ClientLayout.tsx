@@ -1,6 +1,5 @@
 "use client";
 import { Sidebar } from "@/components/Sidebar";
-import { BottomNav } from "@/components/BottomNav";
 import { usePathname } from "next/navigation";
 import { useState, ReactNode } from "react";
 import { useSession } from "next-auth/react";
@@ -11,16 +10,43 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isLandingPage = pathname === "/" && !session?.user?.id;
   const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/onboarding" || isLandingPage;
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isAuthPage) return <>{children}</>;
 
   return (
     <div className="app-layout">
-      <Sidebar onShowDisclaimer={() => setShowDisclaimer(true)} />
+      {/* Mobile Top Navbar */}
+      <div className="mobile-top-nav">
+        <button 
+          className="mobile-menu-btn" 
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Abrir menú"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div className="mobile-top-nav-brand">V-HUB</div>
+        <div style={{ width: 40 }}></div> {/* Spacer to center the brand */}
+      </div>
+
+      <div 
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'mobile-open' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      <Sidebar 
+        onShowDisclaimer={() => setShowDisclaimer(true)} 
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
+      
       <main className="main-content">
         {children}
       </main>
-      <BottomNav />
 
       {showDisclaimer && (
         <div className="modal-overlay" onClick={() => setShowDisclaimer(false)} style={{ zIndex: 9999 }}>
