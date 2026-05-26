@@ -571,6 +571,63 @@ select option {
   gap: 2px;
 }
 
+/* Ensure calendar month grid rows are equal height so each weekday cell
+   reserves the same vertical space regardless of content. The grid is
+   placed inside a flex container so we use 1fr rows and full-height. */
+.calendar-grid-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* Use an auto row for weekdays, then 6 rows that share available height: 
+     minmax(0, 1fr) keeps rows balanced while allowing children to size themselves inside. */
+  grid-template-rows: auto repeat(6, minmax(0, 1fr));
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  width: 100%;
+  overflow-x: hidden; /* prevent horizontal scroll */
+}
+
+/* Reduce vertical space for weekday names (first 7 grid items) */
+.calendar-grid > div:nth-child(-n+7) {
+  padding: 6px 6px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Let cells expand vertically and allow their content to scroll internally
+   if it overflows the allocated row. This permits events to grow while
+   keeping the overall grid width stable. */
+.calendar-grid > div {
+  min-height: 0 !important;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make the calendar card fill the available area inside availability wrapper
+   so the month grid fits without causing page scroll. Remove card's bottom
+   margin and hide external overflow. */
+.availability-wrapper .page-content > .card.glass-card {
+  margin-bottom: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.availability-wrapper .calendar-grid-container {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 /* Week view scroll container styling */
 .availability-wrapper .week-view {
   display: flex;
@@ -3506,9 +3563,9 @@ input[type="range"].color-picker-slider::-moz-range-thumb:hover {
 /* Desktop: force availability week view to scroll internally (avoid page-level scroll) */
 @media (min-width: 769px) {
   .availability-wrapper {
-    /* reserve viewport space up to the top of the bottom-nav */
-    height: calc(100vh - var(--bottom-nav-height));
-    max-height: calc(100vh - var(--bottom-nav-height));
+    /* On large screens the bottom-nav is hidden — make wrapper fill viewport */
+    height: 100vh;
+    max-height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -3526,5 +3583,38 @@ input[type="range"].color-picker-slider::-moz-range-thumb:hover {
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure bottom nav is hidden and main doesn't reserve mobile space on larger viewports */
+  .bottom-nav {
+    display: none !important;
+  }
+
+  .main-content {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Extra desktop guard: ensure no bottom gap on very large screens */
+@media (min-width: 1025px) {
+  .main-content {
+    padding-bottom: 0 !important;
+  }
+
+  .availability-wrapper {
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+
+  .availability-wrapper .page-content > .card.glass-card {
+    margin-bottom: 0 !important;
+    height: 100% !important;
+  }
+
+  .availability-wrapper .calendar-grid-container {
+    flex: 1 1 auto !important;
+    height: calc(100vh - var(--header-height)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 }

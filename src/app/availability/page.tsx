@@ -622,7 +622,19 @@ export default function AvailabilityPage() {
         const weekDays: any[] = [];
         const todayStr = formatDateLocal(new Date());
 
-        for (let i = 0; i < startDayOffset; i++) days.push({ empty: true });
+        const prevMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+        const prevMonthDays = prevMonthEnd.getDate();
+
+        for (let i = startDayOffset - 1; i >= 0; i--) {
+            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, prevMonthDays - i);
+            const dateStr = formatDateLocal(d);
+            days.push({
+                day: prevMonthDays - i,
+                date: dateStr,
+                isOtherMonth: true,
+                events: events.filter((e) => (e as any).localDate === dateStr),
+            });
+        }
         for (let i = 1; i <= endOfMonth.getDate(); i++) {
             const d = new Date(
                 currentDate.getFullYear(),
@@ -637,6 +649,19 @@ export default function AvailabilityPage() {
                 date: dateStr,
                 isToday,
                 isPast,
+                events: events.filter((e) => (e as any).localDate === dateStr),
+            });
+        }
+        
+        const totalDays = days.length;
+        const remainingDays = 42 - totalDays;
+        for (let i = 1; i <= remainingDays; i++) {
+            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, i);
+            const dateStr = formatDateLocal(d);
+            days.push({
+                day: i,
+                date: dateStr,
+                isOtherMonth: true,
                 events: events.filter((e) => (e as any).localDate === dateStr),
             });
         }
@@ -711,7 +736,7 @@ export default function AvailabilityPage() {
                 height: "100vh",
                 display: "flex",
                 flexDirection: "column",
-                padding: "0 24px 0",
+                padding: 0,
             }}
         >
             <div
@@ -719,7 +744,7 @@ export default function AvailabilityPage() {
                 style={{
                     borderBottom: "none",
                     background: "transparent",
-                    padding: "24px 0",
+                    padding: "24px",
                     flexShrink: 0,
                 }}
             >
@@ -805,7 +830,7 @@ export default function AvailabilityPage() {
             <div
                 className="page-content animate-in"
                 style={{
-                    padding: 0,
+                    padding: viewMode === "list" ? "0 24px" : 0,
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
@@ -931,9 +956,12 @@ export default function AvailabilityPage() {
                                     minHeight: 0,
                                     height: "100%",
                                     maxHeight: "100%",
-                                    marginBottom: 24,
+                                    marginBottom: 0,
                                     position: "relative",
                                     background: "#0a0b14",
+                                    borderRadius: 0,
+                                    border: "none",
+                                    borderTop: "1px solid var(--border-color)",
                                 }}
                             >
                                 {weekMap && (
@@ -1099,18 +1127,20 @@ export default function AvailabilityPage() {
                                                             "1px solid var(--border-color)",
                                                         borderBottom:
                                                             "1px solid var(--border-color)",
-                                                        background: d.empty
-                                                            ? "rgba(0,0,0,0.1)"
+                                                        background: d.isOtherMonth
+                                                            ? "rgba(0,0,0,0.2)"
                                                             : d.isToday
                                                                 ? "rgba(133, 107, 77, 0.06)"
                                                                 : d.isPast
                                                                     ? "rgba(0,0,0,0.4)"
                                                                     : "transparent",
                                                         position: "relative",
-                                                        opacity: d.isPast
-                                                            ? 0.25
-                                                            : 1,
-                                                        filter: d.isPast
+                                                        opacity: d.isOtherMonth
+                                                            ? 0.15
+                                                            : d.isPast
+                                                                ? 0.25
+                                                                : 1,
+                                                        filter: d.isOtherMonth || d.isPast
                                                             ? "grayscale(0.8) contrast(0.8)"
                                                             : "none",
                                                         animationDelay: `${(i % 7) * 0.05}s`,
@@ -1122,9 +1152,8 @@ export default function AvailabilityPage() {
                                                             : 1,
                                                     }}
                                                 >
-                                                    {!d.empty && (
-                                                        <>
-                                                            <div
+                                                    <>
+                                                        <div
                                                                 style={{
                                                                     display:
                                                                         "flex",
@@ -1143,7 +1172,11 @@ export default function AvailabilityPage() {
                                                                                 : 500,
                                                                         color: d.isToday
                                                                             ? "white"
-                                                                            : "var(--text-primary)",
+                                                                            : d.isOtherMonth
+                                                                                ? "rgba(255, 255, 255, 0.1)"
+                                                                                : d.isPast
+                                                                                    ? "var(--text-muted)"
+                                                                                    : "var(--text-primary)",
                                                                         background:
                                                                             d.isToday
                                                                                 ? "var(--val-red)"
@@ -1555,7 +1588,6 @@ export default function AvailabilityPage() {
                                                                     )}
                                                             </div>
                                                         </>
-                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -1986,6 +2018,9 @@ export default function AvailabilityPage() {
                                                                                         (em -
                                                                                             m) /
                                                                                         60;
+                                                                                    if (duration < 0) {
+                                                                                        duration += 24;
+                                                                                    }
                                                                                 }
                                                                                 const height =
                                                                                     duration *

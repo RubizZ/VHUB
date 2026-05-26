@@ -166,11 +166,11 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+        <div className="grid dashboard-grid" style={{ gap: 24 }}>
           {/* Main Column */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div className="grid grid-2" style={{ gap: 24 }}>
               {/* Upcoming Events */}
               <div className="card glass-card">
                 <div className="card-header">
