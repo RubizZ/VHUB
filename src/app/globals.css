@@ -12,7 +12,7 @@
   --val-gold: #D4AF37;
   --val-orange: #FF6B35;
   --val-practice: #b8b8b8;
-  --val-match: #856b4d;
+  --val-match: #B8946A;
   --bg-primary: #0A0A0F;
   --bg-secondary: #12121A;
   --bg-card: rgba(18, 18, 26, 0.8);
@@ -1370,8 +1370,8 @@ select option {
 
   /* Constrain availability wrapper height on mobile so week view scrolls internally */
   .availability-wrapper {
-    height: calc(100vh - var(--bottom-nav-height) - 16px);
-    max-height: calc(100vh - var(--bottom-nav-height) - 16px);
+    height: 100%;
+    max-height: 100%;
   }
 
   /* Nota: el padding para dejar espacio a la bottom-nav se aplica en .main-content */
@@ -3617,4 +3617,27 @@ input[type="range"].color-picker-slider::-moz-range-thumb:hover {
     min-height: 0 !important;
     overflow: hidden !important;
   }
+}
+
+.mobile-hidden { display: none !important; }
+@media (min-width: 768px) { .mobile-hidden { display: inline-flex !important; } }
+
+.desktop-hidden { display: inline-flex !important; }
+@media (min-width: 768px) { .desktop-hidden { display: none !important; } }
+
+
+.calendar-event-text { font-size: 8px !important; line-height: 1.1 !important; }
+@media (min-width: 768px) { .calendar-event-text { font-size: 10px !important; line-height: 1.2 !important; } }
+
+
+.calendar-cell-padding { padding: 2px !important; }
+@media (min-width: 768px) { .calendar-cell-padding { padding: 10px !important; } }
+
+
+.calendar-day-number { width: 14px !important; height: 14px !important; font-size: 8px !important; border-radius: 3px !important; margin-bottom: 2px !important; }
+@media (min-width: 768px) { .calendar-day-number { width: 24px !important; height: 24px !important; font-size: 12px !important; border-radius: 6px !important; margin-bottom: 4px !important; } }
+
+
+.main-content:has(.availability-wrapper) {
+  overflow: hidden !important;
 }

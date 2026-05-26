@@ -733,10 +733,12 @@ export default function AvailabilityPage() {
         <div
             className="availability-wrapper"
             style={{
-                height: "100vh",
+                flex: 1,
                 display: "flex",
                 flexDirection: "column",
                 padding: 0,
+                minWidth: 0,
+                height: "100%",
             }}
         >
             <div
@@ -751,8 +753,10 @@ export default function AvailabilityPage() {
                 <div
                     style={{
                         display: "flex",
+                        flexWrap: "wrap",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        gap: 16,
                     }}
                 >
                     <div>
@@ -766,8 +770,9 @@ export default function AvailabilityPage() {
                             Planifica tus sesiones y confirma tu asistencia
                         </p>
                     </div>
-                    <div style={{ display: "flex", gap: 12 }}>
-                        <div
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", width: "100%" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap" }}>
+                            <div
                             className="glass-card"
                             style={{
                                 display: "flex",
@@ -808,24 +813,50 @@ export default function AvailabilityPage() {
                                 📅 Mes
                             </button>
                         </div>
-                        {canManage && (
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => setShowNew(true)}
-                            >
-                                + Nuevo Evento
-                            </button>
-                        )}
                         <button
-                            className="btn btn-ghost"
+                            className="btn btn-ghost btn-sm"
                             onClick={() => setShowExport(true)}
                             title="Exportar a Google Calendar, Apple, etc."
                         >
                             🔗 Exportar
                         </button>
                     </div>
+                    {canManage && (
+                            <button
+                                className="btn btn-primary mobile-hidden"
+                                onClick={() => setShowNew(true)}
+                            >
+                                + Nuevo Evento
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {canManage && (
+                <button
+                    className="btn btn-primary desktop-hidden"
+                    onClick={() => setShowNew(true)}
+                    style={{
+                        position: "fixed",
+                        bottom: "80px",
+                        right: "20px",
+                        width: "56px",
+                        height: "56px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "28px",
+                        boxShadow: "0 4px 15px rgba(220, 38, 38, 0.4)",
+                        zIndex: 100,
+                        padding: 0,
+                        lineHeight: 1
+                    }}
+                >
+                    +
+                </button>
+            )}
 
             <div
                 className="page-content animate-in"
@@ -835,7 +866,9 @@ export default function AvailabilityPage() {
                     display: "flex",
                     flexDirection: "column",
                     minHeight: 0,
+                    minWidth: 0,
                     overflow: "hidden",
+                    height: "100%",
                 }}
             >
                 {error && (
@@ -954,6 +987,7 @@ export default function AvailabilityPage() {
                                     display: "flex",
                                     flexDirection: "column",
                                     minHeight: 0,
+                                    minWidth: 0,
                                     height: "100%",
                                     maxHeight: "100%",
                                     marginBottom: 0,
@@ -1076,13 +1110,10 @@ export default function AvailabilityPage() {
                                 <div
                                     className="calendar-grid-container"
                                     style={{
-                                        position: "relative",
                                         flex: 1,
-                                        display: "flex",
-                                        flexDirection: "column",
+                                        overflowY: "auto",
                                         minHeight: 0,
-                                        overflow: "hidden",
-                                        zIndex: 1,
+                                        height: "100%",
                                     }}
                                 >
                                     {viewMode === "calendar" ? (
@@ -1091,12 +1122,14 @@ export default function AvailabilityPage() {
                                             style={{
                                                 display: "grid",
                                                 gridTemplateColumns:
-                                                    "repeat(7, 1fr)",
+                                                    "repeat(7, minmax(0, 1fr))",
                                                 background:
                                                     "rgba(255,255,255,0.01)",
                                                 gap: 0,
                                                 padding: 0,
                                                 flex: 1,
+                                                minWidth: 0,
+                                                height: "100%",
                                             }}
                                         >
                                             {dayNames.map((name) => (
@@ -1110,6 +1143,10 @@ export default function AvailabilityPage() {
                                                         color: "var(--text-muted)",
                                                         borderBottom:
                                                             "1px solid var(--border-color)",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                        minWidth: 0,
                                                     }}
                                                 >
                                                     {name}
@@ -1118,11 +1155,11 @@ export default function AvailabilityPage() {
                                             {days.map((d, i) => (
                                                 <div
                                                     key={i}
-                                                    className={`animate-scale-in`}
+                                                    className={`animate-scale-in calendar-cell-padding`}
                                                     style={{
                                                         flex: 1,
+                                                        minWidth: 0,
                                                         minHeight: 80,
-                                                        padding: 10,
                                                         borderRight:
                                                             "1px solid var(--border-color)",
                                                         borderBottom:
@@ -1164,8 +1201,8 @@ export default function AvailabilityPage() {
                                                                 }}
                                                             >
                                                                 <span
+                                                                    className="calendar-day-number"
                                                                     style={{
-                                                                        fontSize: 12,
                                                                         fontWeight:
                                                                             d.isToday
                                                                                 ? 800
@@ -1181,9 +1218,6 @@ export default function AvailabilityPage() {
                                                                             d.isToday
                                                                                 ? "var(--val-red)"
                                                                                 : "transparent",
-                                                                        width: 24,
-                                                                        height: 24,
-                                                                        borderRadius: 6,
                                                                         display:
                                                                             "flex",
                                                                         alignItems:
@@ -1220,7 +1254,8 @@ export default function AvailabilityPage() {
                                                                     flexDirection:
                                                                         "column",
                                                                     gap: 4,
-                                                                    marginTop: 8,
+                                                                    marginTop: 2,
+                                                                    minWidth: 0,
                                                                 }}
                                                             >
                                                                 {isLoadingEvents
@@ -1459,12 +1494,12 @@ export default function AvailabilityPage() {
                                                                                             ev.id,
                                                                                         )
                                                                                     }
-                                                                                    className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                    className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
                                                                                     style={{
-                                                                                        fontSize: 10,
                                                                                         padding:
                                                                                             "4px 6px",
                                                                                         borderRadius: 4,
+                                                                                        minWidth: 0,
                                                                                         background:
                                                                                             isRed
                                                                                                 ? "transparent"
@@ -1494,12 +1529,10 @@ export default function AvailabilityPage() {
                                                                                                 ? color
                                                                                                 : "white",
                                                                                         fontWeight: 700,
-                                                                                        whiteSpace:
-                                                                                            "nowrap",
-                                                                                        overflow:
-                                                                                            "hidden",
-                                                                                        textOverflow:
-                                                                                            "ellipsis",
+                                                                                        whiteSpace: "normal",
+                                                                                        overflow: "visible",
+                                                                                        textOverflow: "clip",
+                                                                                        wordBreak: "break-word",
                                                                                         cursor: "pointer",
                                                                                         textDecoration:
                                                                                             isCancelled ||
@@ -1548,9 +1581,14 @@ export default function AvailabilityPage() {
                                                                                     title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
                                                                                 >
                                                                                     {isFirstUpcoming && (
-                                                                                        <span
+                                                                                        <div
                                                                                             style={{
-                                                                                                marginRight: 4,
+                                                                                                marginBottom: 2,
+                                                                                                width: "fit-content",
+                                                                                                maxWidth: "100%",
+                                                                                                whiteSpace: "nowrap",
+                                                                                                overflow: "hidden",
+                                                                                                textOverflow: "ellipsis",
                                                                                                 background:
                                                                                                     ev.type ===
                                                                                                         "match"
@@ -1574,14 +1612,16 @@ export default function AvailabilityPage() {
                                                                                             }}
                                                                                         >
                                                                                             PRÓXIMO
-                                                                                        </span>
+                                                                                        </div>
                                                                                     )}
-                                                                                    {
-                                                                                        ev.localTime
-                                                                                    }{" "}
-                                                                                    {getEventDisplayName(
-                                                                                        ev,
-                                                                                    )}
+                                                                                    <span className="mobile-hidden" style={{ marginRight: 4 }}>
+                                                                                        {ev.localTime}
+                                                                                    </span>
+                                                                                    <span>
+                                                                                        {getEventDisplayName(
+                                                                                            ev,
+                                                                                        )}
+                                                                                    </span>
                                                                                 </div>
                                                                             );
                                                                         },
@@ -1599,6 +1639,7 @@ export default function AvailabilityPage() {
                                                 flexDirection: "column",
                                                 flex: 1,
                                                 minHeight: 0,
+                                                minWidth: 0,
                                                 position: "relative",
                                                 background: "transparent",
                                             }}
@@ -1620,7 +1661,7 @@ export default function AvailabilityPage() {
                                                         zIndex: 30,
                                                         display: "grid",
                                                         gridTemplateColumns:
-                                                            "60px repeat(7, 1fr)",
+                                                            "60px repeat(7, minmax(0, 1fr))",
                                                         borderBottom:
                                                             "1px solid var(--border-color)",
                                                         background: "#0a0b14",
@@ -1648,6 +1689,8 @@ export default function AvailabilityPage() {
                                                                         idx < 6
                                                                             ? "1px solid var(--border-color)"
                                                                             : "none",
+                                                                    minWidth: 0,
+                                                                    overflow: "hidden",
                                                                 }}
                                                             >
                                                                 <div
@@ -1658,6 +1701,9 @@ export default function AvailabilityPage() {
                                                                         textTransform:
                                                                             "uppercase",
                                                                         marginBottom: 4,
+                                                                        overflow: "hidden",
+                                                                        textOverflow: "ellipsis",
+                                                                        whiteSpace: "nowrap",
                                                                     }}
                                                                 >
                                                                     {
@@ -1743,7 +1789,7 @@ export default function AvailabilityPage() {
                                                         style={{
                                                             display: "grid",
                                                             gridTemplateColumns:
-                                                                "repeat(7, 1fr)",
+                                                                "repeat(7, minmax(0, 1fr))",
                                                             flex: 1,
                                                             position:
                                                                 "relative",
@@ -1760,6 +1806,7 @@ export default function AvailabilityPage() {
                                                                     style={{
                                                                         position:
                                                                             "relative",
+                                                                        minWidth: 0,
                                                                         borderRight:
                                                                             idx <
                                                                                 6
@@ -2139,7 +2186,7 @@ export default function AvailabilityPage() {
                                                                                                 ev.id,
                                                                                             )
                                                                                         }
-                                                                                        className={`calendar-event-hover ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                        className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
                                                                                         style={{
                                                                                             position:
                                                                                                 "absolute",
@@ -2147,7 +2194,6 @@ export default function AvailabilityPage() {
                                                                                             left: 4,
                                                                                             right: 4,
                                                                                             height: height,
-                                                                                            fontSize: 10,
                                                                                             padding:
                                                                                                 "6px",
                                                                                             borderRadius: 8,
@@ -2253,6 +2299,10 @@ export default function AvailabilityPage() {
                                                                                         {isFirstUpcoming && (
                                                                                             <div
                                                                                                 style={{
+                                                                                                    maxWidth: "100%",
+                                                                                                    whiteSpace: "nowrap",
+                                                                                                    overflow: "hidden",
+                                                                                                    textOverflow: "ellipsis",
                                                                                                     background:
                                                                                                         "rgba(255,255,255,0.18)",
                                                                                                     color: "white",
@@ -2277,10 +2327,7 @@ export default function AvailabilityPage() {
                                                                                         <div
                                                                                             style={{
                                                                                                 whiteSpace:
-                                                                                                    height <
-                                                                                                        40
-                                                                                                        ? "nowrap"
-                                                                                                        : "normal",
+                                                                                                    height < 40 ? "nowrap" : "normal",
                                                                                                 overflow:
                                                                                                     "hidden",
                                                                                                 textOverflow:
@@ -2757,7 +2804,7 @@ export default function AvailabilityPage() {
                                                         marginBottom: 12,
                                                         borderLeft: `4px solid ${ev.type === "match" ? "var(--val-match)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-practice)"}`,
                                                         scrollMarginTop:
-                                                            "100px",
+                                                            "80px",
                                                         animationDelay: `${Math.min(idx, 5) * 0.1}s`,
                                                         boxShadow:
                                                             isFirstUpcoming
@@ -3807,11 +3854,11 @@ export default function AvailabilityPage() {
                                                                                                 fontSize: 12,
                                                                                             }}
                                                                                         >
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    fontWeight: 700,
-                                                                                                }}
-                                                                                            >
+                                                                                                <span
+                                                                                                    style={{
+                                                                                                        fontWeight: 700,
+                                                                                                    }}
+                                                                                                >
                                                                                                 {
                                                                                                     m.map_name
                                                                                                 }
