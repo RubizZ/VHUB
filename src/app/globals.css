@@ -1176,13 +1176,23 @@ select option {
 }
 
 .tag-match {
-  background: rgba(133, 107, 77, 0.15);
+  background: color-mix(in srgb, var(--val-match), transparent 85%);
   color: var(--val-match);
+}
+.tag-match.tag-solid {
+  background: var(--val-match);
+  color: #0A0A0F;
+  font-weight: 800;
 }
 
 .tag-practice {
-  background: rgba(184, 184, 184, 0.15);
+  background: color-mix(in srgb, var(--val-practice), transparent 85%);
   color: var(--val-practice);
+}
+.tag-practice.tag-solid {
+  background: var(--val-practice);
+  color: #0A0A0F;
+  font-weight: 800;
 }
 
 .tag-neutral {
@@ -1238,9 +1248,16 @@ select option {
 }
 
 .tag-gold {
-  background: rgba(212, 175, 55, 0.15);
+  background: color-mix(in srgb, var(--val-gold), transparent 85%);
   color: var(--val-gold);
   border: 1px solid rgba(212, 175, 55, 0.3);
+}
+.tag-gold.tag-solid {
+  background: var(--val-gold);
+  color: #0A0A0F;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
 /* ── Win/Loss indicators ── */

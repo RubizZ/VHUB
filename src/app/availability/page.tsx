@@ -1529,6 +1529,9 @@ export default function AvailabilityPage() {
                                                                                                 ? color
                                                                                                 : "white",
                                                                                         fontWeight: 700,
+                                                                                        display: "flex",
+                                                                                        flexWrap: "wrap",
+                                                                                        alignItems: "center",
                                                                                         whiteSpace: "normal",
                                                                                         overflow: "visible",
                                                                                         textOverflow: "clip",
@@ -1577,13 +1580,15 @@ export default function AvailabilityPage() {
                                                                                             hoverInsetShadow,
                                                                                         ["--hover-color" as any]:
                                                                                             color,
+                                                                                        ["--ev-color" as any]: color,
                                                                                     }}
                                                                                     title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
                                                                                 >
                                                                                     {isFirstUpcoming && (
                                                                                         <div
                                                                                             style={{
-                                                                                                marginBottom: 2,
+                                                                                                marginRight: 4,
+                                                                                                marginBottom: 0,
                                                                                                 width: "fit-content",
                                                                                                 maxWidth: "100%",
                                                                                                 whiteSpace: "nowrap",
@@ -5224,7 +5229,7 @@ export default function AvailabilityPage() {
                                             }}
                                         >
                                             <span
-                                                className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"}`}
+                                                className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"} ${(myStatus === "available" || myStatus === "maybe") ? "tag-solid" : ""}`}
                                             >
                                                 {ev.type === "match"
                                                     ? "Partido"
