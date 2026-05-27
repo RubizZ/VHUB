@@ -42,6 +42,8 @@ interface SkillFormData {
   flagInstantSelfBuff: boolean;
   flagSelfRevive: boolean;
   flagTargetRevive: boolean;
+  flagActivatableDeployable: boolean;
+  flagTwoPointDeployment: boolean;
   displayIcon: string;
   enabled: boolean;
 }
@@ -88,6 +90,8 @@ export default function AdminAgentsPage() {
     flagInstantSelfBuff: false,
     flagSelfRevive: false,
     flagTargetRevive: false,
+    flagActivatableDeployable: false,
+    flagTwoPointDeployment: false,
     displayIcon: "",
     enabled: true,
   });
@@ -162,6 +166,8 @@ export default function AdminAgentsPage() {
         flagInstantSelfBuff: skill.behavior?.flags?.instantSelfBuff || false,
         flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
+        flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
+        flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -201,6 +207,8 @@ export default function AdminAgentsPage() {
         flagInstantSelfBuff: false,
         flagSelfRevive: false,
         flagTargetRevive: false,
+        flagActivatableDeployable: false,
+        flagTwoPointDeployment: false,
         displayIcon: "",
         enabled: true,
       });
@@ -247,6 +255,8 @@ export default function AdminAgentsPage() {
             instantSelfBuff: formData.flagInstantSelfBuff || undefined,
             selfRevive: formData.flagSelfRevive || undefined,
             targetRevive: formData.flagTargetRevive || undefined,
+            activatableDeployable: formData.flagActivatableDeployable || undefined,
+            twoPointDeployment: formData.flagTwoPointDeployment || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -450,6 +460,22 @@ export default function AdminAgentsPage() {
                   </div>
                   
                   <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagActivatableDeployable} onChange={e => setFormData({...formData, flagActivatableDeployable: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Desplegable Activable (Ej: Cárcel de Cypher)</span>
+                    </label>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, flagTwoPointDeployment: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Despliegue de Dos Puntos (Ej: Cables de Cypher)</span>
+                    </label>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
                     <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                   </div>
@@ -494,9 +520,9 @@ export default function AdminAgentsPage() {
                     </div>
                   </div>
 
-                  {formData.flagInstantSelfBuff && (
+                  {(formData.flagInstantSelfBuff || formData.flagActivatableDeployable) && (
                     <div className="form-group" style={{ marginBottom: 16 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Buff (s)</label>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
                       <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
                     </div>
                   )}

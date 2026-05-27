@@ -66,6 +66,7 @@ interface CanvasSkill {
   geometry: any;
   behavior: any;
   projectileMode?: "bounce" | "parabola";
+  isActive?: boolean;
   color: string;
   createdBy?: string;
 }
@@ -721,6 +722,65 @@ export default function StrategiesPage() {
     for (const skill of skillsRef.current) {
       ctx.save();
       ctx.translate(skill.x, skill.y);
+      
+      const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+      const isActivatable = skill.behavior?.flags?.activatableDeployable;
+      const isActive = skill.isActive;
+
+      let sImg = skillImgsRef.current.get(skill.key);
+      if (!sImg) {
+         const agent = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+         const agentData = agent ? findAgent(agent.id) : null;
+         const skillData = agentData?.skills?.find(s => s.key === skill.key);
+         if (skillData?.displayIcon) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = skillData.displayIcon;
+            img.onload = () => {
+              skillImgsRef.current.set(skill.key, img);
+              redraw();
+            };
+            skillImgsRef.current.set(skill.key, img);
+            sImg = img;
+         }
+      }
+      
+      if (isTwoPoint && skill.targetX !== undefined && skill.targetY !== undefined) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(skill.targetX - skill.x, skill.targetY - skill.y);
+        ctx.strokeStyle = skill.color;
+        ctx.lineWidth = 3 / scale;
+        ctx.globalAlpha = 0.8;
+        ctx.stroke();
+        
+        if (sImg && sImg.complete) {
+           ctx.drawImage(sImg, -8, -8, 16, 16);
+           ctx.drawImage(sImg, skill.targetX - skill.x - 8, skill.targetY - skill.y - 8, 16, 16);
+        }
+        ctx.restore();
+        continue;
+      }
+
+      if (isActivatable && !isActive) {
+        if (sImg && sImg.complete) {
+           ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+           ctx.beginPath();
+           ctx.roundRect(-10, -10, 20, 20, 4);
+           ctx.fill();
+           ctx.strokeStyle = skill.color;
+           ctx.lineWidth = 1.5 / scale;
+           ctx.stroke();
+           ctx.drawImage(sImg, -8, -8, 16, 16);
+        } else {
+           ctx.fillStyle = skill.color;
+           ctx.beginPath();
+           ctx.arc(0, 0, 6, 0, 2*Math.PI);
+           ctx.fill();
+        }
+        ctx.restore();
+        continue;
+      }
       
       const geom = skill.geometry;
       ctx.fillStyle = skill.color;
@@ -1441,6 +1501,30 @@ export default function StrategiesPage() {
           agentClickStartRef.current = { x: cx, y: cy };
           draggedAgentRef.current = found;
           draggedAgentOldPosRef.current = { x: found.x, y: found.y };
+          return;
+        }
+        
+        // Check if we clicked on an activatable skill
+        const canvasPos = getPos(e);
+        const clickedSkill = [...skillsRef.current].reverse().find(s => {
+          if (!s.behavior?.flags?.activatableDeployable || s.isActive) return false;
+          const dx = s.x - canvasPos.x;
+          const dy = s.y - canvasPos.y;
+          // Icon radius is around 12-16 depending on drawing scale, 20 is safe hit area
+          return Math.sqrt(dx * dx + dy * dy) <= 20; 
+        });
+        
+        if (clickedSkill) {
+          clickedSkill.isActive = true;
+          redrawImmediate();
+          
+          const duration = clickedSkill.behavior?.buffDuration;
+          if (duration && duration > 0) {
+            setTimeout(() => {
+              skillsRef.current = skillsRef.current.filter(s => s.instanceId !== clickedSkill.instanceId);
+              redrawImmediateRef.current();
+            }, duration * 1000);
+          }
           return;
         }
       }
@@ -3966,22 +4050,22 @@ export default function StrategiesPage() {
                       // Lógica Sandbox: Teletransporte a habilidad desplegada
                       if (skill.behavior?.flags?.teleportsToDeployed) {
                         // Buscar si ya hay un ancla desplegada por este agente
-                        const deployedSkill = pathsRef.current.find(
-                          p => p.tool === "skill" && p.agentInstanceId === ctxAgent.instanceId && p.skill?.key === skill.key
+                        const deployedSkill = skillsRef.current.find(
+                          s => s.agentInstanceId === ctxAgent.instanceId && s.key === skill.key
                         );
                         
-                        if (deployedSkill && deployedSkill.points.length > 0) {
+                        if (deployedSkill) {
                           const range = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 13;
-                          const dx = deployedSkill.points[0].x - ctxAgent.x;
-                          const dy = deployedSkill.points[0].y - ctxAgent.y;
+                          const dx = deployedSkill.x - ctxAgent.x;
+                          const dy = deployedSkill.y - ctxAgent.y;
                           const dist = Math.sqrt(dx * dx + dy * dy);
                           
                           if (dist <= range) {
                             // Teletransportar agente instantáneamente
                             const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
                             if (agentIndex !== -1) {
-                              agentsRef.current[agentIndex].x = deployedSkill.points[0].x;
-                              agentsRef.current[agentIndex].y = deployedSkill.points[0].y;
+                              agentsRef.current[agentIndex].x = deployedSkill.x;
+                              agentsRef.current[agentIndex].y = deployedSkill.y;
                               redraw();
                               setHoverMenuState(prev => ({ ...prev, visible: false }));
                               return; // No castear una nueva ancla

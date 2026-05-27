@@ -21,6 +21,8 @@ export interface SkillBehaviorFlags {
   instantSelfBuff?: boolean; // Habilidad de auto-aplicación instantánea (Buff)
   selfRevive?: boolean; // Auto-resurrección (ej. Clove X)
   targetRevive?: boolean; // Resurrección a aliado (ej. Sage X)
+  activatableDeployable?: boolean; // Se puede activar una vez desplegada (ej. Cypher Q)
+  twoPointDeployment?: boolean; // Se despliega trazando línea entre dos puntos (ej. Cypher C)
 }
 
 export interface SkillBehavior {
