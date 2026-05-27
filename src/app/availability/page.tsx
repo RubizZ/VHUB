@@ -742,7 +742,9 @@ export default function AvailabilityPage() {
         
         // --- Infinite Scroll Logic ---
         if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
-            const scrollThreshold = 1200; // Trigger earlier for smoother preventive experience
+            // Cargar predictivamente cuando quede el 30% del contenido por ver,
+            // lo que equivale aproximadamente a la mitad de los elementos en una dirección (pasado/futuro)
+            const scrollThreshold = container.scrollHeight * 0.3; 
             
             // Bottom Check (Future Events)
             if (
