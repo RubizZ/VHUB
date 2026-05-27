@@ -45,6 +45,9 @@ interface SkillFormData {
   flagActivatableDeployable: boolean;
   flagTwoPointDeployment: boolean;
   flagDeployablePreRound: boolean;
+  flagControllablePath: boolean;
+  behaviorSpeed: number;
+  behaviorDuration: number;
   displayIcon: string;
   enabled: boolean;
 }
@@ -71,6 +74,8 @@ export default function AdminAgentsPage() {
     behaviorCastTime: 0,
     behaviorRechargeTime: 0,
     behaviorBuffDuration: 0,
+    behaviorSpeed: 0,
+    behaviorDuration: 0,
     behaviorSpawn: "player",
     behaviorGroundRange: 10,
     flagThroughWall: false,
@@ -94,6 +99,7 @@ export default function AdminAgentsPage() {
     flagActivatableDeployable: false,
     flagTwoPointDeployment: false,
     flagDeployablePreRound: false,
+    flagControllablePath: false,
     displayIcon: "",
     enabled: true,
   });
@@ -148,6 +154,8 @@ export default function AdminAgentsPage() {
         behaviorCastTime: skill.behavior?.castTime || 0,
         behaviorRechargeTime: skill.behavior?.rechargeTime || 0,
         behaviorBuffDuration: skill.behavior?.buffDuration || 0,
+        behaviorSpeed: skill.behavior?.speed || 0,
+        behaviorDuration: skill.behavior?.duration || 0,
         behaviorSpawn: skill.behavior?.spawn || "player",
         behaviorGroundRange: skill.behavior?.maxCastRange || skill.behavior?.groundRange || 10,
         flagThroughWall: skill.behavior?.flags?.throughWall || false,
@@ -171,6 +179,7 @@ export default function AdminAgentsPage() {
         flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
         flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
+        flagControllablePath: skill.behavior?.flags?.controllablePath || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -190,6 +199,8 @@ export default function AdminAgentsPage() {
         behaviorCastTime: 0,
         behaviorRechargeTime: 0,
         behaviorBuffDuration: 0,
+        behaviorSpeed: 0,
+        behaviorDuration: 0,
         behaviorSpawn: "player",
         behaviorGroundRange: 10,
         flagThroughWall: false,
@@ -213,6 +224,7 @@ export default function AdminAgentsPage() {
         flagActivatableDeployable: false,
         flagTwoPointDeployment: false,
         flagDeployablePreRound: false,
+        flagControllablePath: false,
         displayIcon: "",
         enabled: true,
       });
@@ -240,6 +252,8 @@ export default function AdminAgentsPage() {
           castTime: formData.behaviorCastTime,
           rechargeTime: formData.behaviorRechargeTime,
           buffDuration: formData.behaviorBuffDuration || undefined,
+          speed: formData.behaviorSpeed,
+          duration: formData.behaviorDuration,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           maxCastRange: Number(formData.behaviorGroundRange) || undefined,
           projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
@@ -262,6 +276,7 @@ export default function AdminAgentsPage() {
             activatableDeployable: formData.flagActivatableDeployable || undefined,
             twoPointDeployment: formData.flagTwoPointDeployment || undefined,
             deployablePreRound: formData.flagDeployablePreRound || undefined,
+            controllablePath: formData.flagControllablePath || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -487,6 +502,14 @@ export default function AdminAgentsPage() {
                       <span>Desplegable en Pre-ronda (Timeline mode)</span>
                     </label>
                   </div>
+
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagControllablePath} onChange={e => setFormData({...formData, flagControllablePath: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Ruta Controlable/Trazable (Ej: Perro de Fade)</span>
+                    </label>
+                  </div>
                   
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
@@ -537,6 +560,19 @@ export default function AdminAgentsPage() {
                     <div className="form-group" style={{ marginBottom: 16 }}>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
                       <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
+                    </div>
+                  )}
+
+                  {formData.flagControllablePath && (
+                    <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                      <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Velocidad (m/s)</label>
+                        <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorSpeed} onChange={e => setFormData({...formData, behaviorSpeed: parseFloat(e.target.value)})} />
+                      </div>
+                      <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración Máx (s)</label>
+                        <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
+                      </div>
                     </div>
                   )}
 

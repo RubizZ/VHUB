@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "circle" | "rectangle" | "cone" | "infinite-wall";
+  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path";
   radius?: number;
   width?: number;
   length?: number;
@@ -24,11 +24,14 @@ export interface SkillBehaviorFlags {
   activatableDeployable?: boolean; // Se puede activar una vez desplegada (ej. Cypher Q)
   twoPointDeployment?: boolean; // Se despliega trazando línea entre dos puntos (ej. Cypher C)
   deployablePreRound?: boolean; // Puede ser desplegada durante la fase de compra/pre-ronda
+  controllablePath?: boolean; // Habilidad que se mueve dibujando un trazo (ej. Perro de Fade)
 }
 
 export interface SkillBehavior {
   charges?: number;
   castTime?: number;
+  speed?: number; // Velocidad de movimiento (ej. para el perro de Fade)
+  duration?: number; // Duración activa en segundos (ej. para habilidades controlables)
   rechargeTime?: number;
   buffDuration?: number; // Tiempo en segundos que dura el buff activo
   spawn: "player" | "ground" | "wall" | "projectile";

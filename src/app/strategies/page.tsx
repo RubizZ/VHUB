@@ -67,6 +67,7 @@ interface CanvasSkill {
   behavior: any;
   projectileMode?: "bounce" | "parabola";
   isActive?: boolean;
+  pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "controllablePath"
   color: string;
   createdBy?: string;
 }
@@ -762,7 +763,27 @@ export default function StrategiesPage() {
         continue;
       }
 
-      // Removed isActivatable drawing logic so they draw normally immediately
+      const isControllablePath = skill.behavior?.flags?.controllablePath;
+      if (isControllablePath && skill.pathPoints && skill.pathPoints.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        for (let i = 1; i < skill.pathPoints.length; i++) {
+           ctx.lineTo(skill.pathPoints[i].x - skill.x, skill.pathPoints[i].y - skill.y);
+        }
+        ctx.strokeStyle = skill.color;
+        ctx.lineWidth = 3 / scale;
+        ctx.globalAlpha = 0.8;
+        ctx.setLineDash([8 / scale, 6 / scale]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        if (sImg && sImg.complete) {
+           const lastPt = skill.pathPoints[skill.pathPoints.length - 1];
+           ctx.drawImage(sImg, lastPt.x - skill.x - 10, lastPt.y - skill.y - 10, 20, 20);
+        }
+        ctx.restore();
+        continue;
+      }
       
       const geom = skill.geometry;
       ctx.fillStyle = skill.color;
@@ -1605,6 +1626,7 @@ export default function StrategiesPage() {
         geometry: skill.geometry,
         behavior: skill.behavior,
         projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
+        pathPoints: skill.behavior?.flags?.controllablePath ? [{x: startX, y: startY}, {x: pos.x, y: pos.y}] : undefined,
         color: skillColor,
         createdBy: myUserId
       };
@@ -1900,6 +1922,12 @@ export default function StrategiesPage() {
        if (activeSkill) {
           activeSkill.targetX = pos.x;
           activeSkill.targetY = pos.y;
+          
+          if (activeSkill.behavior?.flags?.controllablePath) {
+             if (!activeSkill.pathPoints) activeSkill.pathPoints = [{x: activeSkill.x, y: activeSkill.y}];
+             activeSkill.pathPoints.push({x: pos.x, y: pos.y});
+          }
+          
           redrawImmediate();
        }
        return;
