@@ -223,7 +223,7 @@ export default function ProfilePage() {
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16, display: "block", textAlign: "center" }}>Color de Identidad</label>
             <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-              {['#E11D48', '#10B981', '#A855F7', '#3B82F6', '#EAB308', '#FFFFFF'].map(c => (
+              {['#E11D48', '#10B981', '#A855F7', '#3B82F6', '#EAB308', '#FF6B35', '#E040FB', '#00BCD4'].map(c => (
                 <div
                   key={c}
                   onClick={() => !saving && handleUpdateProfile({ avatar_color: c })}
