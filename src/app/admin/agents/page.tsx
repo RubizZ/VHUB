@@ -59,6 +59,7 @@ export default function AdminAgentsPage() {
   const [search, setSearch] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<ValorantAgent | null>(null);
   const [editingSkillKey, setEditingSkillKey] = useState<string>("q");
+  const [activeTab, setActiveTab] = useState<"general" | "geometry" | "mechanics" | "times">("general");
   const [formData, setFormData] = useState<SkillFormData>({
     name: "",
     description: "",
@@ -438,7 +439,7 @@ export default function AdminAgentsPage() {
 
               <div style={{ flex: 1 }}>
                 <form onSubmit={handleSubmit} style={{ background: "rgba(0,0,0,0.2)", padding: 24, borderRadius: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                     <h3 style={{ margin: 0, textTransform: "uppercase", color: "var(--val-yellow)" }}>Configurando {editingSkillKey}</h3>
                     <label className="checkbox-label" style={{ padding: "8px 16px", background: formData.enabled ? "rgba(0, 212, 170, 0.1)" : "rgba(255, 70, 85, 0.1)", borderRadius: 8, border: `1px solid ${formData.enabled ? "rgba(0, 212, 170, 0.3)" : "rgba(255, 70, 85, 0.3)"}` }}>
                       <input type="checkbox" checked={formData.enabled} onChange={e => setFormData({...formData, enabled: e.target.checked})} />
@@ -447,273 +448,278 @@ export default function AdminAgentsPage() {
                     </label>
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Permite teletransporte hacia ella (Ej: Chamber E)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Auto-aplicación instantánea (Buff, ej: Clove C)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagSelfRevive} onChange={e => setFormData({...formData, flagSelfRevive: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Auto-Revivir (Ej: Clove X)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagTargetRevive} onChange={e => setFormData({...formData, flagTargetRevive: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Revivir a Objetivo (Ej: Sage X)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagActivatableDeployable} onChange={e => setFormData({...formData, flagActivatableDeployable: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Desplegable Activable (Ej: Cárcel de Cypher)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, flagTwoPointDeployment: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Despliegue de Dos Puntos (Ej: Cables de Cypher)</span>
-                    </label>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 16 }}>
+                    {(["general", "geometry", "mechanics", "times"] as const).map(tab => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setActiveTab(tab)}
+                        style={{
+                          background: activeTab === tab ? "var(--val-cyan)" : "rgba(255,255,255,0.05)",
+                          color: activeTab === tab ? "#000" : "var(--text-secondary)",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: 8,
+                          fontWeight: 800,
+                          fontSize: 12,
+                          textTransform: "uppercase",
+                          cursor: "pointer",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        {tab === "general" ? "General" : tab === "geometry" ? "Forma & Geo" : tab === "mechanics" ? "Mecánicas" : "Tiempos & Stats"}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagDeployablePreRound} onChange={e => setFormData({...formData, flagDeployablePreRound: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Desplegable en Pre-ronda (Timeline mode)</span>
-                    </label>
-                  </div>
+                  {activeTab === "general" && (
+                    <div className="tab-content fade-in">
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
+                        <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label className="form-label">Key ID</label>
+                        <input className="input-field" value={editingSkillKey} disabled style={{ opacity: 0.5 }} />
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label className="form-label">Icono de la habilidad (URL valorant-api)</label>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                          <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} placeholder="https://..." style={{ flex: 1 }} />
+                          <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Extraer de Valorant API</button>
+                          {formData.displayIcon && (
+                            <div style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(10, 14, 20, 0.9)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
+                              <img src={formData.displayIcon} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Color Base (Hex) - opcional</label>
+                        <input className="input-field" placeholder="#FF4655" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <input type="checkbox" checked={formData.flagControllablePath} onChange={e => setFormData({...formData, flagControllablePath: e.target.checked})} />
-                      <span className="checkbox-custom"></span>
-                      <span>Ruta Controlable/Trazable (Ej: Perro de Fade)</span>
-                    </label>
-                  </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
-                    <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">Key ID</label>
-                    <input className="input-field" value={editingSkillKey} disabled style={{ opacity: 0.5 }} />
-                  </div>
-                  
-                  <div className="form-group" style={{ gridColumn: "span 2", marginBottom: 16 }}>
-                    <label className="form-label">Icono de la habilidad (URL valorant-api)</label>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} placeholder="https://..." style={{ flex: 1 }} />
-                      <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Extraer de Valorant API</button>
-                      {formData.displayIcon && (
-                        <div style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(10, 14, 20, 0.9)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
-                          <img src={formData.displayIcon} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  {activeTab === "geometry" && (
+                    <div className="tab-content fade-in">
+                      <div className="form-group" style={{ marginBottom: 24 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
+                        <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value as SkillFormData["behaviorSpawn"]})}>
+                          <option value="player">Sale de la posición del jugador</option>
+                          <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
+                        </select>
+                      </div>
+
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap", background: "rgba(255,255,255,0.02)", padding: 16, borderRadius: 12 }}>
+                        <div className="form-group" style={{ flex: "1 1 100%" }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica Visual</label>
+                          <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
+                            <option value="circle">Círculo / Área</option>
+                            <option value="rectangle">Rectángulo / Línea</option>
+                            <option value="cone">Cono</option>
+                            <option value="infinite-wall">Muro Infinito</option>
+                            <option value="path">Ruta / Camino</option>
+                          </select>
+                        </div>
+                        {formData.geometryType === "circle" && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Radio (m)</label>
+                            <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
+                          </div>
+                        )}
+                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone") && (
+                          <>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho (m)</label>
+                              <input type="number" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance (m)</label>
+                              <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
+                            </div>
+                          </>
+                        )}
+                        {formData.geometryType === "cone" && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ángulo (grados)</label>
+                            <input type="number" className="input-field" value={formData.geometryAngle} onChange={e => setFormData({...formData, geometryAngle: Number(e.target.value)})} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "mechanics" && (
+                    <div className="tab-content fade-in">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagDeployablePreRound} onChange={e => setFormData({...formData, flagDeployablePreRound: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Pre-ronda (Timeline mode)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagActivatableDeployable} onChange={e => setFormData({...formData, flagActivatableDeployable: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Activable (Cárcel Cypher)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, flagTwoPointDeployment: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Dos Puntos (Cables Cypher)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagControllablePath} onChange={e => setFormData({...formData, flagControllablePath: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Ruta Controlable (Perro Fade)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Permite TP (Chamber E)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Auto-Buff Instantáneo</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagSelfRevive} onChange={e => setFormData({...formData, flagSelfRevive: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Auto-Revivir (Clove X)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagTargetRevive} onChange={e => setFormData({...formData, flagTargetRevive: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Revivir Objetivo (Sage X)</span>
+                        </label>
+                      </div>
+
+                      <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Comportamientos Avanzados</h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24, background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 12 }}>
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagThroughWall} onChange={e => setFormData({...formData, flagThroughWall: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Atraviesa paredes (se tira contra un muro y sale por el otro)</span>
+                        </label>
+                        
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagRecallable} onChange={e => setFormData({...formData, flagRecallable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Se puede recoger manualmente (CD empieza al recoger)</span>
+                        </label>
+
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagGrantsWeapon} onChange={e => setFormData({...formData, flagGrantsWeapon: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Actúa como arma equipable (ej. Q/X de Chamber)</span>
+                        </label>
+
+                        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
+
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagProjectile} onChange={e => setFormData({...formData, flagProjectile: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Es un proyectil (físicas de rebote o parábola)</span>
+                        </label>
+                        {formData.flagProjectile && (
+                          <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0 = infinito)</label>
+                            <input type="number" min="0" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
+                          </div>
+                        )}
+
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagChargeable} onChange={e => setFormData({...formData, flagChargeable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Se puede cargar (ej. Stun de Breach)</span>
+                        </label>
+                        {formData.flagChargeable && (
+                          <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Mín (m)</label>
+                              <input type="number" className="input-field" value={formData.chargeMinLength} onChange={e => setFormData({...formData, chargeMinLength: Number(e.target.value)})} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Máx (m)</label>
+                              <input type="number" className="input-field" value={formData.chargeMaxLength} onChange={e => setFormData({...formData, chargeMaxLength: Number(e.target.value)})} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo/m (s)</label>
+                              <input type="number" step="0.1" className="input-field" value={formData.chargeTimePerMeter} onChange={e => setFormData({...formData, chargeTimePerMeter: Number(e.target.value)})} />
+                            </div>
+                          </div>
+                        )}
+
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagRolling} onChange={e => setFormData({...formData, flagRolling: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Se expande en oleadas (ej. Ulti Breach)</span>
+                        </label>
+                        {formData.flagRolling && (
+                          <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Oleadas</label>
+                              <input type="number" className="input-field" value={formData.rollWaveCount} onChange={e => setFormData({...formData, rollWaveCount: Number(e.target.value)})} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Segundos/oleada</label>
+                              <input type="number" step="0.1" className="input-field" value={formData.rollTimeBetweenWaves} onChange={e => setFormData({...formData, rollTimeBetweenWaves: Number(e.target.value)})} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Requiere consumir (Key de otra habilidad, ej. x_alt)</label>
+                        <input className="input-field" placeholder="Vacío = no depende de otra habilidad" value={formData.consumesSkillKey} onChange={e => setFormData({...formData, consumesSkillKey: e.target.value})} />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "times" && (
+                    <div className="tab-content fade-in">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cargas Totales</label>
+                          <input type="number" min="1" max="10" className="input-field" value={formData.behaviorCharges} onChange={e => setFormData({...formData, behaviorCharges: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango Máx. Casteo (m, 0=inf)</label>
+                          <input type="number" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo Casteo (s)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.behaviorCastTime} onChange={e => setFormData({...formData, behaviorCastTime: parseFloat(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo de Recarga (s, 0=nunca)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.behaviorRechargeTime} onChange={e => setFormData({...formData, behaviorRechargeTime: parseFloat(e.target.value)})} />
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "24px 0" }}></div>
+
+                      {(formData.flagInstantSelfBuff || formData.flagActivatableDeployable) && (
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
+                          <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
+                        </div>
+                      )}
+
+                      {formData.flagControllablePath && (
+                        <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                          <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Velocidad (m/s)</label>
+                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorSpeed} onChange={e => setFormData({...formData, behaviorSpeed: parseFloat(e.target.value)})} />
+                          </div>
+                          <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración Máx (s)</label>
+                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-                    <div className="form-group" style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Color Base (Hex) - opcional</label>
-                      <input className="input-field" placeholder="#FF4655" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
-                    </div>
-                    <div className="form-group" style={{ width: 120 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cargas</label>
-                      <input type="number" min="1" max="10" className="input-field" value={formData.behaviorCharges} onChange={e => setFormData({...formData, behaviorCharges: Number(e.target.value)})} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                    <div className="form-group">
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo Casseo (s)</label>
-                      <input type="number" step="0.1" className="input-field" value={formData.behaviorCastTime} onChange={e => setFormData({...formData, behaviorCastTime: parseFloat(e.target.value)})} />
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Recarga (s)</label>
-                      <input type="number" step="0.1" className="input-field" value={formData.behaviorRechargeTime} onChange={e => setFormData({...formData, behaviorRechargeTime: parseFloat(e.target.value)})} />
-                    </div>
-                  </div>
-
-                  {(formData.flagInstantSelfBuff || formData.flagActivatableDeployable) && (
-                    <div className="form-group" style={{ marginBottom: 16 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
-                      <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
-                    </div>
                   )}
 
-                  {formData.flagControllablePath && (
-                    <div className="form-row" style={{ display: "flex", gap: 16 }}>
-                      <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Velocidad (m/s)</label>
-                        <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorSpeed} onChange={e => setFormData({...formData, behaviorSpeed: parseFloat(e.target.value)})} />
-                      </div>
-                      <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración Máx (s)</label>
-                        <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-                    <div className="form-group" style={{ flex: "1 1 100%" }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica</label>
-                      <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
-                        <option value="circle">Círculo / Área</option>
-                        <option value="rectangle">Rectángulo / Línea</option>
-                        <option value="cone">Cono</option>
-                        <option value="infinite-wall">Muro Infinito</option>
-                      </select>
-                    </div>
-                    {formData.geometryType === "circle" && (
-                      <div className="form-group" style={{ flex: 1 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Radio (m)</label>
-                        <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
-                      </div>
-                    )}
-                    {(formData.geometryType === "rectangle" || formData.geometryType === "cone") && (
-                      <>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho (m)</label>
-                          <input type="number" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance (m)</label>
-                          <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
-                        </div>
-                      </>
-                    )}
-                    {formData.geometryType === "cone" && (
-                      <div className="form-group" style={{ flex: 1 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ángulo (grados)</label>
-                        <input type="number" className="input-field" value={formData.geometryAngle} onChange={e => setFormData({...formData, geometryAngle: Number(e.target.value)})} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 24 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
-                    <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value as SkillFormData["behaviorSpawn"]})}>
-                      <option value="player">Sale de la posición del jugador</option>
-                      <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 24 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango máx. de casteo/colocación (m, 0 = infinito)</label>
-                    <input type="number" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
-                  </div>
-
-                  <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Flags de Comportamiento</h4>
-                  
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", gap: 12, marginBottom: 24, background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 12 }}>
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagThroughWall} onChange={e => setFormData({...formData, flagThroughWall: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Atraviesa paredes (se tira contra un muro y sale por el otro lado)</span>
-                      </label>
-                    </div>
-
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagProjectile} onChange={e => setFormData({...formData, flagProjectile: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Es un proyectil (se puede lanzar con rebotes o parábola)</span>
-                      </label>
-                    </div>
-                    
-                    {formData.flagProjectile && (
-                      <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0 = infinito)</label>
-                        <input type="number" min="0" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagChargeable} onChange={e => setFormData({...formData, flagChargeable: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Se puede cargar (ej. Stun de Breach)</span>
-                      </label>
-                    </div>
-
-                    {formData.flagChargeable && (
-                      <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Mínimo (m)</label>
-                          <input type="number" className="input-field" value={formData.chargeMinLength} onChange={e => setFormData({...formData, chargeMinLength: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Máximo (m)</label>
-                          <input type="number" className="input-field" value={formData.chargeMaxLength} onChange={e => setFormData({...formData, chargeMaxLength: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo/metro (s)</label>
-                          <input type="number" step="0.1" className="input-field" value={formData.chargeTimePerMeter} onChange={e => setFormData({...formData, chargeTimePerMeter: Number(e.target.value)})} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagRolling} onChange={e => setFormData({...formData, flagRolling: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Se expande en oleadas (ej. Ulti Breach/Fade)</span>
-                      </label>
-                    </div>
-
-                    {formData.flagRolling && (
-                      <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cantidad de Oleadas</label>
-                          <input type="number" className="input-field" value={formData.rollWaveCount} onChange={e => setFormData({...formData, rollWaveCount: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo entre oleadas (s)</label>
-                          <input type="number" step="0.1" className="input-field" value={formData.rollTimeBetweenWaves} onChange={e => setFormData({...formData, rollTimeBetweenWaves: Number(e.target.value)})} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagRecallable} onChange={e => setFormData({...formData, flagRecallable: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Se puede recoger manualmente (cooldown empieza al recoger, ej. C de Chamber)</span>
-                      </label>
-                    </div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
-                        <input type="checkbox" checked={formData.flagGrantsWeapon} onChange={e => setFormData({...formData, flagGrantsWeapon: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
-                        <span>Actúa como un arma equipable (ej. Q/X de Chamber)</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Requiere consumir (Key de otra habilidad, ej. x_alt) — opcional</label>
-                    <input className="input-field" placeholder="Vacío = no depende de otra habilidad" value={formData.consumesSkillKey} onChange={e => setFormData({...formData, consumesSkillKey: e.target.value})} />
-                  </div>
-
-                  <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 900, textTransform: "uppercase" }} disabled={saveSkillMutation.isPending}>
+                  <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 900, textTransform: "uppercase", marginTop: 16 }} disabled={saveSkillMutation.isPending}>
                     {saveSkillMutation.isPending ? "Guardando..." : "Guardar Habilidad"}
                   </button>
                 </form>
@@ -745,6 +751,13 @@ export default function AdminAgentsPage() {
         }
         .premium-modal {
           padding: 40px; border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+        }
+        .tab-content {
+          animation: fade-in 0.2s ease-out forwards;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .icon-action-btn {
           width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color: white; cursor: pointer;
