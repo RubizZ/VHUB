@@ -801,7 +801,7 @@ export default function StrategiesPage() {
         ctx.globalAlpha = 0.8;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
-      } else if (geom.type === "rectangle" || geom.type === "cone") {
+      } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
            const sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
            ctx.rotate(sa);
@@ -814,6 +814,17 @@ export default function StrategiesPage() {
            const halfAngleRad = geom.angle !== undefined ? (geom.angle / 2) * Math.PI / 180 : Math.atan2(width/2, length);
            ctx.moveTo(0, 0);
            ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
+           ctx.closePath();
+        } else if (geom.type === "trapezoid") {
+           const wingWidth = width * 0.2;
+           const centerWidth = width * 0.6;
+           const sweep = Math.min(length * 0.3, 15);
+           ctx.moveTo(0, -width/2);
+           ctx.lineTo(sweep, -centerWidth/2);
+           ctx.lineTo(length, -centerWidth/2);
+           ctx.lineTo(length, centerWidth/2);
+           ctx.lineTo(sweep, centerWidth/2);
+           ctx.lineTo(0, width/2);
            ctx.closePath();
         } else {
            ctx.rect(0, -width/2, length, width);

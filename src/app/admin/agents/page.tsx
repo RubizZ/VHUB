@@ -21,7 +21,10 @@ interface SkillFormData {
   behaviorCharges: number;
   behaviorCastTime: number;
   behaviorRechargeTime: number;
+  behaviorRechargeKills: number;
   behaviorBuffDuration: number;
+  behaviorBuffApplied: string;
+  behaviorDebuffApplied: string;
   behaviorSpawn: "player" | "ground" | "wall" | "projectile";
   behaviorGroundRange: number;
   flagThroughWall: boolean;
@@ -48,6 +51,8 @@ interface SkillFormData {
   flagControllablePath: boolean;
   flagTriggerOnSight: boolean;
   flagStoppableInFlight: boolean;
+  flagGeneratesSoulOrbs: boolean;
+  flagIsolatesTarget: boolean;
   behaviorSpeed: number;
   behaviorDuration: number;
   displayIcon: string;
@@ -76,7 +81,10 @@ export default function AdminAgentsPage() {
     behaviorCharges: 1,
     behaviorCastTime: 0,
     behaviorRechargeTime: 0,
+    behaviorRechargeKills: 0,
     behaviorBuffDuration: 0,
+    behaviorBuffApplied: "",
+    behaviorDebuffApplied: "",
     behaviorSpeed: 0,
     behaviorDuration: 0,
     behaviorSpawn: "player",
@@ -105,6 +113,8 @@ export default function AdminAgentsPage() {
     flagControllablePath: false,
     flagTriggerOnSight: false,
     flagStoppableInFlight: false,
+    flagGeneratesSoulOrbs: false,
+    flagIsolatesTarget: false,
     displayIcon: "",
     enabled: true,
   });
@@ -158,7 +168,10 @@ export default function AdminAgentsPage() {
         behaviorCharges: skill.behavior?.charges || 1,
         behaviorCastTime: skill.behavior?.castTime || 0,
         behaviorRechargeTime: skill.behavior?.rechargeTime || 0,
+        behaviorRechargeKills: skill.behavior?.rechargeKills || 0,
         behaviorBuffDuration: skill.behavior?.buffDuration || 0,
+        behaviorBuffApplied: skill.behavior?.buffApplied || "",
+        behaviorDebuffApplied: skill.behavior?.debuffApplied || "",
         behaviorSpeed: skill.behavior?.speed || 0,
         behaviorDuration: skill.behavior?.duration || 0,
         behaviorSpawn: skill.behavior?.spawn || "player",
@@ -187,6 +200,8 @@ export default function AdminAgentsPage() {
         flagControllablePath: skill.behavior?.flags?.controllablePath || false,
         flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
         flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
+        flagGeneratesSoulOrbs: skill.behavior?.flags?.generatesSoulOrbs || false,
+        flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -205,7 +220,10 @@ export default function AdminAgentsPage() {
         behaviorCharges: 1,
         behaviorCastTime: 0,
         behaviorRechargeTime: 0,
+        behaviorRechargeKills: 0,
         behaviorBuffDuration: 0,
+        behaviorBuffApplied: "",
+        behaviorDebuffApplied: "",
         behaviorSpeed: 0,
         behaviorDuration: 0,
         behaviorSpawn: "player",
@@ -234,6 +252,8 @@ export default function AdminAgentsPage() {
         flagControllablePath: false,
         flagTriggerOnSight: false,
         flagStoppableInFlight: false,
+        flagGeneratesSoulOrbs: false,
+        flagIsolatesTarget: false,
         displayIcon: "",
         enabled: true,
       });
@@ -260,7 +280,10 @@ export default function AdminAgentsPage() {
           charges: formData.behaviorCharges,
           castTime: formData.behaviorCastTime,
           rechargeTime: formData.behaviorRechargeTime,
+          rechargeKills: formData.behaviorRechargeKills,
           buffDuration: formData.behaviorBuffDuration || undefined,
+          buffApplied: formData.behaviorBuffApplied,
+          debuffApplied: formData.behaviorDebuffApplied,
           speed: formData.behaviorSpeed,
           duration: formData.behaviorDuration,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
@@ -288,6 +311,8 @@ export default function AdminAgentsPage() {
             controllablePath: formData.flagControllablePath || undefined,
             triggerOnSight: formData.flagTriggerOnSight || undefined,
             stoppableInFlight: formData.flagStoppableInFlight || undefined,
+            generatesSoulOrbs: formData.flagGeneratesSoulOrbs || undefined,
+            isolatesTarget: formData.flagIsolatesTarget || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -530,9 +555,10 @@ export default function AdminAgentsPage() {
                           <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
                             <option value="circle">Círculo / Área</option>
                             <option value="rectangle">Rectángulo / Línea</option>
-                            <option value="cone">Cono</option>
+                            <option value="cone">Cono (Área frontal)</option>
                             <option value="infinite-wall">Muro Infinito</option>
                             <option value="path">Ruta / Camino</option>
+                            <option value="trapezoid">Trapecio (Muro Iso)</option>
                           </select>
                         </div>
                         {formData.geometryType === "circle" && (
@@ -609,6 +635,19 @@ export default function AdminAgentsPage() {
                       </div>
 
                       <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Comportamientos Avanzados</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Buff Aplicado (a ti)</span>
+                          <input type="text" value={formData.behaviorBuffApplied} onChange={e => setFormData({ ...formData, behaviorBuffApplied: e.target.value })} style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontSize: 14 }} placeholder="Ej: Doble Tap, Curación..." />
+                        </label>
+                        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Debuff Aplicado (a ellos)</span>
+                          <input type="text" value={formData.behaviorDebuffApplied} onChange={e => setFormData({ ...formData, behaviorDebuffApplied: e.target.value })} style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontSize: 14 }} placeholder="Ej: Vulnerable, Decay..." />
+                        </label>
+                      </div>
+
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
+
                       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24, background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 12 }}>
                         <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagThroughWall} onChange={e => setFormData({...formData, flagThroughWall: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
@@ -633,6 +672,16 @@ export default function AdminAgentsPage() {
                         <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagStoppableInFlight} onChange={e => setFormData({...formData, flagStoppableInFlight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                           <span>Se puede detener manualmente mientras avanza (Ej: Cascade de Harbor)</span>
+                        </label>
+                        
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagGeneratesSoulOrbs} onChange={e => setFormData({...formData, flagGeneratesSoulOrbs: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Mecánica de Orbe de Alma al matar (Ej: Iso, Reyna)</span>
+                        </label>
+                        
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagIsolatesTarget} onChange={e => setFormData({...formData, flagIsolatesTarget: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Aísla al objetivo a un mundo aparte (Ej: Ulti de Iso)</span>
                         </label>
 
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
@@ -712,6 +761,10 @@ export default function AdminAgentsPage() {
                         <div className="form-group">
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo de Recarga (s, 0=nunca)</label>
                           <input type="number" step="0.1" className="input-field" value={formData.behaviorRechargeTime} onChange={e => setFormData({...formData, behaviorRechargeTime: parseFloat(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Kills para Recargar (0=nunca)</label>
+                          <input type="number" className="input-field" value={formData.behaviorRechargeKills} onChange={e => setFormData({...formData, behaviorRechargeKills: Number(e.target.value)})} />
                         </div>
                       </div>
 

@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path";
+  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid";
   radius?: number;
   width?: number;
   length?: number;
@@ -27,6 +27,8 @@ export interface SkillBehaviorFlags {
   controllablePath?: boolean; // Habilidad que se mueve dibujando un trazo (ej. Perro de Fade)
   triggerOnSight?: boolean; // Se detona/activa automáticamente al ver a un enemigo (ej. Wingman de Gekko)
   stoppableInFlight?: boolean; // Habilidades en movimiento que se pueden detener manualmente (ej. Harbor C)
+  generatesSoulOrbs?: boolean; // Enemigos sueltan orbes al morir o asistir (ej. Reyna/Iso)
+  isolatesTarget?: boolean; // Aísla al objetivo a un "mundo aparte" (ej. Iso X)
 }
 
 export interface SkillBehavior {
@@ -35,7 +37,10 @@ export interface SkillBehavior {
   speed?: number; // Velocidad de movimiento (ej. para el perro de Fade)
   duration?: number; // Duración activa en segundos (ej. para habilidades controlables)
   rechargeTime?: number;
+  rechargeKills?: number; // Kills necesarias para recargar la habilidad (ej: 2)
   buffDuration?: number; // Tiempo en segundos que dura el buff activo
+  buffApplied?: string; // Nombre del buffo aplicado (ej: "Vulnerable", "Escudo")
+  debuffApplied?: string; // Nombre del debuffo aplicado a enemigos (ej: "Vulnerable")
   spawn: "player" | "ground" | "wall" | "projectile";
   maxCastRange?: number;
   groundRange?: number; // legacy
