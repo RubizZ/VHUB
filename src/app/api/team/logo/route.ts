@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Max file size: 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "El archivo no puede pesar más de 5MB" }, { status: 400 });
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Validate file type
