@@ -849,9 +849,12 @@ export default function AvailabilityPage() {
 
     useEffect(() => {
         if (viewMode === "week" && weekScrollRef.current) {
-            const allEvents = weekDays.flatMap((d) => d.events);
-            let targetMinutes = 16 * 60; // Por defecto 4 PM
+            // Scroll to hour 09:00 by default (morning start)
+            // Each hour row is 60px tall, so 1 minute = 1px
+            const PX_PER_MIN = 1; // matches the hour row height (60px/hour = 1px/min)
+            let targetMinutes = 9 * 60; // Por defecto 9 AM
 
+            const allEvents = weekDays.flatMap((d: any) => d.events);
             if (allEvents.length > 0) {
                 const totalMinutes = allEvents.reduce(
                     (acc: number, ev: any) => {
@@ -860,12 +863,12 @@ export default function AvailabilityPage() {
                     },
                     0,
                 );
-                targetMinutes = totalMinutes / allEvents.length;
+                targetMinutes = Math.max(0, totalMinutes / allEvents.length - 60); // 1h antes del promedio
             }
 
             const containerHeight = weekScrollRef.current.clientHeight || 600;
             weekScrollRef.current.scrollTop =
-                targetMinutes - containerHeight / 2;
+                targetMinutes * PX_PER_MIN - containerHeight / 4;
         }
     }, [viewMode, weekDays]);
 
@@ -1363,12 +1366,12 @@ export default function AvailabilityPage() {
                                                                     : "transparent",
                                                         position: "relative",
                                                         opacity: d.isOtherMonth
-                                                            ? 0.15
+                                                            ? 0.06
                                                             : d.isPast
                                                                 ? 0.25
                                                                 : 1,
                                                         filter: d.isOtherMonth || d.isPast
-                                                            ? "grayscale(0.8) contrast(0.8)"
+                                                            ? "grayscale(1) contrast(0.6)"
                                                             : "none",
                                                         animationDelay: `${(i % 7) * 0.05}s`,
                                                         boxShadow: d.isToday
@@ -1839,29 +1842,19 @@ export default function AvailabilityPage() {
                                                 background: "transparent",
                                             }}
                                         >
+                                            {/* Week header — OUTSIDE scroll so days are always visible */}
                                             <div
-                                                ref={weekScrollRef}
                                                 style={{
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    flex: 1,
-                                                    overflowY: "scroll",
-                                                    position: "relative",
+                                                    display: "grid",
+                                                    gridTemplateColumns:
+                                                        "60px repeat(7, minmax(0, 1fr))",
+                                                    borderBottom:
+                                                        "1px solid var(--border-color)",
+                                                    background: "#0a0b14",
+                                                    flexShrink: 0,
+                                                    zIndex: 30,
                                                 }}
                                             >
-                                                <div
-                                                    style={{
-                                                        position: "sticky",
-                                                        top: 0,
-                                                        zIndex: 30,
-                                                        display: "grid",
-                                                        gridTemplateColumns:
-                                                            "60px repeat(7, minmax(0, 1fr))",
-                                                        borderBottom:
-                                                            "1px solid var(--border-color)",
-                                                        background: "#0a0b14",
-                                                    }}
-                                                >
                                                     <div
                                                         style={{
                                                             borderRight:
@@ -1932,10 +1925,12 @@ export default function AvailabilityPage() {
                                                     )}
                                                 </div>
                                                 <div
+                                                    ref={weekScrollRef}
                                                     style={{
                                                         display: "flex",
                                                         flex: 1,
                                                         position: "relative",
+                                                        overflowY: "scroll",
                                                     }}
                                                 >
                                                     {/* Time Column */}
