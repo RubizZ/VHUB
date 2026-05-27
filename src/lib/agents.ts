@@ -25,6 +25,7 @@ export interface SkillBehavior {
   charges?: number;
   castTime?: number;
   rechargeTime?: number;
+  buffDuration?: number; // Tiempo en segundos que dura el buff activo
   spawn: "player" | "ground" | "wall" | "projectile";
   maxCastRange?: number;
   groundRange?: number; // legacy

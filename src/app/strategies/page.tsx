@@ -4005,6 +4005,18 @@ export default function StrategiesPage() {
                             agent.activeBuffs = buffs.filter(b => b !== skill.key);
                           } else {
                             agent.activeBuffs = [...buffs, skill.key];
+                            
+                            // Auto-expiración del buff
+                            const duration = skill.behavior?.buffDuration;
+                            if (duration && duration > 0) {
+                              setTimeout(() => {
+                                const currentAgent = agentsRef.current.find(a => a.instanceId === ctxAgent.instanceId);
+                                if (currentAgent && currentAgent.activeBuffs?.includes(skill.key)) {
+                                  currentAgent.activeBuffs = currentAgent.activeBuffs.filter(b => b !== skill.key);
+                                  redrawImmediateRef.current();
+                                }
+                              }, duration * 1000);
+                            }
                           }
                           redraw();
                           setHoverMenuState(prev => ({ ...prev, visible: false }));

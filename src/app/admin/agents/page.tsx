@@ -18,6 +18,10 @@ interface SkillFormData {
   geometryWidth: number;
   geometryLength: number;
   geometryAngle: number;
+  behaviorCharges: number;
+  behaviorCastTime: number;
+  behaviorRechargeTime: number;
+  behaviorBuffDuration: number;
   behaviorSpawn: "player" | "ground" | "wall" | "projectile";
   behaviorGroundRange: number;
   flagThroughWall: boolean;
@@ -58,6 +62,10 @@ export default function AdminAgentsPage() {
     geometryWidth: 5,
     geometryLength: 5,
     geometryAngle: 90,
+    behaviorCharges: 1,
+    behaviorCastTime: 0,
+    behaviorRechargeTime: 0,
+    behaviorBuffDuration: 0,
     behaviorSpawn: "player",
     behaviorGroundRange: 10,
     flagThroughWall: false,
@@ -126,6 +134,10 @@ export default function AdminAgentsPage() {
         geometryWidth: skill.geometry?.width || 5,
         geometryLength: skill.geometry?.length || 5,
         geometryAngle: skill.geometry?.angle || 90,
+        behaviorCharges: skill.behavior?.charges || 1,
+        behaviorCastTime: skill.behavior?.castTime || 0,
+        behaviorRechargeTime: skill.behavior?.rechargeTime || 0,
+        behaviorBuffDuration: skill.behavior?.buffDuration || 0,
         behaviorSpawn: skill.behavior?.spawn || "player",
         behaviorGroundRange: skill.behavior?.maxCastRange || skill.behavior?.groundRange || 10,
         flagThroughWall: skill.behavior?.flags?.throughWall || false,
@@ -159,6 +171,10 @@ export default function AdminAgentsPage() {
         geometryWidth: 5,
         geometryLength: 5,
         geometryAngle: 90,
+        behaviorCharges: 1,
+        behaviorCastTime: 0,
+        behaviorRechargeTime: 0,
+        behaviorBuffDuration: 0,
         behaviorSpawn: "player",
         behaviorGroundRange: 10,
         flagThroughWall: false,
@@ -200,10 +216,10 @@ export default function AdminAgentsPage() {
           angle: formData.geometryType === "cone" ? Number(formData.geometryAngle) : undefined,
         },
         behavior: {
-          charges: Number(formData.charges),
-          castTime: Number(formData.castTime),
-          rechargeTime: Number(formData.rechargeTime) || undefined,
-          consumesSkillKey: formData.consumesSkillKey || undefined,
+          charges: formData.behaviorCharges,
+          castTime: formData.behaviorCastTime,
+          rechargeTime: formData.behaviorRechargeTime,
+          buffDuration: formData.behaviorBuffDuration || undefined,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           maxCastRange: Number(formData.behaviorGroundRange) || undefined,
           projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
@@ -437,17 +453,27 @@ export default function AdminAgentsPage() {
                     </div>
                     <div className="form-group" style={{ width: 120 }}>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cargas</label>
-                      <input type="number" min="1" max="10" className="input-field" value={formData.charges} onChange={e => setFormData({...formData, charges: Number(e.target.value)})} />
-                    </div>
-                    <div className="form-group" style={{ width: 120 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Casteo (s)</label>
-                      <input type="number" step="0.1" min="0" className="input-field" value={formData.castTime} onChange={e => setFormData({...formData, castTime: Number(e.target.value)})} />
-                    </div>
-                    <div className="form-group" style={{ width: 120 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Recarga (s)</label>
-                      <input type="number" step="0.1" min="0" className="input-field" value={formData.rechargeTime} onChange={e => setFormData({...formData, rechargeTime: Number(e.target.value)})} />
+                      <input type="number" min="1" max="10" className="input-field" value={formData.behaviorCharges} onChange={e => setFormData({...formData, behaviorCharges: Number(e.target.value)})} />
                     </div>
                   </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo Casseo (s)</label>
+                      <input type="number" step="0.1" className="input-field" value={formData.behaviorCastTime} onChange={e => setFormData({...formData, behaviorCastTime: parseFloat(e.target.value)})} />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Recarga (s)</label>
+                      <input type="number" step="0.1" className="input-field" value={formData.behaviorRechargeTime} onChange={e => setFormData({...formData, behaviorRechargeTime: parseFloat(e.target.value)})} />
+                    </div>
+                  </div>
+
+                  {formData.flagInstantSelfBuff && (
+                    <div className="form-group" style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Buff (s)</label>
+                      <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
+                    </div>
+                  )}
 
                   <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
                     <div className="form-group" style={{ flex: "1 1 100%" }}>
