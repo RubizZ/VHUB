@@ -215,6 +215,7 @@ export default function AvailabilityPage() {
     const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
     const weekScrollRef = useRef<HTMLDivElement>(null);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
+    const calendarContainerRef = useRef<HTMLDivElement | null>(null);
     const abortControllers = useRef<Record<number, AbortController>>({});
     const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<
         "above" | "below" | "in-view"
@@ -818,7 +819,8 @@ export default function AvailabilityPage() {
         return [getCalendarData(currentDate, events, isMounted)];
     }, [currentDate, events, isMounted, viewMode]);
 
-    const { dayNames, days, weekDays, monthLabel } = carouselData[1] || carouselData[0] || getCalendarData(currentDate, events, isMounted);
+    const centerData = carouselData[1] || carouselData[0] || getCalendarData(currentDate, events, isMounted);
+    const { weekDays, monthLabel } = centerData;
 
 
     useEffect(() => {
@@ -843,40 +845,52 @@ export default function AvailabilityPage() {
         }
     }, [viewMode, weekDays]);
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchStartX(e.targetTouches[0].clientX);
+    const handleDragStart = (clientX: number) => {
+        setTouchStartX(clientX);
     };
 
     
 
     
-    const handleTouchEnd = () => {
-        if (touchStartX === null || touchEndX === null) return;
+    const handleDragEnd = () => {
+        if (touchStartX === null) return;
+        if (touchEndX === null) {
+            setTouchStartX(null);
+            setDragOffset(0);
+            return;
+        }
+
         const distance = touchStartX - touchEndX;
         const isLeftSwipe = distance > 50;
         const isRightSwipe = distance < -50;
         
         setTouchStartX(null);
         setTouchEndX(null);
-        setDragOffset(0);
 
         if (isLeftSwipe || isRightSwipe) {
             setIsAnimating(true);
-            setDragOffset(isLeftSwipe ? -window.innerWidth : window.innerWidth);
+            const containerWidth = calendarContainerRef.current?.clientWidth || window.innerWidth;
+            setDragOffset(isLeftSwipe ? -containerWidth : containerWidth);
             
             setTimeout(() => {
                 setIsAnimating(false);
                 setDragOffset(0);
                 changeDate(isLeftSwipe ? 1 : -1);
             }, 300);
+        } else {
+            // Not swiped far enough, snap back smoothly
+            setIsAnimating(true);
+            setDragOffset(0);
+            setTimeout(() => {
+                setIsAnimating(false);
+            }, 300);
         }
     };
 
-    const handleTouchMove = (e: React.TouchEvent) => {
+    const handleDragMove = (clientX: number) => {
         if (touchStartX === null) return;
-        const currentX = e.targetTouches[0].clientX;
-        setTouchEndX(currentX);
-        setDragOffset(currentX - touchStartX);
+        setTouchEndX(clientX);
+        setDragOffset(clientX - touchStartX);
     };
 
 
@@ -1252,18 +1266,44 @@ export default function AvailabilityPage() {
                                     </div>
                                 </div>
                                 <div
+                                    ref={calendarContainerRef}
                                     className="calendar-grid-container"
-                                    onTouchStart={handleTouchStart}
-                                    onTouchMove={handleTouchMove}
-                                    onTouchEnd={handleTouchEnd}
+                                    onTouchStart={(e) => handleDragStart(e.targetTouches[0].clientX)}
+                                    onTouchMove={(e) => handleDragMove(e.targetTouches[0].clientX)}
+                                    onTouchEnd={handleDragEnd}
+                                    onMouseDown={(e) => handleDragStart(e.clientX)}
+                                    onMouseMove={(e) => handleDragMove(e.clientX)}
+                                    onMouseUp={handleDragEnd}
+                                    onMouseLeave={handleDragEnd}
                                     style={{
                                         flex: 1,
-                                        overflowY: "auto",
+                                        overflowX: "hidden",
+                                        overflowY: "hidden",
+                                        position: "relative",
                                         minHeight: 0,
                                         height: "100%",
+                                        width: "100%",
+                                        maxWidth: "100%",
+                                        touchAction: "pan-y", // Fixes horizontal scroll glitch
+                                        userSelect: "none", // Prevent text selection while dragging
                                     }}
                                 >
-                                    {viewMode === "calendar" ? (
+                                    <div
+                                        className="carousel-track"
+                                        style={{
+                                            display: "flex",
+                                            width: "300%",
+                                            height: "100%",
+                                            transform: `translateX(calc(-33.3333% + ${dragOffset}px))`,
+                                            transition: isAnimating ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)" : "none",
+                                        }}
+                                    >
+                                        {carouselData.map((data, slideIndex) => {
+                                            if (!data) return null;
+                                            const { dayNames, days, weekDays, monthLabel } = data;
+                                            return (
+                                                <div key={slideIndex} style={{ flex: "0 0 33.3333%", width: "33.3333%", height: "100%", overflowY: "auto", overflowX: "hidden" }}>
+                                                    {viewMode === "calendar" ? (
                                         <div
                                             className="calendar-grid"
                                             style={{
@@ -2527,6 +2567,10 @@ export default function AvailabilityPage() {
                                             </div>
                                         </div>
                                     )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         );

@@ -2063,17 +2063,7 @@ input:checked+.slider:before {
     overflow-x: hidden;
   }
 
-  .calendar-grid-container {
-    overflow-x: auto !important;
-  }
 
-  .calendar-grid {
-    min-width: 700px;
-  }
-
-  .week-view {
-    min-width: 800px;
-  }
 
   .chat-msg-content {
     max-width: 100%;
