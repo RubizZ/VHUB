@@ -850,6 +850,13 @@ export default function StrategiesPage() {
                 ctx.stroke();
                 
                 ctx.drawImage(sImg, -imgW/2, -imgH/2, imgW, imgH);
+                
+                ctx.fillStyle = isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)";
+                ctx.font = "900 6px Outfit, sans-serif";
+                ctx.textAlign = "right";
+                ctx.textBaseline = "bottom";
+                const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : (skillKey.toUpperCase() === "PASSIVE" ? "P" : skillKey.toUpperCase());
+                ctx.fillText(text, w/2 - 2, h/2 - 1);
               } else if (!skillImgsRef.current.has(skill.key)) {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
@@ -3893,7 +3900,8 @@ export default function StrategiesPage() {
                       cursor: skill ? "pointer" : "default",
                       opacity: skill ? 1 : 0.3,
                       padding: skill?.displayIcon ? "4px" : "0",
-                      overflow: "hidden"
+                      overflow: "hidden",
+                      position: "relative"
                     }}
                     onMouseEnter={(e) => {
                       if (!skill) return;
@@ -3925,11 +3933,16 @@ export default function StrategiesPage() {
                     }}
                   >
                     {skill?.displayIcon ? (
-                      <img 
-                        src={skill.displayIcon} 
-                        style={{ width: "100%", height: "100%", objectFit: "contain", filter: isAlt ? "sepia(1) hue-rotate(130deg) saturate(3) brightness(1.2)" : "none", transition: "transform 0.15s ease" }} 
-                        alt={key} 
-                      />
+                      <>
+                        <img 
+                          src={skill.displayIcon} 
+                          style={{ width: "100%", height: "100%", objectFit: "contain", filter: isAlt ? "sepia(1) hue-rotate(130deg) saturate(3) brightness(1.2)" : "none", transition: "transform 0.15s ease", position: "relative", zIndex: 1 }} 
+                          alt={key} 
+                        />
+                        <span style={{ position: "absolute", bottom: 2, right: 3, fontSize: 6, fontWeight: 900, color: isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)", textShadow: "0px 1px 2px rgba(0,0,0,1)", zIndex: 2 }}>
+                          {isAlt ? `↳${key}` : key === "PASSIVE" ? "P" : key}
+                        </span>
+                      </>
                     ) : (
                       isAlt ? `↳${key}` : key === "PASSIVE" ? "P" : key
                     )}
