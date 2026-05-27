@@ -74,6 +74,16 @@ export default function ProfilePage() {
           }
         };
       });
+      
+      // Invalidate everything where the player might appear
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["players"] }),
+        queryClient.invalidateQueries({ queryKey: ["events"] }),
+        queryClient.invalidateQueries({ queryKey: ["matches"] }),
+        queryClient.invalidateQueries({ queryKey: ["chat"] }),
+        queryClient.invalidateQueries({ queryKey: ["currentTeam"] }),
+      ]);
+
       setMessage({ text: "Perfil actualizado correctamente", type: "success" });
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     },
@@ -115,9 +125,11 @@ export default function ProfilePage() {
 
       // Invalidar todas las queries que muestran imágenes de jugadores en el resto de la app
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["players"] }),             // Roster, dashboard, leaderboard
-        queryClient.invalidateQueries({ queryKey: ["events", "list"] }),      // Lista de eventos
-        queryClient.invalidateQueries({ queryKey: ["events", "calendar"] }),  // Vista calendario
+        queryClient.invalidateQueries({ queryKey: ["players"] }),
+        queryClient.invalidateQueries({ queryKey: ["events"] }),
+        queryClient.invalidateQueries({ queryKey: ["matches"] }),
+        queryClient.invalidateQueries({ queryKey: ["chat"] }),
+        queryClient.invalidateQueries({ queryKey: ["currentTeam"] }),
       ]);
 
       setMessage({ text: "Avatar actualizado", type: "success" });

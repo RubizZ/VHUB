@@ -87,10 +87,11 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
     const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
     const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
     const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-    const monthLabel = targetDate.toLocaleDateString("es-ES", {
+    let monthLabel = targetDate.toLocaleDateString("es-ES", {
         month: "long",
         year: "numeric",
     });
+    monthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
     let startDayOffset = startOfMonth.getDay();
     if (startDayOffset === 0) startDayOffset = 7;
@@ -116,8 +117,8 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
     for (let i = 1; i <= endOfMonth.getDate(); i++) {
         const d = new Date(targetDate.getFullYear(), targetDate.getMonth(), i);
         const dateStr = formatDateLocal(d);
-        const isToday = isMounted && dateStr === todayStr;
-        const isPast = isMounted && dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isPast = dateStr < todayStr;
         days.push({
             day: i,
             date: dateStr,
@@ -149,8 +150,8 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
         const d = new Date(startOfWeek);
         d.setDate(startOfWeek.getDate() + i);
         const dateStr = formatDateLocal(d);
-        const isToday = isMounted && dateStr === todayStr;
-        const isPast = isMounted && dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isPast = dateStr < todayStr;
         weekDays.push({
             day: d.getDate(),
             date: dateStr,
@@ -182,17 +183,24 @@ export default function AvailabilityPage() {
     const searchParams = useSearchParams();
     const initialView = searchParams.get("view") as "list" | "calendar" | "week" | null;
     const initialDateStr = searchParams.get("date");
-    const initialDate = initialDateStr ? new Date(initialDateStr) : new Date();
+    const initialDate = initialDateStr ? new Date(initialDateStr + "T12:00:00") : new Date();
 
     const [viewMode, setViewMode] = useState<"list" | "calendar" | "week" | null>(initialView);
     const [currentDate, setCurrentDate] = useState(initialDate);
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        setIsMounted(true);
+        if (!viewMode) {
+            setViewMode(window.innerWidth < 768 ? "list" : "calendar");
+        }
+    }, [viewMode]);
+
+    useEffect(() => {
         if (!isMounted || !viewMode) return;
         const params = new URLSearchParams();
         params.set("view", viewMode);
-        params.set("date", currentDate.toISOString().split('T')[0]);
+        params.set("date", formatDateLocal(currentDate));
         router.replace(`?${params.toString()}`, { scroll: false });
     }, [viewMode, currentDate, isMounted, router]);
 
@@ -850,6 +858,7 @@ export default function AvailabilityPage() {
 
     useEffect(() => {
         if (viewMode === "week" && weekScrollRef.current) {
+            if (isLoadingEvents) return; // Prevent jumping before events load
             // Scroll to hour 09:00 by default (morning start)
             // Each hour row is 60px tall, so 1 minute = 1px
             const PX_PER_MIN = 1; // matches the hour row height (60px/hour = 1px/min)
@@ -872,7 +881,7 @@ export default function AvailabilityPage() {
                 weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
             }
         }
-    }, [viewMode, weekDays]);
+    }, [viewMode, weekDays, isLoadingEvents]);
 
     const handleDragStart = (clientX: number) => {
         setTouchStartX(clientX);
@@ -1055,7 +1064,6 @@ export default function AvailabilityPage() {
                     minHeight: 0,
                     minWidth: 0,
                     overflow: "hidden",
-                    height: "100%",
                 }}
             >
                 {error && (
@@ -1116,42 +1124,70 @@ export default function AvailabilityPage() {
                                         <Skeleton width={30} height={12} />
                                     </div>
                                 ))}
-                                {Array.from({ length: 28 }).map((_, i) => (
-                                    <div
-                                        key={i}
-                                        style={{
-                                            height: 120,
-                                            padding: 10,
-                                            borderRight:
-                                                "1px solid var(--border-color)",
-                                            borderBottom:
-                                                "1px solid var(--border-color)",
-                                        }}
-                                    >
-                                        <Skeleton width={20} height={20} />
+                                {(() => {
+                                    const { days: skelDays } = getCalendarData(currentDate, [], true);
+                                    return skelDays.map((d, i) => (
                                         <div
+                                            key={i}
                                             style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: 4,
-                                                marginTop: 8,
+                                                height: 120,
+                                                padding: 10,
+                                                borderRight: "1px solid var(--border-color)",
+                                                borderBottom: "1px solid var(--border-color)",
+                                                background: d.isOtherMonth
+                                                    ? "rgba(0,0,0,0.2)"
+                                                    : d.isToday
+                                                        ? "rgba(133, 107, 77, 0.06)"
+                                                        : d.isPast
+                                                            ? "rgba(0,0,0,0.4)"
+                                                            : "transparent",
+                                                position: "relative",
+                                                opacity: d.isOtherMonth
+                                                    ? 0.06
+                                                    : d.isPast
+                                                        ? 0.25
+                                                        : 1,
+                                                filter: d.isOtherMonth || d.isPast
+                                                    ? "grayscale(1) contrast(0.6)"
+                                                    : "none",
+                                                boxShadow: d.isToday
+                                                    ? "inset 0 0 20px rgba(133, 107, 77, 0.1)"
+                                                    : "none",
                                             }}
                                         >
-                                            {i % 3 === 0 && (
-                                                <Skeleton
-                                                    width="80%"
-                                                    height={16}
-                                                />
-                                            )}
-                                            {i % 5 === 0 && (
-                                                <Skeleton
-                                                    width="60%"
-                                                    height={16}
-                                                />
-                                            )}
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                <span
+                                                    className="calendar-day-number"
+                                                    style={{
+                                                        fontWeight: d.isToday ? 800 : 500,
+                                                        color: d.isToday
+                                                            ? "white"
+                                                            : d.isOtherMonth
+                                                                ? "rgba(255, 255, 255, 0.1)"
+                                                                : d.isPast
+                                                                    ? "var(--text-muted)"
+                                                                    : "var(--text-primary)",
+                                                        background: d.isToday ? "var(--val-red)" : "transparent",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        boxShadow: d.isToday ? "0 0 10px var(--val-red-glow)" : "none",
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: "50%",
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    {d.day}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                                                {i % 3 === 0 && <Skeleton width="80%" height={16} />}
+                                                {i % 5 === 0 && <Skeleton width="60%" height={16} />}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ));
+                                })()}
                             </div>
                         </div>
                     </div>
