@@ -1378,7 +1378,7 @@ export default function StrategiesPage() {
         targetY: pos.y,
         geometry: skill.geometry,
         behavior: skill.behavior,
-        projectileMode: skill.behavior?.spawn === "projectile" ? projectileMode : undefined,
+        projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
         color: skillColor,
         createdBy: myUserId
       };
@@ -2923,7 +2923,7 @@ export default function StrategiesPage() {
                   ))}
                 </div>
 
-                {tool === "skill" && pendingSkillRef.current?.skill.behavior?.spawn === "projectile" && (
+                {tool === "skill" && pendingSkillRef.current?.skill.behavior?.flags?.projectile && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
                      <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>Modo de Tiro</span>
                      <button

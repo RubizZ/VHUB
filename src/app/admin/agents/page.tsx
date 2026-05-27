@@ -35,15 +35,25 @@ export default function AdminAgentsPage() {
     name: "",
     description: "",
     color: "",
+    charges: 1,
+    castTime: 0,
     geometryType: "circle",
     geometryRadius: 5,
     geometryWidth: 5,
     geometryLength: 5,
     geometryAngle: 90,
     behaviorSpawn: "player",
-    behaviorBounces: 1,
-    behaviorProjectileMode: "bounce",
     behaviorGroundRange: 10,
+    flagThroughWall: false,
+    flagProjectile: false,
+    projectileBounces: 1,
+    flagChargeable: false,
+    chargeMinLength: 10,
+    chargeMaxLength: 35,
+    chargeTimePerMeter: 0.1,
+    flagRolling: false,
+    rollWaveCount: 5,
+    rollTimeBetweenWaves: 0.2,
   });
 
   const {
@@ -75,30 +85,50 @@ export default function AdminAgentsPage() {
         name: skill.name,
         description: skill.description || "",
         color: skill.color || "",
+        charges: skill.behavior?.charges || 1,
+        castTime: skill.behavior?.castTime || 0,
         geometryType: skill.geometry?.type || "circle",
         geometryRadius: skill.geometry?.radius || 5,
         geometryWidth: skill.geometry?.width || 5,
         geometryLength: skill.geometry?.length || 5,
         geometryAngle: skill.geometry?.angle || 90,
         behaviorSpawn: skill.behavior?.spawn || "player",
-        behaviorBounces: skill.behavior?.bounces || 1,
-        behaviorProjectileMode: skill.behavior?.projectileMode || "bounce",
         behaviorGroundRange: skill.behavior?.groundRange || 10,
+        flagThroughWall: skill.behavior?.flags?.throughWall || false,
+        flagProjectile: skill.behavior?.flags?.projectile || false,
+        projectileBounces: skill.behavior?.projectileBounces || 1,
+        flagChargeable: skill.behavior?.flags?.chargeable || false,
+        chargeMinLength: skill.behavior?.chargeMinLength || 10,
+        chargeMaxLength: skill.behavior?.chargeMaxLength || 35,
+        chargeTimePerMeter: skill.behavior?.chargeTimePerMeter || 0.1,
+        flagRolling: skill.behavior?.flags?.rolling || false,
+        rollWaveCount: skill.behavior?.rollWaveCount || 5,
+        rollTimeBetweenWaves: skill.behavior?.rollTimeBetweenWaves || 0.2,
       });
     } else {
       setFormData({
         name: "",
         description: "",
         color: "",
+        charges: 1,
+        castTime: 0,
         geometryType: "circle",
         geometryRadius: 5,
         geometryWidth: 5,
         geometryLength: 5,
         geometryAngle: 90,
         behaviorSpawn: "player",
-        behaviorBounces: 1,
-        behaviorProjectileMode: "bounce",
         behaviorGroundRange: 10,
+        flagThroughWall: false,
+        flagProjectile: false,
+        projectileBounces: 1,
+        flagChargeable: false,
+        chargeMinLength: 10,
+        chargeMaxLength: 35,
+        chargeTimePerMeter: 0.1,
+        flagRolling: false,
+        rollWaveCount: 5,
+        rollTimeBetweenWaves: 0.2,
       });
     }
   };
@@ -120,10 +150,22 @@ export default function AdminAgentsPage() {
           angle: formData.geometryType === "cone" ? Number(formData.geometryAngle) : undefined,
         },
         behavior: {
+          charges: Number(formData.charges),
+          castTime: Number(formData.castTime),
           spawn: formData.behaviorSpawn,
-          bounces: formData.behaviorSpawn === "projectile" ? Number(formData.behaviorBounces) : undefined,
-          projectileMode: formData.behaviorSpawn === "projectile" ? formData.behaviorProjectileMode : undefined,
           groundRange: formData.behaviorSpawn === "ground" ? Number(formData.behaviorGroundRange) : undefined,
+          projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
+          chargeMinLength: formData.flagChargeable ? Number(formData.chargeMinLength) : undefined,
+          chargeMaxLength: formData.flagChargeable ? Number(formData.chargeMaxLength) : undefined,
+          chargeTimePerMeter: formData.flagChargeable ? Number(formData.chargeTimePerMeter) : undefined,
+          rollWaveCount: formData.flagRolling ? Number(formData.rollWaveCount) : undefined,
+          rollTimeBetweenWaves: formData.flagRolling ? Number(formData.rollTimeBetweenWaves) : undefined,
+          flags: {
+            throughWall: formData.flagThroughWall,
+            projectile: formData.flagProjectile,
+            chargeable: formData.flagChargeable,
+            rolling: formData.flagRolling
+          }
         }
       };
       const res = await fetch("/api/admin/skills", {
@@ -241,9 +283,19 @@ export default function AdminAgentsPage() {
                     <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                   </div>
                   
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Color Base (Hex) - opcional</label>
-                    <input className="input-field" placeholder="#FF4655" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                  <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Color Base (Hex) - opcional</label>
+                      <input className="input-field" placeholder="#FF4655" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                    </div>
+                    <div className="form-group" style={{ width: 120 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cargas</label>
+                      <input type="number" min="1" max="10" className="input-field" value={formData.charges} onChange={e => setFormData({...formData, charges: Number(e.target.value)})} />
+                    </div>
+                    <div className="form-group" style={{ width: 120 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Casteo (s)</label>
+                      <input type="number" step="0.1" min="0" className="input-field" value={formData.castTime} onChange={e => setFormData({...formData, castTime: Number(e.target.value)})} />
+                    </div>
                   </div>
 
                   <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
@@ -285,18 +337,9 @@ export default function AdminAgentsPage() {
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn</label>
                     <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value})}>
                       <option value="player">Sale de la posición del jugador</option>
-                      <option value="wall">Se adhiere a las paredes (ej. Flash Breach)</option>
                       <option value="ground">Se coloca en el suelo libremente</option>
-                      <option value="projectile">Proyectil con rebotes o parábola</option>
                     </select>
                   </div>
-
-                  {formData.behaviorSpawn === "projectile" && (
-                    <div className="form-group" style={{ marginBottom: 24 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (al tirarlo a pared)</label>
-                      <input type="number" className="input-field" value={formData.behaviorBounces} onChange={e => setFormData({...formData, behaviorBounces: Number(e.target.value)})} />
-                    </div>
-                  )}
 
                   {formData.behaviorSpawn === "ground" && (
                     <div className="form-group" style={{ marginBottom: 24 }}>
@@ -304,6 +347,75 @@ export default function AdminAgentsPage() {
                       <input type="number" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
                     </div>
                   )}
+
+                  <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Flags de Comportamiento</h4>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", gap: 12, marginBottom: 24, background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 12 }}>
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
+                        <input type="checkbox" checked={formData.flagThroughWall} onChange={e => setFormData({...formData, flagThroughWall: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
+                        <span>Atraviesa paredes (se tira contra un muro y sale por el otro lado)</span>
+                      </label>
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
+                        <input type="checkbox" checked={formData.flagProjectile} onChange={e => setFormData({...formData, flagProjectile: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
+                        <span>Es un proyectil (se puede lanzar con rebotes o parábola)</span>
+                      </label>
+                    </div>
+                    
+                    {formData.flagProjectile && (
+                      <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (al tirarlo a pared)</label>
+                        <input type="number" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
+                        <input type="checkbox" checked={formData.flagChargeable} onChange={e => setFormData({...formData, flagChargeable: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
+                        <span>Se puede cargar (ej. Stun de Breach)</span>
+                      </label>
+                    </div>
+
+                    {formData.flagChargeable && (
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Mínimo (m)</label>
+                          <input type="number" className="input-field" value={formData.chargeMinLength} onChange={e => setFormData({...formData, chargeMinLength: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Máximo (m)</label>
+                          <input type="number" className="input-field" value={formData.chargeMaxLength} onChange={e => setFormData({...formData, chargeMaxLength: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo/metro (s)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.chargeTimePerMeter} onChange={e => setFormData({...formData, chargeTimePerMeter: Number(e.target.value)})} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
+                        <input type="checkbox" checked={formData.flagRolling} onChange={e => setFormData({...formData, flagRolling: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
+                        <span>Se expande en oleadas (ej. Ulti Breach/Fade)</span>
+                      </label>
+                    </div>
+
+                    {formData.flagRolling && (
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cantidad de Oleadas</label>
+                          <input type="number" className="input-field" value={formData.rollWaveCount} onChange={e => setFormData({...formData, rollWaveCount: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo entre oleadas (s)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.rollTimeBetweenWaves} onChange={e => setFormData({...formData, rollTimeBetweenWaves: Number(e.target.value)})} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 48, fontWeight: 800 }} disabled={saveSkillMutation.isPending}>
                     {saveSkillMutation.isPending ? "Guardando..." : "Guardar Habilidad"}
