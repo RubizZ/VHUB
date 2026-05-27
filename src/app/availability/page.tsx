@@ -2563,7 +2563,6 @@ export default function AvailabilityPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
                                     )}
                                                 </div>
                                             );
