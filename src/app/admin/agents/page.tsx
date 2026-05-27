@@ -35,6 +35,7 @@ interface SkillFormData {
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
   displayIcon: string;
+  enabled: boolean;
 }
 
 export default function AdminAgentsPage() {
@@ -72,6 +73,7 @@ export default function AdminAgentsPage() {
     flagRecallable: false,
     flagGrantsWeapon: false,
     displayIcon: "",
+    enabled: true,
   });
 
   const {
@@ -137,6 +139,7 @@ export default function AdminAgentsPage() {
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         displayIcon: skill.displayIcon || "",
+        enabled: skill.enabled ?? false,
       });
     } else {
       setFormData({
@@ -167,6 +170,7 @@ export default function AdminAgentsPage() {
         flagRecallable: false,
         flagGrantsWeapon: false,
         displayIcon: "",
+        enabled: true,
       });
     }
   };
@@ -209,7 +213,8 @@ export default function AdminAgentsPage() {
             grantsWeapon: formData.flagGrantsWeapon || undefined,
           }
         },
-        displayIcon: formData.displayIcon || undefined
+        displayIcon: formData.displayIcon || undefined,
+        enabled: formData.enabled
       };
       const res = await fetch("/api/admin/skills", {
         method: "POST",
@@ -303,8 +308,8 @@ export default function AdminAgentsPage() {
               </div>
               <div className="agent-skills-preview" style={{ display: "flex", gap: 8 }}>
                  {["q", "e", "c", "x", "passive"].map(key => {
-                   const hasSkill = agent.skills?.some(s => s.key === key);
-                   const hasAlt = agent.skills?.some(s => s.key === `${key}_alt`);
+                   const hasSkill = agent.skills?.some(s => s.key === key && s.enabled);
+                   const hasAlt = agent.skills?.some(s => s.key === `${key}_alt` && s.enabled);
                    return (
                      <div key={key} style={{ 
                        flex: 1, textAlign: "center", padding: "4px", borderRadius: 4, 
@@ -367,7 +372,14 @@ export default function AdminAgentsPage() {
 
               <div style={{ flex: 1 }}>
                 <form onSubmit={handleSubmit} style={{ background: "rgba(0,0,0,0.2)", padding: 24, borderRadius: 16 }}>
-                  <h3 style={{ marginTop: 0, textTransform: "uppercase", color: "var(--val-yellow)" }}>Configurando {editingSkillKey}</h3>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, textTransform: "uppercase", color: "var(--val-yellow)" }}>Configurando {editingSkillKey}</h3>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: formData.enabled ? "rgba(0, 212, 170, 0.1)" : "rgba(255, 70, 85, 0.1)", borderRadius: 8, border: `1px solid ${formData.enabled ? "rgba(0, 212, 170, 0.3)" : "rgba(255, 70, 85, 0.3)"}` }}>
+                      <input type="checkbox" checked={formData.enabled} onChange={e => setFormData({...formData, enabled: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span style={{ fontWeight: 800, color: formData.enabled ? "var(--val-cyan)" : "var(--val-red)" }}>{formData.enabled ? "HABILITADA" : "DESHABILITADA"}</span>
+                    </label>
+                  </div>
                   
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>

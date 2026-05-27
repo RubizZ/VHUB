@@ -87,6 +87,7 @@ export async function GET() {
                             geometry: { type: "circle", radius: 5 },
                             behavior: { spawn: "player" },
                             color: bgColors[0] || "#ffffff",
+                            enabled: false
                         }
                     });
                 }

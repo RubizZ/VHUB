@@ -3870,8 +3870,8 @@ export default function StrategiesPage() {
             >
               {["Q", "E", "C", "X", "PASSIVE"].map(key => {
                 const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
-                const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase());
-                const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt`);
+                const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase() && s.enabled);
+                const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt` && s.enabled);
 
                 const SkillBtn = ({ skill, isAlt }: { skill: typeof mainSkill; isAlt?: boolean }) => (
                   <div
