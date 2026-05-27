@@ -164,6 +164,9 @@ export function Sidebar({
                 <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`} onClick={handleLinkClick}>
                   <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
                 </Link>
+                <Link href="/admin/agents" className={`nav-link ${pathname === "/admin/agents" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Strategies /></span> Agentes y Habilidades
+                </Link>
               </>
             )}
           </>
