@@ -372,7 +372,7 @@ function EventItem({ event }: { event: any }) {
       {attendees.length > 0 && (
         <div style={{ display: "flex", gap: -4, alignItems: "center", flexShrink: 0 }}>
           {attendees.map((a: any) => {
-            const availBorder = a.status === 'available' ? (isMatch ? '2px solid var(--val-match)' : isPlayoffs ? '2px solid var(--val-cyan)' : '2px solid var(--val-practice)') : '2px solid var(--val-yellow)';
+            const availBorder = a.status === 'available' ? '2px solid var(--val-cyan)' : '2px solid var(--val-yellow)';
             return (
             <div key={a.player?.id || a.player_id} style={{
               width: 22, height: 22, borderRadius: "50%", background: a.player?.avatar_color || "#555",
