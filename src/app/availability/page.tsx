@@ -9,10 +9,10 @@ import React, {
     useRef,
     useCallback,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 
 interface Player {
     id: string;
@@ -82,6 +82,88 @@ const formatDateLocal = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
+
+const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) => {
+    const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+    const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    const monthLabel = targetDate.toLocaleDateString("es-ES", {
+        month: "long",
+        year: "numeric",
+    });
+
+    let startDayOffset = startOfMonth.getDay();
+    if (startDayOffset === 0) startDayOffset = 7;
+    startDayOffset -= 1;
+
+    const days = [];
+    const weekDays = [];
+    const todayStr = formatDateLocal(new Date());
+
+    const prevMonthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), 0);
+    const prevMonthDays = prevMonthEnd.getDate();
+
+    for (let i = startDayOffset - 1; i >= 0; i--) {
+        const d = new Date(targetDate.getFullYear(), targetDate.getMonth() - 1, prevMonthDays - i);
+        const dateStr = formatDateLocal(d);
+        days.push({
+            day: prevMonthDays - i,
+            date: dateStr,
+            isOtherMonth: true,
+            events: events.filter((e: any) => e.localDate === dateStr),
+        });
+    }
+    for (let i = 1; i <= endOfMonth.getDate(); i++) {
+        const d = new Date(targetDate.getFullYear(), targetDate.getMonth(), i);
+        const dateStr = formatDateLocal(d);
+        const isToday = isMounted && dateStr === todayStr;
+        const isPast = isMounted && dateStr < todayStr;
+        days.push({
+            day: i,
+            date: dateStr,
+            isToday,
+            isPast,
+            events: events.filter((e: any) => e.localDate === dateStr),
+        });
+    }
+    
+    const totalDays = days.length;
+    const remainingDays = 42 - totalDays;
+    for (let i = 1; i <= remainingDays; i++) {
+        const d = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, i);
+        const dateStr = formatDateLocal(d);
+        days.push({
+            day: i,
+            date: dateStr,
+            isOtherMonth: true,
+            events: events.filter((e: any) => e.localDate === dateStr),
+        });
+    }
+
+    const startOfWeek = new Date(targetDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const dateStr = formatDateLocal(d);
+        const isToday = isMounted && dateStr === todayStr;
+        const isPast = isMounted && dateStr < todayStr;
+        weekDays.push({
+            day: d.getDate(),
+            date: dateStr,
+            isToday,
+            isPast,
+            events: events.filter((e: any) => e.localDate === dateStr),
+            month: d.toLocaleDateString("es-ES", { month: "short" }),
+        });
+    }
+
+    return { dayNames, days, weekDays, monthLabel, targetDate };
+};
+
 export default function AvailabilityPage() {
     const { data: session } = useSession();
     const router = useRouter();
@@ -96,15 +178,29 @@ export default function AvailabilityPage() {
         description: "",
         map: "",
     });
-    const [viewMode, setViewMode] = useState<
-        "list" | "calendar" | "week" | null
-    >(null);
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const searchParams = useSearchParams();
+    const initialView = searchParams.get("view") as "list" | "calendar" | "week" | null;
+    const initialDateStr = searchParams.get("date");
+    const initialDate = initialDateStr ? new Date(initialDateStr) : new Date();
+
+    const [viewMode, setViewMode] = useState<"list" | "calendar" | "week" | null>(initialView);
+    const [currentDate, setCurrentDate] = useState(initialDate);
     const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        if (!isMounted || !viewMode) return;
+        const params = new URLSearchParams();
+        params.set("view", viewMode);
+        params.set("date", currentDate.toISOString().split('T')[0]);
+        router.replace(`?${params.toString()}`, { scroll: false });
+    }, [viewMode, currentDate, isMounted, router]);
+
     const [now, setNow] = useState(new Date());
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
     const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
     const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
+    const [touchStartX, setTouchStartX] = useState<number | null>(null);
+    const [touchEndX, setTouchEndX] = useState<number | null>(null);
     const [activeHighlightId, setActiveHighlightId] = useState<number | null>(
         null,
     );
@@ -163,10 +259,35 @@ export default function AvailabilityPage() {
     });
     const userCalendarToken = userTokenData?.token || null;
 
-    const { data: eventsData, isLoading: eventsLoading, error: eventsError } = useQuery({
-        queryKey: ["events"],
+    const dateBoundaries = useMemo(() => {
+        let start = null;
+        let end = null;
+        if (viewMode === "calendar") {
+            const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+            
+            start = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth()+1).padStart(2,'0')}-01`;
+            end = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth()+1).padStart(2,'0')}-${String(nextMonth.getDate()).padStart(2,'0')}`;
+        } else if (viewMode === "week") {
+            const prevWeek = new Date(currentDate);
+            prevWeek.setDate(currentDate.getDate() - 14);
+            const nextWeek = new Date(currentDate);
+            nextWeek.setDate(currentDate.getDate() + 14);
+            
+            start = `${prevWeek.getFullYear()}-${String(prevWeek.getMonth()+1).padStart(2,'0')}-${String(prevWeek.getDate()).padStart(2,'0')}`;
+            end = `${nextWeek.getFullYear()}-${String(nextWeek.getMonth()+1).padStart(2,'0')}-${String(nextWeek.getDate()).padStart(2,'0')}`;
+        }
+        return { start, end };
+    }, [currentDate, viewMode]);
+
+    const { data: calendarEventsData, isLoading: calendarEventsLoading, error: calendarError } = useQuery({
+        queryKey: ["events", "calendar", dateBoundaries.start, dateBoundaries.end],
         queryFn: async () => {
-            const res = await fetch("/api/events");
+            const params = new URLSearchParams({ view: viewMode || "calendar" });
+            if (dateBoundaries.start) params.set("startDate", dateBoundaries.start);
+            if (dateBoundaries.end) params.set("endDate", dateBoundaries.end);
+            
+            const res = await fetch(`/api/events?${params.toString()}`);
             if (res.status === 401) {
                 window.location.href = "/login";
                 return null;
@@ -175,10 +296,57 @@ export default function AvailabilityPage() {
             if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
             return d;
         },
+        enabled: (viewMode === "calendar" || viewMode === "week") && !!dateBoundaries.start
     });
 
-    const isLoadingEvents = eventsLoading;
-    const error = eventsError ? (eventsError as Error).message : null;
+    const { 
+        data: listEventsData, 
+        isLoading: listEventsLoading, 
+        error: listError,
+        fetchNextPage, 
+        hasNextPage, 
+        fetchPreviousPage, 
+        hasPreviousPage,
+        isFetchingNextPage,
+        isFetchingPreviousPage
+    } = useInfiniteQuery({
+        queryKey: ["events", "list"],
+        queryFn: async ({ pageParam }) => {
+            const params = new URLSearchParams({ view: "list", limit: "15" });
+            if (pageParam) {
+                params.set("cursor", String(pageParam.cursor));
+                params.set("direction", pageParam.direction);
+            }
+            const res = await fetch(`/api/events?${params.toString()}`);
+            if (res.status === 401) {
+                window.location.href = "/login";
+                return null;
+            }
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
+            return d;
+        },
+        initialPageParam: null as { cursor: string, direction: string } | null,
+        getNextPageParam: (lastPage) => lastPage?.nextCursor ? { cursor: lastPage.nextCursor, direction: "future" } : null,
+        getPreviousPageParam: (firstPage) => firstPage?.prevCursor ? { cursor: firstPage.prevCursor, direction: "past" } : null,
+        enabled: viewMode === "list" || viewMode === null,
+    });
+
+    const isListView = viewMode === "list" || viewMode === null;
+    const eventsData = isListView
+        ? { 
+            events: listEventsData?.pages.flatMap(p => p?.events || []) || [], 
+            seasons: listEventsData?.pages[0]?.seasons || [], 
+            activeSeasonId: listEventsData?.pages[0]?.activeSeasonId || "" 
+          }
+        : { 
+            events: calendarEventsData?.events || [], 
+            seasons: calendarEventsData?.seasons || [], 
+            activeSeasonId: calendarEventsData?.activeSeasonId || "" 
+          };
+
+    const isLoadingEvents = isListView ? listEventsLoading : calendarEventsLoading;
+    const error = isListView ? (listError ? (listError as Error).message : null) : (calendarError ? (calendarError as Error).message : null);
 
     // Derived events formatting and availability map
     const { events, avail } = useMemo(() => {
@@ -567,9 +735,35 @@ export default function AvailabilityPage() {
     }, [events, avail, isMounted, players, todayStr]);
 
     const checkUpcomingScrollPosition = useCallback(() => {
-        if (!firstUpcomingId || !listContainerRef.current) return;
-        const card = eventRefsMap.current[firstUpcomingId];
+        if (!listContainerRef.current) return;
         const container = listContainerRef.current;
+        
+        // --- Infinite Scroll Logic ---
+        if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
+            const scrollThreshold = 300; // Trigger earlier for smoother experience
+            
+            // Bottom Check (Future Events)
+            if (
+                container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold &&
+                hasNextPage &&
+                !isFetchingNextPage
+            ) {
+                fetchNextPage();
+            }
+            
+            // Top Check (Past Events)
+            if (
+                container.scrollTop < scrollThreshold &&
+                hasPreviousPage &&
+                !isFetchingPreviousPage
+            ) {
+                fetchPreviousPage();
+            }
+        }
+        // -----------------------------
+
+        if (!firstUpcomingId) return;
+        const card = eventRefsMap.current[firstUpcomingId];
         if (!card) return;
 
         const containerRect = container.getBoundingClientRect();
@@ -582,7 +776,7 @@ export default function AvailabilityPage() {
         } else {
             setUpcomingScrollPosition("in-view");
         }
-    }, [firstUpcomingId]);
+    }, [firstUpcomingId, viewMode, hasInitialScrolled, hasNextPage, isFetchingNextPage, fetchNextPage, hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage]);
 
     useEffect(() => {
         if (viewMode === "list") {
@@ -597,99 +791,35 @@ export default function AvailabilityPage() {
         (session?.user as any)?.role === "team_admin" ||
         (session?.user as any)?.role === "super_admin";
 
-    const { dayNames, days, weekDays, monthLabel } = useMemo(() => {
-        const startOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            1,
-        );
-        const endOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() + 1,
-            0,
-        );
-        const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-        const monthLabel = currentDate.toLocaleDateString("es-ES", {
-            month: "long",
-            year: "numeric",
-        });
+    
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isAnimating, setIsAnimating] = useState(false);
 
-        let startDayOffset = startOfMonth.getDay();
-        if (startDayOffset === 0) startDayOffset = 7;
-        startDayOffset -= 1;
-
-        const days: any[] = [];
-        const weekDays: any[] = [];
-        const todayStr = formatDateLocal(new Date());
-
-        const prevMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
-        const prevMonthDays = prevMonthEnd.getDate();
-
-        for (let i = startDayOffset - 1; i >= 0; i--) {
-            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, prevMonthDays - i);
-            const dateStr = formatDateLocal(d);
-            days.push({
-                day: prevMonthDays - i,
-                date: dateStr,
-                isOtherMonth: true,
-                events: events.filter((e) => (e as any).localDate === dateStr),
-            });
+    const carouselData = useMemo(() => {
+        if (viewMode === "calendar") {
+            const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            return [
+                getCalendarData(prevMonth, events, isMounted),
+                getCalendarData(currentDate, events, isMounted),
+                getCalendarData(nextMonth, events, isMounted),
+            ];
+        } else if (viewMode === "week") {
+            const prevWeek = new Date(currentDate);
+            prevWeek.setDate(currentDate.getDate() - 7);
+            const nextWeek = new Date(currentDate);
+            nextWeek.setDate(currentDate.getDate() + 7);
+            return [
+                getCalendarData(prevWeek, events, isMounted),
+                getCalendarData(currentDate, events, isMounted),
+                getCalendarData(nextWeek, events, isMounted),
+            ];
         }
-        for (let i = 1; i <= endOfMonth.getDate(); i++) {
-            const d = new Date(
-                currentDate.getFullYear(),
-                currentDate.getMonth(),
-                i,
-            );
-            const dateStr = formatDateLocal(d);
-            const isToday = isMounted && dateStr === todayStr;
-            const isPast = isMounted && dateStr < todayStr;
-            days.push({
-                day: i,
-                date: dateStr,
-                isToday,
-                isPast,
-                events: events.filter((e) => (e as any).localDate === dateStr),
-            });
-        }
-        
-        const totalDays = days.length;
-        const remainingDays = 42 - totalDays;
-        for (let i = 1; i <= remainingDays; i++) {
-            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, i);
-            const dateStr = formatDateLocal(d);
-            days.push({
-                day: i,
-                date: dateStr,
-                isOtherMonth: true,
-                events: events.filter((e) => (e as any).localDate === dateStr),
-            });
-        }
+        return [getCalendarData(currentDate, events, isMounted)];
+    }, [currentDate, events, isMounted, viewMode]);
 
-        // Weekly View Logic
-        const startOfWeek = new Date(currentDate);
-        const day = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-        startOfWeek.setDate(diff);
+    const { dayNames, days, weekDays, monthLabel } = carouselData[1] || carouselData[0] || getCalendarData(currentDate, events, isMounted);
 
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(startOfWeek);
-            d.setDate(startOfWeek.getDate() + i);
-            const dateStr = formatDateLocal(d);
-            const isToday = isMounted && dateStr === todayStr;
-            const isPast = isMounted && dateStr < todayStr;
-            weekDays.push({
-                day: d.getDate(),
-                date: dateStr,
-                isToday,
-                isPast,
-                events: events.filter((e) => (e as any).localDate === dateStr),
-                month: d.toLocaleDateString("es-ES", { month: "short" }),
-            });
-        }
-
-        return { dayNames, days, weekDays, monthLabel };
-    }, [events, isMounted, currentDate, viewMode]);
 
     useEffect(() => {
         if (viewMode === "week" && weekScrollRef.current) {
@@ -712,6 +842,43 @@ export default function AvailabilityPage() {
                 targetMinutes - containerHeight / 2;
         }
     }, [viewMode, weekDays]);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStartX(e.targetTouches[0].clientX);
+    };
+
+    
+
+    
+    const handleTouchEnd = () => {
+        if (touchStartX === null || touchEndX === null) return;
+        const distance = touchStartX - touchEndX;
+        const isLeftSwipe = distance > 50;
+        const isRightSwipe = distance < -50;
+        
+        setTouchStartX(null);
+        setTouchEndX(null);
+        setDragOffset(0);
+
+        if (isLeftSwipe || isRightSwipe) {
+            setIsAnimating(true);
+            setDragOffset(isLeftSwipe ? -window.innerWidth : window.innerWidth);
+            
+            setTimeout(() => {
+                setIsAnimating(false);
+                setDragOffset(0);
+                changeDate(isLeftSwipe ? 1 : -1);
+            }, 300);
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (touchStartX === null) return;
+        const currentX = e.targetTouches[0].clientX;
+        setTouchEndX(currentX);
+        setDragOffset(currentX - touchStartX);
+    };
+
 
     const changeDate = (offset: number) => {
         if (viewMode === "calendar") {
@@ -1086,6 +1253,9 @@ export default function AvailabilityPage() {
                                 </div>
                                 <div
                                     className="calendar-grid-container"
+                                    onTouchStart={handleTouchStart}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
                                     style={{
                                         flex: 1,
                                         overflowY: "auto",
@@ -2613,6 +2783,11 @@ export default function AvailabilityPage() {
                                 ))
                             ) : (
                                 <>
+                                    {!hasPreviousPage && events.length > 0 && isListView && (
+                                        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, margin: "10px 0" }}>
+                                            No hay eventos más antiguos.
+                                        </p>
+                                    )}
                                     {events.length === 0 && (
                                         <p
                                             style={{
@@ -4115,6 +4290,11 @@ export default function AvailabilityPage() {
                                             </div>
                                         );
                                     })}
+                                    {!hasNextPage && events.length > 0 && isListView && (
+                                        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, margin: "10px 0" }}>
+                                            No hay más eventos programados.
+                                        </p>
+                                    )}
                                 </>
                             )}
                         </div>

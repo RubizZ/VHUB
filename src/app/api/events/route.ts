@@ -614,6 +614,14 @@ export async function GET(req: NextRequest) {
         }
       }
     }
+    // Extraer parámetros de paginación
+    const view = searchParams.get("view");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const limit = parseInt(searchParams.get("limit") || "15", 10);
+    const cursor = searchParams.get("cursor");
+    const direction = searchParams.get("direction");
+
     // Enriquecer eventos con partidos vinculados y objeto de mapa
     const enrichedEvents = events.map(ev => ({
       ...ev,
@@ -621,12 +629,63 @@ export async function GET(req: NextRequest) {
       map_obj: ev.map ? mapsMap.get(ev.map) : null
     }));
 
-    console.log(`[GET /api/events] Devolviendo ${enrichedEvents.length} eventos para equipo ${teamId}`);
+    // PAGINACIÓN EN MEMORIA (Para no romper la lógica de autocompletado y auto-cancelación)
+    let returnedEvents = enrichedEvents;
+    let nextCursor = null;
+    let prevCursor = null;
+
+    if (view === "calendar" || view === "week") {
+      if (startDate && endDate) {
+        returnedEvents = enrichedEvents.filter(e => e.date >= startDate && e.date <= endDate);
+      }
+    } else if (view === "list") {
+      // Para timezone local de ESPAÑA:
+      const now = new Date();
+      now.setHours(now.getHours() + 2); // roughly UTC+2
+      const todayStr = now.toISOString().split('T')[0];
+      
+      if (cursor && direction) {
+        const cursorIdx = enrichedEvents.findIndex(e => e.id.toString() === cursor);
+        if (cursorIdx !== -1) {
+          if (direction === "future") {
+            returnedEvents = enrichedEvents.slice(cursorIdx + 1, cursorIdx + 1 + limit);
+          } else if (direction === "past") {
+            const startIdx = Math.max(0, cursorIdx - limit);
+            returnedEvents = enrichedEvents.slice(startIdx, cursorIdx);
+          }
+        } else {
+          returnedEvents = [];
+        }
+      } else {
+        // Carga inicial
+        if (direction === "past") {
+          const pastEvents = enrichedEvents.filter(e => e.date < todayStr);
+          returnedEvents = pastEvents.slice(-limit);
+        } else if (direction === "future") {
+          const futureEvents = enrichedEvents.filter(e => e.date >= todayStr);
+          returnedEvents = futureEvents.slice(0, limit);
+        } else {
+          // Inicial absoluto: devolver parte del pasado y parte del futuro
+          const pastEvents = enrichedEvents.filter(e => e.date < todayStr);
+          const futureEvents = enrichedEvents.filter(e => e.date >= todayStr);
+          returnedEvents = [...pastEvents.slice(-limit), ...futureEvents.slice(0, limit)];
+        }
+      }
+      
+      if (returnedEvents.length > 0) {
+        nextCursor = returnedEvents[returnedEvents.length - 1].id;
+        prevCursor = returnedEvents[0].id;
+      }
+    }
+
+    console.log(`[GET /api/events] Devolviendo ${returnedEvents.length} eventos (de ${enrichedEvents.length}) para equipo ${teamId}. Vista: ${view}`);
 
     return NextResponse.json({
-      events: enrichedEvents,
+      events: returnedEvents,
       seasons,
-      activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : "")
+      activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : ""),
+      nextCursor,
+      prevCursor
     });
   } catch (error: any) {
     console.error("[GET /api/events] ❌ CRITICAL ERROR:", error);
