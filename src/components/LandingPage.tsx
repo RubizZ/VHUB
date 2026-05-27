@@ -2,14 +2,24 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { useEffect } from "react";
 
 export function LandingPage() {
+  // Allow body scroll only when landing page is active
+  useEffect(() => {
+    document.body.classList.add("landing-page");
+    return () => {
+      document.body.classList.remove("landing-page");
+    };
+  }, []);
+
   return (
     <div className="landing-wrapper animate-in">
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-brand">
-          <div className="landing-brand-icon">V</div>
+          <Image src="/logo.png" alt="VHUB" width={38} height={38} style={{ objectFit: "contain" }} priority />
           <div className="landing-brand-text">
             <h1>VHUB</h1>
             <span>Premier Platform</span>
@@ -154,7 +164,7 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="landing-footer-brand">
-          <div className="landing-brand-icon" style={{ width: "32px", height: "32px", fontSize: "14px" }}>V</div>
+          <Image src="/logo.png" alt="VHUB" width={32} height={32} style={{ objectFit: "contain" }} />
           <span style={{ fontWeight: 800, fontSize: "16px", letterSpacing: "1px" }}>VHUB</span>
         </div>
         <p className="landing-footer-disclaimer">

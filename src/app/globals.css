@@ -2210,6 +2210,12 @@ input:checked+.slider:before {
 }
 
 /* ── Landing Page Styles ── */
+/* Allow scroll when landing page is active */
+body.landing-page {
+  height: auto;
+  overflow: auto;
+}
+
 .landing-wrapper {
   min-height: 100vh;
   display: flex;
