@@ -17,6 +17,7 @@ export interface SkillBehaviorFlags {
   rolling?: boolean;
   recallable?: boolean; // La habilidad debe ser recogida manualmente antes de que empiece el cooldown (ej. C de Chamber)
   grantsWeapon?: boolean; // Actúa como arma (ej. Q/X de Chamber)
+  teleportsToDeployed?: boolean; // Permite tepearse a esta habilidad si ya está desplegada
 }
 
 export interface SkillBehavior {

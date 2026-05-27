@@ -3923,6 +3923,39 @@ export default function StrategiesPage() {
                     }}
                     onClick={() => {
                       if (!skill) { alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`); return; }
+                      
+                      // Lógica Sandbox: Teletransporte a habilidad desplegada
+                      if (skill.behavior?.flags?.teleportsToDeployed) {
+                        // Buscar si ya hay un ancla desplegada por este agente
+                        const deployedSkill = pathsRef.current.find(
+                          p => p.tool === "skill" && p.agentInstanceId === ctxAgent.instanceId && p.skill?.key === skill.key
+                        );
+                        
+                        if (deployedSkill && deployedSkill.points.length > 0) {
+                          const range = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 13;
+                          const dx = deployedSkill.points[0].x - ctxAgent.x;
+                          const dy = deployedSkill.points[0].y - ctxAgent.y;
+                          const dist = Math.sqrt(dx * dx + dy * dy);
+                          
+                          if (dist <= range) {
+                            // Teletransportar agente instantáneamente
+                            const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
+                            if (agentIndex !== -1) {
+                              agentsRef.current[agentIndex].x = deployedSkill.points[0].x;
+                              agentsRef.current[agentIndex].y = deployedSkill.points[0].y;
+                              redraw();
+                              setHoverMenuState(prev => ({ ...prev, visible: false }));
+                              return; // No castear una nueva ancla
+                            }
+                          } else {
+                            // Mostrar feedback visual o alerta si está fuera de rango
+                            alert("El ancla de teletransporte está fuera de rango.");
+                            setHoverMenuState(prev => ({ ...prev, visible: false }));
+                            return;
+                          }
+                        }
+                      }
+
                       setTool("skill");
                       pendingSkillRef.current = {
                         agentInstanceId: ctxAgent.instanceId,

@@ -34,6 +34,7 @@ interface SkillFormData {
   consumesSkillKey: string;
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
+  flagTeleportsToDeployed: boolean;
   displayIcon: string;
   enabled: boolean;
 }
@@ -72,6 +73,7 @@ export default function AdminAgentsPage() {
     consumesSkillKey: "",
     flagRecallable: false,
     flagGrantsWeapon: false,
+    flagTeleportsToDeployed: false,
     displayIcon: "",
     enabled: true,
   });
@@ -138,6 +140,7 @@ export default function AdminAgentsPage() {
         consumesSkillKey: skill.behavior?.consumesSkillKey || "",
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
+        flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -169,6 +172,7 @@ export default function AdminAgentsPage() {
         consumesSkillKey: "",
         flagRecallable: false,
         flagGrantsWeapon: false,
+        flagTeleportsToDeployed: false,
         displayIcon: "",
         enabled: true,
       });
@@ -208,9 +212,10 @@ export default function AdminAgentsPage() {
             throughWall: formData.flagThroughWall,
             projectile: formData.flagProjectile,
             chargeable: formData.flagChargeable,
-            rolling: formData.flagRolling,
+            rolling: formData.flagRolling || undefined,
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
+            teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -378,6 +383,14 @@ export default function AdminAgentsPage() {
                       <input type="checkbox" checked={formData.enabled} onChange={e => setFormData({...formData, enabled: e.target.checked})} />
                       <span className="checkbox-custom"></span>
                       <span style={{ fontWeight: 800, color: formData.enabled ? "var(--val-cyan)" : "var(--val-red)" }}>{formData.enabled ? "HABILITADA" : "DESHABILITADA"}</span>
+                    </label>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Permite teletransporte hacia ella (Ej: Chamber E)</span>
                     </label>
                   </div>
                   
