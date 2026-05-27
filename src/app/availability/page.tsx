@@ -156,6 +156,7 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
             date: dateStr,
             isToday,
             isPast,
+            isOtherMonth: d.getMonth() !== targetDate.getMonth(),
             events: events.filter((e: any) => e.localDate === dateStr),
             month: d.toLocaleDateString("es-ES", { month: "short" }),
         });
@@ -866,12 +867,10 @@ export default function AvailabilityPage() {
                 targetMinutes = Math.max(0, totalMinutes / allEvents.length - 60); // 1h antes del promedio
             }
 
-            setTimeout(() => {
-                if (weekScrollRef.current) {
-                    const containerHeight = weekScrollRef.current.clientHeight || 600;
-                    weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
-                }
-            }, 0);
+            if (weekScrollRef.current) {
+                const containerHeight = weekScrollRef.current.clientHeight || 600;
+                weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
+            }
         }
     }, [viewMode, weekDays]);
 
