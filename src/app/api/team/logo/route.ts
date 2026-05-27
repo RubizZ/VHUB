@@ -33,17 +33,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid file type. Must be an image." }, { status: 400 });
     }
 
-    // Sanitize filename to avoid S3 path issues
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-    const filename = `team-${teamId}/${createId()}-${sanitizedName}`;
+    // Process image with sharp: resize and convert to webp
+    const sharp = (await import("sharp")).default;
+    const processedBuffer = await sharp(buffer)
+      .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // Normalize filename to a clean ID + .webp
+    const filename = `team-${teamId}/${createId()}.webp`;
 
     // Upload to S3
     await s3Client.send(
       new PutObjectCommand({
         Bucket: S3_BUCKET_NAME,
         Key: filename,
-        Body: buffer,
-        ContentType: file.type,
+        Body: processedBuffer,
+        ContentType: "image/webp",
       })
     );
 
