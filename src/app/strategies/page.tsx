@@ -741,6 +741,34 @@ export default function StrategiesPage() {
         ctx.globalAlpha = 0.8;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
+      } else if (geom.type === "infinite-wall") {
+        // Draw an infinite wall: a thick line that extends across the whole canvas
+        // Direction is determined by the vector from skill origin to target
+        const angle = (skill.targetX !== undefined && skill.targetY !== undefined)
+          ? Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x)
+          : 0;
+
+        // The canvas is large — extend far enough beyond any visible area
+        const farDist = 5000;
+        const dx = Math.cos(angle) * farDist;
+        const dy = Math.sin(angle) * farDist;
+
+        ctx.beginPath();
+        ctx.moveTo(-dx, -dy);
+        ctx.lineTo(dx, dy);
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 6 / scale;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Draw a thinner bright core
+        ctx.beginPath();
+        ctx.moveTo(-dx, -dy);
+        ctx.lineTo(dx, dy);
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2 / scale;
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
       }
       ctx.restore();
     }
@@ -3730,40 +3758,45 @@ export default function StrategiesPage() {
                 gap: 4
               }}
             >
-              {["Q", "E", "C", "X"].map(key => (
-                <div
-                  key={key}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    background: "rgba(10, 14, 20, 0.9)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: "rgba(255,255,255,0.6)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-                    transition: "all 0.15s ease",
-                    cursor: "pointer"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.color = "#fff";
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.color = "rgba(255,255,255,0.6)";
-                    e.currentTarget.style.background = "rgba(10, 14, 20, 0.9)";
-                  }}
-                  onClick={() => {
-                    const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
-                    const skill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase());
-                    if (skill) {
+              {["Q", "E", "C", "X"].map(key => {
+                const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
+                const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase());
+                const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt`);
+
+                const SkillBtn = ({ skill, isAlt }: { skill: typeof mainSkill; isAlt?: boolean }) => (
+                  <div
+                    style={{
+                      width: 28,
+                      height: isAlt ? 22 : 28,
+                      borderRadius: isAlt ? 4 : 6,
+                      background: "rgba(10, 14, 20, 0.9)",
+                      backdropFilter: "blur(12px)",
+                      border: `1px solid ${isAlt ? "rgba(0, 212, 170, 0.3)" : "rgba(255,255,255,0.12)"}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: isAlt ? 9 : 12,
+                      fontWeight: 900,
+                      color: isAlt ? "rgba(0, 212, 170, 0.8)" : "rgba(255,255,255,0.6)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                      transition: "all 0.15s ease",
+                      cursor: skill ? "pointer" : "default",
+                      opacity: skill ? 1 : 0.3,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!skill) return;
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!skill) return;
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.color = isAlt ? "rgba(0, 212, 170, 0.8)" : "rgba(255,255,255,0.6)";
+                      e.currentTarget.style.background = "rgba(10, 14, 20, 0.9)";
+                    }}
+                    onClick={() => {
+                      if (!skill) { alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`); return; }
                       setTool("skill");
                       pendingSkillRef.current = {
                         agentInstanceId: ctxAgent.instanceId,
@@ -3771,14 +3804,19 @@ export default function StrategiesPage() {
                         color: skill.color || agentData?.bgColors?.[0] || "#fff"
                       };
                       setHoverMenuState(prev => ({ ...prev, visible: false }));
-                    } else {
-                      alert(`La habilidad ${key} no está configurada para este agente.`);
-                    }
-                  }}
-                >
-                  {key}
-                </div>
-              ))}
+                    }}
+                  >
+                    {isAlt ? `↳${key}` : key}
+                  </div>
+                );
+
+                return (
+                  <div key={key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <SkillBtn skill={mainSkill} />
+                    {altSkill && <SkillBtn skill={altSkill} isAlt />}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Delete button - over agent border */}

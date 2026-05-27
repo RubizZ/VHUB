@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "circle" | "rectangle" | "cone";
+  type: "circle" | "rectangle" | "cone" | "infinite-wall";
   radius?: number;
   width?: number;
   length?: number;
@@ -20,6 +20,7 @@ export interface SkillBehaviorFlags {
 export interface SkillBehavior {
   charges?: number;
   castTime?: number;
+  rechargeTime?: number;
   spawn: "player" | "ground" | "wall" | "projectile";
   maxCastRange?: number;
   groundRange?: number; // legacy
@@ -29,6 +30,7 @@ export interface SkillBehavior {
   chargeTimePerMeter?: number;
   rollWaveCount?: number;
   rollTimeBetweenWaves?: number;
+  consumesSkillKey?: string;
   flags?: SkillBehaviorFlags;
 }
 

@@ -12,7 +12,7 @@ interface SkillFormData {
   color: string;
   charges: number;
   castTime: number;
-  geometryType: "circle" | "rectangle" | "cone";
+  geometryType: "circle" | "rectangle" | "cone" | "infinite-wall";
   geometryRadius: number;
   geometryWidth: number;
   geometryLength: number;
@@ -29,6 +29,8 @@ interface SkillFormData {
   flagRolling: boolean;
   rollWaveCount: number;
   rollTimeBetweenWaves: number;
+  rechargeTime: number;
+  consumesSkillKey: string;
 }
 
 export default function AdminAgentsPage() {
@@ -61,6 +63,8 @@ export default function AdminAgentsPage() {
     flagRolling: false,
     rollWaveCount: 5,
     rollTimeBetweenWaves: 0.2,
+    rechargeTime: 0,
+    consumesSkillKey: "",
   });
 
   const {
@@ -86,7 +90,7 @@ export default function AdminAgentsPage() {
 
   const loadSkillForm = (agent: ValorantAgent, key: string) => {
     setEditingSkillKey(key);
-    const skill = agent.skills.find(s => s.key === key);
+    const skill = agent.skills?.find(s => s.key === key);
     if (skill) {
       setFormData({
         name: skill.name,
@@ -94,7 +98,7 @@ export default function AdminAgentsPage() {
         color: skill.color || "",
         charges: skill.behavior?.charges || 1,
         castTime: skill.behavior?.castTime || 0,
-        geometryType: skill.geometry?.type || "circle",
+        geometryType: (skill.geometry?.type as SkillFormData["geometryType"]) || "circle",
         geometryRadius: skill.geometry?.radius || 5,
         geometryWidth: skill.geometry?.width || 5,
         geometryLength: skill.geometry?.length || 5,
@@ -111,6 +115,8 @@ export default function AdminAgentsPage() {
         flagRolling: skill.behavior?.flags?.rolling || false,
         rollWaveCount: skill.behavior?.rollWaveCount || 5,
         rollTimeBetweenWaves: skill.behavior?.rollTimeBetweenWaves || 0.2,
+        rechargeTime: skill.behavior?.rechargeTime || 0,
+        consumesSkillKey: skill.behavior?.consumesSkillKey || "",
       });
     } else {
       setFormData({
@@ -136,6 +142,8 @@ export default function AdminAgentsPage() {
         flagRolling: false,
         rollWaveCount: 5,
         rollTimeBetweenWaves: 0.2,
+        rechargeTime: 0,
+        consumesSkillKey: "",
       });
     }
   };
@@ -159,7 +167,9 @@ export default function AdminAgentsPage() {
         behavior: {
           charges: Number(formData.charges),
           castTime: Number(formData.castTime),
-          spawn: formData.behaviorSpawn,
+          rechargeTime: Number(formData.rechargeTime) || undefined,
+          consumesSkillKey: formData.consumesSkillKey || undefined,
+          spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           maxCastRange: Number(formData.behaviorGroundRange) || undefined,
           projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
           chargeMinLength: formData.flagChargeable ? Number(formData.chargeMinLength) : undefined,
@@ -238,7 +248,8 @@ export default function AdminAgentsPage() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                  {["q", "e", "c", "x"].map(key => {
-                   const hasSkill = agent.skills.some(s => s.key === key);
+                   const hasSkill = agent.skills?.some(s => s.key === key);
+                   const hasAlt = agent.skills?.some(s => s.key === `${key}_alt`);
                    return (
                      <div key={key} style={{ 
                        flex: 1, textAlign: "center", padding: "4px", borderRadius: 4, 
@@ -246,7 +257,7 @@ export default function AdminAgentsPage() {
                        color: hasSkill ? "var(--val-cyan)" : "var(--val-red)",
                        fontSize: 10, fontWeight: 800, textTransform: "uppercase"
                      }}>
-                       {key}
+                       {key}{hasAlt ? "*" : ""}
                      </div>
                    );
                  })}
@@ -268,16 +279,34 @@ export default function AdminAgentsPage() {
             </div>
 
             <div style={{ display: "flex", gap: 24 }}>
-              <div style={{ width: 120, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ width: 140, display: "flex", flexDirection: "column", gap: 12 }}>
                 {["q", "e", "c", "x"].map(key => (
-                  <button 
-                    key={key} 
-                    className={`btn ${editingSkillKey === key ? "btn-primary" : "btn-secondary"}`}
-                    style={{ textTransform: "uppercase", fontWeight: 800, height: 48 }}
-                    onClick={() => loadSkillForm(selectedAgent, key)}
-                  >
-                    Habilidad {key}
-                  </button>
+                  <React.Fragment key={key}>
+                    <button 
+                      className={`btn ${editingSkillKey === key ? "btn-primary" : "btn-secondary"}`}
+                      style={{ textTransform: "uppercase", fontWeight: 800, height: 48 }}
+                      onClick={() => loadSkillForm(selectedAgent, key)}
+                    >
+                      Habilidad {key}
+                    </button>
+                    {selectedAgent.skills?.some(s => s.key === `${key}_alt`) ? (
+                      <button 
+                        className={`btn ${editingSkillKey === `${key}_alt` ? "btn-primary" : "btn-secondary"}`}
+                        style={{ textTransform: "uppercase", fontWeight: 800, height: 36, marginLeft: 16, marginTop: -8, fontSize: 12 }}
+                        onClick={() => loadSkillForm(selectedAgent, `${key}_alt`)}
+                      >
+                        ↳ {key} (Alt)
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn btn-secondary"
+                        style={{ textTransform: "uppercase", fontWeight: 800, height: 32, marginLeft: 16, marginTop: -8, fontSize: 10, opacity: 0.5, border: "1px dashed rgba(255,255,255,0.2)" }}
+                        onClick={() => loadSkillForm(selectedAgent, `${key}_alt`)}
+                      >
+                        + Añadir Alt
+                      </button>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
 
@@ -303,15 +332,20 @@ export default function AdminAgentsPage() {
                       <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Casteo (s)</label>
                       <input type="number" step="0.1" min="0" className="input-field" value={formData.castTime} onChange={e => setFormData({...formData, castTime: Number(e.target.value)})} />
                     </div>
+                    <div className="form-group" style={{ width: 120 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Recarga (s)</label>
+                      <input type="number" step="0.1" min="0" className="input-field" value={formData.rechargeTime} onChange={e => setFormData({...formData, rechargeTime: Number(e.target.value)})} />
+                    </div>
                   </div>
 
                   <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
                     <div className="form-group" style={{ flex: "1 1 100%" }}>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica</label>
-                      <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value})}>
+                      <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
                         <option value="circle">Círculo / Área</option>
                         <option value="rectangle">Rectángulo / Línea</option>
                         <option value="cone">Cono</option>
+                        <option value="infinite-wall">Muro Infinito</option>
                       </select>
                     </div>
                     {formData.geometryType === "circle" && (
@@ -320,7 +354,7 @@ export default function AdminAgentsPage() {
                         <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
                       </div>
                     )}
-                    {formData.geometryType !== "circle" && (
+                    {(formData.geometryType === "rectangle" || formData.geometryType === "cone") && (
                       <>
                         <div className="form-group" style={{ flex: 1 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho (m)</label>
@@ -342,7 +376,7 @@ export default function AdminAgentsPage() {
 
                   <div className="form-group" style={{ marginBottom: 24 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
-                    <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value})}>
+                    <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value as SkillFormData["behaviorSpawn"]})}>
                       <option value="player">Sale de la posición del jugador</option>
                       <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
                     </select>
@@ -422,7 +456,12 @@ export default function AdminAgentsPage() {
                     )}
                   </div>
 
-                  <button type="submit" className="btn btn-primary" style={{ width: "100%", height: 48, fontWeight: 800 }} disabled={saveSkillMutation.isPending}>
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Requiere consumir (Key de otra habilidad, ej. x_alt) — opcional</label>
+                    <input className="input-field" placeholder="Vacío = no depende de otra habilidad" value={formData.consumesSkillKey} onChange={e => setFormData({...formData, consumesSkillKey: e.target.value})} />
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 900, textTransform: "uppercase" }} disabled={saveSkillMutation.isPending}>
                     {saveSkillMutation.isPending ? "Guardando..." : "Guardar Habilidad"}
                   </button>
                 </form>
