@@ -1928,7 +1928,7 @@ export default function AvailabilityPage() {
                                                     )}
                                                 </div>
                                                 <div
-                                                    ref={weekScrollRef}
+                                                    ref={slideIndex === 1 ? weekScrollRef : null}
                                                     style={{
                                                         display: "flex",
                                                         flex: 1,
