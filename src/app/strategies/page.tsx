@@ -62,6 +62,7 @@ interface CanvasSkill {
   targetY?: number;
   geometry: any;
   behavior: any;
+  projectileMode?: "bounce" | "parabola";
   color: string;
   createdBy?: string;
 }
@@ -3423,7 +3424,7 @@ export default function StrategiesPage() {
                       tool === "draw" ? "Lápiz" :
                         tool === "arrow" ? "Vector" :
                           tool === "eraser" ? "Borrador" :
-                            tool === "line-eraser" ? "Borrador de clic" : ""}
+                            tool === "skill" ? "Habilidad" : ""}
                   </div>
                   <div style={{
                     fontSize: 12,
