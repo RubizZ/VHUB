@@ -5,17 +5,22 @@ import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
 
 interface Team {
   id: string;
   name: string;
   slug: string;
+  inviteCode?: string;
   premierTeam?: {
+    name: string;
     conference: string;
     tag?: string;
     division?: number;
   };
   logo_url?: string;
+  matchHistoryConsent?: boolean;
+  calendarToken?: string;
   _count: {
     players: number;
     users: number;
@@ -30,7 +35,7 @@ export default function AdminTeamsPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-  const [formData, setFormData] = useState({ name: "", slug: "", conference: "EMEA", tag: "" });
+  const [formData, setFormData] = useState({ name: "", slug: "", conference: "EMEA", tag: "", logo_url: "", division: "" as string | number });
 
   // 1. Fetch Teams Query
   const {
@@ -51,7 +56,7 @@ export default function AdminTeamsPage() {
 
   const handleOpenCreate = () => {
     setEditingTeam(null);
-    setFormData({ name: "", slug: "", conference: "EMEA", tag: "" });
+    setFormData({ name: "", slug: "", conference: "EMEA", tag: "", logo_url: "", division: "" });
     setShowModal(true);
   };
 
@@ -61,7 +66,9 @@ export default function AdminTeamsPage() {
       name: team.name, 
       slug: team.slug, 
       conference: team.premierTeam?.conference || "EMEA", 
-      tag: team.premierTeam?.tag || "" 
+      tag: team.premierTeam?.tag || "",
+      logo_url: team.logo_url || "",
+      division: team.premierTeam?.division || ""
     });
     setShowModal(true);
   };
@@ -160,21 +167,36 @@ export default function AdminTeamsPage() {
                 <div style={{ 
                   width: 60, height: 60, borderRadius: 16, background: "linear-gradient(135deg, var(--val-red) 0%, #991b1b 100%)", 
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, color: "#fff",
-                  boxShadow: "0 10px 20px rgba(255, 70, 85, 0.3)", border: "1px solid rgba(255,255,255,0.1)"
+                  boxShadow: "0 10px 20px rgba(255, 70, 85, 0.3)", border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden"
                 }}>
-                  {team.name[0]}
+                  {team.logo_url ? <img src={team.logo_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : team.name[0]}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                    <button className="icon-action-btn" onClick={() => handleOpenEdit(team)}>✏️</button>
                 </div>
               </div>
 
-              <div style={{ marginBottom: 24, position: "relative" }}>
+              <div style={{ marginBottom: 20, position: "relative" }}>
                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: "-0.5px" }}>{team.name}</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                   <span style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace" }}>/{team.slug}</span>
                   {team.premierTeam?.tag && <span className="tag-badge">#{team.premierTeam.tag}</span>}
                 </div>
+              </div>
+
+              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, fontSize: 12, display: "flex", flexDirection: "column", gap: 8, border: "1px solid rgba(255,255,255,0.03)" }}>
+                {team.premierTeam?.name && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)", fontWeight: 800 }}>NOMBRE PREMIER</span>
+                    <span style={{ fontWeight: 700, color: "#fff" }}>{team.premierTeam.name}</span>
+                  </div>
+                )}
+                {team.inviteCode && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)", fontWeight: 800 }}>CÓDIGO INVITACIÓN</span>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--val-yellow)" }}>{team.inviteCode}</span>
+                  </div>
+                )}
               </div>
 
               <div className="team-stats-grid">
@@ -191,7 +213,10 @@ export default function AdminTeamsPage() {
               <div className="team-card-footer">
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--val-cyan)" }} />
-                   <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", letterSpacing: 1 }}>{team.premierTeam?.conference?.toUpperCase() || "NONE"}</span>
+                   <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", letterSpacing: 1 }}>
+                     {team.premierTeam?.conference?.toUpperCase() || "NONE"}
+                     {team.premierTeam?.division ? ` - DIV ${team.premierTeam.division}` : ""}
+                   </span>
                 </div>
                 <button 
                   className="delete-btn" 
@@ -253,10 +278,22 @@ export default function AdminTeamsPage() {
                 />
               </div>
               
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Logo URL</label>
+                <input 
+                  className="input-field"
+                  placeholder="https://..." 
+                  style={{ height: 48, borderRadius: 12 }}
+                  value={formData.logo_url}
+                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                />
+              </div>
+              
               <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 32 }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>Región / Conf.</label>
                   <select className="input-field" style={{ height: 48, borderRadius: 12 }} value={formData.conference} onChange={(e) => setFormData({ ...formData, conference: e.target.value })}>
+                    <option value="NONE">Sin Región</option>
                     <option value="EMEA">EMEA</option>
                     <option value="Americas">Americas</option>
                     <option value="Pacific">Pacific</option>
@@ -272,6 +309,20 @@ export default function AdminTeamsPage() {
                     value={formData.tag}
                     onChange={(e) => setFormData({ ...formData, tag: e.target.value.toUpperCase() })}
                   />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, display: "block" }}>División</label>
+                  <select 
+                    className="input-field" 
+                    style={{ height: 48, borderRadius: 12 }} 
+                    value={formData.division || ""} 
+                    onChange={e => setFormData({ ...formData, division: e.target.value ? Number(e.target.value) : "" })}
+                  >
+                    <option value="">Ninguna</option>
+                    {PREMIER_DIVISIONS.map(div => (
+                      <option key={div.id} value={div.id}>{div.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               
