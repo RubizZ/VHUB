@@ -4,24 +4,31 @@ import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface AgentSkill {
-  id: string;
-  key: string;
-  name: string;
-  description: string | null;
-  geometry: any;
-  behavior: any;
-  color: string | null;
-}
+import { AgentSkill, ValorantAgent, SkillGeometry, SkillBehavior } from "@/lib/agents";
 
-interface Agent {
-  id: string;
+interface SkillFormData {
   name: string;
-  role: string;
-  displayIcon: string;
-  roleIcon: string;
-  bgColors: string[];
-  skills: AgentSkill[];
+  description: string;
+  color: string;
+  charges: number;
+  castTime: number;
+  geometryType: "circle" | "rectangle" | "cone";
+  geometryRadius: number;
+  geometryWidth: number;
+  geometryLength: number;
+  geometryAngle: number;
+  behaviorSpawn: "player" | "ground" | "wall" | "projectile";
+  behaviorGroundRange: number;
+  flagThroughWall: boolean;
+  flagProjectile: boolean;
+  projectileBounces: number;
+  flagChargeable: boolean;
+  chargeMinLength: number;
+  chargeMaxLength: number;
+  chargeTimePerMeter: number;
+  flagRolling: boolean;
+  rollWaveCount: number;
+  rollTimeBetweenWaves: number;
 }
 
 export default function AdminAgentsPage() {
@@ -29,9 +36,9 @@ export default function AdminAgentsPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<ValorantAgent | null>(null);
   const [editingSkillKey, setEditingSkillKey] = useState<string>("q");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SkillFormData>({
     name: "",
     description: "",
     color: "",
@@ -59,7 +66,7 @@ export default function AdminAgentsPage() {
   const {
     data: agentsData,
     isLoading,
-  } = useQuery<{ agents: Agent[] }>({
+  } = useQuery<{ agents: ValorantAgent[] }>({
     queryKey: ["adminAgents"],
     queryFn: async () => {
       const res = await fetch("/api/admin/skills");
@@ -72,12 +79,12 @@ export default function AdminAgentsPage() {
   const agents = agentsData?.agents || [];
   const filteredAgents = agents.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleOpenAgent = (agent: Agent) => {
+  const handleOpenAgent = (agent: ValorantAgent) => {
     setSelectedAgent(agent);
     loadSkillForm(agent, "q");
   };
 
-  const loadSkillForm = (agent: Agent, key: string) => {
+  const loadSkillForm = (agent: ValorantAgent, key: string) => {
     setEditingSkillKey(key);
     const skill = agent.skills.find(s => s.key === key);
     if (skill) {
@@ -93,7 +100,7 @@ export default function AdminAgentsPage() {
         geometryLength: skill.geometry?.length || 5,
         geometryAngle: skill.geometry?.angle || 90,
         behaviorSpawn: skill.behavior?.spawn || "player",
-        behaviorGroundRange: skill.behavior?.groundRange || 10,
+        behaviorGroundRange: skill.behavior?.maxCastRange || skill.behavior?.groundRange || 10,
         flagThroughWall: skill.behavior?.flags?.throughWall || false,
         flagProjectile: skill.behavior?.flags?.projectile || false,
         projectileBounces: skill.behavior?.projectileBounces || 1,
@@ -136,7 +143,7 @@ export default function AdminAgentsPage() {
   const saveSkillMutation = useMutation({
     mutationFn: async () => {
       if (!selectedAgent) return;
-      const payload = {
+      const payload: Omit<AgentSkill, "id"> = {
         agentId: selectedAgent.id,
         key: editingSkillKey,
         name: formData.name,
@@ -153,7 +160,7 @@ export default function AdminAgentsPage() {
           charges: Number(formData.charges),
           castTime: Number(formData.castTime),
           spawn: formData.behaviorSpawn,
-          groundRange: formData.behaviorSpawn === "ground" ? Number(formData.behaviorGroundRange) : undefined,
+          maxCastRange: Number(formData.behaviorGroundRange) || undefined,
           projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
           chargeMinLength: formData.flagChargeable ? Number(formData.chargeMinLength) : undefined,
           chargeMaxLength: formData.flagChargeable ? Number(formData.chargeMaxLength) : undefined,
@@ -334,19 +341,17 @@ export default function AdminAgentsPage() {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 24 }}>
-                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn</label>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
                     <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value})}>
                       <option value="player">Sale de la posición del jugador</option>
-                      <option value="ground">Se coloca en el suelo libremente</option>
+                      <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
                     </select>
                   </div>
 
-                  {formData.behaviorSpawn === "ground" && (
-                    <div className="form-group" style={{ marginBottom: 24 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango máx. de colocación (m, 0 = infinito)</label>
-                      <input type="number" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
-                    </div>
-                  )}
+                  <div className="form-group" style={{ marginBottom: 24 }}>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango máx. de casteo/colocación (m, 0 = infinito)</label>
+                    <input type="number" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
+                  </div>
 
                   <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Flags de Comportamiento</h4>
                   
@@ -367,8 +372,8 @@ export default function AdminAgentsPage() {
                     
                     {formData.flagProjectile && (
                       <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (al tirarlo a pared)</label>
-                        <input type="number" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
+                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0 = infinito)</label>
+                        <input type="number" min="0" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
                       </div>
                     )}
 

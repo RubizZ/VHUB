@@ -2,6 +2,47 @@
 
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
+export interface SkillGeometry {
+  type: "circle" | "rectangle" | "cone";
+  radius?: number;
+  width?: number;
+  length?: number;
+  angle?: number;
+}
+
+export interface SkillBehaviorFlags {
+  throughWall?: boolean;
+  projectile?: boolean;
+  chargeable?: boolean;
+  rolling?: boolean;
+}
+
+export interface SkillBehavior {
+  charges?: number;
+  castTime?: number;
+  spawn: "player" | "ground" | "wall" | "projectile";
+  maxCastRange?: number;
+  groundRange?: number; // legacy
+  projectileBounces?: number;
+  chargeMinLength?: number;
+  chargeMaxLength?: number;
+  chargeTimePerMeter?: number;
+  rollWaveCount?: number;
+  rollTimeBetweenWaves?: number;
+  flags?: SkillBehaviorFlags;
+}
+
+export interface AgentSkill {
+  id: string;
+  agentId: string;
+  key: string;
+  name: string;
+  description: string | null;
+  geometry: SkillGeometry;
+  behavior: SkillBehavior;
+  color: string | null;
+}
+
 export interface ValorantAgent {
   id: string;
   name: string;
@@ -12,7 +53,7 @@ export interface ValorantAgent {
   background: string | null;
   roleIcon: string;
   bgColors: string[];
-  skills?: any[];
+  skills?: AgentSkill[];
 }
 
 export const ROLE_COLORS: Record<AgentRole, string> = {
