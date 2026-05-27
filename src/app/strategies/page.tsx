@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type ValorantMap } from "@/lib/maps";
 import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
+import { type ValorantWeapon, WEAPON_CATEGORY_LABELS } from "@/lib/weapons";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -49,6 +50,7 @@ interface CanvasAgent {
   x: number;
   y: number;
   team?: 'ally' | 'enemy';
+  weaponId?: string;
   createdBy?: string;
 }
 
@@ -334,6 +336,7 @@ export default function StrategiesPage() {
 
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const weaponImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const loadedPathIdsRef = useRef<Set<string>>(new Set());
   const loadedAgentIdsRef = useRef<Set<string>>(new Set());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
@@ -403,6 +406,19 @@ export default function StrategiesPage() {
       return res.json();
     }
   });
+
+  const { data: weaponsData } = useQuery<{ weapons: ValorantWeapon[] }>({
+    queryKey: ["weapons"],
+    queryFn: async () => {
+      const res = await fetch("/api/weapons");
+      if (!res.ok) throw new Error("Error loading weapons");
+      return res.json();
+    },
+    staleTime: 3600 * 1000,
+  });
+
+  const weapons = weaponsData?.weapons || [];
+  const findWeapon = (id: string) => weapons.find(w => w.uuid === id);
 
   const agents = agentsData?.agents || [];
 
@@ -805,6 +821,46 @@ export default function StrategiesPage() {
         ctx.fillText(agent?.name.substring(0, 2) || "?", 0, 4);
         ctx.textAlign = "start";
       }
+
+      if (a.weaponId) {
+        const w = findWeapon(a.weaponId);
+        if (w?.killStreamIcon) {
+          const wImg = weaponImgsRef.current.get(a.weaponId);
+          if (wImg && wImg.complete) {
+            ctx.save();
+            ctx.translate(0, 24); // position below the agent circle
+            
+            // To invert the killStreamIcon color (from black to white/cyan)
+            // But since canvas drawImage can't filter directly easily without DOM/CSS, 
+            // we'll just draw it with globalCompositeOperation or shadow.
+            // Wait, we can't CSS filter in standard canvas easily, but we can do a trick 
+            // or just rely on the killStreamIcon being a white PNG (it actually is black/dark usually or white depending on the CDN). 
+            // The ones from valorant-api killstream are usually white or gray.
+            
+            const aspect = wImg.width / wImg.height;
+            const h = 10;
+            const w_scaled = h * aspect;
+            
+            // Draw background shadow
+            ctx.shadowColor = "rgba(0,0,0,0.9)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 1;
+            
+            ctx.drawImage(wImg, -w_scaled / 2, -h / 2, w_scaled, h);
+            ctx.restore();
+          } else if (!weaponImgsRef.current.has(a.weaponId)) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = w.killStreamIcon;
+            img.onload = () => {
+              weaponImgsRef.current.set(a.weaponId!, img);
+              redraw();
+            };
+            weaponImgsRef.current.set(a.weaponId, img);
+          }
+        }
+      }
+
       ctx.restore();
     }
     ctx.restore();
@@ -1416,6 +1472,10 @@ export default function StrategiesPage() {
       loadedSkillIdsRef.current.add(newSkill.instanceId);
       undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
       redoStackRef.current = [];
+      
+      if (skill.behavior?.grantsWeaponId && agentObj) {
+        agentObj.weaponId = skill.behavior.grantsWeaponId;
+      }
       
       drawingRef.current = true;
       (window as any).activeSkillIdRef = newSkill.instanceId;
@@ -3858,6 +3918,69 @@ export default function StrategiesPage() {
             >
               ×
             </button>
+
+            {/* Weapon selector - below agent */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: 46,
+                transform: "translateX(-50%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                minWidth: 120,
+              }}
+            >
+              {ctxAgent.weaponId && (() => {
+                const w = findWeapon(ctxAgent.weaponId);
+                if (!w?.killStreamIcon) return null;
+                return (
+                  <img
+                    src={w.killStreamIcon}
+                    alt={w.displayName}
+                    title={w.displayName}
+                    style={{ height: 18, objectFit: "contain", filter: "invert(1) brightness(2)", opacity: 0.9 }}
+                  />
+                );
+              })()}
+              <select
+                style={{
+                  background: "rgba(10, 14, 20, 0.9)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 6,
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 9,
+                  padding: "2px 4px",
+                  cursor: "pointer",
+                  maxWidth: 110,
+                }}
+                value={ctxAgent.weaponId || ""}
+                onClick={e => e.stopPropagation()}
+                onChange={e => {
+                  const newWeaponId = e.target.value || undefined;
+                  agentsRef.current = agentsRef.current.map(a =>
+                    a.instanceId === ctxAgent.instanceId ? { ...a, weaponId: newWeaponId } : a
+                  );
+                  redraw();
+                  scheduleAutoSave();
+                }}
+              >
+                <option value="">Sin arma</option>
+                {Object.entries(WEAPON_CATEGORY_LABELS).map(([cat, label]) => {
+                  const catWeapons = weapons.filter(w => w.category === cat);
+                  if (catWeapons.length === 0) return null;
+                  return (
+                    <optgroup key={cat} label={label}>
+                      {catWeapons.map(w => (
+                        <option key={w.uuid} value={w.uuid}>{w.displayName}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </div>
           </div>
         );
       })()}

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AgentSkill, ValorantAgent, SkillGeometry, SkillBehavior } from "@/lib/agents";
+import { type ValorantWeapon } from "@/lib/weapons";
 
 interface SkillFormData {
   name: string;
@@ -31,6 +32,8 @@ interface SkillFormData {
   rollTimeBetweenWaves: number;
   rechargeTime: number;
   consumesSkillKey: string;
+  flagRecallable: boolean;
+  grantsWeaponId: string;
 }
 
 export default function AdminAgentsPage() {
@@ -65,6 +68,8 @@ export default function AdminAgentsPage() {
     rollTimeBetweenWaves: 0.2,
     rechargeTime: 0,
     consumesSkillKey: "",
+    flagRecallable: false,
+    grantsWeaponId: "",
   });
 
   const {
@@ -78,6 +83,16 @@ export default function AdminAgentsPage() {
       return res.json();
     },
     enabled: session?.user?.role === "super_admin",
+  });
+
+  const { data: weaponsData } = useQuery<{ weapons: ValorantWeapon[] }>({
+    queryKey: ["weapons"],
+    queryFn: async () => {
+      const res = await fetch("/api/weapons");
+      if (!res.ok) throw new Error("Error loading weapons");
+      return res.json();
+    },
+    staleTime: 3600 * 1000,
   });
 
   const agents = agentsData?.agents || [];
@@ -117,6 +132,8 @@ export default function AdminAgentsPage() {
         rollTimeBetweenWaves: skill.behavior?.rollTimeBetweenWaves || 0.2,
         rechargeTime: skill.behavior?.rechargeTime || 0,
         consumesSkillKey: skill.behavior?.consumesSkillKey || "",
+        flagRecallable: skill.behavior?.flags?.recallable || false,
+        grantsWeaponId: skill.behavior?.grantsWeaponId || "",
       });
     } else {
       setFormData({
@@ -144,6 +161,8 @@ export default function AdminAgentsPage() {
         rollTimeBetweenWaves: 0.2,
         rechargeTime: 0,
         consumesSkillKey: "",
+        flagRecallable: false,
+        grantsWeaponId: "",
       });
     }
   };
@@ -177,11 +196,13 @@ export default function AdminAgentsPage() {
           chargeTimePerMeter: formData.flagChargeable ? Number(formData.chargeTimePerMeter) : undefined,
           rollWaveCount: formData.flagRolling ? Number(formData.rollWaveCount) : undefined,
           rollTimeBetweenWaves: formData.flagRolling ? Number(formData.rollTimeBetweenWaves) : undefined,
+          grantsWeaponId: formData.grantsWeaponId || undefined,
           flags: {
             throughWall: formData.flagThroughWall,
             projectile: formData.flagProjectile,
             chargeable: formData.flagChargeable,
-            rolling: formData.flagRolling
+            rolling: formData.flagRolling,
+            recallable: formData.flagRecallable || undefined,
           }
         }
       };
@@ -454,11 +475,30 @@ export default function AdminAgentsPage() {
                         </div>
                       </div>
                     )}
+
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, textAlign: "left", margin: 0 }}>
+                        <input type="checkbox" checked={formData.flagRecallable} onChange={e => setFormData({...formData, flagRecallable: e.target.checked})} style={{ margin: 0, marginTop: 3, flex: "0 0 auto", width: "auto" }} />
+                        <span>Se puede recoger manualmente (cooldown empieza al recoger, ej. C de Chamber)</span>
+                      </label>
+                    </div>
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Requiere consumir (Key de otra habilidad, ej. x_alt) — opcional</label>
                     <input className="input-field" placeholder="Vacío = no depende de otra habilidad" value={formData.consumesSkillKey} onChange={e => setFormData({...formData, consumesSkillKey: e.target.value})} />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Otorga Arma (ej. Q/X Chamber) — opcional</label>
+                    <select className="input-field" value={formData.grantsWeaponId} onChange={e => setFormData({...formData, grantsWeaponId: e.target.value})}>
+                      <option value="">Ninguna — no otorga arma</option>
+                      {weaponsData?.weapons.map(w => (
+                        <option key={w.uuid} value={w.uuid}>
+                          {w.displayName} ({w.category.replace("EEquippableCategory::", "")})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 900, textTransform: "uppercase" }} disabled={saveSkillMutation.isPending}>
