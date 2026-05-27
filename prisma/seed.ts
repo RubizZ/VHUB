@@ -111,6 +111,41 @@ async function main() {
                     bgColors: bgColors,
                 },
             });
+
+            if (agent.abilities && Array.isArray(agent.abilities)) {
+                const keyMap: Record<string, string> = {
+                    "Ability1": "q",
+                    "Ability2": "e",
+                    "Grenade": "c",
+                    "Ultimate": "x",
+                    "Passive": "passive"
+                };
+
+                for (const ability of agent.abilities) {
+                    const key = keyMap[ability.slot];
+                    if (key && ability.displayIcon) {
+                        await prisma.agentSkill.upsert({
+                            where: { agentId_key: { agentId: agent.uuid, key } },
+                            update: {
+                                name: ability.displayName,
+                                description: ability.description,
+                                displayIcon: ability.displayIcon,
+                            },
+                            create: {
+                                agentId: agent.uuid,
+                                key,
+                                name: ability.displayName,
+                                description: ability.description,
+                                displayIcon: ability.displayIcon,
+                                geometry: { type: "circle", radius: 5 },
+                                behavior: { spawn: "player" },
+                                color: bgColors[0] || "#ffffff",
+                            }
+                        });
+                    }
+                }
+            }
+
             seededAgentsCount++;
         }
     }
