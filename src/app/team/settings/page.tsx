@@ -133,7 +133,7 @@ export default function TeamSettingsPage() {
   }
 
   return (
-    <div className="page-container" style={{ padding: "40px 20px" }}>
+    <div className="page-container" style={{ padding: "clamp(20px, 4vw, 40px) 20px" }}>
       <header className="page-header" style={{ marginBottom: 40, textAlign: "center" }}>
         <h1 style={{ fontSize: "36px", fontWeight: 900, textShadow: "0 0 20px rgba(0, 212, 170, 0.4)", marginBottom: 8, letterSpacing: "-0.5px" }}>⚙️ Ajustes de Equipo</h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "16px" }}>Configura la identidad y preferencias de tu organización</p>
@@ -143,8 +143,8 @@ export default function TeamSettingsPage() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 32, alignItems: "flex-start" }}>
           
           {/* LEFT COLUMN: IDENTITY FORM */}
-          <div style={{ flex: "1 1 600px", display: "flex", flexDirection: "column", gap: 24 }}>
-            <div className="glass-card" style={{ padding: "32px", borderRadius: "20px", background: "rgba(15,15,20,0.6)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", backdropFilter: "blur(12px)" }}>
+          <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
+            <div className="glass-card" style={{ padding: "clamp(20px, 4vw, 32px)", borderRadius: "20px", background: "rgba(15,15,20,0.6)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", backdropFilter: "blur(12px)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(0, 212, 170, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--val-cyan)" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -186,7 +186,7 @@ export default function TeamSettingsPage() {
                   </div>
                   <div className="form-group">
                     <label style={{ display: "block", fontSize: "11px", fontWeight: 800, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>Logo del Equipo</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 24 }}>
                       <input 
                         type="file" 
                         ref={fileInputRef} 
@@ -313,10 +313,10 @@ export default function TeamSettingsPage() {
           </div>
 
           {/* RIGHT COLUMN: INVITES & REQUESTS */}
-          <div style={{ flex: "1 1 350px", display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
             
             {/* Invite Link Card */}
-            <div className="glass-card hover-lift transition-smooth" style={{ padding: "28px", borderRadius: "20px", background: "linear-gradient(145deg, rgba(20,20,25,0.8) 0%, rgba(15,15,20,0.6) 100%)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+            <div className="glass-card hover-lift transition-smooth" style={{ padding: "clamp(20px, 4vw, 28px)", borderRadius: "20px", background: "linear-gradient(145deg, rgba(20,20,25,0.8) 0%, rgba(15,15,20,0.6) 100%)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(245, 158, 11, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--val-yellow)" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
@@ -337,7 +337,7 @@ export default function TeamSettingsPage() {
             </div>
 
             {/* Join Requests Card */}
-            <div className="glass-card" style={{ padding: "28px", borderRadius: "20px", background: "rgba(15,15,20,0.6)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+            <div className="glass-card" style={{ padding: "clamp(20px, 4vw, 28px)", borderRadius: "20px", background: "rgba(15,15,20,0.6)", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255, 70, 85, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--val-red)" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
@@ -510,7 +510,7 @@ function InviteLinkSection({ inviteCode }: { inviteCode: string | null }) {
           boxShadow: "inset 0 2px 10px rgba(0,0,0,0.3)"
         }}
       >
-        <span style={{ flex: 1, fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "var(--val-yellow)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span style={{ flex: 1, minWidth: 0, fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "var(--val-yellow)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {inviteUrl}
         </span>
         <button 

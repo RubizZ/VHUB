@@ -44,6 +44,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -60,8 +61,8 @@ body {
   font-family: 'Outfit', -apple-system, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -82,7 +83,7 @@ body::before {
 /* ── Layout ── */
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
@@ -208,6 +209,8 @@ body::before {
   z-index: 1;
   min-height: 0;
   max-width: calc(100% - var(--sidebar-width));
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .page-header {
@@ -559,30 +562,15 @@ select option {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* Use an auto row for weekdays, then 6 rows that share available height: 
-     minmax(0, 1fr) keeps rows balanced while allowing children to size themselves inside. */
   grid-template-rows: auto repeat(6, minmax(0, 1fr));
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
   gap: 0;
   width: 100%;
   overflow-x: hidden; /* prevent horizontal scroll */
 }
 
-/* Reduce vertical space for weekday names (first 7 grid items) */
-.calendar-grid > div:nth-child(-n+7) {
-  padding: 6px 6px;
-  font-size: 12px;
-  line-height: 1;
-}
-
-/* Let cells expand vertically and allow their content to scroll internally
-   if it overflows the allocated row. This permits events to grow while
-   keeping the overall grid width stable. */
+/* Let cells expand vertically to fit their content */
 .calendar-grid > div {
-  min-height: 0 !important;
-  height: 100%;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -601,7 +589,6 @@ select option {
 .availability-wrapper .calendar-grid-container {
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  overflow: hidden !important;
 }
 
 /* Week view scroll container styling */
