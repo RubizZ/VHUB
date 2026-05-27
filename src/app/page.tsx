@@ -72,7 +72,7 @@ export default function Dashboard() {
   if (status === "loading") {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: "16px", background: "var(--bg-primary)" }}>
-        <div className="landing-brand-icon" style={{ animation: "pulseGlow 2s infinite ease-in-out", width: "50px", height: "50px", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, var(--val-red), var(--val-red-dark))", borderRadius: "var(--radius-sm)", fontWeight: "900", color: "#fff" }}>V</div>
+        <img src="/logo.png" alt="VHUB" style={{ width: 56, height: 56, objectFit: "contain", animation: "pulseGlow 2s infinite ease-in-out" }} />
         <div style={{ color: "var(--text-secondary)", fontSize: "12px", fontFamily: "var(--font-valorant)", letterSpacing: "1.5px" }}>CARGANDO VHUB...</div>
       </div>
     );

@@ -112,6 +112,14 @@ export default function ProfilePage() {
           }
         };
       });
+
+      // Invalidar todas las queries que muestran imágenes de jugadores en el resto de la app
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["players"] }),             // Roster, dashboard, leaderboard
+        queryClient.invalidateQueries({ queryKey: ["events", "list"] }),      // Lista de eventos
+        queryClient.invalidateQueries({ queryKey: ["events", "calendar"] }),  // Vista calendario
+      ]);
+
       setMessage({ text: "Avatar actualizado", type: "success" });
     } catch (err: any) {
       setMessage({ text: err.message || "Error al subir avatar", type: "error" });
