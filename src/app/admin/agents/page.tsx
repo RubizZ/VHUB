@@ -46,6 +46,7 @@ interface SkillFormData {
   flagTwoPointDeployment: boolean;
   flagDeployablePreRound: boolean;
   flagControllablePath: boolean;
+  flagTriggerOnSight: boolean;
   behaviorSpeed: number;
   behaviorDuration: number;
   displayIcon: string;
@@ -101,6 +102,7 @@ export default function AdminAgentsPage() {
     flagTwoPointDeployment: false,
     flagDeployablePreRound: false,
     flagControllablePath: false,
+    flagTriggerOnSight: false,
     displayIcon: "",
     enabled: true,
   });
@@ -181,6 +183,7 @@ export default function AdminAgentsPage() {
         flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
         flagControllablePath: skill.behavior?.flags?.controllablePath || false,
+        flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -226,6 +229,7 @@ export default function AdminAgentsPage() {
         flagTwoPointDeployment: false,
         flagDeployablePreRound: false,
         flagControllablePath: false,
+        flagTriggerOnSight: false,
         displayIcon: "",
         enabled: true,
       });
@@ -278,6 +282,7 @@ export default function AdminAgentsPage() {
             twoPointDeployment: formData.flagTwoPointDeployment || undefined,
             deployablePreRound: formData.flagDeployablePreRound || undefined,
             controllablePath: formData.flagControllablePath || undefined,
+            triggerOnSight: formData.flagTriggerOnSight || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -613,6 +618,11 @@ export default function AdminAgentsPage() {
                         <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagGrantsWeapon} onChange={e => setFormData({...formData, flagGrantsWeapon: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                           <span>Actúa como arma equipable (ej. Q/X de Chamber)</span>
+                        </label>
+                        
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagTriggerOnSight} onChange={e => setFormData({...formData, flagTriggerOnSight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Se detona/activa automáticamente al ver enemigo (Ej: Wingman de Gekko, Prowler de Fade)</span>
                         </label>
 
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>

@@ -25,6 +25,7 @@ export interface SkillBehaviorFlags {
   twoPointDeployment?: boolean; // Se despliega trazando línea entre dos puntos (ej. Cypher C)
   deployablePreRound?: boolean; // Puede ser desplegada durante la fase de compra/pre-ronda
   controllablePath?: boolean; // Habilidad que se mueve dibujando un trazo (ej. Perro de Fade)
+  triggerOnSight?: boolean; // Se detona/activa automáticamente al ver a un enemigo (ej. Wingman de Gekko)
 }
 
 export interface SkillBehavior {
