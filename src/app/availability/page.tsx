@@ -1934,7 +1934,7 @@ export default function AvailabilityPage() {
                                                         flex: 1,
                                                         position: "relative",
                                                         overflowY: "scroll",
-                                                        backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.2) 60px, transparent 60px)",
+                                                        backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.2) 59px, var(--border-color) 59px, var(--border-color) 60px, transparent 60px)",
                                                     }}
                                                 >
                                                     {/* Time Column */}
@@ -1942,8 +1942,6 @@ export default function AvailabilityPage() {
                                                         style={{
                                                             width: 60,
                                                             flexShrink: 0,
-                                                            borderRight:
-                                                                "1px solid var(--border-color)",
                                                         }}
                                                     >
                                                         {Array.from({
