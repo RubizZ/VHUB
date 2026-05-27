@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession, signIn } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "./Skeleton";
 
 // Modern SVG Icons
 const Icons = {
@@ -53,7 +54,7 @@ export function Sidebar({
   const userImage = session?.user?.image;
   const loading = status === "loading";
 
-  const { data: teamData } = useQuery({
+  const { data: teamData, isLoading: isTeamLoading } = useQuery({
     queryKey: ["currentTeam"],
     queryFn: async () => {
       const res = await fetch("/api/team/current");
@@ -82,57 +83,89 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon" style={{ overflow: "hidden" }}>
-          {team?.logo_url ? (
+        <div className="sidebar-brand-icon" style={{ overflow: "hidden", background: (loading || isTeamLoading) ? "transparent" : undefined }}>
+          {(loading || isTeamLoading) ? (
+            <Skeleton width="100%" height="100%" style={{ borderRadius: 8 }} />
+          ) : team?.logo_url ? (
             <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             team?.name?.[0]?.toUpperCase() || "VH"
           )}
         </div>
         <div className="sidebar-brand-text">
-          <h1 style={{ fontSize: team?.name?.length > 12 ? "16px" : "20px" }}>{team?.name || "V-HUB"}</h1>
-          <span className="brand-tag">{team?.premierTeam?.tag ? `#${team.premierTeam.tag}` : "PREMIER PLATFORM"}</span>
+          {(loading || isTeamLoading) ? (
+            <>
+              <Skeleton width={100} height={20} style={{ marginBottom: 4 }} />
+              <Skeleton width={120} height={12} />
+            </>
+          ) : (
+            <>
+              <h1 style={{ fontSize: team?.name?.length > 12 ? "16px" : "20px" }}>{team?.name || "V-HUB"}</h1>
+              <span className="brand-tag">{team?.premierTeam?.tag ? `#${team.premierTeam.tag}` : "PREMIER PLATFORM"}</span>
+            </>
+          )}
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <div className="nav-separator">TU EQUIPO</div>
-        {playerLinks.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={`nav-link ${pathname === l.href ? "active" : ""}`}
-            onClick={handleLinkClick}
-          >
-            <span className="nav-link-icon">{l.icon}</span>
-            {l.label}
-          </Link>
-        ))}
-
-        {!loading && (role === "team_admin" || role === "super_admin") && (
+        {loading ? (
           <>
-            <div className="nav-separator">GESTIÓN DE EQUIPO</div>
-            <Link href="/team/roster" className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`} onClick={handleLinkClick}>
-              <span className="nav-link-icon"><Icons.Roster /></span> Plantilla
-            </Link>
-            <Link href="/team/settings" className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`} onClick={handleLinkClick}>
-              <span className="nav-link-icon"><Icons.Settings /></span> Ajustes de Equipo
-            </Link>
+            <div className="nav-separator"><Skeleton width={80} height={12} /></div>
+            {playerLinks.map((l, i) => (
+              <div key={i} className="nav-link" style={{ pointerEvents: 'none', background: 'transparent', border: 'none' }}>
+                <span className="nav-link-icon"><Skeleton width={18} height={18} style={{ borderRadius: 4 }} /></span>
+                <Skeleton width={80 + (i % 3) * 20} height={16} />
+              </div>
+            ))}
+            <div className="nav-separator" style={{ marginTop: 16 }}><Skeleton width={120} height={12} /></div>
+            {[1, 2].map((_, i) => (
+              <div key={`admin-${i}`} className="nav-link" style={{ pointerEvents: 'none', background: 'transparent', border: 'none' }}>
+                <span className="nav-link-icon"><Skeleton width={18} height={18} style={{ borderRadius: 4 }} /></span>
+                <Skeleton width={100 + i * 20} height={16} />
+              </div>
+            ))}
           </>
-        )}
-
-        {!loading && role === "super_admin" && (
+        ) : (
           <>
-            <div className="nav-separator">SISTEMA</div>
-            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} onClick={handleLinkClick}>
-              <span className="nav-link-icon"><Icons.Admin /></span> Panel Global
-            </Link>
-            <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`} onClick={handleLinkClick}>
-              <span className="nav-link-icon"><Icons.Org /></span> Equipos
-            </Link>
-            <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`} onClick={handleLinkClick}>
-              <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
-            </Link>
+            <div className="nav-separator">TU EQUIPO</div>
+            {playerLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav-link ${pathname === l.href ? "active" : ""}`}
+                onClick={handleLinkClick}
+              >
+                <span className="nav-link-icon">{l.icon}</span>
+                {l.label}
+              </Link>
+            ))}
+
+            {(role === "team_admin" || role === "super_admin") && (
+              <>
+                <div className="nav-separator">GESTIÓN DE EQUIPO</div>
+                <Link href="/team/roster" className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Roster /></span> Plantilla
+                </Link>
+                <Link href="/team/settings" className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Settings /></span> Ajustes de Equipo
+                </Link>
+              </>
+            )}
+
+            {role === "super_admin" && (
+              <>
+                <div className="nav-separator">SISTEMA</div>
+                <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Admin /></span> Panel Global
+                </Link>
+                <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Org /></span> Equipos
+                </Link>
+                <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`} onClick={handleLinkClick}>
+                  <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
+                </Link>
+              </>
+            )}
           </>
         )}
 
@@ -166,45 +199,62 @@ export function Sidebar({
 
           <div 
             className={`vhub-user-card ${isDropdownOpen ? 'active' : ''}`}
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            onClick={() => { if (!loading) setIsDropdownOpen(!isDropdownOpen); }}
           >
-            <div className="vhub-avatar" style={{ overflow: "hidden" }}>
-              {userImage ? (
+            <div className="vhub-avatar" style={{ overflow: "hidden", background: loading ? "transparent" : undefined }}>
+              {loading ? (
+                <Skeleton width="100%" height="100%" style={{ borderRadius: "50%" }} />
+              ) : userImage ? (
                 <img src={userImage} alt={userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
                 userName.charAt(0)
               )}
             </div>
             <div className="vhub-meta">
-              <span className="vhub-username">{userName}</span>
-              <div className="vhub-status">Conectado</div>
+              {loading ? (
+                <>
+                  <Skeleton width={80} height={16} style={{ marginBottom: 4 }} />
+                  <Skeleton width={50} height={12} />
+                </>
+              ) : (
+                <>
+                  <span className="vhub-username">{userName}</span>
+                  <div className="vhub-status">Conectado</div>
+                </>
+              )}
             </div>
-            <svg className={`vhub-chevron ${isDropdownOpen ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            {!loading && <svg className={`vhub-chevron ${isDropdownOpen ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>}
           </div>
         </div>
 
-        <button 
-          onClick={() => {
-            if (onShowDisclaimer) onShowDisclaimer();
-            handleLinkClick();
-          }}
-          className="disclaimer-btn"
-        >
-          <svg 
-            width="12" 
-            height="12" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2.5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
+        {loading ? (
+          <div className="disclaimer-btn" style={{ background: "transparent", pointerEvents: 'none', border: 'none', justifyContent: 'center' }}>
+            <Skeleton width="80%" height={20} />
+          </div>
+        ) : (
+          <button 
+            onClick={() => {
+              if (onShowDisclaimer) onShowDisclaimer();
+              handleLinkClick();
+            }}
+            className="disclaimer-btn"
           >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg> Exención de Riot Games
-        </button>
+            <svg 
+              width="12" 
+              height="12" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg> Exención de Riot Games
+          </button>
+        )}
       </nav>
 
     </aside>
