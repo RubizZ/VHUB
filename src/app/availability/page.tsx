@@ -223,6 +223,7 @@ export default function AvailabilityPage() {
     const firstUpcomingRef = useRef<HTMLDivElement>(null);
     const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
     const weekScrollRef = useRef<HTMLDivElement>(null);
+    const weekScrollRefs = useRef<(HTMLDivElement | null)[]>([]);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
     const calendarContainerRef = useRef<HTMLDivElement | null>(null);
     const abortControllers = useRef<Record<number, AbortController>>({});
@@ -1193,11 +1194,22 @@ export default function AvailabilityPage() {
                     </div>
                 ) : viewMode === "calendar" || viewMode === "week" ? (
                     (() => {
+                        const containerWidth = typeof window !== 'undefined' ? (calendarContainerRef.current?.clientWidth || window.innerWidth) : 1000;
+                        let activeCarouselIndex = 1;
+                        if (dragOffset < -containerWidth / 2) {
+                            activeCarouselIndex = 2; // Next slide
+                        } else if (dragOffset > containerWidth / 2) {
+                            activeCarouselIndex = 0; // Prev slide
+                        }
+
+                        const activeData = carouselData[activeCarouselIndex];
+                        const activeWeekDays = activeData ? activeData.weekDays : weekDays;
+
                         const weekMap =
                             viewMode === "week"
-                                ? weekDays
-                                    .flatMap((d) => d.events)
-                                    .find((e) => e.map_obj)?.map_obj
+                                ? activeWeekDays
+                                    .flatMap((d: any) => d.events)
+                                    .find((e: any) => e.map_obj)?.map_obj
                                 : null;
 
                         return (
@@ -1236,6 +1248,7 @@ export default function AvailabilityPage() {
                                             opacity: 0.15,
                                             zIndex: 0,
                                             pointerEvents: "none",
+                                            transition: "background-image 0.3s ease-in-out",
                                         }}
                                     />
                                 )}
@@ -1963,7 +1976,18 @@ export default function AvailabilityPage() {
                                                     )}
                                                 </div>
                                                 <div
-                                                    ref={slideIndex === 1 ? weekScrollRef : null}
+                                                    ref={(el) => {
+                                                        if (slideIndex === 1) weekScrollRef.current = el;
+                                                        weekScrollRefs.current[slideIndex] = el;
+                                                    }}
+                                                    onScroll={(e) => {
+                                                        const scrollTop = e.currentTarget.scrollTop;
+                                                        weekScrollRefs.current.forEach((ref, idx) => {
+                                                            if (ref && idx !== slideIndex && Math.abs(ref.scrollTop - scrollTop) > 1) {
+                                                                ref.scrollTop = scrollTop;
+                                                            }
+                                                        });
+                                                    }}
                                                     style={{
                                                         display: "flex",
                                                         flex: 1,
