@@ -12,7 +12,7 @@ import React, {
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 
 interface Player {
     id: string;
@@ -261,24 +261,24 @@ export default function AvailabilityPage() {
     const userCalendarToken = userTokenData?.token || null;
 
     const dateBoundaries = useMemo(() => {
-        let start = null;
-        let end = null;
         if (viewMode === "calendar") {
-            const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-            const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
-            
-            start = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth()+1).padStart(2,'0')}-01`;
-            end = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth()+1).padStart(2,'0')}-${String(nextMonth.getDate()).padStart(2,'0')}`;
+            const start = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
+            const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
+            return {
+                start: formatDateLocal(start),
+                end: formatDateLocal(end),
+            };
         } else if (viewMode === "week") {
-            const prevWeek = new Date(currentDate);
-            prevWeek.setDate(currentDate.getDate() - 14);
-            const nextWeek = new Date(currentDate);
-            nextWeek.setDate(currentDate.getDate() + 14);
-            
-            start = `${prevWeek.getFullYear()}-${String(prevWeek.getMonth()+1).padStart(2,'0')}-${String(prevWeek.getDate()).padStart(2,'0')}`;
-            end = `${nextWeek.getFullYear()}-${String(nextWeek.getMonth()+1).padStart(2,'0')}-${String(nextWeek.getDate()).padStart(2,'0')}`;
+            const start = new Date(currentDate);
+            start.setDate(currentDate.getDate() - 14);
+            const end = new Date(currentDate);
+            end.setDate(currentDate.getDate() + 21);
+            return {
+                start: formatDateLocal(start),
+                end: formatDateLocal(end),
+            };
         }
-        return { start, end };
+        return { start: null, end: null };
     }, [currentDate, viewMode]);
 
     const { data: calendarEventsData, isLoading: calendarEventsLoading, error: calendarError } = useQuery({
@@ -297,7 +297,8 @@ export default function AvailabilityPage() {
             if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
             return d;
         },
-        enabled: (viewMode === "calendar" || viewMode === "week") && !!dateBoundaries.start
+        enabled: (viewMode === "calendar" || viewMode === "week") && !!dateBoundaries.start,
+        placeholderData: keepPreviousData
     });
 
     const { 
@@ -741,7 +742,7 @@ export default function AvailabilityPage() {
         
         // --- Infinite Scroll Logic ---
         if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
-            const scrollThreshold = 300; // Trigger earlier for smoother experience
+            const scrollThreshold = 1200; // Trigger earlier for smoother preventive experience
             
             // Bottom Check (Future Events)
             if (
@@ -1201,48 +1202,27 @@ export default function AvailabilityPage() {
                                             : `Semana del ${weekDays[0]?.day} de ${weekDays[0]?.month}`}
                                     </h3>
                                     <div style={{ display: "flex", gap: 8 }}>
-                                        {firstUpcomingId &&
-                                            (() => {
-                                                const upcomingEv = events.find(
-                                                    (e) =>
-                                                        e.id ===
-                                                        firstUpcomingId,
-                                                );
-                                                if (!upcomingEv) return null;
-                                                return (
-                                                    <button
-                                                        className="btn btn-ghost btn-sm"
-                                                        onClick={() => {
-                                                            if (
-                                                                upcomingEv.date
-                                                            ) {
-                                                                setCurrentDate(
-                                                                    new Date(
-                                                                        `${upcomingEv.date}T00:00:00`,
-                                                                    ),
-                                                                );
-                                                                setActiveHighlightId(
-                                                                    firstUpcomingId,
-                                                                );
-                                                                setTimeout(
-                                                                    () => {
-                                                                        setActiveHighlightId(
-                                                                            null,
-                                                                        );
-                                                                    },
-                                                                    1200,
-                                                                );
-                                                            }
-                                                        }}
-                                                        style={{
-                                                            color: "var(--val-cyan)",
-                                                            fontWeight: 800,
-                                                        }}
-                                                    >
-                                                        Próximo
-                                                    </button>
-                                                );
-                                            })()}
+                                        {calendarEventsData?.globalNextEvent && (
+                                            <button
+                                                className="btn btn-ghost btn-sm"
+                                                onClick={() => {
+                                                    const upcomingEv = calendarEventsData.globalNextEvent;
+                                                    if (upcomingEv.date) {
+                                                        setCurrentDate(new Date(`${upcomingEv.date}T00:00:00`));
+                                                        setActiveHighlightId(upcomingEv.id);
+                                                        setTimeout(() => {
+                                                            setActiveHighlightId(null);
+                                                        }, 1200);
+                                                    }
+                                                }}
+                                                style={{
+                                                    color: "var(--val-cyan)",
+                                                    fontWeight: 800,
+                                                }}
+                                            >
+                                                Próximo
+                                            </button>
+                                        )}
                                         <button
                                             className="btn btn-ghost btn-sm"
                                             onClick={() => changeDate(-1)}

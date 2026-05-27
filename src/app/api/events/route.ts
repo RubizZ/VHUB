@@ -678,6 +678,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const nowForNext = new Date();
+    nowForNext.setHours(nowForNext.getHours() + 2);
+    const todayStrGlobal = nowForNext.toISOString().split('T')[0];
+    const upcomingEvents = enrichedEvents.filter(e => e.date >= todayStrGlobal && e.status === "scheduled");
+    const globalNextEvent = upcomingEvents.length > 0 ? { id: upcomingEvents[0].id, date: upcomingEvents[0].date } : null;
+
     console.log(`[GET /api/events] Devolviendo ${returnedEvents.length} eventos (de ${enrichedEvents.length}) para equipo ${teamId}. Vista: ${view}`);
 
     return NextResponse.json({
@@ -685,7 +691,8 @@ export async function GET(req: NextRequest) {
       seasons,
       activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : ""),
       nextCursor,
-      prevCursor
+      prevCursor,
+      globalNextEvent
     });
   } catch (error: any) {
     console.error("[GET /api/events] ❌ CRITICAL ERROR:", error);
