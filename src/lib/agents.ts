@@ -26,6 +26,7 @@ export interface SkillBehaviorFlags {
   deployablePreRound?: boolean; // Puede ser desplegada durante la fase de compra/pre-ronda
   controllablePath?: boolean; // Habilidad que se mueve dibujando un trazo (ej. Perro de Fade)
   triggerOnSight?: boolean; // Se detona/activa automáticamente al ver a un enemigo (ej. Wingman de Gekko)
+  stoppableInFlight?: boolean; // Habilidades en movimiento que se pueden detener manualmente (ej. Harbor C)
 }
 
 export interface SkillBehavior {

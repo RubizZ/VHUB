@@ -47,6 +47,7 @@ interface SkillFormData {
   flagDeployablePreRound: boolean;
   flagControllablePath: boolean;
   flagTriggerOnSight: boolean;
+  flagStoppableInFlight: boolean;
   behaviorSpeed: number;
   behaviorDuration: number;
   displayIcon: string;
@@ -103,6 +104,7 @@ export default function AdminAgentsPage() {
     flagDeployablePreRound: false,
     flagControllablePath: false,
     flagTriggerOnSight: false,
+    flagStoppableInFlight: false,
     displayIcon: "",
     enabled: true,
   });
@@ -184,6 +186,7 @@ export default function AdminAgentsPage() {
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
         flagControllablePath: skill.behavior?.flags?.controllablePath || false,
         flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
+        flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -230,6 +233,7 @@ export default function AdminAgentsPage() {
         flagDeployablePreRound: false,
         flagControllablePath: false,
         flagTriggerOnSight: false,
+        flagStoppableInFlight: false,
         displayIcon: "",
         enabled: true,
       });
@@ -283,6 +287,7 @@ export default function AdminAgentsPage() {
             deployablePreRound: formData.flagDeployablePreRound || undefined,
             controllablePath: formData.flagControllablePath || undefined,
             triggerOnSight: formData.flagTriggerOnSight || undefined,
+            stoppableInFlight: formData.flagStoppableInFlight || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -623,6 +628,11 @@ export default function AdminAgentsPage() {
                         <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagTriggerOnSight} onChange={e => setFormData({...formData, flagTriggerOnSight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                           <span>Se detona/activa automáticamente al ver enemigo (Ej: Wingman de Gekko, Prowler de Fade)</span>
+                        </label>
+                        
+                        <label style={{ display: "inline-flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagStoppableInFlight} onChange={e => setFormData({...formData, flagStoppableInFlight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Se puede detener manualmente mientras avanza (Ej: Cascade de Harbor)</span>
                         </label>
 
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
