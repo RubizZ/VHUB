@@ -40,6 +40,8 @@ interface SkillFormData {
   flagGrantsWeapon: boolean;
   flagTeleportsToDeployed: boolean;
   flagInstantSelfBuff: boolean;
+  flagSelfRevive: boolean;
+  flagTargetRevive: boolean;
   displayIcon: string;
   enabled: boolean;
 }
@@ -84,6 +86,8 @@ export default function AdminAgentsPage() {
     flagGrantsWeapon: false,
     flagTeleportsToDeployed: false,
     flagInstantSelfBuff: false,
+    flagSelfRevive: false,
+    flagTargetRevive: false,
     displayIcon: "",
     enabled: true,
   });
@@ -156,6 +160,8 @@ export default function AdminAgentsPage() {
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
         flagInstantSelfBuff: skill.behavior?.flags?.instantSelfBuff || false,
+        flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
+        flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -193,6 +199,8 @@ export default function AdminAgentsPage() {
         flagGrantsWeapon: false,
         flagTeleportsToDeployed: false,
         flagInstantSelfBuff: false,
+        flagSelfRevive: false,
+        flagTargetRevive: false,
         displayIcon: "",
         enabled: true,
       });
@@ -237,6 +245,8 @@ export default function AdminAgentsPage() {
             grantsWeapon: formData.flagGrantsWeapon || undefined,
             teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
             instantSelfBuff: formData.flagInstantSelfBuff || undefined,
+            selfRevive: formData.flagSelfRevive || undefined,
+            targetRevive: formData.flagTargetRevive || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -420,6 +430,22 @@ export default function AdminAgentsPage() {
                       <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
                       <span className="checkbox-custom"></span>
                       <span>Auto-aplicación instantánea (Buff, ej: Clove C)</span>
+                    </label>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagSelfRevive} onChange={e => setFormData({...formData, flagSelfRevive: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Auto-Revivir (Ej: Clove X)</span>
+                    </label>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagTargetRevive} onChange={e => setFormData({...formData, flagTargetRevive: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Revivir a Objetivo (Ej: Sage X)</span>
                     </label>
                   </div>
                   

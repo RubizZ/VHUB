@@ -3995,8 +3995,8 @@ export default function StrategiesPage() {
                         }
                       }
 
-                      // Lógica Sandbox: Auto-Buff
-                      if (skill.behavior?.flags?.instantSelfBuff) {
+                      // Lógica Sandbox: Auto-Buff y Revivir visual
+                      if (skill.behavior?.flags?.instantSelfBuff || skill.behavior?.flags?.selfRevive || skill.behavior?.flags?.targetRevive) {
                         const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
                         if (agentIndex !== -1) {
                           const agent = agentsRef.current[agentIndex];

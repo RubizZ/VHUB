@@ -19,6 +19,8 @@ export interface SkillBehaviorFlags {
   grantsWeapon?: boolean; // Actúa como arma (ej. Q/X de Chamber)
   teleportsToDeployed?: boolean; // Permite tepearse a esta habilidad si ya está desplegada
   instantSelfBuff?: boolean; // Habilidad de auto-aplicación instantánea (Buff)
+  selfRevive?: boolean; // Auto-resurrección (ej. Clove X)
+  targetRevive?: boolean; // Resurrección a aliado (ej. Sage X)
 }
 
 export interface SkillBehavior {
