@@ -866,9 +866,12 @@ export default function AvailabilityPage() {
                 targetMinutes = Math.max(0, totalMinutes / allEvents.length - 60); // 1h antes del promedio
             }
 
-            const containerHeight = weekScrollRef.current.clientHeight || 600;
-            weekScrollRef.current.scrollTop =
-                targetMinutes * PX_PER_MIN - containerHeight / 4;
+            setTimeout(() => {
+                if (weekScrollRef.current) {
+                    const containerHeight = weekScrollRef.current.clientHeight || 600;
+                    weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
+                }
+            }, 0);
         }
     }, [viewMode, weekDays]);
 
@@ -1308,7 +1311,7 @@ export default function AvailabilityPage() {
                                             if (!data) return null;
                                             const { dayNames, days, weekDays, monthLabel } = data;
                                             return (
-                                                <div key={slideIndex} style={{ flex: "0 0 33.3333%", width: "33.3333%", height: "100%", overflowY: "auto", overflowX: "hidden" }}>
+                                                <div key={slideIndex} style={{ display: "flex", flexDirection: "column", flex: "0 0 33.3333%", width: "33.3333%", height: "100%", overflowY: viewMode === "week" ? "hidden" : "auto", overflowX: "hidden" }}>
                                                     {viewMode === "calendar" ? (
                                         <div
                                             className="calendar-grid"
@@ -2009,11 +2012,13 @@ export default function AvailabilityPage() {
                                                                                     ? "rgba(0,0,0,0.4)"
                                                                                     : "transparent",
                                                                         opacity:
-                                                                            d.isPast
-                                                                                ? 0.25
-                                                                                : 1,
-                                                                        filter: d.isPast
-                                                                            ? "grayscale(0.8) contrast(0.8)"
+                                                                            d.isOtherMonth
+                                                                                ? 0.06
+                                                                                : d.isPast
+                                                                                    ? 0.25
+                                                                                    : 1,
+                                                                        filter: d.isOtherMonth || d.isPast
+                                                                            ? "grayscale(1) contrast(0.6)"
                                                                             : "none",
                                                                         animationDelay: `${idx * 0.05}s`,
                                                                     }}
