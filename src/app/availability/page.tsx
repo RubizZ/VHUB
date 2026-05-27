@@ -471,30 +471,48 @@ export default function AvailabilityPage() {
         },
         onMutate: async ({ eventId, status }) => {
             setUpdatingEventId(eventId);
-            await queryClient.cancelQueries({ queryKey: ["events"] });
-            const previousEvents = queryClient.getQueryData(["events"]);
 
-            queryClient.setQueryData(["events"], (old: any) => {
-                if (!old?.events) return old;
+            // Cancel any outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey: ["events", "list"] });
+            await queryClient.cancelQueries({ queryKey: ["events", "calendar"] });
+
+            // Snapshot previous values
+            const previousListData = queryClient.getQueryData(["events", "list"]);
+            const previousCalendarData = queryClient.getQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end]);
+
+            // Helper to patch availability in an event list
+            const patchAvailability = (events: any[]) =>
+                events.map((ev: any) => {
+                    if (ev.id !== eventId) return ev;
+                    const newAvail = [...(ev.availability || [])];
+                    const existingIdx = newAvail.findIndex((a: any) => a.player_id === myPlayerId);
+                    if (existingIdx !== -1) {
+                        newAvail[existingIdx] = { ...newAvail[existingIdx], status };
+                    } else {
+                        newAvail.push({ player_id: myPlayerId, status, player: { name: session?.user?.name || "Yo", avatar_color: "#E11D48" } });
+                    }
+                    return { ...ev, availability: newAvail };
+                });
+
+            // Optimistically update the infinite list query (pages structure)
+            queryClient.setQueryData(["events", "list"], (old: any) => {
+                if (!old?.pages) return old;
                 return {
                     ...old,
-                    events: old.events.map((ev: any) => {
-                        if (ev.id === eventId) {
-                            const newAvail = [...(ev.availability || [])];
-                            const existingIdx = newAvail.findIndex((a: any) => a.player_id === myPlayerId);
-                            if (existingIdx !== -1) {
-                                newAvail[existingIdx] = { ...newAvail[existingIdx], status };
-                            } else {
-                                newAvail.push({ player_id: myPlayerId, status, player: { name: session?.user?.name || "Yo", avatar_color: "#E11D48" } });
-                            }
-                            return { ...ev, availability: newAvail };
-                        }
-                        return ev;
-                    })
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        events: patchAvailability(page.events || [])
+                    }))
                 };
             });
 
-            return { previousEvents };
+            // Optimistically update the calendar query too if it exists
+            queryClient.setQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end], (old: any) => {
+                if (!old?.events) return old;
+                return { ...old, events: patchAvailability(old.events) };
+            });
+
+            return { previousListData, previousCalendarData };
         },
         onSuccess: () => {
             setTimeout(() => setUpdatingEventId(null), 500);
@@ -502,8 +520,11 @@ export default function AvailabilityPage() {
         onError: (err: any, variables, context: any) => {
             if (err.name === 'AbortError') return;
             
-            if (context?.previousEvents) {
-                queryClient.setQueryData(["events"], context.previousEvents);
+            if (context?.previousListData) {
+                queryClient.setQueryData(["events", "list"], context.previousListData);
+            }
+            if (context?.previousCalendarData) {
+                queryClient.setQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end], context.previousCalendarData);
             }
             alert(err.message);
             setUpdatingEventId(null);
