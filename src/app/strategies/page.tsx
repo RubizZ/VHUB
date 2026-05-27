@@ -762,25 +762,7 @@ export default function StrategiesPage() {
         continue;
       }
 
-      if (isActivatable && !isActive) {
-        if (sImg && sImg.complete) {
-           ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
-           ctx.beginPath();
-           ctx.roundRect(-10, -10, 20, 20, 4);
-           ctx.fill();
-           ctx.strokeStyle = skill.color;
-           ctx.lineWidth = 1.5 / scale;
-           ctx.stroke();
-           ctx.drawImage(sImg, -8, -8, 16, 16);
-        } else {
-           ctx.fillStyle = skill.color;
-           ctx.beginPath();
-           ctx.arc(0, 0, 6, 0, 2*Math.PI);
-           ctx.fill();
-        }
-        ctx.restore();
-        continue;
-      }
+      // Removed isActivatable drawing logic so they draw normally immediately
       
       const geom = skill.geometry;
       ctx.fillStyle = skill.color;
@@ -1504,29 +1486,8 @@ export default function StrategiesPage() {
           return;
         }
         
-        // Check if we clicked on an activatable skill
-        const canvasPos = getPos(e);
-        const clickedSkill = [...skillsRef.current].reverse().find(s => {
-          if (!s.behavior?.flags?.activatableDeployable || s.isActive) return false;
-          const dx = s.x - canvasPos.x;
-          const dy = s.y - canvasPos.y;
-          // Icon radius is around 12-16 depending on drawing scale, 20 is safe hit area
-          return Math.sqrt(dx * dx + dy * dy) <= 20; 
-        });
-        
-        if (clickedSkill) {
-          clickedSkill.isActive = true;
-          redrawImmediate();
-          
-          const duration = clickedSkill.behavior?.buffDuration;
-          if (duration && duration > 0) {
-            setTimeout(() => {
-              skillsRef.current = skillsRef.current.filter(s => s.instanceId !== clickedSkill.instanceId);
-              redrawImmediateRef.current();
-            }, duration * 1000);
-          }
-          return;
-        }
+        // In Sandbox mode, we no longer process activatable skills via clicks.
+        // They are just static props like any other anchor/smoke.
       }
     }
 

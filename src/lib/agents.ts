@@ -23,6 +23,7 @@ export interface SkillBehaviorFlags {
   targetRevive?: boolean; // Resurrección a aliado (ej. Sage X)
   activatableDeployable?: boolean; // Se puede activar una vez desplegada (ej. Cypher Q)
   twoPointDeployment?: boolean; // Se despliega trazando línea entre dos puntos (ej. Cypher C)
+  deployablePreRound?: boolean; // Puede ser desplegada durante la fase de compra/pre-ronda
 }
 
 export interface SkillBehavior {

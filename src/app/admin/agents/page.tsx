@@ -44,6 +44,7 @@ interface SkillFormData {
   flagTargetRevive: boolean;
   flagActivatableDeployable: boolean;
   flagTwoPointDeployment: boolean;
+  flagDeployablePreRound: boolean;
   displayIcon: string;
   enabled: boolean;
 }
@@ -92,6 +93,7 @@ export default function AdminAgentsPage() {
     flagTargetRevive: false,
     flagActivatableDeployable: false,
     flagTwoPointDeployment: false,
+    flagDeployablePreRound: false,
     displayIcon: "",
     enabled: true,
   });
@@ -168,6 +170,7 @@ export default function AdminAgentsPage() {
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
         flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
         flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
+        flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -209,6 +212,7 @@ export default function AdminAgentsPage() {
         flagTargetRevive: false,
         flagActivatableDeployable: false,
         flagTwoPointDeployment: false,
+        flagDeployablePreRound: false,
         displayIcon: "",
         enabled: true,
       });
@@ -257,6 +261,7 @@ export default function AdminAgentsPage() {
             targetRevive: formData.flagTargetRevive || undefined,
             activatableDeployable: formData.flagActivatableDeployable || undefined,
             twoPointDeployment: formData.flagTwoPointDeployment || undefined,
+            deployablePreRound: formData.flagDeployablePreRound || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -472,6 +477,14 @@ export default function AdminAgentsPage() {
                       <input type="checkbox" checked={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, flagTwoPointDeployment: e.target.checked})} />
                       <span className="checkbox-custom"></span>
                       <span>Despliegue de Dos Puntos (Ej: Cables de Cypher)</span>
+                    </label>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagDeployablePreRound} onChange={e => setFormData({...formData, flagDeployablePreRound: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Desplegable en Pre-ronda (Timeline mode)</span>
                     </label>
                   </div>
                   
