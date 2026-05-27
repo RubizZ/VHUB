@@ -45,6 +45,7 @@ export interface AgentSkill {
   geometry: SkillGeometry;
   behavior: SkillBehavior;
   color: string | null;
+  displayIcon?: string;
 }
 
 export interface ValorantAgent {

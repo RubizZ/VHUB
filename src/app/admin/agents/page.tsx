@@ -34,6 +34,7 @@ interface SkillFormData {
   consumesSkillKey: string;
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
+  displayIcon: string;
 }
 
 export default function AdminAgentsPage() {
@@ -70,6 +71,7 @@ export default function AdminAgentsPage() {
     consumesSkillKey: "",
     flagRecallable: false,
     flagGrantsWeapon: false,
+    displayIcon: "",
   });
 
   const {
@@ -134,6 +136,7 @@ export default function AdminAgentsPage() {
         consumesSkillKey: skill.behavior?.consumesSkillKey || "",
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
+        displayIcon: skill.displayIcon || "",
       });
     } else {
       setFormData({
@@ -163,6 +166,7 @@ export default function AdminAgentsPage() {
         consumesSkillKey: "",
         flagRecallable: false,
         flagGrantsWeapon: false,
+        displayIcon: "",
       });
     }
   };
@@ -204,7 +208,8 @@ export default function AdminAgentsPage() {
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
           }
-        }
+        },
+        displayIcon: formData.displayIcon || undefined
       };
       const res = await fetch("/api/admin/skills", {
         method: "POST",
@@ -223,6 +228,35 @@ export default function AdminAgentsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveSkillMutation.mutate();
+  };
+
+  const handleFetchIcon = async () => {
+    if (!selectedAgent || !editingSkillKey) return;
+    try {
+      const res = await fetch(`https://valorant-api.com/v1/agents/${selectedAgent.id}?language=es-ES`);
+      const data = await res.json();
+      const abilities = data.data.abilities;
+      if (!abilities) return;
+      
+      const keyMap: Record<string, string> = {
+        "q": "Ability1",
+        "e": "Ability2",
+        "c": "Grenade",
+        "x": "Ultimate",
+        "passive": "Passive"
+      };
+      
+      const baseKey = editingSkillKey.replace("_alt", "").toLowerCase();
+      const slot = keyMap[baseKey];
+      if (slot) {
+        const ability = abilities.find((a: any) => a.slot === slot);
+        if (ability?.displayIcon) {
+          setFormData(prev => ({ ...prev, displayIcon: ability.displayIcon }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (session?.user?.role !== "super_admin") {
@@ -267,8 +301,8 @@ export default function AdminAgentsPage() {
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{agent.role}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                 {["q", "e", "c", "x"].map(key => {
+              <div className="agent-skills-preview" style={{ display: "flex", gap: 8 }}>
+                 {["q", "e", "c", "x", "passive"].map(key => {
                    const hasSkill = agent.skills?.some(s => s.key === key);
                    const hasAlt = agent.skills?.some(s => s.key === `${key}_alt`);
                    return (
@@ -301,14 +335,14 @@ export default function AdminAgentsPage() {
 
             <div style={{ display: "flex", gap: 24 }}>
               <div style={{ width: 140, display: "flex", flexDirection: "column", gap: 12 }}>
-                {["q", "e", "c", "x"].map(key => (
+                {["q", "e", "c", "x", "passive"].map(key => (
                   <React.Fragment key={key}>
                     <button 
                       className={`btn ${editingSkillKey === key ? "btn-primary" : "btn-secondary"}`}
-                      style={{ textTransform: "uppercase", fontWeight: 800, height: 48 }}
+                      style={{ textTransform: "uppercase", fontWeight: 900, height: 48, flex: "0 0 auto", padding: "0 24px" }}
                       onClick={() => loadSkillForm(selectedAgent, key)}
                     >
-                      Habilidad {key}
+                      {key}
                     </button>
                     {selectedAgent.skills?.some(s => s.key === `${key}_alt`) ? (
                       <button 
@@ -338,6 +372,24 @@ export default function AdminAgentsPage() {
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
                     <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">Key ID</label>
+                    <input className="input-field" value={editingSkillKey} disabled style={{ opacity: 0.5 }} />
+                  </div>
+                  
+                  <div className="form-group" style={{ gridColumn: "span 2", marginBottom: 16 }}>
+                    <label className="form-label">Icono de la habilidad (URL valorant-api)</label>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} placeholder="https://..." style={{ flex: 1 }} />
+                      <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Extraer de Valorant API</button>
+                      {formData.displayIcon && (
+                        <div style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(10, 14, 20, 0.9)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
+                          <img src={formData.displayIcon} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>

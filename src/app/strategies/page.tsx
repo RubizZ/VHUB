@@ -337,6 +337,7 @@ export default function StrategiesPage() {
   const mapImgRef = useRef<HTMLImageElement | null>(null);
   const agentImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const weaponImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const skillImgsRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const loadedPathIdsRef = useRef<Set<string>>(new Set());
   const loadedAgentIdsRef = useRef<Set<string>>(new Set());
   const mousePosRef = useRef<{ canvasX: number; canvasY: number } | null>(null);
@@ -831,23 +832,50 @@ export default function StrategiesPage() {
             ctx.translate(0, 26); // position below the agent circle
             
             const isAlt = skillKey.includes("_alt");
-            ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
-            ctx.strokeStyle = isAlt ? "rgba(0, 212, 170, 0.5)" : "rgba(255, 255, 255, 0.2)";
-            ctx.lineWidth = 1;
-            
             const w = 24;
             const h = 16;
-            ctx.beginPath();
-            ctx.roundRect(-w/2, -h/2, w, h, 4);
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.fillStyle = isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)";
-            ctx.font = "900 9px Outfit, sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : skillKey.toUpperCase();
-            ctx.fillText(text, 0, 1);
+
+            if (skill.displayIcon) {
+              const sImg = skillImgsRef.current.get(skill.key);
+              if (sImg && sImg.complete) {
+                const imgW = isAlt ? 14 : 18;
+                const imgH = isAlt ? 14 : 18;
+                
+                ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+                ctx.strokeStyle = isAlt ? "rgba(0, 212, 170, 0.5)" : "rgba(255, 255, 255, 0.2)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(-w/2, -h/2, w, h, 4);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.drawImage(sImg, -imgW/2, -imgH/2, imgW, imgH);
+              } else if (!skillImgsRef.current.has(skill.key)) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = skill.displayIcon;
+                img.onload = () => {
+                  skillImgsRef.current.set(skill.key, img);
+                  redraw();
+                };
+                skillImgsRef.current.set(skill.key, img);
+              }
+            } else {
+              ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+              ctx.strokeStyle = isAlt ? "rgba(0, 212, 170, 0.5)" : "rgba(255, 255, 255, 0.2)";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.roundRect(-w/2, -h/2, w, h, 4);
+              ctx.fill();
+              ctx.stroke();
+              
+              ctx.fillStyle = isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)";
+              ctx.font = "900 9px Outfit, sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : skillKey.toUpperCase();
+              ctx.fillText(text, 0, 1);
+            }
             
             ctx.restore();
           }
@@ -3840,7 +3868,7 @@ export default function StrategiesPage() {
                 gap: 4
               }}
             >
-              {["Q", "E", "C", "X"].map(key => {
+              {["Q", "E", "C", "X", "PASSIVE"].map(key => {
                 const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
                 const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase());
                 const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt`);
@@ -3864,18 +3892,26 @@ export default function StrategiesPage() {
                       transition: "all 0.15s ease",
                       cursor: skill ? "pointer" : "default",
                       opacity: skill ? 1 : 0.3,
+                      padding: skill?.displayIcon ? "4px" : "0",
+                      overflow: "hidden"
                     }}
                     onMouseEnter={(e) => {
                       if (!skill) return;
                       e.currentTarget.style.transform = "translateY(-2px)";
                       e.currentTarget.style.color = "#fff";
                       e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                      if (e.currentTarget.querySelector("img")) {
+                        e.currentTarget.querySelector("img")!.style.transform = "scale(1.1)";
+                      }
                     }}
                     onMouseLeave={(e) => {
                       if (!skill) return;
                       e.currentTarget.style.transform = "translateY(0)";
                       e.currentTarget.style.color = isAlt ? "rgba(0, 212, 170, 0.8)" : "rgba(255,255,255,0.6)";
                       e.currentTarget.style.background = "rgba(10, 14, 20, 0.9)";
+                      if (e.currentTarget.querySelector("img")) {
+                        e.currentTarget.querySelector("img")!.style.transform = "scale(1)";
+                      }
                     }}
                     onClick={() => {
                       if (!skill) { alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`); return; }
@@ -3888,7 +3924,15 @@ export default function StrategiesPage() {
                       setHoverMenuState(prev => ({ ...prev, visible: false }));
                     }}
                   >
-                    {isAlt ? `↳${key}` : key}
+                    {skill?.displayIcon ? (
+                      <img 
+                        src={skill.displayIcon} 
+                        style={{ width: "100%", height: "100%", objectFit: "contain", filter: isAlt ? "sepia(1) hue-rotate(130deg) saturate(3) brightness(1.2)" : "none", transition: "transform 0.15s ease" }} 
+                        alt={key} 
+                      />
+                    ) : (
+                      isAlt ? `↳${key}` : key === "PASSIVE" ? "P" : key
+                    )}
                   </div>
                 );
 

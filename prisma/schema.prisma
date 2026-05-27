@@ -269,6 +269,7 @@ model AgentSkill {
   geometry    Json // Dimensiones y forma en metros
   behavior    Json // Reglas de spawn e interacción
   color       String? // Color promedio del icono, o color base
+  displayIcon String? // Icono oficial de la habilidad desde valorant-api
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 

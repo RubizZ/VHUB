@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { agentId, key, name, description, geometry, behavior, color } = body;
+  const { agentId, key, name, description, geometry, behavior, color, displayIcon } = body;
 
   if (!agentId || !key || !name || !geometry || !behavior) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
         description,
         geometry,
         behavior,
-        color
+        color,
+        displayIcon
       },
       create: {
         agentId,
@@ -59,7 +60,8 @@ export async function POST(req: NextRequest) {
         description,
         geometry,
         behavior,
-        color
+        color,
+        displayIcon
       }
     });
 
