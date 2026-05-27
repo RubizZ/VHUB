@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -53,15 +52,31 @@ interface CanvasAgent {
   createdBy?: string;
 }
 
+interface CanvasSkill {
+  instanceId: string;
+  agentInstanceId: string;
+  key: string;
+  x: number;
+  y: number;
+  targetX?: number;
+  targetY?: number;
+  geometry: any;
+  behavior: any;
+  color: string;
+  createdBy?: string;
+}
+
 type UndoAction =
   | { type: 'add-path'; path: CanvasPath }
   | { type: 'remove-path'; path: CanvasPath; index: number }
   | { type: 'add-agent'; agent: CanvasAgent }
   | { type: 'remove-agent'; agent: CanvasAgent; index: number }
   | { type: 'move-agent'; agentId: string; oldX: number; oldY: number; newX: number; newY: number }
-  | { type: 'clear-all'; paths: CanvasPath[]; agents: CanvasAgent[] };
+  | { type: 'add-skill'; skill: CanvasSkill }
+  | { type: 'remove-skill'; skill: CanvasSkill; index: number }
+  | { type: 'clear-all'; paths: CanvasPath[]; agents: CanvasAgent[]; skills?: CanvasSkill[] };
 
-type Tool = "select" | "draw" | "arrow" | "eraser";
+type Tool = "select" | "draw" | "arrow" | "eraser" | "skill";
 type View = "maps" | "strategies" | "editor";
 
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
@@ -171,6 +186,7 @@ export default function StrategiesPage() {
 
   // Brush Size States
   const [pencilSize, setPencilSize] = useState<number>(5);
+  const [projectileMode, setProjectileMode] = useState<"bounce" | "parabola">("bounce");
   const [arrowSize, setArrowSize] = useState<number>(5);
   const [eraserSize, setEraserSize] = useState<number>(20);
   const [eraserMode, setEraserMode] = useState<"pixels" | "lines">("pixels");
@@ -184,6 +200,9 @@ export default function StrategiesPage() {
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
+  const skillsRef = useRef<CanvasSkill[]>([]);
+  const pendingSkillRef = useRef<{agentInstanceId: string, skill: any, color: string} | null>(null);
+  const loadedSkillIdsRef = useRef<Set<string>>(new Set());
   const undoStackRef = useRef<UndoAction[]>([]);
   const redoStackRef = useRef<UndoAction[]>([]);
   const hoveredPathIdRef = useRef<string | null>(null);
@@ -678,6 +697,52 @@ export default function StrategiesPage() {
     ctx.scale(currentZoom, currentZoom);
     ctx.rotate(angle);
     ctx.scale(scale, scale);
+
+    // Draw Skills
+    for (const skill of skillsRef.current) {
+      ctx.save();
+      ctx.translate(skill.x, skill.y);
+      
+      const geom = skill.geometry;
+      ctx.fillStyle = skill.color;
+      ctx.strokeStyle = skill.color;
+      ctx.globalAlpha = 0.5;
+
+      // Assuming 1 meter = 20 canvas units approximately
+      const mToPx = 20;
+
+      if (geom.type === "circle") {
+        ctx.beginPath();
+        const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
+        ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = 2 / scale;
+        ctx.stroke();
+      } else if (geom.type === "rectangle" || geom.type === "cone") {
+        if (skill.targetX !== undefined && skill.targetY !== undefined) {
+           const sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
+           ctx.rotate(sa);
+        }
+        const length = geom.length * mToPx;
+        const width = geom.width * mToPx;
+        
+        ctx.beginPath();
+        if (geom.type === "cone") {
+           const halfAngleRad = geom.angle !== undefined ? (geom.angle / 2) * Math.PI / 180 : Math.atan2(width/2, length);
+           ctx.moveTo(0, 0);
+           ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
+           ctx.closePath();
+        } else {
+           ctx.rect(0, -width/2, length, width);
+        }
+        ctx.fill();
+        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = 2 / scale;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     for (const a of agentsRef.current) {
       const img = agentImgsRef.current.get(a.id);
@@ -1291,6 +1356,58 @@ export default function StrategiesPage() {
         scheduleAutoSave();
       }
     }
+    if (tool === "skill" && pendingSkillRef.current) {
+      const { agentInstanceId, skill, color: skillColor } = pendingSkillRef.current;
+      const agentObj = agentsRef.current.find(a => a.instanceId === agentInstanceId);
+      
+      let startX = pos.x;
+      let startY = pos.y;
+      
+      if (skill.behavior?.spawn === "player" && agentObj) {
+        startX = agentObj.x;
+        startY = agentObj.y;
+      }
+      
+      const newSkill: CanvasSkill = {
+        instanceId: Math.random().toString(36).substring(2, 9),
+        agentInstanceId,
+        key: skill.key,
+        x: startX,
+        y: startY,
+        targetX: pos.x,
+        targetY: pos.y,
+        geometry: skill.geometry,
+        behavior: skill.behavior,
+        projectileMode: skill.behavior?.spawn === "projectile" ? projectileMode : undefined,
+        color: skillColor,
+        createdBy: myUserId
+      };
+      
+      skillsRef.current.push(newSkill);
+      loadedSkillIdsRef.current.add(newSkill.instanceId);
+      undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
+      redoStackRef.current = [];
+      
+      drawingRef.current = true;
+      (window as any).activeSkillIdRef = newSkill.instanceId;
+      
+      updateUndoRedo();
+      redrawImmediate();
+      scheduleAutoSave();
+      
+      const moveHandler = (e: MouseEvent) => globalMouseMoveRef.current(e);
+      const upHandler = () => globalMouseUpRef.current();
+      globalMouseMoveRef.current = (e: MouseEvent) => draw(e as unknown as React.MouseEvent);
+      globalMouseUpRef.current = () => {
+        window.removeEventListener("mousemove", moveHandler);
+        window.removeEventListener("mouseup", upHandler);
+        stopDraw();
+      };
+      window.addEventListener("mousemove", moveHandler);
+      window.addEventListener("mouseup", upHandler);
+      return;
+    }
+
     drawingRef.current = true;
     const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
     const newPath = {
@@ -1545,6 +1662,17 @@ export default function StrategiesPage() {
         }
       }
       return;
+    }
+    
+    if (tool === "skill") {
+       const activeSkillId = (window as any).activeSkillIdRef;
+       const activeSkill = skillsRef.current.find(s => s.instanceId === activeSkillId);
+       if (activeSkill) {
+          activeSkill.targetX = pos.x;
+          activeSkill.targetY = pos.y;
+          redrawImmediate();
+       }
+       return;
     }
     if (!drawingRef.current) {
       return;
@@ -2795,6 +2923,30 @@ export default function StrategiesPage() {
                   ))}
                 </div>
 
+                {tool === "skill" && pendingSkillRef.current?.skill.behavior?.spawn === "projectile" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
+                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>Modo de Tiro</span>
+                     <button
+                       type="button"
+                       className={`tool-btn-premium ${projectileMode === "bounce" ? "active" : ""}`}
+                       onClick={() => setProjectileMode("bounce")}
+                       title="Rebote"
+                       style={{ width: "100%", height: 32, fontSize: 11, fontWeight: 800 }}
+                     >
+                       Rebote
+                     </button>
+                     <button
+                       type="button"
+                       className={`tool-btn-premium ${projectileMode === "parabola" ? "active" : ""}`}
+                       onClick={() => setProjectileMode("parabola")}
+                       title="Parábola"
+                       style={{ width: "100%", height: 32, fontSize: 11, fontWeight: 800 }}
+                     >
+                       Parábola
+                     </button>
+                  </div>
+                )}
+
                 {/* Tool-specific params: draw & arrow */}
                 {(tool === "draw" || tool === "arrow") && (
                   <>
@@ -3606,6 +3758,21 @@ export default function StrategiesPage() {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.color = "rgba(255,255,255,0.6)";
                     e.currentTarget.style.background = "rgba(10, 14, 20, 0.9)";
+                  }}
+                  onClick={() => {
+                    const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
+                    const skill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase());
+                    if (skill) {
+                      setTool("skill");
+                      pendingSkillRef.current = {
+                        agentInstanceId: ctxAgent.instanceId,
+                        skill,
+                        color: skill.color || agentData?.bgColors?.[0] || "#fff"
+                      };
+                      setHoverMenuState(prev => ({ ...prev, visible: false }));
+                    } else {
+                      alert(`La habilidad ${key} no está configurada para este agente.`);
+                    }
                   }}
                 >
                   {key}

@@ -12,6 +12,7 @@ export interface ValorantAgent {
   background: string | null;
   roleIcon: string;
   bgColors: string[];
+  skills?: any[];
 }
 
 export const ROLE_COLORS: Record<AgentRole, string> = {

@@ -248,7 +248,7 @@ model TeamJoinRequest {
 }
 
 model Agent {
-  id               String   @id
+  id               String       @id
   name             String
   role             String // e.g. "duelist", "initiator", "controller", "sentinel"
   displayIcon      String
@@ -257,6 +257,22 @@ model Agent {
   background       String?
   roleIcon         String
   bgColors         String[] // Array of colors for the gradient
+  skills           AgentSkill[]
+}
+
+model AgentSkill {
+  id          String  @id @default(cuid(2))
+  agentId     String
+  key         String // "q", "e", "c", "x"
+  name        String
+  description String?
+  geometry    Json // Dimensiones y forma en metros
+  behavior    Json // Reglas de spawn e interacción
+  color       String? // Color promedio del icono, o color base
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, key])
 }
 
 model StrategyPresence {

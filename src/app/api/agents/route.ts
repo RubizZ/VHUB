@@ -10,6 +10,7 @@ export async function GET() {
   try {
     let agents = await prisma.agent.findMany({
       orderBy: { name: 'asc' },
+      include: { skills: true }
     });
 
     const now = Date.now();
@@ -59,7 +60,7 @@ export async function GET() {
           });
         }
       }
-      agents = await prisma.agent.findMany({ orderBy: { name: 'asc' } });
+      agents = await prisma.agent.findMany({ orderBy: { name: 'asc' }, include: { skills: true } });
       lastSync = now;
       console.log('✅ Agents sync completed.');
     }
