@@ -16,6 +16,7 @@ export interface SkillBehaviorFlags {
   chargeable?: boolean;
   rolling?: boolean;
   recallable?: boolean; // La habilidad debe ser recogida manualmente antes de que empiece el cooldown (ej. C de Chamber)
+  grantsWeapon?: boolean; // Actúa como arma (ej. Q/X de Chamber)
 }
 
 export interface SkillBehavior {
@@ -32,7 +33,6 @@ export interface SkillBehavior {
   rollWaveCount?: number;
   rollTimeBetweenWaves?: number;
   consumesSkillKey?: string;
-  grantsWeaponId?: string; // UUID del arma en valorant-api.com que otorga esta habilidad (ej. Q/X de Chamber)
   flags?: SkillBehaviorFlags;
 }
 

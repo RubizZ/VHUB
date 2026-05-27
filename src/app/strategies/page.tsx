@@ -823,40 +823,62 @@ export default function StrategiesPage() {
       }
 
       if (a.weaponId) {
-        const w = findWeapon(a.weaponId);
-        if (w?.killStreamIcon) {
-          const wImg = weaponImgsRef.current.get(a.weaponId);
-          if (wImg && wImg.complete) {
+        if (a.weaponId.startsWith("skill:")) {
+          const skillKey = a.weaponId.split(":")[1];
+          const skill = agent?.skills?.find(s => s.key === skillKey);
+          if (skill) {
             ctx.save();
-            ctx.translate(0, 24); // position below the agent circle
+            ctx.translate(0, 26); // position below the agent circle
             
-            // To invert the killStreamIcon color (from black to white/cyan)
-            // But since canvas drawImage can't filter directly easily without DOM/CSS, 
-            // we'll just draw it with globalCompositeOperation or shadow.
-            // Wait, we can't CSS filter in standard canvas easily, but we can do a trick 
-            // or just rely on the killStreamIcon being a white PNG (it actually is black/dark usually or white depending on the CDN). 
-            // The ones from valorant-api killstream are usually white or gray.
+            const isAlt = skillKey.includes("_alt");
+            ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+            ctx.strokeStyle = isAlt ? "rgba(0, 212, 170, 0.5)" : "rgba(255, 255, 255, 0.2)";
+            ctx.lineWidth = 1;
             
-            const aspect = wImg.width / wImg.height;
-            const h = 10;
-            const w_scaled = h * aspect;
+            const w = 24;
+            const h = 16;
+            ctx.beginPath();
+            ctx.roundRect(-w/2, -h/2, w, h, 4);
+            ctx.fill();
+            ctx.stroke();
             
-            // Draw background shadow
-            ctx.shadowColor = "rgba(0,0,0,0.9)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)";
+            ctx.font = "900 9px Outfit, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : skillKey.toUpperCase();
+            ctx.fillText(text, 0, 1);
             
-            ctx.drawImage(wImg, -w_scaled / 2, -h / 2, w_scaled, h);
             ctx.restore();
-          } else if (!weaponImgsRef.current.has(a.weaponId)) {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.src = w.killStreamIcon;
-            img.onload = () => {
-              weaponImgsRef.current.set(a.weaponId!, img);
-              redraw();
-            };
-            weaponImgsRef.current.set(a.weaponId, img);
+          }
+        } else {
+          const w = findWeapon(a.weaponId);
+          if (w?.killStreamIcon) {
+            const wImg = weaponImgsRef.current.get(a.weaponId);
+            if (wImg && wImg.complete) {
+              ctx.save();
+              ctx.translate(0, 24);
+              
+              const aspect = wImg.width / wImg.height;
+              const h = 10;
+              const w_scaled = h * aspect;
+              
+              ctx.shadowColor = "rgba(0,0,0,0.9)";
+              ctx.shadowBlur = 4;
+              ctx.shadowOffsetY = 1;
+              
+              ctx.drawImage(wImg, -w_scaled / 2, -h / 2, w_scaled, h);
+              ctx.restore();
+            } else if (!weaponImgsRef.current.has(a.weaponId)) {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.src = w.killStreamIcon;
+              img.onload = () => {
+                weaponImgsRef.current.set(a.weaponId!, img);
+                redraw();
+              };
+              weaponImgsRef.current.set(a.weaponId, img);
+            }
           }
         }
       }
@@ -1473,8 +1495,8 @@ export default function StrategiesPage() {
       undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
       redoStackRef.current = [];
       
-      if (skill.behavior?.grantsWeaponId && agentObj) {
-        agentObj.weaponId = skill.behavior.grantsWeaponId;
+      if (skill.behavior?.flags?.grantsWeapon && agentObj) {
+        agentObj.weaponId = "skill:" + skill.key;
       }
       
       drawingRef.current = true;
