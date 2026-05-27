@@ -165,6 +165,11 @@ export default function TeamSettingsPage() {
                 </div>
               ) : (
                 <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                  {message && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", background: message.includes("❌") ? "rgba(255, 70, 85, 0.1)" : "rgba(0, 212, 170, 0.1)", color: message.includes("❌") ? "var(--val-red)" : "var(--val-cyan)", borderRadius: 12, fontSize: 14, fontWeight: 600, border: `1px solid ${message.includes("❌") ? "rgba(255, 70, 85, 0.2)" : "rgba(0, 212, 170, 0.2)"}` }}>
+                      {message}
+                    </div>
+                  )}
                   <div className="form-group">
                     <label style={{ display: "block", fontSize: "11px", fontWeight: 800, marginBottom: "8px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>Nombre del Equipo</label>
                     <input 
@@ -297,12 +302,6 @@ export default function TeamSettingsPage() {
                       </select>
                     </div>
                   </div>
-
-                  {message && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", background: message.includes("❌") ? "rgba(255, 70, 85, 0.1)" : "rgba(0, 212, 170, 0.1)", color: message.includes("❌") ? "var(--val-red)" : "var(--val-cyan)", borderRadius: 12, fontSize: 14, fontWeight: 600, border: `1px solid ${message.includes("❌") ? "rgba(255, 70, 85, 0.2)" : "rgba(0, 212, 170, 0.2)"}` }}>
-                      {message}
-                    </div>
-                  )}
 
                   <button type="submit" className="btn btn-primary hover-lift" disabled={saveTeamMutation.isPending} style={{ padding: "18px", fontSize: 16, fontWeight: 800, borderRadius: 12, marginTop: 8, boxShadow: "0 4px 20px rgba(0, 212, 170, 0.3)" }}>
                     {saveTeamMutation.isPending ? "Guardando..." : "Guardar Cambios"}
