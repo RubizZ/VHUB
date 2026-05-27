@@ -51,6 +51,7 @@ interface CanvasAgent {
   y: number;
   team?: 'ally' | 'enemy';
   weaponId?: string;
+  activeBuffs?: string[];
   createdBy?: string;
 }
 
@@ -821,6 +822,44 @@ export default function StrategiesPage() {
         ctx.textAlign = "center";
         ctx.fillText(agent?.name.substring(0, 2) || "?", 0, 4);
         ctx.textAlign = "start";
+      }
+
+      if (a.activeBuffs && a.activeBuffs.length > 0) {
+        a.activeBuffs.forEach((buffKey, idx) => {
+          const skill = agent?.skills?.find(s => s.key === buffKey);
+          if (skill && skill.displayIcon) {
+            const sImg = skillImgsRef.current.get(skill.key);
+            if (sImg && sImg.complete) {
+              ctx.save();
+              const offset = (idx - (a.activeBuffs!.length - 1) / 2) * 20;
+              ctx.translate(offset, -28); 
+              
+              // Glowing aura ring
+              ctx.shadowColor = "rgba(0, 212, 170, 0.8)";
+              ctx.shadowBlur = 8;
+              ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+              ctx.strokeStyle = "rgba(0, 212, 170, 0.8)";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.arc(0, 0, 9, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.shadowBlur = 0; // reset shadow for image
+              ctx.drawImage(sImg, -7, -7, 14, 14);
+              ctx.restore();
+            } else if (!skillImgsRef.current.has(skill.key)) {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.src = skill.displayIcon;
+              img.onload = () => {
+                skillImgsRef.current.set(skill.key, img);
+                redraw();
+              };
+              skillImgsRef.current.set(skill.key, img);
+            }
+          }
+        });
       }
 
       if (a.weaponId) {
@@ -3953,6 +3992,23 @@ export default function StrategiesPage() {
                             setHoverMenuState(prev => ({ ...prev, visible: false }));
                             return;
                           }
+                        }
+                      }
+
+                      // Lógica Sandbox: Auto-Buff
+                      if (skill.behavior?.flags?.instantSelfBuff) {
+                        const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
+                        if (agentIndex !== -1) {
+                          const agent = agentsRef.current[agentIndex];
+                          const buffs = agent.activeBuffs || [];
+                          if (buffs.includes(skill.key)) {
+                            agent.activeBuffs = buffs.filter(b => b !== skill.key);
+                          } else {
+                            agent.activeBuffs = [...buffs, skill.key];
+                          }
+                          redraw();
+                          setHoverMenuState(prev => ({ ...prev, visible: false }));
+                          return;
                         }
                       }
 

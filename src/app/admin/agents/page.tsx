@@ -35,6 +35,7 @@ interface SkillFormData {
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
   flagTeleportsToDeployed: boolean;
+  flagInstantSelfBuff: boolean;
   displayIcon: string;
   enabled: boolean;
 }
@@ -74,6 +75,7 @@ export default function AdminAgentsPage() {
     flagRecallable: false,
     flagGrantsWeapon: false,
     flagTeleportsToDeployed: false,
+    flagInstantSelfBuff: false,
     displayIcon: "",
     enabled: true,
   });
@@ -141,6 +143,7 @@ export default function AdminAgentsPage() {
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
+        flagInstantSelfBuff: skill.behavior?.flags?.instantSelfBuff || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -173,6 +176,7 @@ export default function AdminAgentsPage() {
         flagRecallable: false,
         flagGrantsWeapon: false,
         flagTeleportsToDeployed: false,
+        flagInstantSelfBuff: false,
         displayIcon: "",
         enabled: true,
       });
@@ -216,6 +220,7 @@ export default function AdminAgentsPage() {
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
             teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
+            instantSelfBuff: formData.flagInstantSelfBuff || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -391,6 +396,14 @@ export default function AdminAgentsPage() {
                       <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
                       <span className="checkbox-custom"></span>
                       <span>Permite teletransporte hacia ella (Ej: Chamber E)</span>
+                    </label>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
+                      <span className="checkbox-custom"></span>
+                      <span>Auto-aplicación instantánea (Buff, ej: Clove C)</span>
                     </label>
                   </div>
                   
