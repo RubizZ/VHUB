@@ -82,7 +82,7 @@ type UndoAction =
   | { type: 'remove-skill'; skill: CanvasSkill; index: number }
   | { type: 'clear-all'; paths: CanvasPath[]; agents: CanvasAgent[]; skills?: CanvasSkill[] };
 
-type Tool = "select" | "draw" | "arrow" | "eraser" | "skill";
+type Tool = "select" | "draw" | "arrow" | "eraser" | "skill" | "calibrate";
 type View = "maps" | "strategies" | "editor";
 
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
@@ -197,12 +197,19 @@ export default function StrategiesPage() {
   const [eraserSize, setEraserSize] = useState<number>(20);
   const [eraserMode, setEraserMode] = useState<"pixels" | "lines">("pixels");
   const eraserSizeRef = useRef<number>(20);
+  
+  const [calibrateState, setCalibrateState] = useState<{ step: "start" | "end"; startPos: { x: number; y: number } | null; showModal: boolean; distancePx: number }>({ step: "start", startPos: null, showModal: false, distancePx: 0 });
+  const [calibrateMetersInput, setCalibrateMetersInput] = useState("");
+  const calibrateStateRef = useRef<{ step: "start" | "end"; startPos: { x: number; y: number } | null }>({ step: "start", startPos: null });
+  const worldMousePosRef = useRef<{ x: number; y: number } | null>(null);
+
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingRef = useRef(false);
   const draggedAgentRef = useRef<CanvasAgent | null>(null);
   const draggedAgentOldPosRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedSkillRef = useRef<CanvasSkill | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
@@ -790,8 +797,8 @@ export default function StrategiesPage() {
       ctx.strokeStyle = skill.color;
       ctx.globalAlpha = 0.5;
 
-      // Assuming 1 meter = 20 canvas units approximately
-      const mToPx = 20;
+      // Assuming 1 meter = 20 canvas units approximately (or calibrated value)
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
 
       if (geom.type === "circle") {
         ctx.beginPath();
@@ -862,6 +869,16 @@ export default function StrategiesPage() {
         ctx.strokeStyle = "#fff";
         ctx.stroke();
       }
+      
+      // Draw a small draggable handle at the center
+      ctx.beginPath();
+      ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fill();
+      ctx.strokeStyle = skill.color;
+      ctx.lineWidth = 2 / scale;
+      ctx.stroke();
+      
       ctx.restore();
     }
 
@@ -1033,12 +1050,43 @@ export default function StrategiesPage() {
 
       ctx.restore();
     }
-    ctx.restore();
+ctx.restore();
 
     // 4. Custom Eraser Circle cursor is now handled natively via DOM for 0 lag.
     // 4b. Line-eraser highlight disabled (no preview)
 
-    // 5. Draw Remote Cursors (collaboration) in screen space
+    // --- Draw Calibration Line ---
+    if (tool === "calibrate" && calibrateStateRef.current.step === "end" && calibrateStateRef.current.startPos && worldMousePosRef.current) {
+      ctx.save();
+      ctx.translate(canvas.width / 2 + currentPan.x, canvas.height / 2 + currentPan.y);
+      ctx.scale(currentZoom, currentZoom);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+
+      ctx.beginPath();
+      ctx.moveTo(calibrateStateRef.current.startPos.x, calibrateStateRef.current.startPos.y);
+      ctx.lineTo(worldMousePosRef.current.x, worldMousePosRef.current.y);
+      ctx.strokeStyle = "#ff4655";
+      ctx.lineWidth = 2 / scale;
+      ctx.setLineDash([5 / scale, 5 / scale]);
+      ctx.stroke();
+
+      const dx = worldMousePosRef.current.x - calibrateStateRef.current.startPos.x;
+      const dy = worldMousePosRef.current.y - calibrateStateRef.current.startPos.y;
+      const distPx = Math.sqrt(dx * dx + dy * dy);
+      
+      ctx.translate(worldMousePosRef.current.x, worldMousePosRef.current.y);
+      ctx.rotate(-angle);
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.fillRect(10 / scale, 10 / scale, 60 / scale, 24 / scale);
+      ctx.fillStyle = "#fff";
+      ctx.font = `bold ${12 / scale}px sans-serif`;
+      ctx.fillText(`${Math.round(distPx)}px`, 15 / scale, 26 / scale);
+      ctx.restore();
+    }
+
+    // 4. Draw other users' cursors (Collaboration)
+    ctx.save();
     for (const [, cursor] of remoteCursors) {
       const screenPos = (cursor.x !== undefined && cursor.y !== undefined)
         ? getScreenPos(cursor.x, cursor.y)
@@ -1518,6 +1566,17 @@ export default function StrategiesPage() {
           return;
         }
         
+        const foundSkill = [...skillsRef.current].reverse().find(s => {
+          const screenPos = getScreenPos(s.x, s.y);
+          const dx = screenPos.x - mouseX;
+          const dy = screenPos.y - mouseY;
+          return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+        });
+        if (foundSkill) {
+          draggedSkillRef.current = foundSkill;
+          return;
+        }
+        
         // In Sandbox mode, we no longer process activatable skills via clicks.
         // They are just static props like any other anchor/smoke.
       }
@@ -1671,6 +1730,33 @@ export default function StrategiesPage() {
       return;
     }
 
+    if (tool === "calibrate") {
+      if (calibrateStateRef.current.step === "start") {
+        calibrateStateRef.current = { step: "end", startPos: pos };
+        drawingRef.current = true;
+        const moveHandler = (e: MouseEvent) => globalMouseMoveRef.current(e);
+        const upHandler = () => globalMouseUpRef.current();
+        globalMouseMoveRef.current = (e: MouseEvent) => draw(e as unknown as React.MouseEvent);
+        globalMouseUpRef.current = () => {
+          window.removeEventListener("mousemove", moveHandler);
+          window.removeEventListener("mouseup", upHandler);
+          stopDraw();
+        };
+        window.addEventListener("mousemove", moveHandler);
+        window.addEventListener("mouseup", upHandler);
+      } else if (calibrateStateRef.current.step === "end" && calibrateStateRef.current.startPos) {
+        const dx = pos.x - calibrateStateRef.current.startPos.x;
+        const dy = pos.y - calibrateStateRef.current.startPos.y;
+        const distPx = Math.sqrt(dx * dx + dy * dy);
+        calibrateStateRef.current = { step: "start", startPos: null };
+        if (distPx > 5) {
+          setCalibrateState({ step: "start", startPos: null, showModal: true, distancePx: distPx });
+        }
+        redrawImmediate();
+      }
+      return;
+    }
+
     drawingRef.current = true;
     const activeSize = tool === "draw" ? pencilSize : tool === "arrow" ? arrowSize : tool === "eraser" ? eraserSize : 5;
     const newPath = {
@@ -1742,6 +1828,11 @@ export default function StrategiesPage() {
     }
 
     const pos = getPos(e);
+    worldMousePosRef.current = pos;
+
+    if (tool === "calibrate" && calibrateStateRef.current.step === "end") {
+      redrawImmediate();
+    }
 
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
@@ -1798,6 +1889,13 @@ export default function StrategiesPage() {
             return hit;
           });
 
+          const isOverSkill = skillsRef.current.some(s => {
+            const screenPos = getScreenPos(s.x, s.y);
+            const dx = screenPos.x - mouseX;
+            const dy = screenPos.y - mouseY;
+            return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+          });
+
           if (foundHoverAgent) {
             if (isAgentDroppedRef.current) {
               // Ignore hover immediately after dropping
@@ -1826,7 +1924,7 @@ export default function StrategiesPage() {
             }
           }
 
-          canvas.style.cursor = isOverAgent ? "pointer" : "default";
+          canvas.style.cursor = (isOverAgent || isOverSkill) ? "pointer" : "default";
         }
       } else if (tool === "eraser" && eraserMode === "lines") {
         const mapImg = mapImgRef.current;
@@ -1923,6 +2021,20 @@ export default function StrategiesPage() {
           broadcastAgentUpdate(draggedAgentRef.current, true);
           lastAgentBroadcastTimeRef.current = now;
         }
+      } else if (draggedSkillRef.current) {
+        const dx = pos.x - draggedSkillRef.current.x;
+        const dy = pos.y - draggedSkillRef.current.y;
+        draggedSkillRef.current.x = pos.x;
+        draggedSkillRef.current.y = pos.y;
+        if (draggedSkillRef.current.targetX !== undefined) draggedSkillRef.current.targetX += dx;
+        if (draggedSkillRef.current.targetY !== undefined) draggedSkillRef.current.targetY += dy;
+        if (draggedSkillRef.current.pathPoints) {
+           draggedSkillRef.current.pathPoints.forEach(pt => {
+              pt.x += dx;
+              pt.y += dy;
+           });
+        }
+        redraw();
       }
       return;
     }
@@ -1980,6 +2092,21 @@ export default function StrategiesPage() {
       drawingRef.current = false;
       return;
     }
+    
+    if (tool === "calibrate" && calibrateStateRef.current.step === "end" && calibrateStateRef.current.startPos && worldMousePosRef.current) {
+      drawingRef.current = false;
+      const dx = worldMousePosRef.current.x - calibrateStateRef.current.startPos.x;
+      const dy = worldMousePosRef.current.y - calibrateStateRef.current.startPos.y;
+      const distPx = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distPx > 5) {
+        calibrateStateRef.current = { step: "start", startPos: null };
+        setCalibrateState({ step: "start", startPos: null, showModal: true, distancePx: distPx });
+        redrawImmediate();
+      }
+      return;
+    }
+
     const wasDrawing = drawingRef.current;
     const wasDragging = !!draggedAgentRef.current;
 
@@ -2035,6 +2162,14 @@ export default function StrategiesPage() {
       broadcastAgentUpdate(agent, false);
       loadedAgentIdsRef.current.add(agent.instanceId);
       scheduleAutoSave();
+    }
+
+    if (draggedSkillRef.current) {
+      draggedSkillRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas && tool === "select") {
+        canvas.style.cursor = "default";
+      }
     }
   };
 
@@ -3190,11 +3325,39 @@ export default function StrategiesPage() {
                       {icon}
                     </button>
                   ))}
+                  {tool === "skill" && pendingSkillRef.current && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: '100%', margin: "8px 0" }}>
+                      <button className="tool-btn-premium active" title={pendingSkillRef.current.skill.displayName || pendingSkillRef.current.skill.name || "Habilidad Seleccionada"} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                        {pendingSkillRef.current.skill.displayIcon ? (
+                          <img src={pendingSkillRef.current.skill.displayIcon} alt="Skill Icon" style={{ width: 24, height: 24, objectFit: 'contain', filter: `drop-shadow(0 0 4px ${pendingSkillRef.current.color})` }} />
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                          </svg>
+                        )}
+                      </button>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.7)", textAlign: "center", textTransform: "uppercase", lineHeight: 1.1 }}>
+                        {pendingSkillRef.current.skill.displayName || pendingSkillRef.current.skill.name || "Habilidad"}
+                      </span>
+                    </div>
+                  )}
+                  {session?.user?.role === "super_admin" && (
+                    <button className={`tool-btn-premium ${tool === "calibrate" ? "active" : ""}`} onClick={() => { setTool("calibrate"); setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 }); calibrateStateRef.current = { step: "start", startPos: null }; hoveredPathIdRef.current = null; }} title="Calibrar Escala (Metros)" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12H3"/>
+                        <path d="M21 6H3"/>
+                        <path d="M21 18H3"/>
+                        <path d="M8 6v12"/>
+                        <path d="M16 6v12"/>
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
                 {tool === "skill" && pendingSkillRef.current?.skill.behavior?.flags?.projectile && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
-                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>Modo de Tiro</span>
+                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", textAlign: "center", lineHeight: 1.1 }}>Ajustes de<br/>Habilidad</span>
+                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginTop: 6 }}>Modo de Tiro</span>
                      <button
                        type="button"
                        className={`tool-btn-premium ${projectileMode === "bounce" ? "active" : ""}`}
@@ -4408,6 +4571,52 @@ export default function StrategiesPage() {
               <button className="btn btn-primary" style={{ borderRadius: 10, padding: "10px 20px" }} onClick={saveConfig}>
                 Confirmar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {calibrateState.showModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} onClick={() => setCalibrateState({ ...calibrateState, showModal: false })} />
+          <div style={{ position: "relative", width: 400, backgroundColor: "#0a0e14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 24 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Calibrar Escala del Mapa</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Introduce la distancia real en metros para la línea que acabas de trazar ({Math.round(calibrateState.distancePx)}px).</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Distancia (metros)</label>
+                <input
+                  type="number"
+                  value={calibrateMetersInput}
+                  onChange={e => setCalibrateMetersInput(e.target.value)}
+                  style={{ width: "100%", height: 36, backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", padding: "0 12px", outline: "none" }}
+                  placeholder="Ej: 10"
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+              <button onClick={() => setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 })} style={{ padding: "0 16px", height: 36, backgroundColor: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontWeight: 700 }}>Cancelar</button>
+              <button onClick={async () => {
+                const m = parseFloat(calibrateMetersInput);
+                if (!isNaN(m) && m > 0 && selectedMap) {
+                  const ppm = calibrateState.distancePx / m;
+                  try {
+                    await fetch('/api/maps/calibrate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ mapId: selectedMap.id, pixelsPerMeter: ppm })
+                    });
+                    setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 });
+                    setTool("select");
+                    if (selectedMap) {
+                       setSelectedMap({ ...selectedMap, pixelsPerMeter: ppm });
+                       redraw();
+                    }
+                  } catch (e) {
+                    console.error("Error calibrating", e);
+                  }
+                }
+              }} style={{ padding: "0 16px", height: 36, backgroundColor: "#ff4655", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700 }}>Guardar</button>
             </div>
           </div>
         </div>

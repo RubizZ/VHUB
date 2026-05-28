@@ -108,6 +108,7 @@ model Map {
   premierBackground   String?
   mapUrl              String?
   tacticalDescription String?
+  pixelsPerMeter      Float?
   strategies          Strategy[]
   events              Event[]
 }
@@ -289,11 +290,11 @@ model StrategyPresence {
 }
 
 model PremierTeam {
-  id         String   @id @default(cuid(2))
-  teamId     String   @unique
+  id         String @id @default(cuid(2))
+  teamId     String @unique
   name       String
   tag        String
   conference String
   division   Int?
-  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team       Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }
