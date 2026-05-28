@@ -169,7 +169,7 @@ export default function StrategiesPage() {
   const [selectedMap, setSelectedMap] = useState<(ValorantMap & { activeInRotation?: boolean }) | null>(null);
   const [current, setCurrent] = useState<Strategy | null>(null);
   const [selectedSide, setSelectedSide] = useState<"attack" | "defense">("attack");
-  const [tool, setTool] = useState<Tool>("draw");
+  const [tool, setTool] = useState<Tool>("select");
   const [color, setColor] = useState("#FF4655");
   const [activeTeam, setActiveTeam] = useState<"ally" | "enemy">("ally");
   const [showNewStrat, setShowNewStrat] = useState(false);
@@ -178,9 +178,10 @@ export default function StrategiesPage() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [compositionFilter, setCompositionFilter] = useState<string | null>(null);
-  const [hoverMenuState, setHoverMenuState] = useState<{ agent: CanvasAgent | null; x: number; y: number; visible: boolean }>({ agent: null, x: 0, y: 0, visible: false });
+  const [hoverMenuState, setHoverMenuState] = useState<{ agent: CanvasAgent | null; skill: CanvasSkill | null; x: number; y: number; visible: boolean }>({ agent: null, skill: null, x: 0, y: 0, visible: false });
   const hoverMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hoveredAgentRef = useRef<CanvasAgent | null>(null);
+  const hoveredSkillRef = useRef<CanvasSkill | null>(null);
   const isAgentDroppedRef = useRef<boolean>(false);
 
   // Strategy Settings States
@@ -210,6 +211,7 @@ export default function StrategiesPage() {
   const draggedAgentRef = useRef<CanvasAgent | null>(null);
   const draggedAgentOldPosRef = useRef<{ x: number; y: number } | null>(null);
   const draggedSkillRef = useRef<CanvasSkill | null>(null);
+  const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
@@ -466,7 +468,7 @@ export default function StrategiesPage() {
     return compMap;
   }, [getAllyComposition]);
 
-  const syncCanvasLocalState = useCallback((paths: CanvasPath[], agentsList: CanvasAgent[]) => {
+  const syncCanvasLocalState = useCallback((paths: CanvasPath[], agentsList: CanvasAgent[], skillsList: CanvasSkill[] = []) => {
     const sanitizedPaths = paths.map((p) => ({
       ...p,
       id: p.id || Math.random().toString(36).substring(2, 9)
@@ -475,12 +477,18 @@ export default function StrategiesPage() {
       ...a,
       instanceId: a.instanceId || Math.random().toString(36).substring(2, 9)
     }));
+    const sanitizedSkills = skillsList.map((s) => ({
+      ...s,
+      instanceId: s.instanceId || Math.random().toString(36).substring(2, 9)
+    }));
 
     pathsRef.current = sanitizedPaths;
     agentsRef.current = sanitizedAgents;
+    skillsRef.current = sanitizedSkills;
 
     loadedPathIdsRef.current = new Set(sanitizedPaths.map((p) => p.id));
     loadedAgentIdsRef.current = new Set(sanitizedAgents.map((a) => a.instanceId));
+    loadedSkillIdsRef.current = new Set(sanitizedSkills.map((s) => s.instanceId));
   }, []);
 
   const goToMap = (map: ValorantMap) => {
@@ -727,7 +735,62 @@ export default function StrategiesPage() {
     ctx.scale(scale, scale);
 
     // Draw Skills
-    for (const skill of skillsRef.current) {
+    const skillsToRender = [...skillsRef.current];
+    if (tool === "skill" && pendingSkillRef.current && worldMousePosRef.current) {
+      const pSkill = pendingSkillRef.current;
+      const agentObj = agentsRef.current.find(a => a.instanceId === pSkill.agentInstanceId);
+      
+      let startX = worldMousePosRef.current.x;
+      let startY = worldMousePosRef.current.y;
+      
+      if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
+        startX = agentObj.x;
+        startY = agentObj.y;
+      }
+
+      let initTargetX: number | undefined = undefined;
+      let initTargetY: number | undefined = undefined;
+      if (pSkill.skill.geometry && (pSkill.skill.geometry.type === "rectangle" || pSkill.skill.geometry.type === "cone" || pSkill.skill.geometry.type === "trapezoid")) {
+        const mToPx = selectedMap?.pixelsPerMeter || 20;
+        const length = (pSkill.skill.geometry.length || 0) * mToPx;
+        
+        if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
+           const sa = Math.atan2(worldMousePosRef.current.y - startY, worldMousePosRef.current.x - startX);
+           if (pSkill.skill.behavior?.flags?.chargeable) {
+              const maxLen = (pSkill.skill.behavior.chargeMaxLength || pSkill.skill.geometry.length || 0) * mToPx;
+              let dist = Math.sqrt((worldMousePosRef.current.x - startX)**2 + (worldMousePosRef.current.y - startY)**2);
+              dist = Math.min(dist, maxLen);
+              initTargetX = startX + Math.cos(sa) * dist;
+              initTargetY = startY + Math.sin(sa) * dist;
+           } else {
+              initTargetX = startX + Math.cos(sa) * length;
+              initTargetY = startY + Math.sin(sa) * length;
+           }
+        } else {
+           if (pSkill.skill.behavior?.flags?.chargeable) {
+              initTargetX = startX + (pSkill.skill.behavior.chargeMinLength || pSkill.skill.geometry.length || 0) * mToPx;
+           } else {
+              initTargetX = startX + length;
+           }
+           initTargetY = startY;
+        }
+      }
+      
+      skillsToRender.push({
+        instanceId: "preview",
+        agentInstanceId: pSkill.agentInstanceId,
+        key: pSkill.skill.key,
+        x: startX,
+        y: startY,
+        targetX: initTargetX,
+        targetY: initTargetY,
+        color: pSkill.color,
+        geometry: pSkill.skill.geometry,
+        behavior: pSkill.skill.behavior,
+      } as CanvasSkill);
+    }
+
+    for (const skill of skillsToRender) {
       ctx.save();
       ctx.translate(skill.x, skill.y);
       
@@ -795,7 +858,7 @@ export default function StrategiesPage() {
       const geom = skill.geometry;
       ctx.fillStyle = skill.color;
       ctx.strokeStyle = skill.color;
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = skill.instanceId === "preview" ? 0.25 : 0.5;
 
       // Assuming 1 meter = 20 canvas units approximately (or calibrated value)
       const mToPx = selectedMap?.pixelsPerMeter || 20;
@@ -805,16 +868,25 @@ export default function StrategiesPage() {
         const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
         ctx.arc(0, 0, radius, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.globalAlpha = 0.8;
+        ctx.globalAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
       } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
+        ctx.save();
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
            const sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
            ctx.rotate(sa);
         }
-        const length = geom.length * mToPx;
-        const width = geom.width * mToPx;
+        
+        let length = (geom.length || 0) * mToPx;
+        if (skill.behavior?.flags?.chargeable && skill.targetX !== undefined && skill.targetY !== undefined) {
+          const dist = Math.sqrt((skill.targetX - skill.x)**2 + (skill.targetY - skill.y)**2);
+          const minLen = (skill.behavior.chargeMinLength || geom.length || 0) * mToPx;
+          const maxLen = (skill.behavior.chargeMaxLength || geom.length || 0) * mToPx;
+          length = Math.max(minLen, Math.min(maxLen, dist));
+        }
+        
+        const width = (geom.width || 0) * mToPx;
         
         ctx.beginPath();
         if (geom.type === "cone") {
@@ -837,9 +909,10 @@ export default function StrategiesPage() {
            ctx.rect(0, -width/2, length, width);
         }
         ctx.fill();
-        ctx.globalAlpha = 0.8;
+        ctx.globalAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
+        ctx.restore();
       } else if (geom.type === "infinite-wall") {
         // Draw an infinite wall: a thick line that extends across the whole canvas
         // Direction is determined by the vector from skill origin to target
@@ -870,21 +943,47 @@ export default function StrategiesPage() {
         ctx.stroke();
       }
       
-      // Draw a small draggable handle at the center
-      ctx.beginPath();
-      ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.fill();
-      ctx.strokeStyle = skill.color;
-      ctx.lineWidth = 2 / scale;
-      ctx.stroke();
+      // Draw handles if not preview
+      if (skill.instanceId !== "preview") {
+        // Draw a small draggable handle at the center
+        ctx.beginPath();
+        ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.fill();
+        ctx.strokeStyle = skill.color;
+        ctx.lineWidth = 2 / scale;
+        ctx.stroke();
+
+        // Draw another handle at the target if it exists
+        if (skill.targetX !== undefined && skill.targetY !== undefined) {
+          ctx.beginPath();
+          ctx.arc(skill.targetX - skill.x, skill.targetY - skill.y, 8 / scale, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.fill();
+          ctx.strokeStyle = skill.color;
+          ctx.lineWidth = 2 / scale;
+          ctx.stroke();
+        }
+      }
       
       ctx.restore();
     }
 
     for (const a of agentsRef.current) {
-      const img = agentImgsRef.current.get(a.id);
+      let img = agentImgsRef.current.get(a.id);
       const agent = findAgent(a.id);
+
+      if (!img && agent && agent.displayIcon) {
+        const newImg = new Image();
+        newImg.crossOrigin = "anonymous";
+        newImg.src = agent.displayIcon;
+        newImg.onload = () => {
+          agentImgsRef.current.set(a.id, newImg);
+          redraw();
+        };
+        agentImgsRef.current.set(a.id, newImg);
+        img = newImg;
+      }
 
       ctx.save();
       ctx.translate(a.x, a.y);
@@ -1087,7 +1186,7 @@ ctx.restore();
 
     // 4. Draw other users' cursors (Collaboration)
     ctx.save();
-    for (const [, cursor] of remoteCursors) {
+    for (const cursor of Array.from(remoteCursors.values())) {
       const screenPos = (cursor.x !== undefined && cursor.y !== undefined)
         ? getScreenPos(cursor.x, cursor.y)
         : { x: cursor.canvasX, y: cursor.canvasY };
@@ -1182,12 +1281,12 @@ ctx.restore();
   const clearAll = useCallback(() => {
     const oldPaths = [...pathsRef.current];
     const oldAgents = [...agentsRef.current];
-    undoStackRef.current.push({ type: 'clear-all', paths: oldPaths, agents: oldAgents });
+    const oldSkills = [...skillsRef.current];
+    undoStackRef.current.push({ type: 'clear-all', paths: oldPaths, agents: oldAgents, skills: oldSkills });
     redoStackRef.current = [];
     pathsRef.current = [];
     agentsRef.current = [];
-    loadedPathIdsRef.current.clear();
-    loadedAgentIdsRef.current.clear();
+    skillsRef.current = [];
     updateUndoRedo();
     redrawImmediate();
     if (current && isSupabaseConfigured && channelRef.current) {
@@ -1208,7 +1307,6 @@ ctx.restore();
     switch (action.type) {
       case 'add-path': {
         pathsRef.current = pathsRef.current.filter(p => p.id !== action.path.id);
-        loadedPathIdsRef.current.delete(action.path.id);
         redoStackRef.current.push(action);
         broadcastEraseElements([action.path.id], []);
         break;
@@ -1243,9 +1341,21 @@ ctx.restore();
         }
         break;
       }
+      case 'add-skill': {
+        skillsRef.current = skillsRef.current.filter(s => s.instanceId !== action.skill.instanceId);
+        redoStackRef.current.push(action);
+        break;
+      }
+      case 'remove-skill': {
+        skillsRef.current.splice(action.index, 0, action.skill);
+        loadedSkillIdsRef.current.add(action.skill.instanceId);
+        redoStackRef.current.push(action);
+        break;
+      }
       case 'clear-all': {
         pathsRef.current = action.paths;
         agentsRef.current = action.agents;
+        if (action.skills) skillsRef.current = action.skills;
         redoStackRef.current.push(action);
         break;
       }
@@ -1270,7 +1380,6 @@ ctx.restore();
       }
       case 'remove-path': {
         pathsRef.current = pathsRef.current.filter(p => p.id !== action.path.id);
-        loadedPathIdsRef.current.delete(action.path.id);
         undoStackRef.current.push(action);
         broadcastEraseElements([action.path.id], []);
         break;
@@ -1298,11 +1407,21 @@ ctx.restore();
         }
         break;
       }
+      case 'add-skill': {
+        skillsRef.current.push(action.skill);
+        loadedSkillIdsRef.current.add(action.skill.instanceId);
+        undoStackRef.current.push(action);
+        break;
+      }
+      case 'remove-skill': {
+        skillsRef.current = skillsRef.current.filter(s => s.instanceId !== action.skill.instanceId);
+        undoStackRef.current.push(action);
+        break;
+      }
       case 'clear-all': {
         pathsRef.current = [];
         agentsRef.current = [];
-        loadedPathIdsRef.current.clear();
-        loadedAgentIdsRef.current.clear();
+        skillsRef.current = [];
         undoStackRef.current.push(action);
         break;
       }
@@ -1566,6 +1685,18 @@ ctx.restore();
           return;
         }
         
+        const foundSkillTarget = [...skillsRef.current].reverse().find(s => {
+          if (s.targetX === undefined || s.targetY === undefined) return false;
+          const screenPos = getScreenPos(s.targetX, s.targetY);
+          const dx = screenPos.x - mouseX;
+          const dy = screenPos.y - mouseY;
+          return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+        });
+        if (foundSkillTarget) {
+          draggedSkillTargetRef.current = foundSkillTarget;
+          return;
+        }
+
         const foundSkill = [...skillsRef.current].reverse().find(s => {
           const screenPos = getScreenPos(s.x, s.y);
           const dx = screenPos.x - mouseX;
@@ -1614,6 +1745,21 @@ ctx.restore();
       }
       const hitRadius = (eraserSize / 2) / (zoomRef.current * scale);
       const hit = findPathAtPoint(pos.x, pos.y, hitRadius);
+      
+      const hitAgent = agentsRef.current.find(a => {
+        const screenPos = getScreenPos(a.x, a.y);
+        const dx = screenPos.x - (cx - canvas.getBoundingClientRect().left);
+        const dy = screenPos.y - (cy - canvas.getBoundingClientRect().top);
+        return Math.sqrt(dx * dx + dy * dy) <= (18 + eraserSize / 2) * zoomRef.current;
+      });
+
+      const hitSkill = skillsRef.current.find(s => {
+        const screenPos = getScreenPos(s.x, s.y);
+        const dx = screenPos.x - (cx - canvas.getBoundingClientRect().left);
+        const dy = screenPos.y - (cy - canvas.getBoundingClientRect().top);
+        return Math.sqrt(dx * dx + dy * dy) <= (12 + eraserSize / 2) * zoomRef.current;
+      });
+
       if (hit) {
         const erasedId = hit.id;
         const erasedIdx = pathsRef.current.findIndex(p => p.id === erasedId);
@@ -1625,6 +1771,25 @@ ctx.restore();
         updateUndoRedo();
         redrawImmediate();
         broadcastEraseElements([erasedId], []);
+        scheduleAutoSave();
+      }
+      if (hitAgent) {
+        const agentIdx = agentsRef.current.findIndex(a => a.instanceId === hitAgent.instanceId);
+        undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx });
+        redoStackRef.current = [];
+        agentsRef.current = agentsRef.current.filter(a => a.instanceId !== hitAgent.instanceId);
+        updateUndoRedo();
+        redrawImmediate();
+        broadcastEraseElements([], [hitAgent.instanceId]);
+        scheduleAutoSave();
+      }
+      if (hitSkill) {
+        const skillIdx = skillsRef.current.findIndex(s => s.instanceId === hitSkill.instanceId);
+        undoStackRef.current.push({ type: 'remove-skill', skill: hitSkill, index: skillIdx });
+        redoStackRef.current = [];
+        skillsRef.current = skillsRef.current.filter(s => s.instanceId !== hitSkill.instanceId);
+        updateUndoRedo();
+        redrawImmediate();
         scheduleAutoSave();
       }
       drawingRef.current = true;
@@ -1684,6 +1849,34 @@ ctx.restore();
         startX = agentObj.x;
         startY = agentObj.y;
       }
+
+      let initTargetX: number | undefined = undefined;
+      let initTargetY: number | undefined = undefined;
+      if (skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid")) {
+        const mToPx = selectedMap?.pixelsPerMeter || 20;
+        const length = (skill.geometry.length || 0) * mToPx;
+        
+        if (skill.behavior?.spawn === "player" && agentObj) {
+           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           if (skill.behavior?.flags?.chargeable) {
+              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
+              let dist = Math.sqrt((pos.x - startX)**2 + (pos.y - startY)**2);
+              dist = Math.min(dist, maxLen);
+              initTargetX = startX + Math.cos(sa) * dist;
+              initTargetY = startY + Math.sin(sa) * dist;
+           } else {
+              initTargetX = startX + Math.cos(sa) * length;
+              initTargetY = startY + Math.sin(sa) * length;
+           }
+        } else {
+           if (skill.behavior?.flags?.chargeable) {
+              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry.length || 0) * mToPx;
+           } else {
+              initTargetX = pos.x + length;
+           }
+           initTargetY = pos.y;
+        }
+      }
       
       const newSkill: CanvasSkill = {
         instanceId: Math.random().toString(36).substring(2, 9),
@@ -1691,8 +1884,8 @@ ctx.restore();
         key: skill.key,
         x: startX,
         y: startY,
-        targetX: pos.x,
-        targetY: pos.y,
+        targetX: initTargetX,
+        targetY: initTargetY,
         geometry: skill.geometry,
         behavior: skill.behavior,
         projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
@@ -1711,7 +1904,11 @@ ctx.restore();
       }
       
       drawingRef.current = true;
-      (window as any).activeSkillIdRef = newSkill.instanceId;
+      pendingSkillRef.current = null;
+      if (initTargetX !== undefined) {
+        draggedSkillTargetRef.current = newSkill;
+      }
+      setTool("select");
       
       updateUndoRedo();
       redrawImmediate();
@@ -1791,6 +1988,16 @@ ctx.restore();
   const globalMouseMoveRef = useRef<(e: MouseEvent) => void>(() => { });
   const globalMouseUpRef = useRef<() => void>(() => { });
 
+  const getRotateCursor = (skill: CanvasSkill) => {
+    let deg = 0;
+    if (skill.targetX !== undefined && skill.targetY !== undefined) {
+      const worldDeg = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x) * 180 / Math.PI;
+      const mapRot = selectedSide === "attack" ? 90 : -90;
+      deg = worldDeg + mapRot;
+    }
+    return `url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20style%3D%22filter%3A%20drop-shadow%280px%200px%202px%20black%29%20drop-shadow%280px%200px%202px%20black%29%3B%22%3E%3Cg%20transform%3D%22rotate%28${deg}%2016%2016%29%22%3E%3Cpath%20d%3D%22M%2022%208%20A%2010%2010%200%200%201%2022%2024%22%20%2F%3E%3Cpath%20d%3D%22M%2022%2013%20L%2022%208%20L%2027%208%22%20%2F%3E%3Cpath%20d%3D%22M%2022%2019%20L%2022%2024%20L%2027%2024%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E') 16 16, crosshair`;
+  };
+
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
     let cy = 0;
@@ -1833,6 +2040,10 @@ ctx.restore();
     if (tool === "calibrate" && calibrateStateRef.current.step === "end") {
       redrawImmediate();
     }
+    
+    if (tool === "skill" && pendingSkillRef.current) {
+      redrawImmediate();
+    }
 
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
@@ -1870,10 +2081,15 @@ ctx.restore();
       }
 
       if (tool === "select") {
-        if (draggedAgentRef.current) {
-          canvas.style.cursor = "grabbing";
-          if (hoveredAgentRef.current) {
+        if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current) {
+          if (draggedSkillTargetRef.current) {
+            canvas.style.cursor = getRotateCursor(draggedSkillTargetRef.current);
+          } else {
+            canvas.style.cursor = "grabbing";
+          }
+          if (hoveredAgentRef.current || hoveredSkillRef.current) {
             hoveredAgentRef.current = null;
+            hoveredSkillRef.current = null;
             setHoverMenuState(prev => ({ ...prev, visible: false }));
           }
         } else {
@@ -1889,42 +2105,81 @@ ctx.restore();
             return hit;
           });
 
+          let foundHoverSkillTarget: CanvasSkill | null = null;
+          const isOverSkillTarget = skillsRef.current.some(s => {
+             if (s.targetX === undefined || s.targetY === undefined) return false;
+             const screenPos = getScreenPos(s.targetX, s.targetY);
+             const dx = screenPos.x - mouseX;
+             const dy = screenPos.y - mouseY;
+             const hit = Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+             if (hit) foundHoverSkillTarget = s;
+             return hit;
+          });
+
+          let foundHoverSkill: CanvasSkill | null = null;
           const isOverSkill = skillsRef.current.some(s => {
             const screenPos = getScreenPos(s.x, s.y);
             const dx = screenPos.x - mouseX;
             const dy = screenPos.y - mouseY;
-            return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+            const hit = Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+            if (hit) foundHoverSkill = s;
+            return hit;
           });
 
-          if (foundHoverAgent) {
+          if (foundHoverAgent || foundHoverSkill) {
             if (isAgentDroppedRef.current) {
               // Ignore hover immediately after dropping
             } else {
               if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
               hoverMenuTimeoutRef.current = null;
-              if (hoveredAgentRef.current !== foundHoverAgent) {
-                hoveredAgentRef.current = foundHoverAgent;
-                const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
-                setHoverMenuState({
-                  agent: foundHoverAgent,
-                  x: screenPos.x + rect.left,
-                  y: screenPos.y + rect.top,
-                  visible: true
-                });
+              
+              if (foundHoverAgent) {
+                if (hoveredAgentRef.current !== foundHoverAgent) {
+                  hoveredAgentRef.current = foundHoverAgent;
+                  hoveredSkillRef.current = null;
+                  const screenPos = getScreenPos((foundHoverAgent as CanvasAgent).x, (foundHoverAgent as CanvasAgent).y);
+                  setHoverMenuState({
+                    agent: foundHoverAgent,
+                    skill: null,
+                    x: screenPos.x + rect.left,
+                    y: screenPos.y + rect.top,
+                    visible: true
+                  });
+                }
+              } else if (foundHoverSkill) {
+                if (hoveredSkillRef.current !== foundHoverSkill) {
+                  hoveredSkillRef.current = foundHoverSkill;
+                  hoveredAgentRef.current = null;
+                  const screenPos = getScreenPos((foundHoverSkill as CanvasSkill).x, (foundHoverSkill as CanvasSkill).y);
+                  setHoverMenuState({
+                    agent: null,
+                    skill: foundHoverSkill,
+                    x: screenPos.x + rect.left,
+                    y: screenPos.y + rect.top,
+                    visible: true
+                  });
+                }
               }
             }
           } else {
             isAgentDroppedRef.current = false;
-            if (!hoverMenuTimeoutRef.current && hoveredAgentRef.current) {
+            if (!hoverMenuTimeoutRef.current && (hoveredAgentRef.current || hoveredSkillRef.current)) {
               hoverMenuTimeoutRef.current = setTimeout(() => {
                 hoveredAgentRef.current = null;
+                hoveredSkillRef.current = null;
                 setHoverMenuState(prev => ({ ...prev, visible: false }));
                 hoverMenuTimeoutRef.current = null;
               }, 300);
             }
           }
 
-          canvas.style.cursor = (isOverAgent || isOverSkill) ? "pointer" : "default";
+          if (isOverSkillTarget) {
+            canvas.style.cursor = getRotateCursor(foundHoverSkillTarget!);
+          } else if (isOverAgent || isOverSkill) {
+            canvas.style.cursor = "grab";
+          } else {
+            canvas.style.cursor = "default";
+          }
         }
       } else if (tool === "eraser" && eraserMode === "lines") {
         const mapImg = mapImgRef.current;
@@ -1947,7 +2202,15 @@ ctx.restore();
           return Math.sqrt(dx * dx + dy * dy) <= (18 + eraserSize / 2) * zoomRef.current;
         });
 
-        canvas.style.cursor = (hit || hitAgent) ? "pointer" : "none";
+        // Check if cursor is over a skill
+        const hitSkill = skillsRef.current.find(s => {
+          const screenPos = getScreenPos(s.x, s.y);
+          const dx = screenPos.x - (cx - canvas.getBoundingClientRect().left);
+          const dy = screenPos.y - (cy - canvas.getBoundingClientRect().top);
+          return Math.sqrt(dx * dx + dy * dy) <= (12 + eraserSize / 2) * zoomRef.current;
+        });
+
+        canvas.style.cursor = (hit || hitAgent || hitSkill) ? "pointer" : "none";
 
         // If dragging (mousedown held), erase paths and agents under cursor
         if (drawingRef.current) {
@@ -1972,6 +2235,15 @@ ctx.restore();
             updateUndoRedo();
             redrawImmediate();
             broadcastEraseElements([], [hitAgent.instanceId]);
+            scheduleAutoSave();
+          }
+          if (hitSkill) {
+            const skillIdx = skillsRef.current.findIndex(s => s.instanceId === hitSkill.instanceId);
+            undoStackRef.current.push({ type: 'remove-skill', skill: hitSkill, index: skillIdx });
+            redoStackRef.current = [];
+            skillsRef.current = skillsRef.current.filter(s => s.instanceId !== hitSkill.instanceId);
+            updateUndoRedo();
+            redrawImmediate();
             scheduleAutoSave();
           }
         }
@@ -2009,6 +2281,67 @@ ctx.restore();
         updateUndoRedo();
         scheduleAutoSave();
       }
+
+      const initialSkillsCount = skillsRef.current.length;
+      const erasedSkills: CanvasSkill[] = [];
+      skillsRef.current = skillsRef.current.filter(s => {
+        const screenPos = getScreenPos(s.x, s.y);
+        const dx = screenPos.x - mouseX;
+        const dy = screenPos.y - mouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const threshold = (12 + eraserSize / 2) * zoomRef.current;
+        const keep = distance > threshold;
+        if (!keep) {
+          erasedSkills.push(s);
+        }
+        return keep;
+      });
+
+      if (skillsRef.current.length < initialSkillsCount) {
+        for (const skill of erasedSkills) {
+          const idx = skillsRef.current.findIndex(s => s.instanceId === skill.instanceId);
+          undoStackRef.current.push({ type: 'remove-skill', skill, index: idx < 0 ? skillsRef.current.length : idx });
+        }
+        redoStackRef.current = [];
+        redraw();
+        updateUndoRedo();
+        scheduleAutoSave();
+      }
+    }
+
+    // Handle rotation anchor dragging regardless of tool state lag
+    if (draggedSkillTargetRef.current) {
+       const skill = draggedSkillTargetRef.current;
+       const geom = skill.geometry;
+       const isChargeable = skill.behavior?.flags?.chargeable;
+       
+       if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
+         const sa = Math.atan2(pos.y - skill.y, pos.x - skill.x);
+         const mToPx = selectedMap?.pixelsPerMeter || 20;
+         
+         if (!isChargeable) {
+           const length = (geom.length || 0) * mToPx;
+           skill.targetX = skill.x + Math.cos(sa) * length;
+           skill.targetY = skill.y + Math.sin(sa) * length;
+         } else {
+           const maxLen = (skill.behavior?.chargeMaxLength || geom.length || 0) * mToPx;
+           let dist = Math.sqrt((pos.x - skill.x)**2 + (pos.y - skill.y)**2);
+           dist = Math.min(dist, maxLen);
+           skill.targetX = skill.x + Math.cos(sa) * dist;
+           skill.targetY = skill.y + Math.sin(sa) * dist;
+         }
+       } else {
+         skill.targetX = pos.x;
+         skill.targetY = pos.y;
+       }
+       
+       if (skill.behavior?.flags?.controllablePath) {
+          if (!skill.pathPoints) skill.pathPoints = [{x: skill.x, y: skill.y}];
+          skill.pathPoints.push({x: pos.x, y: pos.y});
+       }
+       
+       redrawImmediate();
+       return;
     }
 
     if (tool === "select") {
@@ -2038,23 +2371,7 @@ ctx.restore();
       }
       return;
     }
-    
-    if (tool === "skill") {
-       const activeSkillId = (window as any).activeSkillIdRef;
-       const activeSkill = skillsRef.current.find(s => s.instanceId === activeSkillId);
-       if (activeSkill) {
-          activeSkill.targetX = pos.x;
-          activeSkill.targetY = pos.y;
-          
-          if (activeSkill.behavior?.flags?.controllablePath) {
-             if (!activeSkill.pathPoints) activeSkill.pathPoints = [{x: activeSkill.x, y: activeSkill.y}];
-             activeSkill.pathPoints.push({x: pos.x, y: pos.y});
-          }
-          
-          redrawImmediate();
-       }
-       return;
-    }
+
     if (!drawingRef.current) {
       return;
     }
@@ -2152,6 +2469,7 @@ ctx.restore();
             const screenPos = getScreenPos(agent.x, agent.y);
             setHoverMenuState({
               agent,
+              skill: null,
               x: screenPos.x + rect.left,
               y: screenPos.y + rect.top,
               visible: true
@@ -2166,10 +2484,21 @@ ctx.restore();
 
     if (draggedSkillRef.current) {
       draggedSkillRef.current = null;
-      const canvas = canvasRef.current;
-      if (canvas && tool === "select") {
-        canvas.style.cursor = "default";
-      }
+      updateUndoRedo();
+      scheduleAutoSave();
+    }
+    if (draggedSkillTargetRef.current) {
+      draggedSkillTargetRef.current = null;
+      updateUndoRedo();
+      scheduleAutoSave();
+    }
+    const canvas = canvasRef.current;
+    if (canvas && tool === "select") {
+      canvas.style.cursor = "default";
+    }
+
+    if (tool === "skill") {
+      setTool("select");
     }
   };
 
@@ -2213,10 +2542,52 @@ ctx.restore();
 
   const handleCanvasDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    const pos = getPos(e);
+
+    try {
+      const dataStr = e.dataTransfer.getData("application/json");
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        if (data.type === "skill") {
+          let initTargetX: number | undefined = undefined;
+          let initTargetY: number | undefined = undefined;
+          if (data.geometry && (data.geometry.type === "rectangle" || data.geometry.type === "cone" || data.geometry.type === "trapezoid")) {
+            const mToPx = selectedMap?.pixelsPerMeter || 20;
+            const length = data.geometry.length * mToPx;
+            initTargetX = pos.x + length;
+            initTargetY = pos.y;
+          }
+
+          const newSkill: CanvasSkill = {
+            instanceId: Math.random().toString(36).substring(2, 9),
+            agentInstanceId: data.agentInstanceId,
+            key: data.key,
+            x: pos.x,
+            y: pos.y,
+            targetX: initTargetX,
+            targetY: initTargetY,
+            color: data.color,
+            geometry: data.geometry,
+            behavior: data.behavior,
+            createdBy: myUserId
+          };
+          skillsRef.current.push(newSkill);
+          loadedSkillIdsRef.current.add(newSkill.instanceId);
+          undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
+          redoStackRef.current = [];
+          redraw();
+          updateUndoRedo();
+          scheduleAutoSave();
+          setTool("select");
+          return;
+        }
+      }
+    } catch (err) {
+      // Ignore
+    }
+
     const agentId = e.dataTransfer.getData("text/plain");
     if (!agentId) return;
-
-    const pos = getPos(e);
 
     const agent = findAgent(agentId);
     if (agent) {
@@ -2264,7 +2635,7 @@ ctx.restore();
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const d = (typeof s.canvas_data === "string" ? JSON.parse(s.canvas_data || "{}") : s.canvas_data || {}) as any;
-      syncCanvasLocalState(d.paths || [], d.agents || []);
+      syncCanvasLocalState(d.paths || [], d.agents || [], d.skills || []);
 
       // Pre-load agent images
       for (const a of agentsRef.current) {
@@ -2309,8 +2680,10 @@ ctx.restore();
           canvas_data: {
             paths: pathsRef.current,
             agents: agentsRef.current,
+            skills: skillsRef.current,
             clientKnownPathIds: Array.from(loadedPathIdsRef.current),
-            clientKnownAgentIds: Array.from(loadedAgentIdsRef.current)
+            clientKnownAgentIds: Array.from(loadedAgentIdsRef.current),
+            clientKnownSkillIds: Array.from(loadedSkillIdsRef.current)
           }
         })
       });
@@ -2393,7 +2766,7 @@ ctx.restore();
         })
         .on("broadcast", { event: "canvas-update" }, ({ payload }) => {
           if (!payload || payload.userId === myUserId) return;
-          syncCanvasLocalState(payload.paths || [], payload.agents || []);
+          syncCanvasLocalState(payload.paths || [], payload.agents || [], payload.skills || []);
           redraw();
           updateUndoRedo();
         })
@@ -2452,13 +2825,11 @@ ctx.restore();
           if (erasedPathIds && erasedPathIds.length > 0) {
             const toRemove = new Set(erasedPathIds);
             pathsRef.current = pathsRef.current.filter(p => !toRemove.has(p.id));
-            erasedPathIds.forEach((id: string) => loadedPathIdsRef.current.delete(id));
           }
 
           if (erasedAgentIds && erasedAgentIds.length > 0) {
             const toRemove = new Set(erasedAgentIds);
             agentsRef.current = agentsRef.current.filter(a => !toRemove.has(a.instanceId));
-            erasedAgentIds.forEach((id: string) => loadedAgentIdsRef.current.delete(id));
           }
 
           redraw();
@@ -2468,8 +2839,6 @@ ctx.restore();
           if (!payload || payload.userId === myUserId) return;
           pathsRef.current = [];
           agentsRef.current = [];
-          loadedPathIdsRef.current.clear();
-          loadedAgentIdsRef.current.clear();
           redraw();
           updateUndoRedo();
         })
@@ -2537,7 +2906,7 @@ ctx.restore();
           if (remoteTime > savedTime && !drawingRef.current && !draggedAgentRef.current) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const d = (typeof remote.canvas_data === "string" ? JSON.parse(remote.canvas_data || "{}") : remote.canvas_data || {}) as any;
-            syncCanvasLocalState(d.paths || [], d.agents || []);
+            syncCanvasLocalState(d.paths || [], d.agents || [], d.skills || []);
             if (remote.side && remote.side !== selectedSide) {
               setSelectedSide(remote.side);
               setCurrent(prev => prev ? { ...prev, side: remote.side } : prev);
@@ -3341,7 +3710,7 @@ ctx.restore();
                       </span>
                     </div>
                   )}
-                  {session?.user?.role === "super_admin" && (
+                  {(session?.user as any)?.role === "super_admin" && (
                     <button className={`tool-btn-premium ${tool === "calibrate" ? "active" : ""}`} onClick={() => { setTool("calibrate"); setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 }); calibrateStateRef.current = { step: "start", startPos: null }; hoveredPathIdRef.current = null; }} title="Calibrar Escala (Metros)" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 12H3"/>
@@ -3635,13 +4004,11 @@ ctx.restore();
                       padding: "10px 4px",
                       height: "auto",
                       color: "#ff4655",
-                      opacity: (pathsRef.current.length > 0 || agentsRef.current.length > 0) ? 1 : 0.35,
+                      opacity: (pathsRef.current.length > 0 || agentsRef.current.length > 0 || skillsRef.current.length > 0) ? 1 : 0.35,
                       transition: "all 0.2s ease"
                     }}
                     onClick={() => {
-                      if (window.confirm("¿Borrar todo el lienzo? Esta acción no se puede deshacer.")) {
-                        clearAll();
-                      }
+                      clearAll();
                     }}
                     title="Borrar todo el lienzo"
                   >
@@ -4112,6 +4479,68 @@ ctx.restore();
         )}
       </div>
 
+      {hoverMenuState.skill && (() => {
+        const ctxSkill = hoverMenuState.skill;
+        let screenX = hoverMenuState.x;
+        let screenY = hoverMenuState.y;
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const pos = getScreenPos(ctxSkill.x, ctxSkill.y);
+          screenX = pos.x + canvas.getBoundingClientRect().left;
+          screenY = pos.y + canvas.getBoundingClientRect().top;
+        }
+        return (
+          <div
+            onMouseEnter={() => {
+              if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
+              hoverMenuTimeoutRef.current = null;
+              hoveredSkillRef.current = ctxSkill;
+              setHoverMenuState(prev => ({ ...prev, visible: true }));
+            }}
+            onMouseLeave={() => {
+              hoveredSkillRef.current = null;
+              setHoverMenuState(prev => ({ ...prev, visible: false }));
+            }}
+            style={{
+              position: "fixed",
+              left: screenX,
+              top: screenY - 24,
+              pointerEvents: hoverMenuState.visible ? "auto" : "none",
+              opacity: hoverMenuState.visible ? 1 : 0,
+              transform: hoverMenuState.visible ? "translate(-50%, -50%) scale(1)" : "translate(-50%, -50%) scale(0.95)",
+              transition: "opacity 0.15s ease, transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              zIndex: 9999,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <button
+              onClick={() => {
+                const skillIdx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
+                if (skillIdx > -1) {
+                  skillsRef.current.splice(skillIdx, 1);
+                  undoStackRef.current.push({ type: 'remove-skill', skill: ctxSkill, index: skillIdx });
+                  redoStackRef.current = [];
+                  updateUndoRedo();
+                  redrawImmediate();
+                  setHoverMenuState(prev => ({ ...prev, visible: false }));
+                }
+              }}
+              style={{
+                width: 28, height: 28, borderRadius: "50%", backgroundColor: "#ff4655", border: "none", color: "white", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
+              }}
+              title="Borrar Habilidad"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        );
+      })()}
+
       {hoverMenuState.agent && (() => {
         const ctxAgent = hoverMenuState.agent;
         let screenX = hoverMenuState.x;
@@ -4206,6 +4635,27 @@ ctx.restore();
                       if (e.currentTarget.querySelector("img")) {
                         e.currentTarget.querySelector("img")!.style.transform = "scale(1)";
                       }
+                    }}
+                    draggable={!!skill}
+                    onDragStart={(e) => {
+                      if (!skill) return;
+                      e.dataTransfer.effectAllowed = "copy";
+                      e.dataTransfer.setData("application/json", JSON.stringify({
+                        type: "skill",
+                        key: skill.key,
+                        color: skill.color || agentData?.bgColors?.[0] || "#fff",
+                        agentInstanceId: ctxAgent.instanceId,
+                        geometry: skill.geometry,
+                        behavior: skill.behavior
+                      }));
+                      if (e.currentTarget.querySelector("img")) {
+                        e.dataTransfer.setDragImage(e.currentTarget.querySelector("img")!, 12, 12);
+                      } else {
+                        e.dataTransfer.setDragImage(e.currentTarget as Element, 14, 14);
+                      }
+                    }}
+                    onDragEnd={() => {
+                      setHoverMenuState(prev => ({ ...prev, visible: false }));
                     }}
                     onClick={() => {
                       if (!skill) { alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`); return; }

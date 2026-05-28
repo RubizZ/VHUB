@@ -453,7 +453,7 @@ body::before {
 }
 
 /* ── Inputs ── */
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   font-family: 'Outfit', sans-serif;
@@ -465,6 +465,16 @@ select {
   font-size: 14px;
   transition: var(--transition);
   width: 100%;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  flex-shrink: 0;
 }
 
 input:focus,

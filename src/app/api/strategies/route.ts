@@ -102,6 +102,7 @@ export async function PUT(req: NextRequest) {
 
           const existingPaths = (existingCanvas.paths || []) as any[];
           const existingAgents = (existingCanvas.agents || []) as any[];
+          const existingSkills = (existingCanvas.skills || []) as any[];
 
           // Ensure all existing elements have IDs
           existingPaths.forEach(p => {
@@ -110,9 +111,13 @@ export async function PUT(req: NextRequest) {
           existingAgents.forEach(a => {
             if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
           });
+          existingSkills.forEach(s => {
+            if (!s.instanceId) s.instanceId = Math.random().toString(36).substring(2, 9);
+          });
 
           const incomingPaths = (canvas_data.paths || []) as any[];
           const incomingAgents = (canvas_data.agents || []) as any[];
+          const incomingSkills = (canvas_data.skills || []) as any[];
 
           // Ensure all incoming elements have IDs
           incomingPaths.forEach(p => {
@@ -121,9 +126,13 @@ export async function PUT(req: NextRequest) {
           incomingAgents.forEach(a => {
             if (!a.instanceId) a.instanceId = Math.random().toString(36).substring(2, 9);
           });
+          incomingSkills.forEach(s => {
+            if (!s.instanceId) s.instanceId = Math.random().toString(36).substring(2, 9);
+          });
 
           const clientKnownPathIds = new Set(canvas_data.clientKnownPathIds || []);
           const clientKnownAgentIds = new Set(canvas_data.clientKnownAgentIds || []);
+          const clientKnownSkillIds = new Set(canvas_data.clientKnownSkillIds || []);
 
           // 1. Merge Paths
           const finalPaths: any[] = [];
@@ -171,9 +180,30 @@ export async function PUT(req: NextRequest) {
             }
           }
 
+          // 3. Merge Skills
+          const finalSkills: any[] = [];
+          const incomingSkillsMap = new Map(incomingSkills.map(s => [s.instanceId, s]));
+          const existingSkillsMap = new Map(existingSkills.map(s => [s.instanceId, s]));
+
+          for (const s of existingSkills) {
+            if (incomingSkillsMap.has(s.instanceId)) {
+              finalSkills.push(incomingSkillsMap.get(s.instanceId));
+            } else {
+              if (!clientKnownSkillIds.has(s.instanceId)) {
+                finalSkills.push(s);
+              }
+            }
+          }
+          for (const s of incomingSkills) {
+            if (!existingSkillsMap.has(s.instanceId)) {
+              finalSkills.push(s);
+            }
+          }
+
           finalCanvasData = {
             paths: finalPaths,
-            agents: finalAgents
+            agents: finalAgents,
+            skills: finalSkills
           };
         }
 
