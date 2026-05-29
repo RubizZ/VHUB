@@ -427,7 +427,7 @@ export default function StrategiesPage() {
     }
   });
 
-  const { data: weaponsData } = useQuery<{ weapons: ValorantWeapon[] }>({
+  const { data: weaponsData, isLoading: weaponsLoading } = useQuery<{ weapons: ValorantWeapon[] }>({
     queryKey: ["weapons"],
     queryFn: async () => {
       const res = await fetch("/api/weapons");
@@ -4165,7 +4165,7 @@ ctx.restore();
           </div>
         )}
 
-        {view === "editor" && !current && (
+        {view === "editor" && (!current || strategiesLoading || mapsLoading || agentsLoading || weaponsLoading) && (
           <div className="editor-card-premium" style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16, background: "rgba(255,255,255,0.02)" }}>
             <Skeleton width="100%" height={64} style={{ borderRadius: 16 }} />
             <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
@@ -4195,7 +4195,7 @@ ctx.restore();
           </div>
         )}
 
-        {view === "editor" && current && (
+        {view === "editor" && current && !strategiesLoading && !mapsLoading && !agentsLoading && !weaponsLoading && (
           <div className="editor-card-premium">
 
             {/* Top Toolbar Panel */}
@@ -5107,28 +5107,7 @@ ctx.restore();
             </div>
 
             {/* Agent Selector Panel (Horizontal below canvas) */}
-            {agentsLoading ? (
-              <div className="editor-agents-panel-premium" style={{ opacity: 0.8 }}>
-                <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
-                  <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
-                  <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
-                </div>
-                <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.08)", flexShrink: 0, margin: "0 12px" }} />
-                <div style={{ display: "flex", gap: 24, flex: 1, overflow: "hidden", alignItems: "center" }}>
-                  {[1, 2, 3].map(i => (
-                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <Skeleton width={120} height={32} style={{ borderRadius: 16 }} />
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
-                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
-                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="editor-agents-panel-premium">
+            <div className="editor-agents-panel-premium">
                 {/* Team toggle */}
               <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
                 <button
@@ -5236,7 +5215,6 @@ ctx.restore();
                 })}
               </div>
             </div>
-            )}
 
           </div>
         )}
