@@ -3152,9 +3152,9 @@ body.landing-page {
   box-sizing: border-box;
 }
 .agent-btn-premium-horizontal:hover {
-  transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
+  cursor: grab;
 }
 .agent-icon-horizontal {
   width: 28px;
