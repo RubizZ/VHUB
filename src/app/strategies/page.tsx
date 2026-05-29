@@ -419,15 +419,28 @@ export default function StrategiesPage() {
 
   // 1.5 Query Agents
   const {
-    data: agentsData,
-    isLoading: agentsLoading,
+    data: lightAgentsData,
+    isLoading: lightAgentsLoading,
   } = useQuery<{ agents: ValorantAgent[] }>({
-    queryKey: ["agents"],
+    queryKey: ["agents", "light"],
+    queryFn: async () => {
+      const res = await fetch("/api/agents/light");
+      if (!res.ok) throw new Error("Error loading light agents");
+      return res.json();
+    }
+  });
+
+  const {
+    data: agentsData,
+    isLoading: fullAgentsLoading,
+  } = useQuery<{ agents: ValorantAgent[] }>({
+    queryKey: ["agents", "full"],
     queryFn: async () => {
       const res = await fetch("/api/agents");
       if (!res.ok) throw new Error("Error loading agents");
       return res.json();
-    }
+    },
+    enabled: view === "editor"
   });
 
   const { data: weaponsData, isLoading: weaponsLoading } = useQuery<{ weapons: ValorantWeapon[] }>({
@@ -443,7 +456,8 @@ export default function StrategiesPage() {
   const weapons = weaponsData?.weapons || [];
   const findWeapon = (id: string) => weapons.find(w => w.uuid === id);
 
-  const agents = agentsData?.agents || [];
+  const agents = view === "editor" ? (agentsData?.agents || []) : (lightAgentsData?.agents || []);
+  const agentsLoading = view === "editor" ? fullAgentsLoading : lightAgentsLoading;
 
   const findAgent = useCallback((id: string) => {
     return agents.find(a => a.id === id);
