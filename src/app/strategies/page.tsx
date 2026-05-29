@@ -251,6 +251,7 @@ export default function StrategiesPage() {
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [editingExternalStratId, setEditingExternalStratId] = useState<number | null>(null);
   const [editingSkillGlobalParams, setEditingSkillGlobalParams] = useState<{ agentId: string; skillKey: string } | null>(null);
+  const [createModalState, setCreateModalState] = useState<{ isOpen: boolean; defaultName: string; side: "attack" | "defense"; mapId: string } | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   const myUserImage = session?.user?.image || null;
@@ -3691,20 +3692,19 @@ ctx.restore();
   });
 
   const createStrat = (e?: React.MouseEvent) => {
-    if (e) {
-      let x = 1;
-      const existingNames = new Set(strategies.map(s => s.name));
-      while (existingNames.has(`Estrategia sin nombre ${x}`)) {
-        x++;
-      }
-      createStratMutation.mutate({ name: `Estrategia sin nombre ${x}`, side: "attack" });
-    } else {
-      createStratMutation.mutate(undefined);
+    if (e) e.stopPropagation();
+    if (!selectedMap) return;
+    let x = 1;
+    const existingNames = new Set(strategies.map(s => s.name));
+    while (existingNames.has(`Estrategia sin nombre ${x}`)) {
+      x++;
     }
+    setCreateModalState({ isOpen: true, defaultName: `Estrategia sin nombre ${x}`, side: "attack", mapId: selectedMap.id });
   };
 
   const createStratForMap = async (e: React.MouseEvent, map: ValorantMap) => {
     e.stopPropagation();
+    let x = 1;
     try {
       const res = await fetch(`/api/strategies?map_id=${map.id}`);
       let existingNames = new Set<string>();
@@ -3712,14 +3712,13 @@ ctx.restore();
         const data = await res.json();
         existingNames = new Set((data.strategies || []).map((s: Strategy) => s.name));
       }
-      let x = 1;
       while (existingNames.has(`Estrategia sin nombre ${x}`)) {
         x++;
       }
-      createStratMutation.mutate({ name: `Estrategia sin nombre ${x}`, side: "attack", mapId: map.id });
     } catch (err) {
-      createStratMutation.mutate({ name: `Estrategia sin nombre 1`, side: "attack", mapId: map.id });
+      // Ignored
     }
+    setCreateModalState({ isOpen: true, defaultName: `Estrategia sin nombre ${x}`, side: "attack", mapId: map.id });
   };
 
   const deleteStratMutation = useMutation({
@@ -5979,6 +5978,56 @@ ctx.restore();
                   }
                 }
               }} style={{ padding: "0 16px", height: 36, backgroundColor: "#ff4655", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700 }}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {createModalState && createModalState.isOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} onClick={() => setCreateModalState(null)} />
+          <div style={{ position: "relative", width: 400, backgroundColor: "#0a0e14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 24 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Nueva Estrategia</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Nombre</label>
+                <input
+                  type="text"
+                  value={createModalState.defaultName}
+                  onChange={e => setCreateModalState({ ...createModalState, defaultName: e.target.value })}
+                  style={{ width: "100%", height: 36, backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", padding: "0 12px", outline: "none" }}
+                  placeholder="Estrategia sin nombre 1"
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Bando (Atacante/Defensor)</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setCreateModalState({ ...createModalState, side: "attack" })}
+                    style={{ flex: 1, height: 36, borderRadius: 6, border: "1px solid", borderColor: createModalState.side === "attack" ? "#ff4655" : "rgba(255,255,255,0.1)", backgroundColor: createModalState.side === "attack" ? "rgba(255,70,85,0.1)" : "transparent", color: createModalState.side === "attack" ? "#ff4655" : "rgba(255,255,255,0.6)", fontWeight: 700, transition: "all 0.2s" }}
+                  >
+                    Ataque
+                  </button>
+                  <button
+                    onClick={() => setCreateModalState({ ...createModalState, side: "defense" })}
+                    style={{ flex: 1, height: 36, borderRadius: 6, border: "1px solid", borderColor: createModalState.side === "defense" ? "#00d4aa" : "rgba(255,255,255,0.1)", backgroundColor: createModalState.side === "defense" ? "rgba(0,212,170,0.1)" : "transparent", color: createModalState.side === "defense" ? "#00d4aa" : "rgba(255,255,255,0.6)", fontWeight: 700, transition: "all 0.2s" }}
+                  >
+                    Defensa
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+              <button onClick={() => setCreateModalState(null)} style={{ padding: "0 16px", height: 36, backgroundColor: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontWeight: 700 }}>Cancelar</button>
+              <button onClick={() => {
+                if (createModalState.defaultName.trim()) {
+                  createStratMutation.mutate({ name: createModalState.defaultName.trim(), side: createModalState.side, mapId: createModalState.mapId });
+                  setCreateModalState(null);
+                }
+              }} disabled={!createModalState.defaultName.trim() || createStratMutation.isPending} style={{ padding: "0 16px", height: 36, backgroundColor: "#ff4655", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700, opacity: (!createModalState.defaultName.trim() || createStratMutation.isPending) ? 0.5 : 1 }}>
+                Crear
+              </button>
             </div>
           </div>
         </div>
