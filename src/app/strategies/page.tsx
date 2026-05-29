@@ -5354,7 +5354,15 @@ ctx.restore();
                       setHoverMenuState(prev => ({ ...prev, visible: false }));
                     }}
                     onClick={() => {
-                      if (!skill) { alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`); return; }
+                      if (!skill) {
+                        if ((session?.user as any)?.role === "super_admin") {
+                          setEditingSkillGlobalParams({ agentId: ctxAgent.id, skillKey: isAlt ? `${key.toLowerCase()}_alt` : key.toLowerCase() });
+                          setHoverMenuState(prev => ({ ...prev, visible: false }));
+                        } else {
+                          alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`);
+                        }
+                        return;
+                      }
                       
                       // Lógica Sandbox: Teletransporte a habilidad desplegada
                       if (skill.behavior?.flags?.teleportsToDeployed) {
