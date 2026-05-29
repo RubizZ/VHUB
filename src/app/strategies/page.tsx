@@ -4226,13 +4226,42 @@ ctx.restore();
 
         {view === "editor" && (!current || strategiesLoading || mapsLoading || agentsLoading || weaponsLoading) && (
           <div className="editor-card-premium" style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16, background: "rgba(255,255,255,0.02)" }}>
-            <Skeleton width="100%" height={64} style={{ borderRadius: 16 }} />
+            {/* Header Skeleton */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Skeleton width={40} height={40} style={{ borderRadius: 12 }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <Skeleton width={200} height={24} style={{ borderRadius: 4 }} />
+                  <Skeleton width={120} height={14} style={{ borderRadius: 4 }} />
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex" }}>
+                  <Skeleton width={32} height={32} style={{ borderRadius: "50%", marginLeft: -8 }} />
+                  <Skeleton width={32} height={32} style={{ borderRadius: "50%", marginLeft: -8 }} />
+                  <Skeleton width={32} height={32} style={{ borderRadius: "50%", marginLeft: -8 }} />
+                </div>
+                <Skeleton width={100} height={36} style={{ borderRadius: 8 }} />
+              </div>
+            </div>
+
+            {/* Main Area Skeleton */}
             <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
-              <Skeleton width={64} height="100%" style={{ borderRadius: 16 }} />
+              {/* Toolbar Sidebar */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 64 }}>
+                <Skeleton width={64} height={64} style={{ borderRadius: 16 }} />
+                <Skeleton width={64} height={64} style={{ borderRadius: 16 }} />
+                <Skeleton width={64} height={64} style={{ borderRadius: 16 }} />
+                <Skeleton width={64} height={64} style={{ borderRadius: 16 }} />
+                <Skeleton width={64} height={64} style={{ borderRadius: 16 }} />
+              </div>
+              
+              {/* Canvas */}
               <Skeleton width="100%" height="100%" style={{ borderRadius: 16, flex: 1 }} />
             </div>
             
-            <div style={{ display: "flex", gap: 4, alignItems: "center", opacity: 0.8 }}>
+            {/* Agent Bar Skeleton */}
+            <div style={{ display: "flex", gap: 4, alignItems: "center", opacity: 0.8, background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 16 }}>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
                 <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
