@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { AgentSkillsManager } from "@/components/AgentSkillsManager";
 import { useSession } from "next-auth/react";
 import { type ValorantMap } from "@/lib/maps";
 import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
@@ -244,6 +245,7 @@ export default function StrategiesPage() {
   const customCursorRef = useRef<HTMLDivElement | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [editingExternalStratId, setEditingExternalStratId] = useState<number | null>(null);
+  const [editingSkillGlobalParams, setEditingSkillGlobalParams] = useState<{ agentId: string; skillKey: string } | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -743,15 +745,22 @@ export default function StrategiesPage() {
       let startX = worldMousePosRef.current.x;
       let startY = worldMousePosRef.current.y;
       
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
+
       if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
+        
+        if (pSkill.skill.behavior?.spawnOffset) {
+           const sa = Math.atan2(worldMousePosRef.current.y - startY, worldMousePosRef.current.x - startX);
+           startX += Math.cos(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
+        }
       }
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
       if (pSkill.skill.geometry && (pSkill.skill.geometry.type === "rectangle" || pSkill.skill.geometry.type === "cone" || pSkill.skill.geometry.type === "trapezoid")) {
-        const mToPx = selectedMap?.pixelsPerMeter || 20;
         const length = (pSkill.skill.geometry.length || 0) * mToPx;
         
         if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
@@ -943,8 +952,12 @@ export default function StrategiesPage() {
         ctx.stroke();
       }
       
-      // Draw handles if not preview
-      if (skill.instanceId !== "preview") {
+      const isHovered = hoveredSkillRef.current?.instanceId === skill.instanceId;
+      const isDragged = draggedSkillRef.current?.instanceId === skill.instanceId || draggedSkillTargetRef.current?.instanceId === skill.instanceId;
+      const showHandles = isHovered || isDragged;
+
+      // Draw handles if not preview and is hovered or dragged
+      if (skill.instanceId !== "preview" && showHandles) {
         // Draw a small draggable handle at the center
         ctx.beginPath();
         ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
@@ -1600,6 +1613,42 @@ ctx.restore();
     return Math.sqrt((px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2);
   };
 
+  const isSkillHit = (s: CanvasSkill, mouseX: number, mouseY: number, pos: { x: number, y: number }): boolean => {
+    const screenPos = getScreenPos(s.x, s.y);
+    if (Math.sqrt((screenPos.x - mouseX) ** 2 + (screenPos.y - mouseY) ** 2) <= 12 * zoomRef.current) return true;
+    
+    if (s.targetX !== undefined && s.targetY !== undefined) {
+      const targetScreenPos = getScreenPos(s.targetX, s.targetY);
+      if (Math.sqrt((targetScreenPos.x - mouseX) ** 2 + (targetScreenPos.y - mouseY) ** 2) <= 12 * zoomRef.current) return true;
+    }
+
+    if (!s.geometry) return false;
+    const mToPx = selectedMap?.pixelsPerMeter || 20;
+    const geom = s.geometry;
+    const wdx = pos.x - s.x;
+    const wdy = pos.y - s.y;
+
+    if (geom.type === "circle") {
+      const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
+      return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
+    } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
+      const width = (geom.width || 0) * mToPx;
+      let length = (geom.length || 0) * mToPx;
+      if (s.behavior?.flags?.chargeable && s.targetX !== undefined && s.targetY !== undefined) {
+        length = Math.sqrt((s.targetX - s.x) ** 2 + (s.targetY - s.y) ** 2);
+      }
+      const angle = (s.targetX !== undefined && s.targetY !== undefined) ? Math.atan2(s.targetY - s.y, s.targetX - s.x) : 0;
+      const localX = wdx * Math.cos(-angle) - wdy * Math.sin(-angle);
+      const localY = wdx * Math.sin(-angle) + wdy * Math.cos(-angle);
+      return localX >= 0 && localX <= length && Math.abs(localY) <= width / 2;
+    } else if (geom.type === "infinite-wall") {
+      const angle = (s.targetX !== undefined && s.targetY !== undefined) ? Math.atan2(s.targetY - s.y, s.targetX - s.x) : 0;
+      const localY = wdx * Math.sin(-angle) + wdy * Math.cos(-angle);
+      return Math.abs(localY) <= 10;
+    }
+    return false;
+  };
+
   // Finds the path closest to (worldX, worldY) within hitRadius (in world units)
   // Skips eraser-type paths and paths fully covered by eraser paths drawn AFTER them
   const findPathAtPoint = (worldX: number, worldY: number, hitRadius: number): CanvasPath | null => {
@@ -1664,6 +1713,7 @@ ctx.restore();
     if (isMiddleClick) return;
 
     const isRightClick = "button" in e && e.button === 2;
+    const pos = getPos(e);
 
     // Left-click on agent with select tool → context menu or drag
     if (!isRightClick && tool === "select") {
@@ -1698,10 +1748,7 @@ ctx.restore();
         }
 
         const foundSkill = [...skillsRef.current].reverse().find(s => {
-          const screenPos = getScreenPos(s.x, s.y);
-          const dx = screenPos.x - mouseX;
-          const dy = screenPos.y - mouseY;
-          return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+          return isSkillHit(s, mouseX, mouseY, pos);
         });
         if (foundSkill) {
           draggedSkillRef.current = foundSkill;
@@ -1731,7 +1778,7 @@ ctx.restore();
       return;
     }
 
-    const pos = getPos(e);
+
     const canvas = canvasRef.current;
 
     // ── Line Eraser: erase whole path on mousedown ──
@@ -1845,15 +1892,22 @@ ctx.restore();
       let startX = pos.x;
       let startY = pos.y;
       
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
+
       if (skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
+        
+        if (skill.behavior?.spawnOffset) {
+           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           startX += Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+        }
       }
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
       if (skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid")) {
-        const mToPx = selectedMap?.pixelsPerMeter || 20;
         const length = (skill.geometry.length || 0) * mToPx;
         
         if (skill.behavior?.spawn === "player" && agentObj) {
@@ -2118,10 +2172,7 @@ ctx.restore();
 
           let foundHoverSkill: CanvasSkill | null = null;
           const isOverSkill = skillsRef.current.some(s => {
-            const screenPos = getScreenPos(s.x, s.y);
-            const dx = screenPos.x - mouseX;
-            const dy = screenPos.y - mouseY;
-            const hit = Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
+            const hit = isSkillHit(s, mouseX, mouseY, pos);
             if (hit) foundHoverSkill = s;
             return hit;
           });
@@ -2145,6 +2196,7 @@ ctx.restore();
                     y: screenPos.y + rect.top,
                     visible: true
                   });
+                  redrawImmediate();
                 }
               } else if (foundHoverSkill) {
                 if (hoveredSkillRef.current !== foundHoverSkill) {
@@ -2158,6 +2210,7 @@ ctx.restore();
                     y: screenPos.y + rect.top,
                     visible: true
                   });
+                  redrawImmediate();
                 }
               }
             }
@@ -2169,6 +2222,7 @@ ctx.restore();
                 hoveredSkillRef.current = null;
                 setHoverMenuState(prev => ({ ...prev, visible: false }));
                 hoverMenuTimeoutRef.current = null;
+                redrawImmediate();
               }, 300);
             }
           }
@@ -4515,6 +4569,26 @@ ctx.restore();
               alignItems: "center"
             }}
           >
+            {(session?.user as any)?.role === "super_admin" && (
+              <button
+                onClick={() => {
+                  const agentObj = agentsRef.current.find(a => a.instanceId === ctxSkill.agentInstanceId);
+                  if (agentObj) {
+                    setEditingSkillGlobalParams({ agentId: agentObj.id, skillKey: ctxSkill.key });
+                  }
+                  setHoverMenuState(prev => ({ ...prev, visible: false }));
+                }}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--val-cyan)", border: "none", color: "#000", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)", marginRight: 8
+                }}
+                title="Editar parámetros globales de la habilidad"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={() => {
                 const skillIdx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
@@ -4861,6 +4935,25 @@ ctx.restore();
           </div>
         );
       })()}
+
+      {editingSkillGlobalParams && (
+        <div className="modal-overlay" style={{ zIndex: 100000 }}>
+          <div className="modal-content card glass-card premium-modal" style={{ width: "95%", maxWidth: 800, padding: 0, overflow: "hidden", height: "80vh", background: "var(--bg-card)" }}>
+            <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.5)" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Editar Parámetros de Habilidad (Global)</h3>
+              <button className="icon-action-btn" onClick={() => setEditingSkillGlobalParams(null)}>✕</button>
+            </div>
+            <div style={{ height: "calc(100% - 60px)", overflow: "auto" }}>
+              <AgentSkillsManager 
+                defaultAgentId={editingSkillGlobalParams.agentId} 
+                defaultSkillKey={editingSkillGlobalParams.skillKey} 
+                isModalMode={true} 
+                onClose={() => setEditingSkillGlobalParams(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingExternalStratId && (
         <div className="modal-overlay-premium">

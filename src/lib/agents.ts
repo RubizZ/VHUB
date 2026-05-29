@@ -42,6 +42,7 @@ export interface SkillBehavior {
   buffApplied?: string; // Nombre del buffo aplicado (ej: "Vulnerable", "Escudo")
   debuffApplied?: string; // Nombre del debuffo aplicado a enemigos (ej: "Vulnerable")
   spawn: "player" | "ground" | "wall" | "projectile";
+  spawnOffset?: number; // Desplazamiento en metros desde el agente (para habilidades que salen desde el jugador pero más adelante)
   maxCastRange?: number;
   groundRange?: number; // legacy
   projectileBounces?: number;
