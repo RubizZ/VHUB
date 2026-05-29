@@ -4172,6 +4172,26 @@ ctx.restore();
               <Skeleton width={64} height="100%" style={{ borderRadius: 16 }} />
               <Skeleton width="100%" height="100%" style={{ borderRadius: 16, flex: 1 }} />
             </div>
+            
+            <div style={{ display: "flex", gap: 4, alignItems: "center", opacity: 0.8 }}>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+              </div>
+              <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.08)", flexShrink: 0, margin: "0 12px" }} />
+              <div style={{ display: "flex", gap: 24, flex: 1, overflow: "hidden", alignItems: "center" }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Skeleton width={120} height={32} style={{ borderRadius: 16 }} />
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                      <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                      <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
