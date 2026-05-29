@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { strategyId } = body;
+  const { strategyId, userImage } = body;
   if (!strategyId) return NextResponse.json({ error: "strategyId required" }, { status: 400 });
 
   const userId = session.user.id!;
@@ -62,13 +62,15 @@ export async function POST(req: NextRequest) {
     update: {
       updatedAt: new Date(),
       userName,
-      userColor
+      userColor,
+      userImage
     },
     create: {
       strategyId: Number(strategyId),
       userId,
       userName,
-      userColor
+      userColor,
+      userImage
     }
   });
 

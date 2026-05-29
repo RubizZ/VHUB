@@ -24,6 +24,7 @@ interface CollabUser {
   userId: string;
   userName: string;
   userColor: string;
+  userImage?: string | null;
 }
 
 interface RemoteCursor {
@@ -252,6 +253,7 @@ export default function StrategiesPage() {
   const [editingSkillGlobalParams, setEditingSkillGlobalParams] = useState<{ agentId: string; skillKey: string } | null>(null);
   const myUserId = session?.user?.id || "";
   const myUserName = session?.user?.name || "Anónimo";
+  const myUserImage = session?.user?.image || null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const myPlayerColor = (session?.user as any)?.avatarColor || "#FF4655";
 
@@ -3461,7 +3463,8 @@ ctx.restore();
               users.push({
                 userId: key,
                 userName: presences[0].userName || "Anónimo",
-                userColor: presences[0].userColor || "#FF4655"
+                userColor: presences[0].userColor || "#FF4655",
+                userImage: presences[0].userImage || null
               });
             }
           }
@@ -3572,6 +3575,7 @@ ctx.restore();
             await channel.track({
               userName: myUserName,
               userColor: myPlayerColor,
+              userImage: myUserImage,
               online_at: new Date().toISOString()
             });
           }
@@ -3595,7 +3599,7 @@ ctx.restore();
         const res = await fetch("/api/strategies/presence", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategyId })
+          body: JSON.stringify({ strategyId, userName: myUserName, userColor: myPlayerColor, userImage: myUserImage })
         });
         if (res.ok) {
           const data = await res.json();
@@ -4342,7 +4346,11 @@ ctx.restore();
                           transition: "all 0.3s ease"
                         }}
                       >
-                        {u.userName[0] || "?"}
+                        {u.userImage ? (
+                          <img src={u.userImage} alt={u.userName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                        ) : (
+                          u.userName[0] || "?"
+                        )}
                         {/* Live pulse dot */}
                         <div style={{
                           position: "absolute",

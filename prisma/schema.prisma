@@ -285,6 +285,7 @@ model StrategyPresence {
   userId     String
   userName   String
   userColor  String   @default("#FF4655")
+  userImage  String?
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@unique([strategyId, userId])
