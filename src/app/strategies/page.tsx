@@ -4347,13 +4347,12 @@ ctx.restore();
                 }}>
                   {saveStrategyMutation.isPending ? (
                     <>
-                      <div style={{
+                      <div className="animate-spin" style={{
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
                         border: "2px solid rgba(234, 179, 8, 0.2)",
                         borderTopColor: "#eab308",
-                        animation: "spin 1s linear infinite"
                       }} />
                       <span style={{ color: "#eab308" }}>Guardando...</span>
                     </>
