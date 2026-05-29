@@ -2732,6 +2732,48 @@ body.landing-page {
   justify-content: flex-end;
   padding: 24px;
 }
+.map-card-actions-premium {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.map-card-premium:hover .map-card-actions-premium {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.map-card-action-btn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+.map-card-action-btn.primary {
+  background: #ff4655;
+  color: #fff;
+}
+.map-card-action-btn.primary:hover {
+  background: #ff5c6a;
+}
+.map-card-action-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.map-card-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 .map-card-title-premium {
   font-size: 28px;
   font-weight: 900;

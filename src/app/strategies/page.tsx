@@ -3665,24 +3665,27 @@ ctx.restore();
 
   // 3. Create Strategy Mutation
   const createStratMutation = useMutation({
-    mutationFn: async (params?: { name?: string, side?: "attack" | "defense" }) => {
+    mutationFn: async (params?: { name?: string, side?: "attack" | "defense", mapId?: string }) => {
       const finalName = params?.name || newName.trim() || "Nueva Estrategia";
       const finalSide = params?.side || selectedSide;
-      if (!selectedMap) {
+      const finalMapId = params?.mapId || selectedMap?.id;
+      if (!finalMapId) {
         throw new Error("Sin mapa seleccionado");
       }
       const res = await fetch("/api/strategies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ map_id: selectedMap.id, name: finalName, side: finalSide })
+        body: JSON.stringify({ map_id: finalMapId, name: finalName, side: finalSide })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear estrategia");
-      return { id: data.id, map_id: selectedMap.id, name: finalName, side: finalSide, description: "" };
+      return { id: data.id, map_id: finalMapId, name: finalName, side: finalSide, description: "" };
     },
     onSuccess: (data) => {
       if (!data) return;
-      queryClient.invalidateQueries({ queryKey: ["strategies", selectedMap?.id] });
+      queryClient.invalidateQueries({ queryKey: ["strategies", data.map_id] });
+      const mapObj = allMaps.find(m => m.id === data.map_id);
+      if (mapObj) setSelectedMap(mapObj);
       openEditor({ id: data.id, map_id: data.map_id, name: data.name, side: data.side, description: "", canvas_data: "{}" });
     }
   });
@@ -3698,6 +3701,11 @@ ctx.restore();
     } else {
       createStratMutation.mutate(undefined);
     }
+  };
+
+  const createStratForMap = (e: React.MouseEvent, map: ValorantMap) => {
+    e.stopPropagation();
+    createStratMutation.mutate({ name: `Nueva Estrategia`, side: "attack", mapId: map.id });
   };
 
   const deleteStratMutation = useMutation({
@@ -3788,6 +3796,14 @@ ctx.restore();
                           <div className="map-card-overlay-premium">
                             <h3 className="map-card-title-premium">{m.name}</h3>
                             <span className="map-card-subtitle-premium">{m.tacticalDescription || 'Competitivo'}</span>
+                            <div className="map-card-actions-premium">
+                              <button className="map-card-action-btn primary" onClick={(e) => createStratForMap(e, m)} disabled={createStratMutation.isPending}>
+                                Crear
+                              </button>
+                              <button className="map-card-action-btn secondary" onClick={(e) => { e.stopPropagation(); goToMap(m); }}>
+                                Ver
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -3810,6 +3826,14 @@ ctx.restore();
                             <span className="map-card-subtitle-premium" style={{ color: 'rgba(255,255,255,0.4)' }}>
                               {m.tacticalDescription || 'Fuera de rotación'}
                             </span>
+                            <div className="map-card-actions-premium">
+                              <button className="map-card-action-btn primary" onClick={(e) => createStratForMap(e, m)} disabled={createStratMutation.isPending}>
+                                Crear
+                              </button>
+                              <button className="map-card-action-btn secondary" onClick={(e) => { e.stopPropagation(); goToMap(m); }}>
+                                Ver
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
