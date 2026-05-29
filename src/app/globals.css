@@ -2732,13 +2732,22 @@ body.landing-page {
   justify-content: flex-end;
   padding: 24px;
 }
+.map-card-info-premium {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.map-card-premium:hover .map-card-info-premium {
+  transform: translateY(-44px);
+}
 .map-card-actions-premium {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
   display: flex;
   gap: 8px;
-  margin-top: 12px;
   opacity: 0;
   transform: translateY(10px);
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 .map-card-premium:hover .map-card-actions-premium {

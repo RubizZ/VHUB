@@ -3794,14 +3794,16 @@ ctx.restore();
                         <div key={m.id} className="map-card-premium" onClick={() => goToMap(m)}>
                           <img src={m.listViewIconTall || undefined} alt={m.name} className="map-img-premium" />
                           <div className="map-card-overlay-premium">
-                            <h3 className="map-card-title-premium">{m.name}</h3>
-                            <span className="map-card-subtitle-premium">{m.tacticalDescription || 'Competitivo'}</span>
+                            <div className="map-card-info-premium">
+                              <h3 className="map-card-title-premium">{m.name}</h3>
+                              <span className="map-card-subtitle-premium">{m.tacticalDescription || 'Competitivo'}</span>
+                            </div>
                             <div className="map-card-actions-premium">
                               <button className="map-card-action-btn primary" onClick={(e) => createStratForMap(e, m)} disabled={createStratMutation.isPending}>
-                                Crear
+                                + Nueva
                               </button>
                               <button className="map-card-action-btn secondary" onClick={(e) => { e.stopPropagation(); goToMap(m); }}>
-                                Ver
+                                Ver Estrategias
                               </button>
                             </div>
                           </div>
@@ -3822,16 +3824,18 @@ ctx.restore();
                         <div key={m.id} className="map-card-premium out-of-rotation" onClick={() => goToMap(m)}>
                           <img src={m.listViewIconTall || undefined} alt={m.name} className="map-img-premium" />
                           <div className="map-card-overlay-premium">
-                            <h3 className="map-card-title-premium">{m.name}</h3>
-                            <span className="map-card-subtitle-premium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                              {m.tacticalDescription || 'Fuera de rotación'}
-                            </span>
+                            <div className="map-card-info-premium">
+                              <h3 className="map-card-title-premium">{m.name}</h3>
+                              <span className="map-card-subtitle-premium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                {m.tacticalDescription || 'Fuera de rotación'}
+                              </span>
+                            </div>
                             <div className="map-card-actions-premium">
                               <button className="map-card-action-btn primary" onClick={(e) => createStratForMap(e, m)} disabled={createStratMutation.isPending}>
-                                Crear
+                                + Nueva
                               </button>
                               <button className="map-card-action-btn secondary" onClick={(e) => { e.stopPropagation(); goToMap(m); }}>
-                                Ver
+                                Ver Estrategias
                               </button>
                             </div>
                           </div>
