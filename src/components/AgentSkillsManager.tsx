@@ -13,7 +13,7 @@ interface SkillFormData {
   color: string;
   charges: number;
   castTime: number;
-  geometryType: "circle" | "rectangle" | "cone" | "infinite-wall";
+  geometryType: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve";
   geometryRadius: number;
   geometryWidth: number;
   geometryLength: number;
@@ -297,7 +297,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           radius: formData.geometryType === "circle" ? Number(formData.geometryRadius) : undefined,
           width: formData.geometryType !== "circle" ? Number(formData.geometryWidth) : undefined,
           length: formData.geometryType !== "circle" ? Number(formData.geometryLength) : undefined,
-          angle: formData.geometryType === "cone" ? Number(formData.geometryAngle) : undefined,
+          angle: (formData.geometryType === "cone" || formData.geometryType === "curve") ? Number(formData.geometryAngle) : undefined,
         },
         behavior: {
           charges: formData.behaviorCharges,
@@ -609,6 +609,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <option value="infinite-wall">Muro Infinito</option>
                             <option value="path">Ruta / Camino</option>
                             <option value="trapezoid">Trapecio (Muro Iso)</option>
+                            <option value="curve">Curva (Bola de efecto)</option>
                           </select>
                         </div>
                         {formData.geometryType === "circle" && (
@@ -617,7 +618,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
                           </div>
                         )}
-                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone") && (
+                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve") && (
                           <>
                             <div className="form-group" style={{ flex: 1 }}>
                               <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho (m)</label>
@@ -629,7 +630,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             </div>
                           </>
                         )}
-                        {formData.geometryType === "cone" && (
+                        {(formData.geometryType === "cone" || formData.geometryType === "curve") && (
                           <div className="form-group" style={{ flex: 1 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ángulo (grados)</label>
                             <input type="number" className="input-field" value={formData.geometryAngle} onChange={e => setFormData({...formData, geometryAngle: Number(e.target.value)})} />

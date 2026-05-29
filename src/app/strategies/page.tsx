@@ -71,13 +71,14 @@ interface CanvasSkill {
   pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "controllablePath"
   color: string;
   createdBy?: string;
+  unlinked?: boolean;
 }
 
 type UndoAction =
   | { type: 'add-path'; path: CanvasPath }
   | { type: 'remove-path'; path: CanvasPath; index: number }
   | { type: 'add-agent'; agent: CanvasAgent }
-  | { type: 'remove-agent'; agent: CanvasAgent; index: number }
+  | { type: 'remove-agent'; agent: CanvasAgent; index: number; linkedSkills?: { skill: CanvasSkill; index: number }[] }
   | { type: 'move-agent'; agentId: string; oldX: number; oldY: number; newX: number; newY: number }
   | { type: 'add-skill'; skill: CanvasSkill }
   | { type: 'remove-skill'; skill: CanvasSkill; index: number }
@@ -651,7 +652,8 @@ export default function StrategiesPage() {
       ctx.textAlign = "start";
     }
 
-    const angle = currentSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const baseAngle = (selectedMap?.rotationOffset || 0) * Math.PI / 180;
+    const angle = (currentSide === "attack" ? Math.PI / 2 : -Math.PI / 2) + baseAngle;
 
     let scale = 1;
     let imgW = 1000;
@@ -816,26 +818,32 @@ export default function StrategiesPage() {
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
-      if (pSkill.skill.geometry && (pSkill.skill.geometry.type === "rectangle" || pSkill.skill.geometry.type === "cone" || pSkill.skill.geometry.type === "trapezoid")) {
-        const length = (pSkill.skill.geometry.length || 0) * mToPx;
+      const isGeomWithTarget = pSkill.skill.geometry && (pSkill.skill.geometry.type === "rectangle" || pSkill.skill.geometry.type === "cone" || pSkill.skill.geometry.type === "trapezoid" || pSkill.skill.geometry.type === "curve");
+      const isProj = pSkill.skill.behavior?.flags?.projectile;
+      
+      if (isGeomWithTarget || isProj) {
+        const length = (pSkill.skill.geometry?.length || 0) * mToPx;
         
         if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (pSkill.skill.behavior?.flags?.chargeable) {
-              const maxLen = (pSkill.skill.behavior.chargeMaxLength || pSkill.skill.geometry.length || 0) * mToPx;
+              const maxLen = (pSkill.skill.behavior.chargeMaxLength || pSkill.skill.geometry?.length || 0) * mToPx;
               const dx = worldMousePosRef.current.x - startX;
               const dy = worldMousePosRef.current.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
               dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
+           } else if (isProj && !isGeomWithTarget) {
+              initTargetX = worldMousePosRef.current.x;
+              initTargetY = worldMousePosRef.current.y;
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
            if (pSkill.skill.behavior?.flags?.chargeable) {
-              initTargetX = startX + (pSkill.skill.behavior.chargeMinLength || pSkill.skill.geometry.length || 0) * mToPx;
+              initTargetX = startX + (pSkill.skill.behavior.chargeMinLength || pSkill.skill.geometry?.length || 0) * mToPx;
            } else {
               initTargetX = startX + length;
            }
@@ -956,6 +964,27 @@ export default function StrategiesPage() {
       // Assuming 1 meter = 20 canvas units approximately (or calibrated value)
       const mToPx = selectedMap?.pixelsPerMeter || 20;
 
+      ctx.save();
+
+      const isProj = skill.behavior?.flags?.projectile;
+      if (isProj && skill.targetX !== undefined && skill.targetY !== undefined) {
+         const tx = skill.targetX - skill.x;
+         const ty = skill.targetY - skill.y;
+         if (geom.type !== "curve" && geom.type !== "path") {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(tx, ty);
+            ctx.strokeStyle = skill.color;
+            ctx.lineWidth = 2 / scale;
+            ctx.globalAlpha = 0.6;
+            ctx.setLineDash([6 / scale, 6 / scale]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.translate(tx, ty);
+         }
+      }
+
       if (geom.type === "circle") {
         ctx.beginPath();
         const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
@@ -1006,6 +1035,40 @@ export default function StrategiesPage() {
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
         ctx.restore();
+      } else if (geom.type === "curve") {
+        const tx = (skill.targetX !== undefined ? skill.targetX - skill.x : 0);
+        const ty = (skill.targetY !== undefined ? skill.targetY - skill.y : 0);
+        const dist = Math.sqrt(tx*tx + ty*ty);
+        
+        const curveStrength = (geom.angle || 90) / 90;
+        const midX = tx / 2;
+        const midY = ty / 2;
+        
+        const nx = -ty / (dist || 1);
+        const ny = tx / (dist || 1);
+        
+        const cpX = midX + nx * dist * 0.5 * curveStrength;
+        const cpY = midY + ny * dist * 0.5 * curveStrength;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(cpX, cpY, tx, ty);
+        
+        ctx.globalAlpha = strokeAlpha;
+        ctx.lineWidth = (geom.width ? geom.width * mToPx : 4) / scale;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        
+        if (dist > 0) {
+          const arrowAngle = Math.atan2(ty - cpY, tx - cpX);
+          const arrowSize = 10 / scale;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - arrowSize * Math.cos(arrowAngle - Math.PI/6), ty - arrowSize * Math.sin(arrowAngle - Math.PI/6));
+          ctx.lineTo(tx - arrowSize * Math.cos(arrowAngle + Math.PI/6), ty - arrowSize * Math.sin(arrowAngle + Math.PI/6));
+          ctx.closePath();
+          ctx.fill();
+        }
       } else if (geom.type === "infinite-wall") {
         // Draw an infinite wall: a thick line that extends across the whole canvas
         // Direction is determined by the vector from skill origin to target
@@ -1036,9 +1099,43 @@ export default function StrategiesPage() {
         ctx.stroke();
       }
       
+      ctx.restore();
+      
       const isHovered = hoveredSkillRef.current?.instanceId === skill.instanceId;
       const isDragged = draggedSkillRef.current?.instanceId === skill.instanceId || draggedSkillTargetRef.current?.instanceId === skill.instanceId;
       const showHandles = isHovered || isDragged;
+      
+      if (sImg && sImg.complete && !skill.behavior?.flags?.controllablePath && !showHandles) {
+         let cxImg = 0;
+         let cyImg = 0;
+         const isProj = skill.behavior?.flags?.projectile;
+         if (isProj && skill.targetX !== undefined && skill.targetY !== undefined) {
+            cxImg = skill.targetX - skill.x;
+            cyImg = skill.targetY - skill.y;
+         } else {
+            const geom = skill.geometry;
+            if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "curve")) {
+               const tX = skill.targetX !== undefined ? skill.targetX - skill.x : 0;
+               const tY = skill.targetY !== undefined ? skill.targetY - skill.y : 0;
+               cxImg = tX / 2;
+               cyImg = tY / 2;
+            }
+         }
+         
+         ctx.save();
+         ctx.translate(cxImg, cyImg);
+         ctx.rotate(-angle);
+         const imgS = 15 / scale;
+         ctx.globalAlpha = skill.instanceId === "preview" ? 0.3 : 0.6;
+         // Use a blending mode to help it integrate with the skill color below it
+         ctx.globalCompositeOperation = "luminosity";
+         ctx.drawImage(sImg, -imgS/2, -imgS/2, imgS, imgS);
+         // Reset composite operation to draw it again with normal blending for the colored parts
+         ctx.globalCompositeOperation = "source-over";
+         ctx.globalAlpha = skill.instanceId === "preview" ? 0.2 : 0.4;
+         ctx.drawImage(sImg, -imgS/2, -imgS/2, imgS, imgS);
+         ctx.restore();
+      }
 
       let isBaseHovered = false;
       let isTargetHovered = false;
@@ -1063,7 +1160,6 @@ export default function StrategiesPage() {
       // Draw handles if not preview and is hovered or dragged
       if (skill.instanceId !== "preview" && showHandles) {
         const anchorR = 10 / scale;
-        const imgS = 14 / scale;
 
         // Add a subtle hover glow for base anchor
         if (isBaseHovered) {
@@ -1082,12 +1178,27 @@ export default function StrategiesPage() {
         ctx.lineWidth = (isBaseHovered ? 3 : 2) / scale;
         ctx.stroke();
 
-        if (sImg && sImg.complete) {
-           ctx.save();
-           ctx.rotate(-angle);
-           ctx.drawImage(sImg, -imgS/2, -imgS/2, imgS, imgS);
-           ctx.restore();
-        }
+        ctx.save();
+        ctx.rotate(-angle);
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5 / scale;
+        ctx.beginPath();
+        const crossL = 6 / scale;
+        const arrowL = 2.5 / scale;
+        // Up
+        ctx.moveTo(0, -2/scale); ctx.lineTo(0, -crossL);
+        ctx.lineTo(-arrowL, -crossL + arrowL); ctx.moveTo(0, -crossL); ctx.lineTo(arrowL, -crossL + arrowL);
+        // Down
+        ctx.moveTo(0, 2/scale); ctx.lineTo(0, crossL);
+        ctx.lineTo(-arrowL, crossL - arrowL); ctx.moveTo(0, crossL); ctx.lineTo(arrowL, crossL - arrowL);
+        // Left
+        ctx.moveTo(-2/scale, 0); ctx.lineTo(-crossL, 0);
+        ctx.lineTo(-crossL + arrowL, -arrowL); ctx.moveTo(-crossL, 0); ctx.lineTo(-crossL + arrowL, arrowL);
+        // Right
+        ctx.moveTo(2/scale, 0); ctx.lineTo(crossL, 0);
+        ctx.lineTo(crossL - arrowL, -arrowL); ctx.moveTo(crossL, 0); ctx.lineTo(crossL - arrowL, arrowL);
+        ctx.stroke();
+        ctx.restore();
 
         // Draw another handle at the target if it exists
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
@@ -1356,14 +1467,16 @@ ctx.restore();
       const dx = worldMousePosRef.current.x - calibrateStateRef.current.startPos.x;
       const dy = worldMousePosRef.current.y - calibrateStateRef.current.startPos.y;
       const distPx = Math.sqrt(dx * dx + dy * dy);
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
+      const meters = (distPx / mToPx).toFixed(1);
       
       ctx.translate(worldMousePosRef.current.x, worldMousePosRef.current.y);
       ctx.rotate(-angle);
       ctx.fillStyle = "rgba(0,0,0,0.8)";
-      ctx.fillRect(10 / scale, 10 / scale, 60 / scale, 24 / scale);
+      ctx.fillRect(10 / scale, 10 / scale, 90 / scale, 24 / scale);
       ctx.fillStyle = "#fff";
       ctx.font = `bold ${12 / scale}px sans-serif`;
-      ctx.fillText(`${Math.round(distPx)}px`, 15 / scale, 26 / scale);
+      ctx.fillText(`${Math.round(distPx)}px (${meters}m)`, 15 / scale, 26 / scale);
       ctx.restore();
     }
 
@@ -1509,6 +1622,12 @@ ctx.restore();
       }
       case 'remove-agent': {
         agentsRef.current.splice(action.index, 0, action.agent);
+        if (action.linkedSkills) {
+           action.linkedSkills.forEach(ls => {
+              skillsRef.current.splice(ls.index, 0, ls.skill);
+              loadedSkillIdsRef.current.add(ls.skill.instanceId);
+           });
+        }
         redoStackRef.current.push(action);
         broadcastAgentUpdate(action.agent, false);
         loadedAgentIdsRef.current.add(action.agent.instanceId);
@@ -1576,6 +1695,10 @@ ctx.restore();
       }
       case 'remove-agent': {
         agentsRef.current = agentsRef.current.filter(a => a.instanceId !== action.agent.instanceId);
+        if (action.linkedSkills) {
+           const skillIds = new Set(action.linkedSkills.map(ls => ls.skill.instanceId));
+           skillsRef.current = skillsRef.current.filter(s => !skillIds.has(s.instanceId));
+        }
         undoStackRef.current.push(action);
         broadcastEraseElements([], [action.agent.instanceId]);
         break;
@@ -1708,7 +1831,8 @@ ctx.restore();
   const getScreenPos = (mx: number, my: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const baseAngle = (selectedMap?.rotationOffset || 0) * Math.PI / 180;
+    const angle = (selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2) + baseAngle;
 
     const mapImg = mapImgRef.current;
     let scale = 1;
@@ -1753,7 +1877,8 @@ ctx.restore();
     const canvasX = cx - rect.left;
     const canvasY = cy - rect.top;
 
-    const angle = selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2;
+    const baseAngle = (selectedMap?.rotationOffset || 0) * Math.PI / 180;
+    const angle = (selectedSide === "attack" ? Math.PI / 2 : -Math.PI / 2) + baseAngle;
     const zoomVal = zoomRef.current;
     const panVal = panRef.current;
     const dx = (canvasX - canvas.width / 2 - panVal.x) / zoomVal;
@@ -1795,8 +1920,17 @@ ctx.restore();
     if (!s.geometry) return false;
     const mToPx = selectedMap?.pixelsPerMeter || 20;
     const geom = s.geometry;
-    const wdx = pos.x - s.x;
-    const wdy = pos.y - s.y;
+    
+    const isProj = s.behavior?.flags?.projectile;
+    let drawOriginX = s.x;
+    let drawOriginY = s.y;
+    if (isProj && s.targetX !== undefined && s.targetY !== undefined && geom.type !== "curve" && geom.type !== "path") {
+      drawOriginX = s.targetX;
+      drawOriginY = s.targetY;
+    }
+    
+    const wdx = pos.x - drawOriginX;
+    const wdy = pos.y - drawOriginY;
 
     if (geom.type === "circle") {
       const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
@@ -1815,6 +1949,11 @@ ctx.restore();
       const angle = (s.targetX !== undefined && s.targetY !== undefined) ? Math.atan2(s.targetY - s.y, s.targetX - s.x) : 0;
       const localY = wdx * Math.sin(-angle) + wdy * Math.cos(-angle);
       return Math.abs(localY) <= 10;
+    } else if (geom.type === "curve" && s.targetX !== undefined && s.targetY !== undefined) {
+      const midX = s.x + (s.targetX - s.x) / 2;
+      const midY = s.y + (s.targetY - s.y) / 2;
+      const screenMid = getScreenPos(midX, midY);
+      if (Math.sqrt((screenMid.x - mouseX) ** 2 + (screenMid.y - mouseY) ** 2) <= 20 * zoomRef.current) return true;
     }
     return false;
   };
@@ -1921,8 +2060,11 @@ ctx.restore();
           return isSkillHit(s, mouseX, mouseY, pos);
         });
         if (foundSkill) {
-          draggedSkillRef.current = foundSkill;
-          draggedSkillOffsetRef.current = { x: foundSkill.x - pos.x, y: foundSkill.y - pos.y };
+          const isLinked = !foundSkill.unlinked && foundSkill.behavior?.spawn === "player";
+          if (!isLinked) {
+            draggedSkillRef.current = foundSkill;
+            draggedSkillOffsetRef.current = { x: foundSkill.x - pos.x, y: foundSkill.y - pos.y };
+          }
           return;
         }
         
@@ -1993,9 +2135,17 @@ ctx.restore();
       }
       if (hitAgent) {
         const agentIdx = agentsRef.current.findIndex(a => a.instanceId === hitAgent.instanceId);
-        undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx });
+        const linkedSkills: {skill: CanvasSkill, index: number}[] = [];
+        skillsRef.current.forEach((s, idx) => {
+           if (s.agentInstanceId === hitAgent.instanceId && !s.unlinked) linkedSkills.push({skill: s, index: idx});
+        });
+        undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx, linkedSkills });
         redoStackRef.current = [];
         agentsRef.current = agentsRef.current.filter(a => a.instanceId !== hitAgent.instanceId);
+        if (linkedSkills.length > 0) {
+           const skillIds = new Set(linkedSkills.map(ls => ls.skill.instanceId));
+           skillsRef.current = skillsRef.current.filter(s => !skillIds.has(s.instanceId));
+        }
         updateUndoRedo();
         redrawImmediate();
         broadcastEraseElements([], [hitAgent.instanceId]);
@@ -2090,26 +2240,32 @@ ctx.restore();
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
-      if (skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid")) {
-        const length = (skill.geometry.length || 0) * mToPx;
+      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
+      const isProj = skill.behavior?.flags?.projectile;
+      
+      if (isGeomWithTarget || isProj) {
+        const length = (skill.geometry?.length || 0) * mToPx;
         
         if (skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
-              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
+              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry?.length || 0) * mToPx;
               const dx = pos.x - startX;
               const dy = pos.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
               dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
+           } else if (isProj && !isGeomWithTarget) {
+              initTargetX = pos.x;
+              initTargetY = pos.y;
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
            if (skill.behavior?.flags?.chargeable) {
-              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry.length || 0) * mToPx;
+              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
            } else {
               initTargetX = pos.x + length;
            }
@@ -2355,11 +2511,8 @@ ctx.restore();
           });
 
           if (foundHoverAgent || foundHoverSkill) {
-            if (isAgentDroppedRef.current) {
-              // Ignore hover immediately after dropping
-            } else {
-              if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
-              hoverMenuTimeoutRef.current = null;
+            if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
+            hoverMenuTimeoutRef.current = null;
               
               if (foundHoverAgent) {
                 if (hoveredAgentRef.current !== foundHoverAgent) {
@@ -2379,7 +2532,16 @@ ctx.restore();
                 if (hoveredSkillRef.current !== foundHoverSkill) {
                   hoveredSkillRef.current = foundHoverSkill;
                   hoveredAgentRef.current = null;
-                  const screenPos = getScreenPos((foundHoverSkill as CanvasSkill).x, (foundHoverSkill as CanvasSkill).y);
+                  
+                  const fSkill = foundHoverSkill as CanvasSkill;
+                  let menuX = fSkill.x;
+                  let menuY = fSkill.y;
+                  if (fSkill.behavior?.flags?.projectile && fSkill.targetX !== undefined && fSkill.targetY !== undefined) {
+                     menuX = fSkill.targetX;
+                     menuY = fSkill.targetY;
+                  }
+                  const screenPos = getScreenPos(menuX, menuY);
+                  
                   setHoverMenuState({
                     agent: null,
                     skill: foundHoverSkill,
@@ -2392,9 +2554,8 @@ ctx.restore();
                   redrawImmediate();
                 }
               }
-            }
-          } else {
-            isAgentDroppedRef.current = false;
+            } else {
+              isAgentDroppedRef.current = false;
             if (hoveredSkillRef.current) {
               redrawImmediate();
             }
@@ -2411,8 +2572,12 @@ ctx.restore();
 
           if (isOverSkillTarget) {
             canvas.style.cursor = "grab";
-          } else if (isOverAgent || isOverSkill) {
+          } else if (isOverAgent) {
             canvas.style.cursor = "grab";
+          } else if (isOverSkill && foundHoverSkill) {
+            const fs = foundHoverSkill as CanvasSkill;
+            const isLinked = !fs.unlinked && fs.behavior?.spawn === "player";
+            canvas.style.cursor = isLinked ? "pointer" : "grab";
           } else {
             canvas.style.cursor = "default";
           }
@@ -2465,9 +2630,17 @@ ctx.restore();
           }
           if (hitAgent) {
             const agentIdx = agentsRef.current.findIndex(a => a.instanceId === hitAgent.instanceId);
-            undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx });
+            const linkedSkills: {skill: CanvasSkill, index: number}[] = [];
+            skillsRef.current.forEach((s, idx) => {
+               if (s.agentInstanceId === hitAgent.instanceId && !s.unlinked) linkedSkills.push({skill: s, index: idx});
+            });
+            undoStackRef.current.push({ type: 'remove-agent', agent: hitAgent, index: agentIdx, linkedSkills });
             redoStackRef.current = [];
             agentsRef.current = agentsRef.current.filter(a => a.instanceId !== hitAgent.instanceId);
+            if (linkedSkills.length > 0) {
+               const skillIds = new Set(linkedSkills.map(ls => ls.skill.instanceId));
+               skillsRef.current = skillsRef.current.filter(s => !skillIds.has(s.instanceId));
+            }
             updateUndoRedo();
             redrawImmediate();
             broadcastEraseElements([], [hitAgent.instanceId]);
@@ -2550,10 +2723,30 @@ ctx.restore();
        const skill = draggedSkillTargetRef.current;
        const geom = skill.geometry;
        const isChargeable = skill.behavior?.flags?.chargeable;
+       const mToPx = selectedMap?.pixelsPerMeter || 20;
+       
+       let agentObj = null;
+       let isLinked = !skill.unlinked && skill.behavior?.spawn === "player";
+       if (isLinked) {
+         agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+         if (!agentObj) isLinked = false;
+       }
        
        if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
-         const sa = Math.atan2(pos.y - skill.y, pos.x - skill.x);
-         const mToPx = selectedMap?.pixelsPerMeter || 20;
+         let originX = skill.x;
+         let originY = skill.y;
+         
+         if (isLinked && agentObj) {
+            originX = agentObj.x;
+            originY = agentObj.y;
+            const sa = Math.atan2(pos.y - originY, pos.x - originX);
+            if (skill.behavior?.spawnOffset) {
+               skill.x = originX + Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+               skill.y = originY + Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+            }
+         }
+         
+         const sa = Math.atan2(pos.y - originY, pos.x - originX);
          
          if (!isChargeable) {
            const length = (geom.length || 0) * mToPx;
@@ -2561,8 +2754,10 @@ ctx.restore();
            skill.targetY = skill.y + Math.sin(sa) * length;
          } else {
            const maxLen = (skill.behavior?.chargeMaxLength || geom.length || 0) * mToPx;
-           let dist = Math.sqrt((pos.x - skill.x)**2 + (pos.y - skill.y)**2);
-           dist = Math.min(dist, maxLen);
+           const dx = pos.x - skill.x;
+           const dy = pos.y - skill.y;
+           let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
+           dist = Math.max(0, Math.min(dist, maxLen));
            skill.targetX = skill.x + Math.cos(sa) * dist;
            skill.targetY = skill.y + Math.sin(sa) * dist;
          }
@@ -2582,8 +2777,30 @@ ctx.restore();
 
     if (tool === "select") {
       if (draggedAgentRef.current) {
+        const dx = pos.x - draggedAgentRef.current.x;
+        const dy = pos.y - draggedAgentRef.current.y;
+        
         draggedAgentRef.current.x = pos.x;
         draggedAgentRef.current.y = pos.y;
+        
+        skillsRef.current.forEach(skill => {
+           if (skill.agentInstanceId === draggedAgentRef.current?.instanceId && !skill.unlinked && skill.behavior?.spawn === "player") {
+              skill.x += dx;
+              skill.y += dy;
+              
+              const isProj = skill.behavior?.flags?.projectile;
+              if (!isProj) {
+                if (skill.targetX !== undefined) skill.targetX += dx;
+                if (skill.targetY !== undefined) skill.targetY += dy;
+                if (skill.pathPoints) {
+                   skill.pathPoints.forEach(pt => {
+                      pt.x += dx;
+                      pt.y += dy;
+                   });
+                }
+              }
+           }
+        });
         redraw();
         const now = Date.now();
         if (now - lastAgentBroadcastTimeRef.current > 80) {
@@ -2722,7 +2939,53 @@ ctx.restore();
     }
 
     if (draggedSkillRef.current) {
+      const skill = draggedSkillRef.current;
+      if (skill.unlinked && skill.behavior?.spawn === "player" && worldMousePosRef.current) {
+        const mouseX = worldMousePosRef.current.x;
+        const mouseY = worldMousePosRef.current.y;
+        
+        const originalCreator = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+        if (originalCreator) {
+          const mToPx = selectedMap?.pixelsPerMeter || 20;
+          for (let i = agentsRef.current.length - 1; i >= 0; i--) {
+            const agent = agentsRef.current[i];
+            const dist = Math.sqrt((agent.x - mouseX)**2 + (agent.y - mouseY)**2);
+            if (dist < 1.0 * mToPx) { // Hit radius ~1 meter
+              if (agent.id === originalCreator.id) {
+                // Link it
+                skill.agentInstanceId = agent.instanceId;
+                skill.unlinked = false;
+                
+                // Snap
+                let newX = agent.x;
+                let newY = agent.y;
+                let sa = 0;
+                if (skill.targetX !== undefined && skill.targetY !== undefined) {
+                   sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
+                }
+                if (skill.behavior?.spawnOffset) {
+                   newX = agent.x + Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+                   newY = agent.y + Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+                }
+                
+                const dx = newX - skill.x;
+                const dy = newY - skill.y;
+                skill.x = newX;
+                skill.y = newY;
+                if (skill.targetX !== undefined) skill.targetX += dx;
+                if (skill.targetY !== undefined) skill.targetY += dy;
+                if (skill.pathPoints) {
+                   skill.pathPoints.forEach(pt => { pt.x += dx; pt.y += dy; });
+                }
+                redrawImmediate();
+                break;
+              }
+            }
+          }
+        }
+      }
       draggedSkillRef.current = null;
+      redrawImmediate();
       updateUndoRedo();
       scheduleAutoSave();
     }
@@ -2837,26 +3100,32 @@ ctx.restore();
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
-      if (skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid")) {
-        const length = (skill.geometry.length || 0) * mToPx;
+      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
+      const isProj = skill.behavior?.flags?.projectile;
+      
+      if (isGeomWithTarget || isProj) {
+        const length = (skill.geometry?.length || 0) * mToPx;
         
         if (skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
-              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
+              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry?.length || 0) * mToPx;
               const dx = pos.x - startX;
               const dy = pos.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
               dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
+           } else if (isProj && !isGeomWithTarget) {
+              initTargetX = pos.x;
+              initTargetY = pos.y;
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
            if (skill.behavior?.flags?.chargeable) {
-              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry.length || 0) * mToPx;
+              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
            } else {
               initTargetX = pos.x + length;
            }
@@ -4028,15 +4297,39 @@ ctx.restore();
                     </div>
                   )}
                   {(session?.user as any)?.role === "super_admin" && (
-                    <button className={`tool-btn-premium ${tool === "calibrate" ? "active" : ""}`} onClick={() => { setTool("calibrate"); setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 }); calibrateStateRef.current = { step: "start", startPos: null }; hoveredPathIdRef.current = null; }} title="Calibrar Escala (Metros)" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 12H3"/>
-                        <path d="M21 6H3"/>
-                        <path d="M21 18H3"/>
-                        <path d="M8 6v12"/>
-                        <path d="M16 6v12"/>
-                      </svg>
-                    </button>
+                    <>
+                      <div style={{ width: "100%", height: 1, backgroundColor: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+                      <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255, 70, 85, 0.8)", textTransform: "uppercase", textAlign: "center", lineHeight: 1.1, marginBottom: 4 }}>Admin</span>
+                      <button className={`tool-btn-premium ${tool === "calibrate" ? "active" : ""}`} onClick={() => { setTool("calibrate"); setCalibrateState({ step: "start", startPos: null, showModal: false, distancePx: 0 }); calibrateStateRef.current = { step: "start", startPos: null }; hoveredPathIdRef.current = null; }} title="Calibrar Escala (Metros)" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12H3"/>
+                          <path d="M21 6H3"/>
+                          <path d="M21 18H3"/>
+                          <path d="M8 6v12"/>
+                          <path d="M16 6v12"/>
+                        </svg>
+                      </button>
+                      <button className="tool-btn-premium" onClick={async () => {
+                        if (!selectedMap) return;
+                        const currentRot = selectedMap.rotationOffset || 0;
+                        const newRot = (currentRot + 90) % 360;
+                        setSelectedMap({ ...selectedMap, rotationOffset: newRot });
+                        try {
+                          await fetch('/api/maps/rotate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ mapId: selectedMap.id, rotationOffset: newRot })
+                          });
+                        } catch (e) {
+                          console.error("Error rotating map:", e);
+                        }
+                      }} title="Rotar Mapa 90º" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                          <path d="M21 3v5h-5" />
+                        </svg>
+                      </button>
+                    </>
                   )}
                 </div>
 
@@ -4803,7 +5096,13 @@ ctx.restore();
         let screenY = hoverMenuState.y;
         const canvas = canvasRef.current;
         if (canvas) {
-          const pos = getScreenPos(ctxSkill.x, ctxSkill.y);
+          let cx = ctxSkill.x;
+          let cy = ctxSkill.y;
+          if (ctxSkill.behavior?.flags?.projectile && ctxSkill.targetX !== undefined && ctxSkill.targetY !== undefined) {
+             cx = ctxSkill.targetX;
+             cy = ctxSkill.targetY;
+          }
+          const pos = getScreenPos(cx, cy);
           screenX = pos.x + canvas.getBoundingClientRect().left;
           screenY = pos.y + canvas.getBoundingClientRect().top;
         }
@@ -4833,48 +5132,95 @@ ctx.restore();
               alignItems: "center"
             }}
           >
-            {(session?.user as any)?.role === "super_admin" && (
+            <div style={{ display: "flex", gap: 4 }}>
+              {ctxSkill.behavior?.spawn === "player" && !ctxSkill.unlinked && (
+                <button
+                  onClick={() => {
+                    const idx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
+                    if (idx >= 0) {
+                      const oldSkill = { ...skillsRef.current[idx] };
+                      skillsRef.current[idx].unlinked = true;
+                      undoStackRef.current.push({
+                        type: 'remove-skill', // Simple state change, could just trigger update
+                        skill: oldSkill,
+                        index: idx
+                      });
+                      redrawImmediate();
+                      setHoverMenuState(prev => ({ ...prev, visible: false }));
+                      hoveredSkillRef.current = null;
+                    }
+                  }}
+                  title="Desvincular del agente"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.1)",
+                    border: "none",
+                    borderRadius: 8,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    cursor: "pointer",
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71" />
+                    <path d="m5.17 11.67-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71" />
+                    <line x1="8" y1="8" x2="16" y2="16" />
+                  </svg>
+                </button>
+              )}
+              {(session?.user as any)?.role === "super_admin" && (
+                <button
+                  onClick={() => {
+                    const agentObj = agentsRef.current.find(a => a.instanceId === ctxSkill.agentInstanceId);
+                    if (agentObj) {
+                      setEditingSkillGlobalParams({ agentId: agentObj.id, skillKey: ctxSkill.key });
+                    }
+                    setHoverMenuState(prev => ({ ...prev, visible: false }));
+                  }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, backgroundColor: "var(--val-cyan)", border: "none", color: "#000", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
+                  }}
+                  title="Editar parámetros globales de la habilidad"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => {
                   const agentObj = agentsRef.current.find(a => a.instanceId === ctxSkill.agentInstanceId);
                   if (agentObj) {
-                    setEditingSkillGlobalParams({ agentId: agentObj.id, skillKey: ctxSkill.key });
+                    if (ctxSkill.behavior?.flags?.grantsWeapon) {
+                      agentObj.weaponId = "default";
+                    }
                   }
-                  setHoverMenuState(prev => ({ ...prev, visible: false }));
+                  const skillIdx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
+                  if (skillIdx > -1) {
+                    skillsRef.current.splice(skillIdx, 1);
+                    undoStackRef.current.push({ type: 'remove-skill', skill: ctxSkill, index: skillIdx });
+                    redoStackRef.current = [];
+                    updateUndoRedo();
+                    redrawImmediate();
+                    setHoverMenuState(prev => ({ ...prev, visible: false }));
+                  }
                 }}
                 style={{
-                  width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--val-cyan)", border: "none", color: "#000", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)", marginRight: 8
+                  width: 32, height: 32, borderRadius: 8, backgroundColor: "#ff4655", border: "none", color: "white", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
                 }}
-                title="Editar parámetros globales de la habilidad"
+                title="Borrar Habilidad"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
-            )}
-            <button
-              onClick={() => {
-                const skillIdx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
-                if (skillIdx > -1) {
-                  skillsRef.current.splice(skillIdx, 1);
-                  undoStackRef.current.push({ type: 'remove-skill', skill: ctxSkill, index: skillIdx });
-                  redoStackRef.current = [];
-                  updateUndoRedo();
-                  redrawImmediate();
-                  setHoverMenuState(prev => ({ ...prev, visible: false }));
-                }
-              }}
-              style={{
-                width: 28, height: 28, borderRadius: "50%", backgroundColor: "#ff4655", border: "none", color: "white", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
-              }}
-              title="Borrar Habilidad"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            </div>
           </div>
         );
       })()}
@@ -5111,9 +5457,17 @@ ctx.restore();
               onClick={e => {
                 e.stopPropagation();
                 const agentIdx = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
-                undoStackRef.current.push({ type: 'remove-agent', agent: ctxAgent, index: agentIdx });
+                const linkedSkills: {skill: CanvasSkill, index: number}[] = [];
+                skillsRef.current.forEach((s, idx) => {
+                   if (s.agentInstanceId === ctxAgent.instanceId && !s.unlinked) linkedSkills.push({skill: s, index: idx});
+                });
+                undoStackRef.current.push({ type: 'remove-agent', agent: ctxAgent, index: agentIdx, linkedSkills });
                 redoStackRef.current = [];
                 agentsRef.current = agentsRef.current.filter(a => a.instanceId !== ctxAgent.instanceId);
+                if (linkedSkills.length > 0) {
+                   const skillIds = new Set(linkedSkills.map(ls => ls.skill.instanceId));
+                   skillsRef.current = skillsRef.current.filter(s => !skillIds.has(s.instanceId));
+                }
                 updateUndoRedo();
                 redraw();
                 broadcastEraseElements([], [ctxAgent.instanceId]);
@@ -5401,7 +5755,7 @@ ctx.restore();
           <div style={{ position: "relative", width: 400, backgroundColor: "#0a0e14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 24 }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Calibrar Escala del Mapa</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Introduce la distancia real en metros para la línea que acabas de trazar ({Math.round(calibrateState.distancePx)}px).</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Introduce la distancia real en metros para la línea que acabas de trazar ({Math.round(calibrateState.distancePx)}px = {(calibrateState.distancePx / (selectedMap?.pixelsPerMeter || 20)).toFixed(1)}m).</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Distancia (metros)</label>
                 <input

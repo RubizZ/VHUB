@@ -16,6 +16,7 @@ export interface ValorantMap {
   xScalarToAdd: number;
   yScalarToAdd: number;
   pixelsPerMeter?: number;
+  rotationOffset?: number;
 }
 
 export const MAPS: ValorantMap[] = [

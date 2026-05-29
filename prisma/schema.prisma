@@ -109,6 +109,7 @@ model Map {
   mapUrl              String?
   tacticalDescription String?
   pixelsPerMeter      Float?
+  rotationOffset      Int?       @default(0)
   strategies          Strategy[]
   events              Event[]
 }

@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid";
+  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve";
   radius?: number;
   width?: number;
   length?: number;
