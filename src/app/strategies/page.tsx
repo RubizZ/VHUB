@@ -775,6 +775,21 @@ export default function StrategiesPage() {
       
       const mToPx = selectedMap?.pixelsPerMeter || 20;
 
+      if (pSkill.skill.behavior?.spawn === "ground" && agentObj) {
+         const maxRange = pSkill.skill.behavior?.maxCastRange || 0;
+         if (maxRange > 0) {
+            const maxPx = maxRange * mToPx;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(agentObj.x, agentObj.y, maxPx, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.lineWidth = 2 / scale;
+            ctx.setLineDash([4 / scale, 4 / scale]);
+            ctx.stroke();
+            ctx.restore();
+         }
+      }
+
       if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
@@ -784,6 +799,17 @@ export default function StrategiesPage() {
            startX += Math.cos(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
            startY += Math.sin(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
         }
+      } else if (pSkill.skill.behavior?.spawn === "ground" && agentObj) {
+         const maxRange = pSkill.skill.behavior?.maxCastRange || 0;
+         if (maxRange > 0) {
+            const maxPx = maxRange * mToPx;
+            const dist = Math.sqrt((worldMousePosRef.current.x - agentObj.x)**2 + (worldMousePosRef.current.y - agentObj.y)**2);
+            if (dist > maxPx) {
+               const angle = Math.atan2(worldMousePosRef.current.y - agentObj.y, worldMousePosRef.current.x - agentObj.x);
+               startX = agentObj.x + Math.cos(angle) * maxPx;
+               startY = agentObj.y + Math.sin(angle) * maxPx;
+            }
+         }
       }
 
       let initTargetX: number | undefined = undefined;
@@ -895,7 +921,14 @@ export default function StrategiesPage() {
       const geom = skill.geometry;
       ctx.fillStyle = skill.color;
       ctx.strokeStyle = skill.color;
-      ctx.globalAlpha = skill.instanceId === "preview" ? 0.25 : 0.5;
+      
+      let baseAlpha = skill.instanceId === "preview" ? 0.25 : 0.5;
+      let strokeAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
+      if (skill.behavior?.flags?.opaque && skill.instanceId !== "preview") {
+         baseAlpha = 1;
+         strokeAlpha = 1;
+      }
+      ctx.globalAlpha = baseAlpha;
 
       // Assuming 1 meter = 20 canvas units approximately (or calibrated value)
       const mToPx = selectedMap?.pixelsPerMeter || 20;
@@ -905,7 +938,7 @@ export default function StrategiesPage() {
         const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
         ctx.arc(0, 0, radius, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.globalAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
+        ctx.globalAlpha = strokeAlpha;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
       } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
@@ -946,7 +979,7 @@ export default function StrategiesPage() {
            ctx.rect(0, -width/2, length, width);
         }
         ctx.fill();
-        ctx.globalAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
+        ctx.globalAlpha = strokeAlpha;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
         ctx.restore();
@@ -965,7 +998,7 @@ export default function StrategiesPage() {
         ctx.beginPath();
         ctx.moveTo(-dx, -dy);
         ctx.lineTo(dx, dy);
-        ctx.globalAlpha = 0.7;
+        ctx.globalAlpha = skill.behavior?.flags?.opaque ? 1 : 0.7;
         ctx.lineWidth = 6 / scale;
         ctx.lineCap = "round";
         ctx.stroke();
@@ -1931,6 +1964,17 @@ ctx.restore();
            startX += Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
            startY += Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
         }
+      } else if (skill.behavior?.spawn === "ground" && agentObj) {
+         const maxRange = skill.behavior?.maxCastRange || 0;
+         if (maxRange > 0) {
+            const maxPx = maxRange * mToPx;
+            const dist = Math.sqrt((pos.x - agentObj.x)**2 + (pos.y - agentObj.y)**2);
+            if (dist > maxPx) {
+               const angle = Math.atan2(pos.y - agentObj.y, pos.x - agentObj.x);
+               startX = agentObj.x + Math.cos(angle) * maxPx;
+               startY = agentObj.y + Math.sin(angle) * maxPx;
+            }
+         }
       }
 
       let initTargetX: number | undefined = undefined;
@@ -4696,10 +4740,12 @@ ctx.restore();
                 gap: 4
               }}
             >
-              {["Q", "E", "C", "X", "PASSIVE"].map(key => {
+              {["C", "Q", "E", "X", "PASSIVE"].map(key => {
                 const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
                 const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase() && s.enabled);
                 const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt` && s.enabled);
+
+                if (key === "PASSIVE" && !mainSkill) return null;
 
                 const SkillBtn = ({ skill, isAlt }: { skill: typeof mainSkill; isAlt?: boolean }) => (
                   <div

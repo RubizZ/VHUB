@@ -54,6 +54,8 @@ interface SkillFormData {
   flagStoppableInFlight: boolean;
   flagGeneratesSoulOrbs: boolean;
   flagIsolatesTarget: boolean;
+  flagOpaque: boolean;
+  flagHasHitbox: boolean;
   behaviorSpeed: number;
   behaviorDuration: number;
   displayIcon: string;
@@ -206,6 +208,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
         flagGeneratesSoulOrbs: skill.behavior?.flags?.generatesSoulOrbs || false,
         flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
+        flagOpaque: skill.behavior?.flags?.opaque || false,
+        flagHasHitbox: skill.behavior?.flags?.hasHitbox || false,
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -259,6 +263,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagStoppableInFlight: false,
         flagGeneratesSoulOrbs: false,
         flagIsolatesTarget: false,
+        flagOpaque: false,
+        flagHasHitbox: false,
         displayIcon: "",
         enabled: true,
       });
@@ -329,6 +335,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             stoppableInFlight: formData.flagStoppableInFlight || undefined,
             generatesSoulOrbs: formData.flagGeneratesSoulOrbs || undefined,
             isolatesTarget: formData.flagIsolatesTarget || undefined,
+            opaque: formData.flagOpaque || undefined,
+            hasHitbox: formData.flagHasHitbox || undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -428,7 +436,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                     </div>
                   </div>
                   <div className="agent-skills-preview" style={{ display: "flex", gap: 8 }}>
-                     {["q", "e", "c", "x", "passive"].map(key => {
+                     {["c", "q", "e", "x", "passive"].map(key => {
                        const hasSkill = agent.skills?.some(s => s.key === key && s.enabled);
                        const hasAlt = agent.skills?.some(s => s.key === `${key}_alt` && s.enabled);
                        return (
@@ -468,7 +476,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
 
             <div style={{ display: "flex", gap: 24 }}>
               <div style={{ width: 140, display: "flex", flexDirection: "column", gap: 12 }}>
-                {["q", "e", "c", "x", "passive"].map(key => (
+                {["c", "q", "e", "x", "passive"].map(key => (
                   <React.Fragment key={key}>
                     <button 
                       className={`btn ${editingSkillKey === key ? "btn-primary" : "btn-secondary"}`}
@@ -716,13 +724,24 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         
                         <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagGeneratesSoulOrbs} onChange={e => setFormData({...formData, flagGeneratesSoulOrbs: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Mecánica de Orbe de Alma al matar (Ej: Iso, Reyna)</span>
+                          <span>Enemigos sueltan orbes al morir/asistir (ej. Reyna/Iso)</span>
                         </label>
                         
                         <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagIsolatesTarget} onChange={e => setFormData({...formData, flagIsolatesTarget: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Aísla al objetivo a un mundo aparte (Ej: Ulti de Iso)</span>
+                          <span>Aísla al objetivo a un "mundo aparte" (ej. Ulti de Iso)</span>
                         </label>
+
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagOpaque} onChange={e => setFormData({...formData, flagOpaque: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Es opaco (bloquea la visión visualmente)</span>
+                        </label>
+
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagHasHitbox} onChange={e => setFormData({...formData, flagHasHitbox: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Tiene hitbox física (rebota proyectiles como el muro de Sage)</span>
+                        </label>
+
 
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
 

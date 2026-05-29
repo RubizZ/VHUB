@@ -26,6 +26,8 @@ export interface SkillBehaviorFlags {
   deployablePreRound?: boolean; // Puede ser desplegada durante la fase de compra/pre-ronda
   controllablePath?: boolean; // Habilidad que se mueve dibujando un trazo (ej. Perro de Fade)
   triggerOnSight?: boolean; // Se detona/activa automáticamente al ver a un enemigo (ej. Wingman de Gekko)
+  opaque?: boolean; // La figura renderizada bloquea la visión (se pinta opaca)
+  hasHitbox?: boolean; // La figura colisiona con proyectiles (ej. Muro de Sage)
   stoppableInFlight?: boolean; // Habilidades en movimiento que se pueden detener manualmente (ej. Harbor C)
   generatesSoulOrbs?: boolean; // Enemigos sueltan orbes al morir o asistir (ej. Reyna/Iso)
   isolatesTarget?: boolean; // Aísla al objetivo a un "mundo aparte" (ej. Iso X)
