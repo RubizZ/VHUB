@@ -215,6 +215,7 @@ export default function StrategiesPage() {
   const draggedSkillRef = useRef<CanvasSkill | null>(null);
   const draggedSkillOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
+  const draggedSkillRotationRef = useRef<CanvasSkill | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
@@ -1102,7 +1103,7 @@ export default function StrategiesPage() {
       ctx.restore();
       
       const isHovered = hoveredSkillRef.current?.instanceId === skill.instanceId;
-      const isDragged = draggedSkillRef.current?.instanceId === skill.instanceId || draggedSkillTargetRef.current?.instanceId === skill.instanceId;
+      const isDragged = draggedSkillRef.current?.instanceId === skill.instanceId || draggedSkillTargetRef.current?.instanceId === skill.instanceId || draggedSkillRotationRef.current?.instanceId === skill.instanceId;
       const showHandles = isHovered || isDragged;
       
       if (sImg && sImg.complete && !skill.behavior?.flags?.controllablePath && !showHandles) {
@@ -2044,13 +2045,37 @@ ctx.restore();
           return;
         }
         
+        let foundSkillRot: CanvasSkill | null = null;
         const foundSkillTarget = [...skillsRef.current].reverse().find(s => {
           if (s.targetX === undefined || s.targetY === undefined) return false;
+          
+          if (s.behavior?.flags?.projectile && (s.geometry?.type === "cross" || s.geometry?.type === "rectangle" || s.geometry?.type === "cone" || s.geometry?.type === "trapezoid")) {
+             const rotAngle = s.customRotation !== undefined ? s.customRotation : Math.atan2(s.targetY - s.y, s.targetX - s.x);
+             
+             let scale = 1;
+             const mapImg = mapImgRef.current;
+             if (mapImg && mapImg.complete) {
+               scale = Math.min(canvas.width / mapImg.height, canvas.height / mapImg.width);
+             }
+             const rotDist = 30 / scale;
+             const rx = s.targetX + Math.cos(rotAngle) * rotDist;
+             const ry = s.targetY + Math.sin(rotAngle) * rotDist;
+             const screenPos = getScreenPos(rx, ry);
+             if (Math.sqrt((screenPos.x - mouseX) ** 2 + (screenPos.y - mouseY) ** 2) <= 12 * zoomRef.current) {
+                foundSkillRot = s;
+             }
+          }
+          
           const screenPos = getScreenPos(s.targetX, s.targetY);
           const dx = screenPos.x - mouseX;
           const dy = screenPos.y - mouseY;
           return Math.sqrt(dx * dx + dy * dy) <= 12 * zoomRef.current;
         });
+
+        if (foundSkillRot) {
+          draggedSkillRotationRef.current = foundSkillRot;
+          return;
+        }
         if (foundSkillTarget) {
           draggedSkillTargetRef.current = foundSkillTarget;
           return;
@@ -2468,8 +2493,8 @@ ctx.restore();
       }
 
       if (tool === "select") {
-        if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current) {
-          if (draggedSkillTargetRef.current) {
+        if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
+          if (draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
             canvas.style.cursor = "grabbing";
           } else {
             canvas.style.cursor = "grabbing";
@@ -2989,6 +3014,12 @@ ctx.restore();
       updateUndoRedo();
       scheduleAutoSave();
     }
+    if (draggedSkillRotationRef.current) {
+      draggedSkillRotationRef.current = null;
+      redrawImmediate();
+      updateCanvasDataThrottled();
+    }
+    
     if (draggedSkillTargetRef.current) {
       draggedSkillTargetRef.current = null;
       updateUndoRedo();
@@ -4333,30 +4364,7 @@ ctx.restore();
                   )}
                 </div>
 
-                {pendingSkillRef.current?.skill.behavior?.flags?.projectile && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
-                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", textAlign: "center", lineHeight: 1.1 }}>Ajustes de<br/>Habilidad</span>
-                     <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginTop: 6 }}>Modo de Tiro</span>
-                     <button
-                       type="button"
-                       className={`tool-btn-premium ${projectileMode === "bounce" ? "active" : ""}`}
-                       onClick={() => setProjectileMode("bounce")}
-                       title="Rebote"
-                       style={{ width: "100%", height: 32, fontSize: 11, fontWeight: 800 }}
-                     >
-                       Rebote
-                     </button>
-                     <button
-                       type="button"
-                       className={`tool-btn-premium ${projectileMode === "parabola" ? "active" : ""}`}
-                       onClick={() => setProjectileMode("parabola")}
-                       title="Parábola"
-                       style={{ width: "100%", height: 32, fontSize: 11, fontWeight: 800 }}
-                     >
-                       Parábola
-                     </button>
-                  </div>
-                )}
+
 
                 {/* Tool-specific params: draw & arrow */}
                 {(tool === "draw" || tool === "arrow") && (
@@ -5112,11 +5120,12 @@ ctx.restore();
               if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
               hoverMenuTimeoutRef.current = null;
               hoveredSkillRef.current = ctxSkill;
-              setHoverMenuState(prev => ({ ...prev, visible: true }));
+              setHoverMenuState(prev => prev.visible ? prev : { ...prev, visible: true });
             }}
             onMouseLeave={() => {
               hoveredSkillRef.current = null;
               setHoverMenuState(prev => ({ ...prev, visible: false }));
+              redrawImmediate();
             }}
             style={{
               position: "fixed",
@@ -5241,7 +5250,7 @@ ctx.restore();
               if (hoverMenuTimeoutRef.current) clearTimeout(hoverMenuTimeoutRef.current);
               hoverMenuTimeoutRef.current = null;
               hoveredAgentRef.current = ctxAgent;
-              setHoverMenuState(prev => ({ ...prev, visible: true }));
+              setHoverMenuState(prev => prev.visible ? prev : { ...prev, visible: true });
             }}
             onMouseLeave={() => {
               if (!hoverMenuTimeoutRef.current) {
@@ -5249,6 +5258,7 @@ ctx.restore();
                   hoveredAgentRef.current = null;
                   setHoverMenuState(prev => ({ ...prev, visible: false }));
                   hoverMenuTimeoutRef.current = null;
+                  redrawImmediate();
                 }, 300);
               }
             }}
@@ -5278,10 +5288,9 @@ ctx.restore();
                 const agentData = agentsData?.agents.find(a => a.id === ctxAgent.id);
                 const mainSkill = agentData?.skills?.find(s => s.key.toLowerCase() === key.toLowerCase() && s.enabled);
                 const altSkill = agentData?.skills?.find(s => s.key.toLowerCase() === `${key.toLowerCase()}_alt` && s.enabled);
-
                 if (key === "PASSIVE" && !mainSkill) return null;
-
-                const SkillBtn = ({ skill, isAlt }: { skill: typeof mainSkill; isAlt?: boolean }) => (
+                
+                const renderSkillBtn = (skill: typeof mainSkill, isAlt?: boolean) => (
                   <div
                     style={{
                       width: 28,
@@ -5453,8 +5462,8 @@ ctx.restore();
 
                 return (
                   <div key={key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    <SkillBtn skill={mainSkill} />
-                    {altSkill && <SkillBtn skill={altSkill} isAlt />}
+                    {renderSkillBtn(mainSkill)}
+                    {altSkill && renderSkillBtn(altSkill, true)}
                   </div>
                 );
               })}
