@@ -3703,9 +3703,23 @@ ctx.restore();
     }
   };
 
-  const createStratForMap = (e: React.MouseEvent, map: ValorantMap) => {
+  const createStratForMap = async (e: React.MouseEvent, map: ValorantMap) => {
     e.stopPropagation();
-    createStratMutation.mutate({ name: `Nueva Estrategia`, side: "attack", mapId: map.id });
+    try {
+      const res = await fetch(`/api/strategies?map_id=${map.id}`);
+      let existingNames = new Set<string>();
+      if (res.ok) {
+        const data = await res.json();
+        existingNames = new Set((data.strategies || []).map((s: Strategy) => s.name));
+      }
+      let x = 1;
+      while (existingNames.has(`Estrategia sin nombre ${x}`)) {
+        x++;
+      }
+      createStratMutation.mutate({ name: `Estrategia sin nombre ${x}`, side: "attack", mapId: map.id });
+    } catch (err) {
+      createStratMutation.mutate({ name: `Estrategia sin nombre 1`, side: "attack", mapId: map.id });
+    }
   };
 
   const deleteStratMutation = useMutation({
