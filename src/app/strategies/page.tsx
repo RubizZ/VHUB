@@ -989,7 +989,7 @@ export default function StrategiesPage() {
 
       ctx.save();
 
-      const isProj = skill.behavior?.flags?.projectile;
+      const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
       if (isProj && skill.targetX !== undefined && skill.targetY !== undefined) {
          const tx = skill.targetX - skill.x;
          const ty = skill.targetY - skill.y;
@@ -1008,7 +1008,16 @@ export default function StrategiesPage() {
          }
       }
 
-      if (geom.type === "circle") {
+      if (geom.type === "none") {
+        // No geometry shape — just a small circle around the icon
+        ctx.beginPath();
+        const noneRadius = 12 / scale;
+        ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = strokeAlpha;
+        ctx.lineWidth = 2 / scale;
+        ctx.stroke();
+      } else if (geom.type === "circle") {
         ctx.beginPath();
         const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
         ctx.arc(0, 0, radius, 0, 2 * Math.PI);
@@ -1944,7 +1953,7 @@ ctx.restore();
     const mToPx = selectedMap?.pixelsPerMeter || 20;
     const geom = s.geometry;
     
-    const isProj = s.behavior?.flags?.projectile;
+    const isProj = s.behavior?.flags?.projectile || s.behavior?.flags?.teleportsAgentInstantly;
     let drawOriginX = s.x;
     let drawOriginY = s.y;
     if (isProj && s.targetX !== undefined && s.targetY !== undefined && geom.type !== "curve" && geom.type !== "path") {
@@ -1955,7 +1964,9 @@ ctx.restore();
     const wdx = pos.x - drawOriginX;
     const wdy = pos.y - drawOriginY;
 
-    if (geom.type === "circle") {
+    if (geom.type === "none") {
+      return Math.sqrt(wdx * wdx + wdy * wdy) <= 12 / zoomRef.current;
+    } else if (geom.type === "circle") {
       const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
       return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
     } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
