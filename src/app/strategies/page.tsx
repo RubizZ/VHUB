@@ -821,7 +821,7 @@ export default function StrategiesPage() {
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
       const isGeomWithTarget = pSkill.skill.geometry && (pSkill.skill.geometry.type === "rectangle" || pSkill.skill.geometry.type === "cone" || pSkill.skill.geometry.type === "trapezoid" || pSkill.skill.geometry.type === "curve");
-      const isProj = pSkill.skill.behavior?.flags?.projectile;
+      const isProj = pSkill.skill.behavior?.flags?.projectile || pSkill.skill.behavior?.flags?.teleportsAgentInstantly;
       
       if (isGeomWithTarget || isProj) {
         const length = (pSkill.skill.geometry?.length || 0) * mToPx;
@@ -844,12 +844,33 @@ export default function StrategiesPage() {
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
-           if (pSkill.skill.behavior?.flags?.chargeable) {
+           // ground spawn: enforce maxCastRange if set
+           if (isProj && !isGeomWithTarget) {
+              const maxRange = pSkill.skill.behavior?.maxCastRange || pSkill.skill.behavior?.groundRange || 0;
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = worldMousePosRef.current.x - (agentObj?.x ?? worldMousePosRef.current.x);
+                 const dy = worldMousePosRef.current.y - (agentObj?.y ?? worldMousePosRef.current.y);
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    initTargetX = (agentObj?.x ?? worldMousePosRef.current.x) + Math.cos(angle) * maxPx;
+                    initTargetY = (agentObj?.y ?? worldMousePosRef.current.y) + Math.sin(angle) * maxPx;
+                 } else {
+                    initTargetX = worldMousePosRef.current.x;
+                    initTargetY = worldMousePosRef.current.y;
+                 }
+              } else {
+                 initTargetX = worldMousePosRef.current.x;
+                 initTargetY = worldMousePosRef.current.y;
+              }
+           } else if (pSkill.skill.behavior?.flags?.chargeable) {
               initTargetX = startX + (pSkill.skill.behavior.chargeMinLength || pSkill.skill.geometry?.length || 0) * mToPx;
+              initTargetY = startY;
            } else {
               initTargetX = startX + length;
+              initTargetY = startY;
            }
-           initTargetY = startY;
         }
       }
       
@@ -2267,7 +2288,7 @@ ctx.restore();
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
       const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
-      const isProj = skill.behavior?.flags?.projectile;
+      const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
       
       if (isGeomWithTarget || isProj) {
         const length = (skill.geometry?.length || 0) * mToPx;
@@ -2290,12 +2311,33 @@ ctx.restore();
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
-           if (skill.behavior?.flags?.chargeable) {
+           // ground spawn: enforce maxCastRange if set
+           if (isProj && !isGeomWithTarget) {
+              const maxRange = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = pos.x - (agentObj?.x ?? pos.x);
+                 const dy = pos.y - (agentObj?.y ?? pos.y);
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    initTargetX = (agentObj?.x ?? pos.x) + Math.cos(angle) * maxPx;
+                    initTargetY = (agentObj?.y ?? pos.y) + Math.sin(angle) * maxPx;
+                 } else {
+                    initTargetX = pos.x;
+                    initTargetY = pos.y;
+                 }
+              } else {
+                 initTargetX = pos.x;
+                 initTargetY = pos.y;
+              }
+           } else if (skill.behavior?.flags?.chargeable) {
               initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
+              initTargetY = pos.y;
            } else {
               initTargetX = pos.x + length;
+              initTargetY = pos.y;
            }
-           initTargetY = pos.y;
         }
       }
       
@@ -2788,8 +2830,33 @@ ctx.restore();
            skill.targetY = skill.y + Math.sin(sa) * dist;
          }
        } else {
-         skill.targetX = pos.x;
-         skill.targetY = pos.y;
+         const isGroundProj = (skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly) && skill.behavior?.spawn !== "player";
+         if (isGroundProj) {
+            const maxRange = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+            if (maxRange > 0) {
+               const agentObjForRange = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+               const originX = agentObjForRange?.x ?? skill.x;
+               const originY = agentObjForRange?.y ?? skill.y;
+               const maxPx = maxRange * mToPx;
+               const dx = pos.x - originX;
+               const dy = pos.y - originY;
+               const dist = Math.sqrt(dx*dx + dy*dy);
+               if (dist > maxPx) {
+                  const angle = Math.atan2(dy, dx);
+                  skill.targetX = originX + Math.cos(angle) * maxPx;
+                  skill.targetY = originY + Math.sin(angle) * maxPx;
+               } else {
+                  skill.targetX = pos.x;
+                  skill.targetY = pos.y;
+               }
+            } else {
+               skill.targetX = pos.x;
+               skill.targetY = pos.y;
+            }
+         } else {
+            skill.targetX = pos.x;
+            skill.targetY = pos.y;
+         }
        }
        
        if (skill.behavior?.flags?.controllablePath) {
@@ -2814,7 +2881,7 @@ ctx.restore();
               skill.x += dx;
               skill.y += dy;
               
-              const isProj = skill.behavior?.flags?.projectile;
+              const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
               if (!isProj) {
                 if (skill.targetX !== undefined) skill.targetX += dx;
                 if (skill.targetY !== undefined) skill.targetY += dy;
@@ -3134,7 +3201,7 @@ ctx.restore();
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
       const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
-      const isProj = skill.behavior?.flags?.projectile;
+      const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
       
       if (isGeomWithTarget || isProj) {
         const length = (skill.geometry?.length || 0) * mToPx;
@@ -3157,12 +3224,33 @@ ctx.restore();
               initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
-           if (skill.behavior?.flags?.chargeable) {
+           // ground spawn: enforce maxCastRange if set
+           if (isProj && !isGeomWithTarget) {
+              const maxRange = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = pos.x - (agentObj?.x ?? pos.x);
+                 const dy = pos.y - (agentObj?.y ?? pos.y);
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    initTargetX = (agentObj?.x ?? pos.x) + Math.cos(angle) * maxPx;
+                    initTargetY = (agentObj?.y ?? pos.y) + Math.sin(angle) * maxPx;
+                 } else {
+                    initTargetX = pos.x;
+                    initTargetY = pos.y;
+                 }
+              } else {
+                 initTargetX = pos.x;
+                 initTargetY = pos.y;
+              }
+           } else if (skill.behavior?.flags?.chargeable) {
               initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
+              initTargetY = pos.y;
            } else {
               initTargetX = pos.x + length;
+              initTargetY = pos.y;
            }
-           initTargetY = pos.y;
         }
       }
 

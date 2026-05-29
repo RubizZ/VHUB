@@ -43,6 +43,7 @@ interface SkillFormData {
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
   flagTeleportsToDeployed: boolean;
+  flagTeleportsAgentInstantly: boolean;
   flagInstantSelfBuff: boolean;
   flagSelfRevive: boolean;
   flagTargetRevive: boolean;
@@ -109,6 +110,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagRecallable: false,
     flagGrantsWeapon: false,
     flagTeleportsToDeployed: false,
+    flagTeleportsAgentInstantly: false,
     flagInstantSelfBuff: false,
     flagSelfRevive: false,
     flagTargetRevive: false,
@@ -199,6 +201,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
+        flagTeleportsAgentInstantly: skill.behavior?.flags?.teleportsAgentInstantly || false,
         flagInstantSelfBuff: skill.behavior?.flags?.instantSelfBuff || false,
         flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
@@ -254,6 +257,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRecallable: false,
         flagGrantsWeapon: false,
         flagTeleportsToDeployed: false,
+        flagTeleportsAgentInstantly: false,
         flagInstantSelfBuff: false,
         flagSelfRevive: false,
         flagTargetRevive: false,
@@ -326,6 +330,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
             teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
+            teleportsAgentInstantly: formData.flagTeleportsAgentInstantly || undefined,
             instantSelfBuff: formData.flagInstantSelfBuff || undefined,
             selfRevive: formData.flagSelfRevive || undefined,
             targetRevive: formData.flagTargetRevive || undefined,
@@ -603,6 +608,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         <div className="form-group" style={{ flex: "1 1 100%" }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica Visual</label>
                           <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
+                            <option value="none">Ninguna (Solo Icono)</option>
                             <option value="circle">Círculo / Área</option>
                             <option value="rectangle">Rectángulo / Línea</option>
                             <option value="cone">Cono (Área frontal)</option>
@@ -610,6 +616,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <option value="path">Ruta / Camino</option>
                             <option value="trapezoid">Trapecio (Muro Iso)</option>
                             <option value="curve">Curva (Bola de efecto)</option>
+                            <option value="cross">Cruz (Granada Raze)</option>
                           </select>
                         </div>
                         {formData.geometryType === "circle" && (
@@ -666,7 +673,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
                           <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
                           <span className="checkbox-custom"></span>
-                          <span>Permite TP (Chamber E)</span>
+                          <span>Teletransporte en Ancla (Chamber, Yoru)</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <input type="checkbox" checked={formData.flagTeleportsAgentInstantly} onChange={e => setFormData({...formData, flagTeleportsAgentInstantly: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span>Teletransporte Directo (Omen C/X)</span>
                         </label>
                         <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
                           <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />

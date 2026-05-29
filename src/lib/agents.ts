@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve";
+  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross";
   radius?: number;
   width?: number;
   length?: number;
@@ -18,6 +18,7 @@ export interface SkillBehaviorFlags {
   recallable?: boolean; // La habilidad debe ser recogida manualmente antes de que empiece el cooldown (ej. C de Chamber)
   grantsWeapon?: boolean; // Actúa como arma (ej. Q/X de Chamber)
   teleportsToDeployed?: boolean; // Permite tepearse a esta habilidad si ya está desplegada
+  teleportsAgentInstantly?: boolean; // Teletransporte instantáneo sin desplegar ancla (ej. Omen C)
   instantSelfBuff?: boolean; // Habilidad de auto-aplicación instantánea (Buff)
   selfRevive?: boolean; // Auto-resurrección (ej. Clove X)
   targetRevive?: boolean; // Resurrección a aliado (ej. Sage X)
