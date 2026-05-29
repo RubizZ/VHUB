@@ -417,6 +417,7 @@ export default function StrategiesPage() {
   // 1.5 Query Agents
   const {
     data: agentsData,
+    isLoading: agentsLoading,
   } = useQuery<{ agents: ValorantAgent[] }>({
     queryKey: ["agents"],
     queryFn: async () => {
@@ -5086,8 +5087,29 @@ ctx.restore();
             </div>
 
             {/* Agent Selector Panel (Horizontal below canvas) */}
-            <div className="editor-agents-panel-premium">
-              {/* Team toggle */}
+            {agentsLoading ? (
+              <div className="editor-agents-panel-premium" style={{ opacity: 0.8 }}>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+                  <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                  <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                </div>
+                <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.08)", flexShrink: 0, margin: "0 12px" }} />
+                <div style={{ display: "flex", gap: 24, flex: 1, overflow: "hidden", alignItems: "center" }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <Skeleton width={120} height={32} style={{ borderRadius: 16 }} />
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                        <Skeleton width={58} height={58} style={{ borderRadius: 8 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="editor-agents-panel-premium">
+                {/* Team toggle */}
               <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
                 <button
                   onClick={() => setActiveTeam("ally")}
@@ -5194,6 +5216,7 @@ ctx.restore();
                 })}
               </div>
             </div>
+            )}
 
           </div>
         )}
