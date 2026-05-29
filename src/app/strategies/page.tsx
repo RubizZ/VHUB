@@ -766,7 +766,7 @@ export default function StrategiesPage() {
 
     // Draw Skills
     const skillsToRender = [...skillsRef.current];
-    if (tool === "skill" && pendingSkillRef.current && worldMousePosRef.current) {
+    if (pendingSkillRef.current && worldMousePosRef.current) {
       const pSkill = pendingSkillRef.current;
       const agentObj = agentsRef.current.find(a => a.instanceId === pSkill.agentInstanceId);
       
@@ -861,20 +861,22 @@ export default function StrategiesPage() {
       const isActivatable = skill.behavior?.flags?.activatableDeployable;
       const isActive = skill.isActive;
 
-      let sImg = skillImgsRef.current.get(skill.key);
+      const agent = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+      const agentData = agent ? findAgent(agent.id) : null;
+      const imgKey = agentData ? `${agentData.id}-${skill.key}` : skill.key;
+
+      let sImg = skillImgsRef.current.get(imgKey);
       if (!sImg) {
-         const agent = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
-         const agentData = agent ? findAgent(agent.id) : null;
          const skillData = agentData?.skills?.find(s => s.key === skill.key);
          if (skillData?.displayIcon) {
             const img = new Image();
             img.crossOrigin = "anonymous";
             img.src = skillData.displayIcon;
             img.onload = () => {
-              skillImgsRef.current.set(skill.key, img);
+              skillImgsRef.current.set(imgKey, img);
               redraw();
             };
-            skillImgsRef.current.set(skill.key, img);
+            skillImgsRef.current.set(imgKey, img);
             sImg = img;
          }
       }
@@ -889,8 +891,16 @@ export default function StrategiesPage() {
         ctx.stroke();
         
         if (sImg && sImg.complete) {
+           ctx.save();
+           ctx.rotate(-angle);
            ctx.drawImage(sImg, -8, -8, 16, 16);
-           ctx.drawImage(sImg, skill.targetX - skill.x - 8, skill.targetY - skill.y - 8, 16, 16);
+           ctx.restore();
+           
+           ctx.save();
+           ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
+           ctx.rotate(-angle);
+           ctx.drawImage(sImg, -8, -8, 16, 16);
+           ctx.restore();
         }
         ctx.restore();
         continue;
@@ -912,13 +922,22 @@ export default function StrategiesPage() {
         
         if (sImg && sImg.complete) {
            const lastPt = skill.pathPoints[skill.pathPoints.length - 1];
-           ctx.drawImage(sImg, lastPt.x - skill.x - 10, lastPt.y - skill.y - 10, 20, 20);
+           ctx.save();
+           ctx.translate(lastPt.x - skill.x, lastPt.y - skill.y);
+           ctx.rotate(-angle);
+           ctx.drawImage(sImg, -10, -10, 20, 20);
+           ctx.restore();
         }
         ctx.restore();
         continue;
       }
       
       const geom = skill.geometry;
+      if (!geom) {
+         ctx.restore();
+         continue;
+      }
+
       ctx.fillStyle = skill.color;
       ctx.strokeStyle = skill.color;
       
@@ -1019,24 +1038,73 @@ export default function StrategiesPage() {
 
       // Draw handles if not preview and is hovered or dragged
       if (skill.instanceId !== "preview" && showHandles) {
+        const anchorR = 10 / scale;
+        const imgS = 14 / scale;
+
         // Draw a small draggable handle at the center
         ctx.beginPath();
-        ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.arc(0, 0, anchorR, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
         ctx.fill();
         ctx.strokeStyle = skill.color;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
 
+        if (sImg && sImg.complete) {
+           ctx.save();
+           ctx.rotate(-angle);
+           ctx.drawImage(sImg, -imgS/2, -imgS/2, imgS, imgS);
+           ctx.restore();
+        }
+
         // Draw another handle at the target if it exists
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
+          const tx = skill.targetX - skill.x;
+          const ty = skill.targetY - skill.y;
+          
+          ctx.save();
+          ctx.translate(tx, ty);
+          ctx.rotate(Math.atan2(ty, tx));
+
+          // Draw the base anchor circle
           ctx.beginPath();
-          ctx.arc(skill.targetX - skill.x, skill.targetY - skill.y, 8 / scale, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
           ctx.fill();
           ctx.strokeStyle = skill.color;
           ctx.lineWidth = 2 / scale;
           ctx.stroke();
+
+          // Draw rotation indicator (curved arc on the right with arrows)
+          const r = 14 / scale;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2 / scale;
+          ctx.lineCap = "round";
+          ctx.stroke();
+
+          const arrowSize = 4 / scale;
+          
+          // Top arrow tip
+          const topX = Math.cos(-Math.PI / 5) * r;
+          const topY = Math.sin(-Math.PI / 5) * r;
+          ctx.beginPath();
+          ctx.moveTo(topX - arrowSize*0.5, topY + arrowSize);
+          ctx.lineTo(topX, topY);
+          ctx.lineTo(topX + arrowSize, topY + arrowSize*0.5);
+          ctx.stroke();
+
+          // Bottom arrow tip
+          const botX = Math.cos(Math.PI / 5) * r;
+          const botY = Math.sin(Math.PI / 5) * r;
+          ctx.beginPath();
+          ctx.moveTo(botX - arrowSize*0.5, botY - arrowSize);
+          ctx.lineTo(botX, botY);
+          ctx.lineTo(botX + arrowSize, botY - arrowSize*0.5);
+          ctx.stroke();
+
+          ctx.restore();
         }
       }
       
@@ -1092,7 +1160,8 @@ export default function StrategiesPage() {
         a.activeBuffs.forEach((buffKey, idx) => {
           const skill = agent?.skills?.find(s => s.key === buffKey);
           if (skill && skill.displayIcon) {
-            const sImg = skillImgsRef.current.get(skill.key);
+            const imgKey = `${agent!.id}-${skill.key}`;
+            const sImg = skillImgsRef.current.get(imgKey);
             if (sImg && sImg.complete) {
               ctx.save();
               const offset = (idx - (a.activeBuffs!.length - 1) / 2) * 20;
@@ -1112,15 +1181,15 @@ export default function StrategiesPage() {
               ctx.shadowBlur = 0; // reset shadow for image
               ctx.drawImage(sImg, -7, -7, 14, 14);
               ctx.restore();
-            } else if (!skillImgsRef.current.has(skill.key)) {
+            } else if (!skillImgsRef.current.has(imgKey)) {
               const img = new Image();
               img.crossOrigin = "anonymous";
               img.src = skill.displayIcon;
               img.onload = () => {
-                skillImgsRef.current.set(skill.key, img);
+                skillImgsRef.current.set(imgKey, img);
                 redraw();
               };
-              skillImgsRef.current.set(skill.key, img);
+              skillImgsRef.current.set(imgKey, img);
             }
           }
         });
@@ -1139,7 +1208,8 @@ export default function StrategiesPage() {
             const h = 16;
 
             if (skill.displayIcon) {
-              const sImg = skillImgsRef.current.get(skill.key);
+              const imgKey = `${agent!.id}-${skill.key}`;
+              const sImg = skillImgsRef.current.get(imgKey);
               if (sImg && sImg.complete) {
                 const imgW = isAlt ? 14 : 18;
                 const imgH = isAlt ? 14 : 18;
@@ -1160,15 +1230,15 @@ export default function StrategiesPage() {
                 ctx.textBaseline = "bottom";
                 const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : (skillKey.toUpperCase() === "PASSIVE" ? "P" : skillKey.toUpperCase());
                 ctx.fillText(text, w/2 - 2, h/2 - 1);
-              } else if (!skillImgsRef.current.has(skill.key)) {
+              } else if (!skillImgsRef.current.has(imgKey)) {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 img.src = skill.displayIcon;
                 img.onload = () => {
-                  skillImgsRef.current.set(skill.key, img);
+                  skillImgsRef.current.set(imgKey, img);
                   redraw();
                 };
-                skillImgsRef.current.set(skill.key, img);
+                skillImgsRef.current.set(imgKey, img);
               }
             } else {
               ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
@@ -1946,7 +2016,7 @@ ctx.restore();
         scheduleAutoSave();
       }
     }
-    if (tool === "skill" && pendingSkillRef.current) {
+    if (pendingSkillRef.current) {
       const { agentInstanceId, skill, color: skillColor } = pendingSkillRef.current;
       const agentObj = agentsRef.current.find(a => a.instanceId === agentInstanceId);
       
@@ -2114,15 +2184,7 @@ ctx.restore();
   const globalMouseMoveRef = useRef<(e: MouseEvent) => void>(() => { });
   const globalMouseUpRef = useRef<() => void>(() => { });
 
-  const getRotateCursor = (skill: CanvasSkill) => {
-    let deg = 0;
-    if (skill.targetX !== undefined && skill.targetY !== undefined) {
-      const worldDeg = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x) * 180 / Math.PI;
-      const mapRot = selectedSide === "attack" ? 90 : -90;
-      deg = worldDeg + mapRot;
-    }
-    return `url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20style%3D%22filter%3A%20drop-shadow%280px%200px%202px%20black%29%20drop-shadow%280px%200px%202px%20black%29%3B%22%3E%3Cg%20transform%3D%22rotate%28${deg}%2016%2016%29%22%3E%3Cpath%20d%3D%22M%2022%208%20A%2010%2010%200%200%201%2022%2024%22%20%2F%3E%3Cpath%20d%3D%22M%2022%2013%20L%2022%208%20L%2027%208%22%20%2F%3E%3Cpath%20d%3D%22M%2022%2019%20L%2022%2024%20L%2027%2024%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E') 16 16, crosshair`;
-  };
+
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     let cx = 0;
@@ -2167,7 +2229,7 @@ ctx.restore();
       redrawImmediate();
     }
     
-    if (tool === "skill" && pendingSkillRef.current) {
+    if (pendingSkillRef.current) {
       redrawImmediate();
     }
 
@@ -2209,7 +2271,7 @@ ctx.restore();
       if (tool === "select") {
         if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current) {
           if (draggedSkillTargetRef.current) {
-            canvas.style.cursor = getRotateCursor(draggedSkillTargetRef.current);
+            canvas.style.cursor = "grabbing";
           } else {
             canvas.style.cursor = "grabbing";
           }
@@ -2300,7 +2362,7 @@ ctx.restore();
           }
 
           if (isOverSkillTarget) {
-            canvas.style.cursor = getRotateCursor(foundHoverSkillTarget!);
+            canvas.style.cursor = "grab";
           } else if (isOverAgent || isOverSkill) {
             canvas.style.cursor = "grab";
           } else {
@@ -2662,60 +2724,131 @@ ctx.restore();
     e.dataTransfer.setDragImage(e.currentTarget as Element, 20, 20);
   };
 
-  const handleCanvasDragOver = (e: React.DragEvent) => {
+  const handleCanvasDragEnter = (e: React.DragEvent) => {
+    console.log("Canvas DragEnter fired", e.dataTransfer.types);
     e.preventDefault();
+    e.stopPropagation();
   };
 
-  const handleCanvasDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
+  const handleCanvasDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (pendingSkillRef.current) {
+       const canvas = canvasRef.current;
+       if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          mousePosRef.current = { canvasX: e.clientX - rect.left, canvasY: e.clientY - rect.top };
+       }
+       worldMousePosRef.current = getPos(e);
+       redrawImmediateRef.current?.();
+    }
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent<HTMLElement>) => {
+    console.log("Canvas Drop fired!");
+    e.preventDefault();
+    e.stopPropagation();
     const pos = getPos(e);
 
-    try {
-      const dataStr = e.dataTransfer.getData("application/json");
-      if (dataStr) {
-        const data = JSON.parse(dataStr);
-        if (data.type === "skill") {
-          let initTargetX: number | undefined = undefined;
-          let initTargetY: number | undefined = undefined;
-          if (data.geometry && (data.geometry.type === "rectangle" || data.geometry.type === "cone" || data.geometry.type === "trapezoid")) {
-            const mToPx = selectedMap?.pixelsPerMeter || 20;
-            const length = data.geometry.length * mToPx;
-            initTargetX = pos.x + length;
-            initTargetY = pos.y;
-          }
+    const types = Array.from(e.dataTransfer.types || []);
+    const isSkillDrop = types.includes("application/json");
 
-          const newSkill: CanvasSkill = {
-            instanceId: Math.random().toString(36).substring(2, 9),
-            agentInstanceId: data.agentInstanceId,
-            key: data.key,
-            x: pos.x,
-            y: pos.y,
-            targetX: initTargetX,
-            targetY: initTargetY,
-            color: data.color,
-            geometry: data.geometry,
-            behavior: data.behavior,
-            createdBy: myUserId
-          };
-          skillsRef.current.push(newSkill);
-          loadedSkillIdsRef.current.add(newSkill.instanceId);
-          undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
-          redoStackRef.current = [];
-          redraw();
-          updateUndoRedo();
-          scheduleAutoSave();
-          setTool("select");
-          return;
+    if (isSkillDrop && pendingSkillRef.current) {
+      const pendingData = pendingSkillRef.current;
+      const agentObj = agentsRef.current.find(a => a.instanceId === pendingData.agentInstanceId);
+      const skill = pendingData.skill;
+      let startX = pos.x;
+      let startY = pos.y;
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
+
+      if (skill.behavior?.spawn === "player" && agentObj) {
+        startX = agentObj.x;
+        startY = agentObj.y;
+        
+        if (skill.behavior?.spawnOffset) {
+           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           startX += Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+        }
+      } else if (skill.behavior?.spawn === "ground" && agentObj) {
+         const maxRange = skill.behavior?.maxCastRange || 0;
+         if (maxRange > 0) {
+            const maxPx = maxRange * mToPx;
+            const dist = Math.sqrt((pos.x - agentObj.x)**2 + (pos.y - agentObj.y)**2);
+            if (dist > maxPx) {
+               const angle = Math.atan2(pos.y - agentObj.y, pos.x - agentObj.x);
+               startX = agentObj.x + Math.cos(angle) * maxPx;
+               startY = agentObj.y + Math.sin(angle) * maxPx;
+            }
+         }
+      }
+
+      let initTargetX: number | undefined = undefined;
+      let initTargetY: number | undefined = undefined;
+      if (skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid")) {
+        const length = (skill.geometry.length || 0) * mToPx;
+        
+        if (skill.behavior?.spawn === "player" && agentObj) {
+           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           if (skill.behavior?.flags?.chargeable) {
+              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
+              let dist = Math.sqrt((pos.x - startX)**2 + (pos.y - startY)**2);
+              dist = Math.min(dist, maxLen);
+              initTargetX = startX + Math.cos(sa) * dist;
+              initTargetY = startY + Math.sin(sa) * dist;
+           } else {
+              initTargetX = startX + Math.cos(sa) * length;
+              initTargetY = startY + Math.sin(sa) * length;
+           }
+        } else {
+           if (skill.behavior?.flags?.chargeable) {
+              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry.length || 0) * mToPx;
+           } else {
+              initTargetX = pos.x + length;
+           }
+           initTargetY = pos.y;
         }
       }
-    } catch (err) {
-      // Ignore
+
+      const newSkill: CanvasSkill = {
+        instanceId: Math.random().toString(36).substring(2, 9),
+        agentInstanceId: pendingData.agentInstanceId,
+        key: skill.key,
+        x: startX,
+        y: startY,
+        targetX: initTargetX,
+        targetY: initTargetY,
+        geometry: skill.geometry,
+        behavior: skill.behavior,
+        projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
+        pathPoints: skill.behavior?.flags?.controllablePath ? [{x: startX, y: startY}, {x: pos.x, y: pos.y}] : undefined,
+        color: pendingData.color,
+        createdBy: myUserId
+      };
+      skillsRef.current.push(newSkill);
+      loadedSkillIdsRef.current.add(newSkill.instanceId);
+      undoStackRef.current.push({ type: 'add-skill', skill: newSkill });
+      redoStackRef.current = [];
+      
+      if (skill.behavior?.flags?.grantsWeapon && agentObj) {
+        agentObj.weaponId = "skill:" + skill.key;
+      }
+      
+      pendingSkillRef.current = null;
+      mousePosRef.current = null;
+      setTool("select");
+      redraw();
+      updateUndoRedo();
+      scheduleAutoSave();
+      return;
     }
 
     const agentId = e.dataTransfer.getData("text/plain");
+    console.log("agentId from dataTransfer:", agentId);
     if (!agentId) return;
 
     const agent = findAgent(agentId);
+    console.log("agent found:", agent);
     if (agent) {
       if (!agentImgsRef.current.has(agent.id)) {
         const img = new Image();
@@ -3824,7 +3957,7 @@ ctx.restore();
                       {icon}
                     </button>
                   ))}
-                  {tool === "skill" && pendingSkillRef.current && (
+                  {pendingSkillRef.current && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: '100%', margin: "8px 0" }}>
                       <button className="tool-btn-premium active" title={pendingSkillRef.current.skill.displayName || pendingSkillRef.current.skill.name || "Habilidad Seleccionada"} style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                         {pendingSkillRef.current.skill.displayIcon ? (
@@ -3853,7 +3986,7 @@ ctx.restore();
                   )}
                 </div>
 
-                {tool === "skill" && pendingSkillRef.current?.skill.behavior?.flags?.projectile && (
+                {pendingSkillRef.current?.skill.behavior?.flags?.projectile && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
                      <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", textAlign: "center", lineHeight: 1.1 }}>Ajustes de<br/>Habilidad</span>
                      <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginTop: 6 }}>Modo de Tiro</span>
@@ -4303,11 +4436,12 @@ ctx.restore();
               )}
 
               {/* Canvas Wrap */}
-              <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
+              <div className="canvas-wrap-premium" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}
+                  onDragEnter={handleCanvasDragEnter} onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}>
                 <canvas ref={canvasRef} style={{ display: "block", cursor: tool === "select" ? "default" : tool === "eraser" ? "none" : "crosshair", touchAction: "none", width: "100%", height: "100%" }}
                   onMouseDown={(e) => { if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); startDraw(e); }} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; if (customCursorRef.current) customCursorRef.current.style.display = "none"; redrawImmediate(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
-                  onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
+                  onDragEnter={handleCanvasDragEnter} onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
                   onContextMenu={e => { e.preventDefault(); if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); }} />
 
                 <div
@@ -4800,6 +4934,11 @@ ctx.restore();
                         geometry: skill.geometry,
                         behavior: skill.behavior
                       }));
+                      pendingSkillRef.current = {
+                        agentInstanceId: ctxAgent.instanceId,
+                        skill,
+                        color: skill.color || agentData?.bgColors?.[0] || "#fff"
+                      };
                       if (e.currentTarget.querySelector("img")) {
                         e.dataTransfer.setDragImage(e.currentTarget.querySelector("img")!, 12, 12);
                       } else {
@@ -4807,6 +4946,11 @@ ctx.restore();
                       }
                     }}
                     onDragEnd={() => {
+                      // Defer clearing pendingSkillRef so onDrop on the canvas fires first
+                      setTimeout(() => {
+                        pendingSkillRef.current = null;
+                        redrawImmediateRef.current?.();
+                      }, 0);
                       setHoverMenuState(prev => ({ ...prev, visible: false }));
                     }}
                     onClick={() => {
