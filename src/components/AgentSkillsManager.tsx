@@ -13,7 +13,7 @@ interface SkillFormData {
   color: string;
   charges: number;
   castTime: number;
-  geometryType: "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve";
+  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross";
   geometryRadius: number;
   geometryWidth: number;
   geometryLength: number;
@@ -22,13 +22,29 @@ interface SkillFormData {
   behaviorCastTime: number;
   behaviorRechargeTime: number;
   behaviorRechargeKills: number;
-  behaviorBuffDuration: number;
-  behaviorBuffApplied: string;
   behaviorDebuffApplied: string;
   behaviorSpawn: "player" | "ground" | "wall" | "projectile";
   behaviorSpawnOffset: number;
   behaviorGroundRange: number;
+  consumesSkillKey: string;
+  // flags simples
   flagThroughWall: boolean;
+  flagRecallable: boolean;
+  flagGrantsWeapon: boolean;
+  flagTeleportsToDeployed: boolean;
+  flagTeleportsAgentInstantly: boolean;
+  flagSelfRevive: boolean;
+  flagTargetRevive: boolean;
+  flagActivatableDeployable: boolean;
+  flagTwoPointDeployment: boolean;
+  flagDeployablePreRound: boolean;
+  flagTriggerOnSight: boolean;
+  flagStoppableInFlight: boolean;
+  flagGeneratesSoulOrbs: boolean;
+  flagIsolatesTarget: boolean;
+  flagOpaque: boolean;
+  flagHasHitbox: boolean;
+  // flags con sub-config
   flagProjectile: boolean;
   projectileBounces: number;
   flagChargeable: boolean;
@@ -38,27 +54,12 @@ interface SkillFormData {
   flagRolling: boolean;
   rollWaveCount: number;
   rollTimeBetweenWaves: number;
-  rechargeTime: number;
-  consumesSkillKey: string;
-  flagRecallable: boolean;
-  flagGrantsWeapon: boolean;
-  flagTeleportsToDeployed: boolean;
-  flagTeleportsAgentInstantly: boolean;
-  flagInstantSelfBuff: boolean;
-  flagSelfRevive: boolean;
-  flagTargetRevive: boolean;
-  flagActivatableDeployable: boolean;
-  flagTwoPointDeployment: boolean;
-  flagDeployablePreRound: boolean;
   flagControllablePath: boolean;
-  flagTriggerOnSight: boolean;
-  flagStoppableInFlight: boolean;
-  flagGeneratesSoulOrbs: boolean;
-  flagIsolatesTarget: boolean;
-  flagOpaque: boolean;
-  flagHasHitbox: boolean;
-  behaviorSpeed: number;
-  behaviorDuration: number;
+  controllablePathSpeed: number;
+  controllablePathDuration: number;
+  flagInstantSelfBuff: boolean;
+  instantSelfBuffDuration: number;
+  instantSelfBuffApplied: string;
   displayIcon: string;
   enabled: boolean;
 }
@@ -87,15 +88,27 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     behaviorCastTime: 0,
     behaviorRechargeTime: 0,
     behaviorRechargeKills: 0,
-    behaviorBuffDuration: 0,
-    behaviorBuffApplied: "",
     behaviorDebuffApplied: "",
-    behaviorSpeed: 0,
-    behaviorDuration: 0,
     behaviorSpawn: "player",
     behaviorSpawnOffset: 0,
     behaviorGroundRange: 10,
+    consumesSkillKey: "",
     flagThroughWall: false,
+    flagRecallable: false,
+    flagGrantsWeapon: false,
+    flagTeleportsToDeployed: false,
+    flagTeleportsAgentInstantly: false,
+    flagSelfRevive: false,
+    flagTargetRevive: false,
+    flagActivatableDeployable: false,
+    flagTwoPointDeployment: false,
+    flagDeployablePreRound: false,
+    flagTriggerOnSight: false,
+    flagStoppableInFlight: false,
+    flagGeneratesSoulOrbs: false,
+    flagIsolatesTarget: false,
+    flagOpaque: false,
+    flagHasHitbox: false,
     flagProjectile: false,
     projectileBounces: 1,
     flagChargeable: false,
@@ -105,25 +118,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagRolling: false,
     rollWaveCount: 5,
     rollTimeBetweenWaves: 0.2,
-    rechargeTime: 0,
-    consumesSkillKey: "",
-    flagRecallable: false,
-    flagGrantsWeapon: false,
-    flagTeleportsToDeployed: false,
-    flagTeleportsAgentInstantly: false,
-    flagInstantSelfBuff: false,
-    flagSelfRevive: false,
-    flagTargetRevive: false,
-    flagActivatableDeployable: false,
-    flagTwoPointDeployment: false,
-    flagDeployablePreRound: false,
     flagControllablePath: false,
-    flagTriggerOnSight: false,
-    flagStoppableInFlight: false,
-    flagGeneratesSoulOrbs: false,
-    flagIsolatesTarget: false,
-    flagOpaque: false,
-    flagHasHitbox: false,
+    controllablePathSpeed: 0,
+    controllablePathDuration: 0,
+    flagInstantSelfBuff: false,
+    instantSelfBuffDuration: 0,
+    instantSelfBuffApplied: "",
     displayIcon: "",
     enabled: true,
   });
@@ -178,43 +178,48 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         behaviorCastTime: skill.behavior?.castTime || 0,
         behaviorRechargeTime: skill.behavior?.rechargeTime || 0,
         behaviorRechargeKills: skill.behavior?.rechargeKills || 0,
-        behaviorBuffDuration: skill.behavior?.buffDuration || 0,
-        behaviorBuffApplied: skill.behavior?.buffApplied || "",
         behaviorDebuffApplied: skill.behavior?.debuffApplied || "",
-        behaviorSpeed: skill.behavior?.speed || 0,
-        behaviorDuration: skill.behavior?.duration || 0,
         behaviorSpawn: skill.behavior?.spawn || "player",
         behaviorSpawnOffset: skill.behavior?.spawnOffset || 0,
         behaviorGroundRange: skill.behavior?.maxCastRange || skill.behavior?.groundRange || 10,
-        flagThroughWall: skill.behavior?.flags?.throughWall || false,
-        flagProjectile: skill.behavior?.flags?.projectile || false,
-        projectileBounces: skill.behavior?.projectileBounces || 1,
-        flagChargeable: skill.behavior?.flags?.chargeable || false,
-        chargeMinLength: skill.behavior?.chargeMinLength || 10,
-        chargeMaxLength: skill.behavior?.chargeMaxLength || 35,
-        chargeTimePerMeter: skill.behavior?.chargeTimePerMeter || 0.1,
-        flagRolling: skill.behavior?.flags?.rolling || false,
-        rollWaveCount: skill.behavior?.rollWaveCount || 5,
-        rollTimeBetweenWaves: skill.behavior?.rollTimeBetweenWaves || 0.2,
-        rechargeTime: skill.behavior?.rechargeTime || 0,
         consumesSkillKey: skill.behavior?.consumesSkillKey || "",
+        // flags simples
+        flagThroughWall: skill.behavior?.flags?.throughWall || false,
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
         flagTeleportsAgentInstantly: skill.behavior?.flags?.teleportsAgentInstantly || false,
-        flagInstantSelfBuff: skill.behavior?.flags?.instantSelfBuff || false,
         flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
         flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
         flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
-        flagControllablePath: skill.behavior?.flags?.controllablePath || false,
         flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
         flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
         flagGeneratesSoulOrbs: skill.behavior?.flags?.generatesSoulOrbs || false,
         flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
         flagOpaque: skill.behavior?.flags?.opaque || false,
         flagHasHitbox: skill.behavior?.flags?.hasHitbox || false,
+        // flag projectile (objeto anidado)
+        flagProjectile: !!skill.behavior?.flags?.projectile,
+        projectileBounces: skill.behavior?.flags?.projectile?.bounces ?? 1,
+        // flag chargeable (objeto anidado)
+        flagChargeable: !!skill.behavior?.flags?.chargeable,
+        chargeMinLength: skill.behavior?.flags?.chargeable?.minLength ?? 10,
+        chargeMaxLength: skill.behavior?.flags?.chargeable?.maxLength ?? 35,
+        chargeTimePerMeter: skill.behavior?.flags?.chargeable?.timePerMeter ?? 0.1,
+        // flag rolling (objeto anidado)
+        flagRolling: !!skill.behavior?.flags?.rolling,
+        rollWaveCount: skill.behavior?.flags?.rolling?.waveCount ?? 5,
+        rollTimeBetweenWaves: skill.behavior?.flags?.rolling?.timeBetweenWaves ?? 0.2,
+        // flag controllablePath (objeto anidado)
+        flagControllablePath: !!skill.behavior?.flags?.controllablePath,
+        controllablePathSpeed: skill.behavior?.flags?.controllablePath?.speed ?? 0,
+        controllablePathDuration: skill.behavior?.flags?.controllablePath?.duration ?? 0,
+        // flag instantSelfBuff (objeto anidado)
+        flagInstantSelfBuff: !!skill.behavior?.flags?.instantSelfBuff,
+        instantSelfBuffDuration: skill.behavior?.flags?.instantSelfBuff?.duration ?? 0,
+        instantSelfBuffApplied: skill.behavior?.flags?.instantSelfBuff?.applied ?? "",
         displayIcon: skill.displayIcon || "",
         enabled: skill.enabled ?? false,
       });
@@ -234,15 +239,27 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         behaviorCastTime: 0,
         behaviorRechargeTime: 0,
         behaviorRechargeKills: 0,
-        behaviorBuffDuration: 0,
-        behaviorBuffApplied: "",
         behaviorDebuffApplied: "",
-        behaviorSpeed: 0,
-        behaviorDuration: 0,
         behaviorSpawn: "player",
         behaviorSpawnOffset: 0,
         behaviorGroundRange: 10,
+        consumesSkillKey: "",
         flagThroughWall: false,
+        flagRecallable: false,
+        flagGrantsWeapon: false,
+        flagTeleportsToDeployed: false,
+        flagTeleportsAgentInstantly: false,
+        flagSelfRevive: false,
+        flagTargetRevive: false,
+        flagActivatableDeployable: false,
+        flagTwoPointDeployment: false,
+        flagDeployablePreRound: false,
+        flagTriggerOnSight: false,
+        flagStoppableInFlight: false,
+        flagGeneratesSoulOrbs: false,
+        flagIsolatesTarget: false,
+        flagOpaque: false,
+        flagHasHitbox: false,
         flagProjectile: false,
         projectileBounces: 1,
         flagChargeable: false,
@@ -252,25 +269,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRolling: false,
         rollWaveCount: 5,
         rollTimeBetweenWaves: 0.2,
-        rechargeTime: 0,
-        consumesSkillKey: "",
-        flagRecallable: false,
-        flagGrantsWeapon: false,
-        flagTeleportsToDeployed: false,
-        flagTeleportsAgentInstantly: false,
-        flagInstantSelfBuff: false,
-        flagSelfRevive: false,
-        flagTargetRevive: false,
-        flagActivatableDeployable: false,
-        flagTwoPointDeployment: false,
-        flagDeployablePreRound: false,
         flagControllablePath: false,
-        flagTriggerOnSight: false,
-        flagStoppableInFlight: false,
-        flagGeneratesSoulOrbs: false,
-        flagIsolatesTarget: false,
-        flagOpaque: false,
-        flagHasHitbox: false,
+        controllablePathSpeed: 0,
+        controllablePathDuration: 0,
+        flagInstantSelfBuff: false,
+        instantSelfBuffDuration: 0,
+        instantSelfBuffApplied: "",
         displayIcon: "",
         enabled: true,
       });
@@ -299,8 +303,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         geometry: {
           type: formData.geometryType,
           radius: formData.geometryType === "circle" ? Number(formData.geometryRadius) : undefined,
-          width: formData.geometryType !== "circle" ? Number(formData.geometryWidth) : undefined,
-          length: formData.geometryType !== "circle" ? Number(formData.geometryLength) : undefined,
+          width: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryWidth) : undefined,
+          length: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryLength) : undefined,
           angle: (formData.geometryType === "cone" || formData.geometryType === "curve") ? Number(formData.geometryAngle) : undefined,
         },
         behavior: {
@@ -308,42 +312,44 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           castTime: formData.behaviorCastTime,
           rechargeTime: formData.behaviorRechargeTime,
           rechargeKills: formData.behaviorRechargeKills,
-          buffDuration: formData.behaviorBuffDuration || undefined,
-          buffApplied: formData.behaviorBuffApplied,
-          debuffApplied: formData.behaviorDebuffApplied,
-          speed: formData.behaviorSpeed,
-          duration: formData.behaviorDuration,
+          debuffApplied: formData.behaviorDebuffApplied || undefined,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           spawnOffset: Number(formData.behaviorSpawnOffset) || undefined,
           maxCastRange: Number(formData.behaviorGroundRange) || undefined,
-          projectileBounces: formData.flagProjectile ? Number(formData.projectileBounces) : undefined,
-          chargeMinLength: formData.flagChargeable ? Number(formData.chargeMinLength) : undefined,
-          chargeMaxLength: formData.flagChargeable ? Number(formData.chargeMaxLength) : undefined,
-          chargeTimePerMeter: formData.flagChargeable ? Number(formData.chargeTimePerMeter) : undefined,
-          rollWaveCount: formData.flagRolling ? Number(formData.rollWaveCount) : undefined,
-          rollTimeBetweenWaves: formData.flagRolling ? Number(formData.rollTimeBetweenWaves) : undefined,
+          consumesSkillKey: formData.consumesSkillKey || undefined,
           flags: {
-            throughWall: formData.flagThroughWall,
-            projectile: formData.flagProjectile,
-            chargeable: formData.flagChargeable,
-            rolling: formData.flagRolling || undefined,
+            throughWall: formData.flagThroughWall || undefined,
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
             teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
             teleportsAgentInstantly: formData.flagTeleportsAgentInstantly || undefined,
-            instantSelfBuff: formData.flagInstantSelfBuff || undefined,
             selfRevive: formData.flagSelfRevive || undefined,
             targetRevive: formData.flagTargetRevive || undefined,
             activatableDeployable: formData.flagActivatableDeployable || undefined,
             twoPointDeployment: formData.flagTwoPointDeployment || undefined,
             deployablePreRound: formData.flagDeployablePreRound || undefined,
-            controllablePath: formData.flagControllablePath || undefined,
             triggerOnSight: formData.flagTriggerOnSight || undefined,
             stoppableInFlight: formData.flagStoppableInFlight || undefined,
             generatesSoulOrbs: formData.flagGeneratesSoulOrbs || undefined,
             isolatesTarget: formData.flagIsolatesTarget || undefined,
             opaque: formData.flagOpaque || undefined,
             hasHitbox: formData.flagHasHitbox || undefined,
+            // flags con sub-config (presencia = activo)
+            projectile: formData.flagProjectile
+              ? { bounces: Number(formData.projectileBounces) || undefined }
+              : undefined,
+            chargeable: formData.flagChargeable
+              ? { minLength: Number(formData.chargeMinLength), maxLength: Number(formData.chargeMaxLength), timePerMeter: Number(formData.chargeTimePerMeter) }
+              : undefined,
+            rolling: formData.flagRolling
+              ? { waveCount: Number(formData.rollWaveCount), timeBetweenWaves: Number(formData.rollTimeBetweenWaves) }
+              : undefined,
+            controllablePath: formData.flagControllablePath
+              ? { speed: Number(formData.controllablePathSpeed) || undefined, duration: Number(formData.controllablePathDuration) || undefined }
+              : undefined,
+            instantSelfBuff: formData.flagInstantSelfBuff
+              ? { duration: Number(formData.instantSelfBuffDuration) || undefined, applied: formData.instantSelfBuffApplied || undefined }
+              : undefined,
           }
         },
         displayIcon: formData.displayIcon || undefined,
@@ -700,14 +706,11 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                       <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Comportamientos Avanzados</h4>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Buff Aplicado (a ti)</span>
-                          <input type="text" value={formData.behaviorBuffApplied} onChange={e => setFormData({ ...formData, behaviorBuffApplied: e.target.value })} style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontSize: 14 }} placeholder="Ej: Doble Tap, Curación..." />
-                        </label>
-                        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Debuff Aplicado (a ellos)</span>
                           <input type="text" value={formData.behaviorDebuffApplied} onChange={e => setFormData({ ...formData, behaviorDebuffApplied: e.target.value })} style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontSize: 14 }} placeholder="Ej: Vulnerable, Decay..." />
                         </label>
                       </div>
+
 
                       <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
 
@@ -841,21 +844,27 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                       <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "24px 0" }}></div>
 
                       {(formData.flagInstantSelfBuff || formData.flagActivatableDeployable) && (
-                        <div className="form-group" style={{ marginBottom: 16 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
-                          <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorBuffDuration} onChange={e => setFormData({...formData, behaviorBuffDuration: parseFloat(e.target.value)})} />
-                        </div>
+                        <>
+                          <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
+                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.instantSelfBuffDuration} onChange={e => setFormData({...formData, instantSelfBuffDuration: parseFloat(e.target.value)})} />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Buff Aplicado (nombre del efecto)</label>
+                            <input type="text" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.instantSelfBuffApplied} onChange={e => setFormData({...formData, instantSelfBuffApplied: e.target.value})} placeholder="Ej: Doble Tap, Curación..." />
+                          </div>
+                        </>
                       )}
 
                       {formData.flagControllablePath && (
                         <div className="form-row" style={{ display: "flex", gap: 16 }}>
                           <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Velocidad (m/s)</label>
-                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorSpeed} onChange={e => setFormData({...formData, behaviorSpeed: parseFloat(e.target.value)})} />
+                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.controllablePathSpeed} onChange={e => setFormData({...formData, controllablePathSpeed: parseFloat(e.target.value)})} />
                           </div>
                           <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración Máx (s)</label>
-                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
+                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.controllablePathDuration} onChange={e => setFormData({...formData, controllablePathDuration: parseFloat(e.target.value)})} />
                           </div>
                         </div>
                       )}

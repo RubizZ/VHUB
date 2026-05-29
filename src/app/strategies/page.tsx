@@ -235,7 +235,7 @@ export default function StrategiesPage() {
   const [customHSV, setCustomHSV] = useState({ s: 100, v: 100 });
   const [isDraggingColor, setIsDraggingColor] = useState(false);
 
-  // ── Collaboration State ──
+  // â”€â”€ Collaboration State â”€â”€
   const [collabUsers, setCollabUsers] = useState<CollabUser[]>([]);
   const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -251,7 +251,7 @@ export default function StrategiesPage() {
   const [editingExternalStratId, setEditingExternalStratId] = useState<number | null>(null);
   const [editingSkillGlobalParams, setEditingSkillGlobalParams] = useState<{ agentId: string; skillKey: string } | null>(null);
   const myUserId = session?.user?.id || "";
-  const myUserName = session?.user?.name || "Anónimo";
+  const myUserName = session?.user?.name || "AnÃ³nimo";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const myPlayerColor = (session?.user as any)?.avatarColor || "#FF4655";
 
@@ -829,7 +829,7 @@ export default function StrategiesPage() {
         if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (pSkill.skill.behavior?.flags?.chargeable) {
-              const maxLen = (pSkill.skill.behavior.chargeMaxLength || pSkill.skill.geometry?.length || 0) * mToPx;
+              const maxLen = (pSkill.skill.behavior?.flags?.chargeable?.maxLength || pSkill.skill.geometry?.length || 0) * mToPx;
               const dx = worldMousePosRef.current.x - startX;
               const dy = worldMousePosRef.current.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
@@ -865,7 +865,7 @@ export default function StrategiesPage() {
                  initTargetY = worldMousePosRef.current.y;
               }
            } else if (pSkill.skill.behavior?.flags?.chargeable) {
-              initTargetX = startX + (pSkill.skill.behavior.chargeMinLength || pSkill.skill.geometry?.length || 0) * mToPx;
+              initTargetX = startX + (pSkill.skill.behavior?.flags?.chargeable?.minLength || pSkill.skill.geometry?.length || 0) * mToPx;
               initTargetY = startY;
            } else {
               initTargetX = startX + length;
@@ -1009,7 +1009,7 @@ export default function StrategiesPage() {
       }
 
       if (geom.type === "none") {
-        // No geometry shape — just a small circle around the icon
+        // No geometry shape â€” just a small circle around the icon
         ctx.beginPath();
         const noneRadius = 12 / scale;
         ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
@@ -1035,8 +1035,8 @@ export default function StrategiesPage() {
         let length = (geom.length || 0) * mToPx;
         if (skill.behavior?.flags?.chargeable && skill.targetX !== undefined && skill.targetY !== undefined) {
           const dist = Math.sqrt((skill.targetX - skill.x)**2 + (skill.targetY - skill.y)**2);
-          const minLen = (skill.behavior.chargeMinLength || geom.length || 0) * mToPx;
-          const maxLen = (skill.behavior.chargeMaxLength || geom.length || 0) * mToPx;
+          const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
+          const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
           length = Math.max(minLen, Math.min(maxLen, dist));
         }
         
@@ -1108,7 +1108,7 @@ export default function StrategiesPage() {
           ? Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x)
           : 0;
 
-        // The canvas is large — extend far enough beyond any visible area
+        // The canvas is large â€” extend far enough beyond any visible area
         const farDist = 5000;
         const dx = Math.cos(angle) * farDist;
         const dy = Math.sin(angle) * farDist;
@@ -1410,7 +1410,7 @@ export default function StrategiesPage() {
                 ctx.font = "900 6px Outfit, sans-serif";
                 ctx.textAlign = "right";
                 ctx.textBaseline = "bottom";
-                const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : (skillKey.toUpperCase() === "PASSIVE" ? "P" : skillKey.toUpperCase());
+                const text = isAlt ? `â†³${skillKey.replace("_alt", "").toUpperCase()}` : (skillKey.toUpperCase() === "PASSIVE" ? "P" : skillKey.toUpperCase());
                 ctx.fillText(text, w/2 - 2, h/2 - 1);
               } else if (!skillImgsRef.current.has(imgKey)) {
                 const img = new Image();
@@ -1435,7 +1435,7 @@ export default function StrategiesPage() {
               ctx.font = "900 9px Outfit, sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
-              const text = isAlt ? `↳${skillKey.replace("_alt", "").toUpperCase()}` : skillKey.toUpperCase();
+              const text = isAlt ? `â†³${skillKey.replace("_alt", "").toUpperCase()}` : skillKey.toUpperCase();
               ctx.fillText(text, 0, 1);
             }
             
@@ -1600,7 +1600,7 @@ ctx.restore();
     });
   }, [current, myUserId]);
 
-  // ── Collaboration: Auto-save with debounce (forward-declared ref for saveStrategyMutation) ──
+  // â”€â”€ Collaboration: Auto-save with debounce (forward-declared ref for saveStrategyMutation) â”€â”€
   const scheduleAutoSaveRef = useRef<() => void>(() => { });
   const scheduleAutoSave = useCallback(() => {
     scheduleAutoSaveRef.current();
@@ -2058,7 +2058,7 @@ ctx.restore();
     const isRightClick = "button" in e && e.button === 2;
     const pos = getPos(e);
 
-    // Left-click on agent with select tool → context menu or drag
+    // Left-click on agent with select tool â†’ context menu or drag
     if (!isRightClick && tool === "select") {
       const canvas = canvasRef.current;
       if (canvas) {
@@ -2152,7 +2152,7 @@ ctx.restore();
 
     const canvas = canvasRef.current;
 
-    // ── Line Eraser: erase whole path on mousedown ──
+    // â”€â”€ Line Eraser: erase whole path on mousedown â”€â”€
     if (canvas && tool === "eraser" && eraserMode === "lines") {
       const mapImg = mapImgRef.current;
       let scale = 1;
@@ -2307,7 +2307,7 @@ ctx.restore();
         if (skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
-              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry?.length || 0) * mToPx;
+              const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || skill.geometry?.length || 0) * mToPx;
               const dx = pos.x - startX;
               const dy = pos.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
@@ -2343,7 +2343,7 @@ ctx.restore();
                  initTargetY = pos.y;
               }
            } else if (skill.behavior?.flags?.chargeable) {
-              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
+              initTargetX = pos.x + (skill.behavior?.flags?.chargeable?.minLength || skill.geometry?.length || 0) * mToPx;
               initTargetY = pos.y;
            } else {
               initTargetX = pos.x + length;
@@ -2513,7 +2513,7 @@ ctx.restore();
 
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
-      // ── Collaboration: Broadcast cursor position ──
+      // â”€â”€ Collaboration: Broadcast cursor position â”€â”€
       if (isSupabaseConfigured && channelRef.current) {
         const now = Date.now();
         if (now - lastCursorBroadcastTimeRef.current > 80) {
@@ -2832,7 +2832,7 @@ ctx.restore();
            skill.targetX = skill.x + Math.cos(sa) * length;
            skill.targetY = skill.y + Math.sin(sa) * length;
          } else {
-           const maxLen = (skill.behavior?.chargeMaxLength || geom.length || 0) * mToPx;
+           const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
            const dx = pos.x - skill.x;
            const dy = pos.y - skill.y;
            let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
@@ -3220,7 +3220,7 @@ ctx.restore();
         if (skill.behavior?.spawn === "player" && agentObj) {
            const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
-              const maxLen = (skill.behavior.chargeMaxLength || skill.geometry?.length || 0) * mToPx;
+              const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || skill.geometry?.length || 0) * mToPx;
               const dx = pos.x - startX;
               const dy = pos.y - startY;
               let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
@@ -3256,7 +3256,7 @@ ctx.restore();
                  initTargetY = pos.y;
               }
            } else if (skill.behavior?.flags?.chargeable) {
-              initTargetX = pos.x + (skill.behavior.chargeMinLength || skill.geometry?.length || 0) * mToPx;
+              initTargetX = pos.x + (skill.behavior?.flags?.chargeable?.minLength || skill.geometry?.length || 0) * mToPx;
               initTargetY = pos.y;
            } else {
               initTargetX = pos.x + length;
@@ -3425,7 +3425,7 @@ ctx.restore();
     saveStrategyMutation.mutate(undefined);
   }, [saveStrategyMutation, scheduleAutoSave]);
 
-  // ── Collaboration: Wire up auto-save ref ──
+  // â”€â”€ Collaboration: Wire up auto-save ref â”€â”€
   useEffect(() => {
     scheduleAutoSaveRef.current = () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -3437,13 +3437,13 @@ ctx.restore();
     };
   }, [current, saveStrategy, scheduleAutoSave]);
 
-  // ── Collaboration: Main real-time useEffect ──
+  // â”€â”€ Collaboration: Main real-time useEffect â”€â”€
   useEffect(() => {
     if (view !== "editor" || !current || !myUserId) return;
 
     const strategyId = current.id;
 
-    // ── Supabase Realtime Mode ──
+    // â”€â”€ Supabase Realtime Mode â”€â”€
     if (isSupabaseConfigured) {
       const channel = supabase.channel(`strategy:${strategyId}`, {
         config: { presence: { key: myUserId } }
@@ -3459,7 +3459,7 @@ ctx.restore();
             if (presences.length > 0) {
               users.push({
                 userId: key,
-                userName: presences[0].userName || "Anónimo",
+                userName: presences[0].userName || "AnÃ³nimo",
                 userColor: presences[0].userColor || "#FF4655"
               });
             }
@@ -3587,7 +3587,7 @@ ctx.restore();
       };
     }
 
-    // ── Polling Fallback Mode ──
+    // â”€â”€ Polling Fallback Mode â”€â”€
     // Heartbeat: register presence every 5s
     const heartbeat = async () => {
       try {
@@ -3648,7 +3648,7 @@ ctx.restore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, current?.id, myUserId]);
 
-  // ── Collaboration: Clean up remote cursors that go stale ──
+  // â”€â”€ Collaboration: Clean up remote cursors that go stale â”€â”€
   useEffect(() => {
     if (remoteCursors.size === 0) return;
     const timer = setInterval(() => {
@@ -3746,7 +3746,7 @@ ctx.restore();
         <div className="header-premium">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <h1 className="gradient-text-valorant" style={{ fontSize: 32, fontWeight: 900 }}>Centro Táctico</h1>
+              <h1 className="gradient-text-valorant" style={{ fontSize: 32, fontWeight: 900 }}>Centro TÃ¡ctico</h1>
               <p style={{ fontSize: 13, marginTop: 6, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
                 Selecciona un mapa para ver sus estrategias
               </p>
@@ -3774,7 +3774,7 @@ ctx.restore();
                   <div style={{ marginBottom: 40 }}>
                     <h2 style={{ fontSize: 13, fontWeight: 900, color: '#00d4aa', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: 2 }}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00d4aa', boxShadow: '0 0 10px #00d4aa' }} />
-                      MAPAS EN ROTACIÓN (ESTA SEASON)
+                      MAPAS EN ROTACIÃ“N (ESTA SEASON)
                     </h2>
                     <div className="map-grid-premium">
                       {mapsInRotation.map(m => (
@@ -3794,7 +3794,7 @@ ctx.restore();
                   <div>
                     <h2 style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.4)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: 2 }}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.3)' }} />
-                      OTROS MAPAS (FUERA DE ROTACIÓN)
+                      OTROS MAPAS (FUERA DE ROTACIÃ“N)
                     </h2>
                     <div className="map-grid-premium">
                       {mapsOutOfRotation.map(m => (
@@ -3803,7 +3803,7 @@ ctx.restore();
                           <div className="map-card-overlay-premium">
                             <h3 className="map-card-title-premium">{m.name}</h3>
                             <span className="map-card-subtitle-premium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                              {m.tacticalDescription || 'Fuera de rotación'}
+                              {m.tacticalDescription || 'Fuera de rotaciÃ³n'}
                             </span>
                           </div>
                         </div>
@@ -3910,9 +3910,9 @@ ctx.restore();
                       borderRadius: "6px",
                       border: selectedMap.activeInRotation ? "1px solid rgba(0, 212, 170, 0.2)" : "1px solid rgba(255,255,255,0.1)"
                     }}>
-                      {selectedMap.activeInRotation ? "En Rotación Activa" : "Fuera de Rotación"}
+                      {selectedMap.activeInRotation ? "En RotaciÃ³n Activa" : "Fuera de RotaciÃ³n"}
                     </span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>•</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>â€¢</span>
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5 }}>
                       {selectedMap.tacticalDescription || "Mapa Competitivo"}
                     </span>
@@ -3979,7 +3979,7 @@ ctx.restore();
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                             <div style={{ width: 3, height: 16, background: "#00d4aa", borderRadius: 2 }} />
                             <h4 style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1.5, margin: 0 }}>
-                              Filtrar por Composición
+                              Filtrar por ComposiciÃ³n
                             </h4>
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -4048,7 +4048,7 @@ ctx.restore();
                                         />
                                       );
                                     })}
-                                    <span style={{ marginLeft: 2, opacity: 0.7, fontSize: 10 }}>×{strats.length}</span>
+                                    <span style={{ marginLeft: 2, opacity: 0.7, fontSize: 10 }}>Ã—{strats.length}</span>
                                   </div>
                                 </button>
                               );
@@ -4064,7 +4064,7 @@ ctx.restore();
                             <div className="strategy-group-title">
                               <div className="strategy-group-line" style={{ background: side === "attack" ? "#ff4655" : "#3b82f6" }} />
                               <h4 className="strategy-group-text">
-                                {side === "attack" ? "Planes de Ataque (ATK)" : "Líneas de Defensa (DEF)"}
+                                {side === "attack" ? "Planes de Ataque (ATK)" : "LÃ­neas de Defensa (DEF)"}
                               </h4>
                             </div>
                             <div className="strats-grid-premium">
@@ -4133,7 +4133,7 @@ ctx.restore();
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setMenuOpenId(null);
-                                            if (confirm("¿Seguro que deseas borrar esta estrategia?")) {
+                                            if (confirm("Â¿Seguro que deseas borrar esta estrategia?")) {
                                               deleteStratMutation.mutate(s.id);
                                             }
                                           }}
@@ -4154,7 +4154,7 @@ ctx.restore();
                         );
                       })}
                       {!strategiesLoading && filteredStrategies.length === 0 && (
-                        <EmptyState message={compositionFilter ? "No hay estrategias con esta composición." : "Aún no hay estrategias creadas para este mapa."} />
+                        <EmptyState message={compositionFilter ? "No hay estrategias con esta composiciÃ³n." : "AÃºn no hay estrategias creadas para este mapa."} />
                       )}
                     </>
                   );
@@ -4293,13 +4293,13 @@ ctx.restore();
 
                 <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)" }} />
 
-                {/* ── Collaboration: Active Users Presence ── */}
+                {/* â”€â”€ Collaboration: Active Users Presence â”€â”€ */}
                 {collabUsers.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 6 }}>
                     {collabUsers.map((u, i) => (
                       <div
                         key={u.userId}
-                        title={`${u.userName}${u.userId === myUserId ? " (tú)" : ""}`}
+                        title={`${u.userName}${u.userId === myUserId ? " (tÃº)" : ""}`}
                         style={{
                           width: 28,
                           height: 28,
@@ -4345,7 +4345,7 @@ ctx.restore();
                       textTransform: "uppercase",
                       whiteSpace: "nowrap"
                     }}>
-                      {collabUsers.length === 1 ? "Solo tú" : `${collabUsers.length} editando`}
+                      {collabUsers.length === 1 ? "Solo tÃº" : `${collabUsers.length} editando`}
                     </span>
                   </div>
                 )}
@@ -4363,7 +4363,7 @@ ctx.restore();
                     background: "rgba(255,255,255,0.02)"
                   }}
                   onClick={openConfigModal}
-                  title="Ajustes de la Táctica"
+                  title="Ajustes de la TÃ¡ctica"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3" />
@@ -4393,7 +4393,7 @@ ctx.restore();
                         <path d="M12 20h9" />
                         <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                       </svg>
-                    ), "Lápiz"],
+                    ), "LÃ¡piz"],
                     ["arrow", (
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M5 12h14" />
@@ -4455,7 +4455,7 @@ ctx.restore();
                         } catch (e) {
                           console.error("Error rotating map:", e);
                         }
-                      }} title="Rotar Mapa 90º" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
+                      }} title="Rotar Mapa 90Âº" style={{ width: '100%', height: 38, justifyContent: 'center' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                           <path d="M21 3v5h-5" />
@@ -4521,7 +4521,7 @@ ctx.restore();
                               }}
                             />
                           ) : (
-                            <span style={{ fontSize: 8, fontWeight: 900, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.8)", letterSpacing: 0.5 }}>MÁS</span>
+                            <span style={{ fontSize: 8, fontWeight: 900, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.8)", letterSpacing: 0.5 }}>MÃS</span>
                           )}
                         </div>
                       </button>
@@ -4581,7 +4581,7 @@ ctx.restore();
                           type="button"
                           onClick={() => setEraserMode("pixels")}
                           className={`tool-btn-premium ${eraserMode === "pixels" ? "active" : ""}`}
-                          title="Borrar píxeles en un radio"
+                          title="Borrar pÃ­xeles en un radio"
                           style={{
                             width: "100%",
                             height: 28,
@@ -4591,7 +4591,7 @@ ctx.restore();
                             border: eraserMode !== "pixels" ? "1px solid rgba(255,255,255,0.06)" : undefined
                           }}
                         >
-                          Píxeles
+                          PÃ­xeles
                         </button>
                         <button
                           type="button"
@@ -4752,7 +4752,7 @@ ctx.restore();
                       style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, padding: 0 }}
                       onClick={() => setShowColorPicker(false)}
                     >
-                      ✕
+                      âœ•
                     </button>
                   </div>
 
@@ -4778,7 +4778,7 @@ ctx.restore();
                   {/* 2D Picker Canvas (Saturation & Value) */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
-                      <span>SATURACIÓN / LUMINOSIDAD</span>
+                      <span>SATURACIÃ“N / LUMINOSIDAD</span>
                     </div>
                     <div style={{ position: "relative", width: "100%", height: 110 }}>
                       {/* Gradient Background Container */}
@@ -4830,7 +4830,7 @@ ctx.restore();
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.4)" }}>
                       <span>TONO</span>
-                      <span>{customH}°</span>
+                      <span>{customH}Â°</span>
                     </div>
                     <div
                       style={{
@@ -4939,7 +4939,7 @@ ctx.restore();
                     color: "rgba(255,255,255,0.45)"
                   }}>
                     {tool === "select" ? "Seleccionar" :
-                      tool === "draw" ? "Lápiz" :
+                      tool === "draw" ? "LÃ¡piz" :
                         tool === "arrow" ? "Vector" :
                           tool === "eraser" ? "Borrador" :
                             tool === "skill" ? "Habilidad" : ""}
@@ -4992,7 +4992,7 @@ ctx.restore();
                           {tool === "arrow" && <Item icon={IconLeftClick} text="Clic izquierdo para dibujar flechas rectas" />}
                           {tool === "eraser" && eraserMode === "pixels" && <Item icon={IconLeftClick} text="Clic izquierdo para eliminar en un radio" />}
                           {tool === "eraser" && eraserMode === "lines" && <Item icon={IconLeftClick} text="Clic izquierdo para borrar trazos o agentes" />}
-                          <Item icon={IconRightClick} text="Clic derecho para mover la cámara" />
+                          <Item icon={IconRightClick} text="Clic derecho para mover la cÃ¡mara" />
                         </div>
                       );
                     })()}
@@ -5294,7 +5294,7 @@ ctx.restore();
                   style={{
                     width: 32, height: 32, borderRadius: 8, backgroundColor: "var(--val-cyan)", border: "none", color: "#000", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
                   }}
-                  title="Editar parámetros globales de la habilidad"
+                  title="Editar parÃ¡metros globales de la habilidad"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -5469,12 +5469,12 @@ ctx.restore();
                           setEditingSkillGlobalParams({ agentId: ctxAgent.id, skillKey: isAlt ? `${key.toLowerCase()}_alt` : key.toLowerCase() });
                           setHoverMenuState(prev => ({ ...prev, visible: false }));
                         } else {
-                          alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no está configurada para este agente.`);
+                          alert(`La habilidad ${key}${isAlt ? " (Alt)" : ""} no estÃ¡ configurada para este agente.`);
                         }
                         return;
                       }
                       
-                      // Lógica Sandbox: Teletransporte a habilidad desplegada
+                      // LÃ³gica Sandbox: Teletransporte a habilidad desplegada
                       if (skill.behavior?.flags?.teleportsToDeployed) {
                         // Buscar si ya hay un ancla desplegada por este agente
                         const deployedSkill = skillsRef.current.find(
@@ -5488,7 +5488,7 @@ ctx.restore();
                           const dist = Math.sqrt(dx * dx + dy * dy);
                           
                           if (dist <= range) {
-                            // Teletransportar agente instantáneamente
+                            // Teletransportar agente instantÃ¡neamente
                             const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
                             if (agentIndex !== -1) {
                               agentsRef.current[agentIndex].x = deployedSkill.x;
@@ -5498,15 +5498,15 @@ ctx.restore();
                               return; // No castear una nueva ancla
                             }
                           } else {
-                            // Mostrar feedback visual o alerta si está fuera de rango
-                            alert("El ancla de teletransporte está fuera de rango.");
+                            // Mostrar feedback visual o alerta si estÃ¡ fuera de rango
+                            alert("El ancla de teletransporte estÃ¡ fuera de rango.");
                             setHoverMenuState(prev => ({ ...prev, visible: false }));
                             return;
                           }
                         }
                       }
 
-                      // Lógica Sandbox: Auto-Buff y Revivir visual
+                      // LÃ³gica Sandbox: Auto-Buff y Revivir visual
                       if (skill.behavior?.flags?.instantSelfBuff || skill.behavior?.flags?.selfRevive || skill.behavior?.flags?.targetRevive) {
                         const agentIndex = agentsRef.current.findIndex(a => a.instanceId === ctxAgent.instanceId);
                         if (agentIndex !== -1) {
@@ -5517,8 +5517,8 @@ ctx.restore();
                           } else {
                             agent.activeBuffs = [...buffs, skill.key];
                             
-                            // Auto-expiración del buff
-                            const duration = skill.behavior?.buffDuration;
+                            // Auto-expiraciÃ³n del buff
+                            const duration = skill.behavior?.flags?.instantSelfBuff?.duration;
                             if (duration && duration > 0) {
                               setTimeout(() => {
                                 const currentAgent = agentsRef.current.find(a => a.instanceId === ctxAgent.instanceId);
@@ -5552,11 +5552,11 @@ ctx.restore();
                           alt={key} 
                         />
                         <span style={{ position: "absolute", bottom: 2, right: 3, fontSize: 6, fontWeight: 900, color: isAlt ? "rgba(0, 212, 170, 0.9)" : "rgba(255, 255, 255, 0.8)", textShadow: "0px 1px 2px rgba(0,0,0,1)", zIndex: 2 }}>
-                          {isAlt ? `↳${key}` : key === "PASSIVE" ? "P" : key}
+                          {isAlt ? `â†³${key}` : key === "PASSIVE" ? "P" : key}
                         </span>
                       </>
                     ) : (
-                      isAlt ? `↳${key}` : key === "PASSIVE" ? "P" : key
+                      isAlt ? `â†³${key}` : key === "PASSIVE" ? "P" : key
                     )}
                   </div>
                 );
@@ -5615,7 +5615,7 @@ ctx.restore();
                 padding: 0
               }}
             >
-              ×
+              Ã—
             </button>
 
             {/* Weapon selector - below agent */}
@@ -5688,8 +5688,8 @@ ctx.restore();
         <div className="modal-overlay" style={{ zIndex: 100000 }}>
           <div className="modal-content card glass-card premium-modal" style={{ width: "95%", maxWidth: 800, padding: 0, overflow: "hidden", height: "80vh", background: "var(--bg-card)" }}>
             <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.5)" }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Editar Parámetros de Habilidad (Global)</h3>
-              <button className="icon-action-btn" onClick={() => setEditingSkillGlobalParams(null)}>✕</button>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Editar ParÃ¡metros de Habilidad (Global)</h3>
+              <button className="icon-action-btn" onClick={() => setEditingSkillGlobalParams(null)}>âœ•</button>
             </div>
             <div style={{ height: "calc(100% - 60px)", overflow: "auto" }}>
               <AgentSkillsManager 
@@ -5706,10 +5706,10 @@ ctx.restore();
       {editingExternalStratId && (
         <div className="modal-overlay-premium">
           <div className="modal-card-premium" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la Táctica</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la TÃ¡ctica</h3>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la táctica</label>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la tÃ¡ctica</label>
               <input className="input-premium" value={configName} onChange={e => setConfigName(e.target.value)} placeholder="Ej: Control de Mid a A" />
             </div>
 
@@ -5745,13 +5745,13 @@ ctx.restore();
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Descripción</label>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>DescripciÃ³n</label>
               <textarea
                 className="input-premium"
                 rows={3}
                 value={configDescription}
                 onChange={e => setConfigDescription(e.target.value)}
-                placeholder="Describe la ejecución, utilidades a usar, etc..."
+                placeholder="Describe la ejecuciÃ³n, utilidades a usar, etc..."
                 style={{ resize: 'none', height: 'auto', paddingTop: 10, paddingBottom: 10 }}
               />
             </div>
@@ -5766,12 +5766,12 @@ ctx.restore();
               >
                 {allMaps.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.name}{m.activeInRotation ? " ★" : ""}
+                    {m.name}{m.activeInRotation ? " â˜…" : ""}
                   </option>
                 ))}
               </select>
               <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", fontWeight: 600, marginTop: 4, display: 'block' }}>
-                ★ = En rotación activa.
+                â˜… = En rotaciÃ³n activa.
               </span>
             </div>
 
@@ -5788,10 +5788,10 @@ ctx.restore();
       {showConfigModal && (
         <div className="modal-overlay-premium">
           <div className="modal-card-premium" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la Táctica</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1 }}>Ajustes de la TÃ¡ctica</h3>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la táctica</label>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nombre de la tÃ¡ctica</label>
               <input className="input-premium" value={configName} onChange={e => setConfigName(e.target.value)} placeholder="Ej: Control de Mid a A" />
             </div>
 
@@ -5827,13 +5827,13 @@ ctx.restore();
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Descripción</label>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>DescripciÃ³n</label>
               <textarea
                 className="input-premium"
                 rows={3}
                 value={configDescription}
                 onChange={e => setConfigDescription(e.target.value)}
-                placeholder="Describe la ejecución, utilidades a usar, etc..."
+                placeholder="Describe la ejecuciÃ³n, utilidades a usar, etc..."
                 style={{ resize: 'none', height: 'auto', paddingTop: 10, paddingBottom: 10 }}
               />
             </div>
@@ -5848,12 +5848,12 @@ ctx.restore();
               >
                 {allMaps.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.name}{m.activeInRotation ? " ★" : ""}
+                    {m.name}{m.activeInRotation ? " â˜…" : ""}
                   </option>
                 ))}
               </select>
               <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", fontWeight: 600, marginTop: 4, display: 'block' }}>
-                ★ = En rotación activa. Cambiar el mapa no borra el trazado.
+                â˜… = En rotaciÃ³n activa. Cambiar el mapa no borra el trazado.
               </span>
             </div>
 
@@ -5873,7 +5873,7 @@ ctx.restore();
           <div style={{ position: "relative", width: 400, backgroundColor: "#0a0e14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 24 }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Calibrar Escala del Mapa</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Introduce la distancia real en metros para la línea que acabas de trazar ({Math.round(calibrateState.distancePx)}px = {(calibrateState.distancePx / (selectedMap?.pixelsPerMeter || 20)).toFixed(1)}m).</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Introduce la distancia real en metros para la lÃ­nea que acabas de trazar ({Math.round(calibrateState.distancePx)}px = {(calibrateState.distancePx / (selectedMap?.pixelsPerMeter || 20)).toFixed(1)}m).</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Distancia (metros)</label>
                 <input
@@ -5919,7 +5919,7 @@ ctx.restore();
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="empty-state-dashed">
-      <div style={{ fontSize: 40, marginBottom: 16 }}>🎯</div>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>ðŸŽ¯</div>
       <p style={{ fontSize: 15, fontWeight: 700, color: "rgba(255, 255, 255, 0.45)", margin: 0 }}>{message}</p>
     </div>
   );
