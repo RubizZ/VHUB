@@ -470,6 +470,25 @@ export default function StrategiesPage() {
     return compMap;
   }, [getAllyComposition]);
 
+  const hydrateSkills = useCallback((skillsList: CanvasSkill[], canvasAgents: CanvasAgent[] = agentsRef.current) => {
+    let modified = false;
+    skillsList.forEach((s) => {
+      const canvasAgent = canvasAgents.find((a) => a.instanceId === s.agentInstanceId);
+      if (!canvasAgent) return;
+      const globalAgent = agents.find((a) => a.id === canvasAgent.id);
+      if (!globalAgent) return;
+      const globalSkill = globalAgent.skills?.find((sk) => sk.key === s.key);
+      if (!globalSkill) return;
+
+      if (!s.geometry || !s.behavior || JSON.stringify(s.geometry) !== JSON.stringify(globalSkill.geometry) || JSON.stringify(s.behavior) !== JSON.stringify(globalSkill.behavior)) {
+        s.geometry = globalSkill.geometry;
+        s.behavior = globalSkill.behavior;
+        modified = true;
+      }
+    });
+    return modified;
+  }, [agents]);
+
   const syncCanvasLocalState = useCallback((paths: CanvasPath[], agentsList: CanvasAgent[], skillsList: CanvasSkill[] = []) => {
     const sanitizedPaths = paths.map((p) => ({
       ...p,
@@ -483,6 +502,8 @@ export default function StrategiesPage() {
       ...s,
       instanceId: s.instanceId || Math.random().toString(36).substring(2, 9)
     }));
+
+    hydrateSkills(sanitizedSkills, sanitizedAgents);
 
     pathsRef.current = sanitizedPaths;
     agentsRef.current = sanitizedAgents;
@@ -597,6 +618,13 @@ export default function StrategiesPage() {
     scheduleRedraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMap, selectedSide, tool, agents, zoom, pan, pencilSize, arrowSize, eraserSize, remoteCursors]);
+
+  useEffect(() => {
+    if (agents.length === 0) return;
+    if (hydrateSkills(skillsRef.current)) {
+      redraw();
+    }
+  }, [agents, hydrateSkills, redraw]);
 
   // The actual drawing function that reads from refs (no stale closures for pan/zoom)
   const redrawImmediate = useCallback(() => {
@@ -2734,7 +2762,11 @@ ctx.restore();
           canvas_data: {
             paths: pathsRef.current,
             agents: agentsRef.current,
-            skills: skillsRef.current,
+            skills: skillsRef.current.map(s => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { geometry, behavior, ...rest } = s;
+              return rest;
+            }),
             clientKnownPathIds: Array.from(loadedPathIdsRef.current),
             clientKnownAgentIds: Array.from(loadedAgentIdsRef.current),
             clientKnownSkillIds: Array.from(loadedSkillIdsRef.current)

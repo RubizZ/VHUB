@@ -344,6 +344,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminAgents"] });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
       alert("Habilidad guardada correctamente");
     }
   });
