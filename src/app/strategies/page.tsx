@@ -3789,7 +3789,7 @@ ctx.restore();
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
             {mapsLoading ? (
               <div className="map-grid-premium">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="map-card-premium" style={{ height: 280 }}>
                     <Skeleton width="100%" height="100%" />
                   </div>
