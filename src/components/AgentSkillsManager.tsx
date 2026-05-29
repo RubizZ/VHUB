@@ -120,6 +120,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagStoppableInFlight: false,
     flagGeneratesSoulOrbs: false,
     flagIsolatesTarget: false,
+    flagOpaque: false,
+    flagHasHitbox: false,
     displayIcon: "",
     enabled: true,
   });

@@ -175,7 +175,7 @@ export default function StrategiesPage() {
   const [activeTeam, setActiveTeam] = useState<"ally" | "enemy">("ally");
   const [showNewStrat, setShowNewStrat] = useState(false);
   const [newName, setNewName] = useState("");
-  const [activeRole, setActiveRole] = useState<AgentRole | null>("duelist");
+  const [activeRole, setActiveRole] = useState<AgentRole | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [compositionFilter, setCompositionFilter] = useState<string | null>(null);
@@ -212,6 +212,7 @@ export default function StrategiesPage() {
   const draggedAgentRef = useRef<CanvasAgent | null>(null);
   const draggedAgentOldPosRef = useRef<{ x: number; y: number } | null>(null);
   const draggedSkillRef = useRef<CanvasSkill | null>(null);
+  const draggedSkillOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
@@ -790,14 +791,15 @@ export default function StrategiesPage() {
          }
       }
 
+      let playerToMouseAngle = 0;
       if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
+        playerToMouseAngle = Math.atan2(worldMousePosRef.current.y - startY, worldMousePosRef.current.x - startX);
         
         if (pSkill.skill.behavior?.spawnOffset) {
-           const sa = Math.atan2(worldMousePosRef.current.y - startY, worldMousePosRef.current.x - startX);
-           startX += Math.cos(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
-           startY += Math.sin(sa) * pSkill.skill.behavior.spawnOffset * mToPx;
+           startX += Math.cos(playerToMouseAngle) * pSkill.skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(playerToMouseAngle) * pSkill.skill.behavior.spawnOffset * mToPx;
         }
       } else if (pSkill.skill.behavior?.spawn === "ground" && agentObj) {
          const maxRange = pSkill.skill.behavior?.maxCastRange || 0;
@@ -818,11 +820,13 @@ export default function StrategiesPage() {
         const length = (pSkill.skill.geometry.length || 0) * mToPx;
         
         if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
-           const sa = Math.atan2(worldMousePosRef.current.y - startY, worldMousePosRef.current.x - startX);
+           const sa = playerToMouseAngle;
            if (pSkill.skill.behavior?.flags?.chargeable) {
               const maxLen = (pSkill.skill.behavior.chargeMaxLength || pSkill.skill.geometry.length || 0) * mToPx;
-              let dist = Math.sqrt((worldMousePosRef.current.x - startX)**2 + (worldMousePosRef.current.y - startY)**2);
-              dist = Math.min(dist, maxLen);
+              const dx = worldMousePosRef.current.x - startX;
+              const dy = worldMousePosRef.current.y - startY;
+              let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else {
@@ -1036,18 +1040,46 @@ export default function StrategiesPage() {
       const isDragged = draggedSkillRef.current?.instanceId === skill.instanceId || draggedSkillTargetRef.current?.instanceId === skill.instanceId;
       const showHandles = isHovered || isDragged;
 
+      let isBaseHovered = false;
+      let isTargetHovered = false;
+
+      if (isHovered && mousePosRef.current && !isDragged) {
+        const mx = mousePosRef.current.canvasX;
+        const my = mousePosRef.current.canvasY;
+        const baseScreen = getScreenPos(skill.x, skill.y);
+        if (Math.sqrt((baseScreen.x - mx) ** 2 + (baseScreen.y - my) ** 2) <= 12 * currentZoom) {
+          isBaseHovered = true;
+        }
+        if (skill.targetX !== undefined && skill.targetY !== undefined) {
+          const targetScreen = getScreenPos(skill.targetX, skill.targetY);
+          if (Math.sqrt((targetScreen.x - mx) ** 2 + (targetScreen.y - my) ** 2) <= 12 * currentZoom) {
+            isTargetHovered = true;
+          }
+        }
+        // Fallback: if skill is hovered but neither anchor is distinctly hovered, hover the base
+        if (!isBaseHovered && !isTargetHovered) isBaseHovered = true;
+      }
+
       // Draw handles if not preview and is hovered or dragged
       if (skill.instanceId !== "preview" && showHandles) {
         const anchorR = 10 / scale;
         const imgS = 14 / scale;
+
+        // Add a subtle hover glow for base anchor
+        if (isBaseHovered) {
+          ctx.beginPath();
+          ctx.arc(0, 0, anchorR + 4/scale, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.fill();
+        }
 
         // Draw a small draggable handle at the center
         ctx.beginPath();
         ctx.arc(0, 0, anchorR, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
         ctx.fill();
-        ctx.strokeStyle = skill.color;
-        ctx.lineWidth = 2 / scale;
+        ctx.strokeStyle = isBaseHovered ? "#fff" : skill.color;
+        ctx.lineWidth = (isBaseHovered ? 3 : 2) / scale;
         ctx.stroke();
 
         if (sImg && sImg.complete) {
@@ -1066,20 +1098,27 @@ export default function StrategiesPage() {
           ctx.translate(tx, ty);
           ctx.rotate(Math.atan2(ty, tx));
 
+          if (isTargetHovered) {
+            ctx.beginPath();
+            ctx.arc(0, 0, (8 / scale) + 4/scale, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+            ctx.fill();
+          }
+
           // Draw the base anchor circle
           ctx.beginPath();
           ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
           ctx.fill();
-          ctx.strokeStyle = skill.color;
-          ctx.lineWidth = 2 / scale;
+          ctx.strokeStyle = isTargetHovered ? "#fff" : skill.color;
+          ctx.lineWidth = (isTargetHovered ? 3 : 2) / scale;
           ctx.stroke();
 
           // Draw rotation indicator (curved arc on the right with arrows)
           const r = 14 / scale;
           ctx.beginPath();
           ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
-          ctx.strokeStyle = "#fff";
+          ctx.strokeStyle = isTargetHovered ? "#fff" : "rgba(255,255,255,0.7)";
           ctx.lineWidth = 2 / scale;
           ctx.lineCap = "round";
           ctx.stroke();
@@ -1883,6 +1922,7 @@ ctx.restore();
         });
         if (foundSkill) {
           draggedSkillRef.current = foundSkill;
+          draggedSkillOffsetRef.current = { x: foundSkill.x - pos.x, y: foundSkill.y - pos.y };
           return;
         }
         
@@ -2025,14 +2065,15 @@ ctx.restore();
       
       const mToPx = selectedMap?.pixelsPerMeter || 20;
 
+      let playerToMouseAngle = 0;
       if (skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
+        playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
         
         if (skill.behavior?.spawnOffset) {
-           const sa = Math.atan2(pos.y - startY, pos.x - startX);
-           startX += Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
-           startY += Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+           startX += Math.cos(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
         }
       } else if (skill.behavior?.spawn === "ground" && agentObj) {
          const maxRange = skill.behavior?.maxCastRange || 0;
@@ -2053,11 +2094,13 @@ ctx.restore();
         const length = (skill.geometry.length || 0) * mToPx;
         
         if (skill.behavior?.spawn === "player" && agentObj) {
-           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
               const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
-              let dist = Math.sqrt((pos.x - startX)**2 + (pos.y - startY)**2);
-              dist = Math.min(dist, maxLen);
+              const dx = pos.x - startX;
+              const dy = pos.y - startY;
+              let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else {
@@ -2345,11 +2388,16 @@ ctx.restore();
                     visible: true
                   });
                   redrawImmediate();
+                } else {
+                  redrawImmediate();
                 }
               }
             }
           } else {
             isAgentDroppedRef.current = false;
+            if (hoveredSkillRef.current) {
+              redrawImmediate();
+            }
             if (!hoverMenuTimeoutRef.current && (hoveredAgentRef.current || hoveredSkillRef.current)) {
               hoverMenuTimeoutRef.current = setTimeout(() => {
                 hoveredAgentRef.current = null;
@@ -2543,10 +2591,13 @@ ctx.restore();
           lastAgentBroadcastTimeRef.current = now;
         }
       } else if (draggedSkillRef.current) {
-        const dx = pos.x - draggedSkillRef.current.x;
-        const dy = pos.y - draggedSkillRef.current.y;
-        draggedSkillRef.current.x = pos.x;
-        draggedSkillRef.current.y = pos.y;
+        const newX = pos.x + draggedSkillOffsetRef.current.x;
+        const newY = pos.y + draggedSkillOffsetRef.current.y;
+        const dx = newX - draggedSkillRef.current.x;
+        const dy = newY - draggedSkillRef.current.y;
+        
+        draggedSkillRef.current.x = newX;
+        draggedSkillRef.current.y = newY;
         if (draggedSkillRef.current.targetX !== undefined) draggedSkillRef.current.targetX += dx;
         if (draggedSkillRef.current.targetY !== undefined) draggedSkillRef.current.targetY += dy;
         if (draggedSkillRef.current.pathPoints) {
@@ -2721,7 +2772,7 @@ ctx.restore();
   const handleAgentDragStart = (e: React.DragEvent, agentId: string) => {
     e.dataTransfer.setData("text/plain", agentId);
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setDragImage(e.currentTarget as Element, 20, 20);
+    e.dataTransfer.setDragImage(e.currentTarget as Element, 29, 29);
   };
 
   const handleCanvasDragEnter = (e: React.DragEvent) => {
@@ -2761,14 +2812,15 @@ ctx.restore();
       let startY = pos.y;
       const mToPx = selectedMap?.pixelsPerMeter || 20;
 
+      let playerToMouseAngle = 0;
       if (skill.behavior?.spawn === "player" && agentObj) {
         startX = agentObj.x;
         startY = agentObj.y;
+        playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
         
         if (skill.behavior?.spawnOffset) {
-           const sa = Math.atan2(pos.y - startY, pos.x - startX);
-           startX += Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
-           startY += Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+           startX += Math.cos(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
+           startY += Math.sin(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
         }
       } else if (skill.behavior?.spawn === "ground" && agentObj) {
          const maxRange = skill.behavior?.maxCastRange || 0;
@@ -2789,11 +2841,13 @@ ctx.restore();
         const length = (skill.geometry.length || 0) * mToPx;
         
         if (skill.behavior?.spawn === "player" && agentObj) {
-           const sa = Math.atan2(pos.y - startY, pos.x - startX);
+           const sa = playerToMouseAngle;
            if (skill.behavior?.flags?.chargeable) {
               const maxLen = (skill.behavior.chargeMaxLength || skill.geometry.length || 0) * mToPx;
-              let dist = Math.sqrt((pos.x - startX)**2 + (pos.y - startY)**2);
-              dist = Math.min(dist, maxLen);
+              const dx = pos.x - startX;
+              const dy = pos.y - startY;
+              let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              dist = Math.max(0, Math.min(dist, maxLen));
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else {
