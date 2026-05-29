@@ -72,6 +72,7 @@ interface CanvasSkill {
   color: string;
   createdBy?: string;
   unlinked?: boolean;
+  customRotation?: number;
 }
 
 type UndoAction =
@@ -3017,7 +3018,8 @@ ctx.restore();
     if (draggedSkillRotationRef.current) {
       draggedSkillRotationRef.current = null;
       redrawImmediate();
-      updateCanvasDataThrottled();
+      updateUndoRedo();
+      scheduleAutoSave();
     }
     
     if (draggedSkillTargetRef.current) {
