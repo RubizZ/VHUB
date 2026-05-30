@@ -55,6 +55,7 @@ interface CanvasAgent {
   weaponId?: string;
   activeBuffs?: string[];
   createdBy?: string;
+  draggedBy?: string;
 }
 
 interface CanvasSkill {
@@ -2250,6 +2251,7 @@ ctx.restore();
         const mouseX = cx - rect.left;
         const mouseY = cy - rect.top;
         const found = [...agentsRef.current].reverse().find(a => {
+          if (a.draggedBy && a.draggedBy !== myUserId) return false;
           const screenPos = getScreenPos(a.x, a.y);
           const dx = screenPos.x - mouseX;
           const dy = screenPos.y - mouseY;
@@ -2803,6 +2805,7 @@ ctx.restore();
           const mouseY = cy - rect.top;
           let foundHoverAgent: CanvasAgent | null = null;
           const isOverAgent = agentsRef.current.some(a => {
+            if (a.draggedBy && a.draggedBy !== myUserId) return false;
             const screenPos = getScreenPos(a.x, a.y);
             const dx = screenPos.x - mouseX;
             const dy = screenPos.y - mouseY;
@@ -3810,6 +3813,8 @@ ctx.restore();
           if (!payload || payload.userId === myUserId) return;
           const remoteAgent = payload.agent;
           if (!remoteAgent) return;
+          
+          remoteAgent.draggedBy = payload.dragging ? payload.userId : undefined;
 
           const idx = agentsRef.current.findIndex(a => a.instanceId === remoteAgent.instanceId);
           if (idx !== -1) {
