@@ -2723,7 +2723,7 @@ ctx.restore();
                      for (let i = agentsRef.current.length - 1; i >= 0; i--) {
                         const agent = agentsRef.current[i];
                         const dist = Math.sqrt((agent.x - pos.x)**2 + (agent.y - pos.y)**2);
-                        if (dist < 1.0 * mToPx) {
+                        if (dist < 2.5 * mToPx) {
                            linkableHoveredAgent = agent;
                            break;
                         }
@@ -3247,7 +3247,7 @@ ctx.restore();
           for (let i = agentsRef.current.length - 1; i >= 0; i--) {
             const agent = agentsRef.current[i];
             const dist = Math.sqrt((agent.x - mouseX)**2 + (agent.y - mouseY)**2);
-            if (dist < 1.0 * mToPx) { // Hit radius ~1 meter
+            if (dist < 2.5 * mToPx) { // Hit radius ~2.5 meters
               if (agent.id === originalCreator.id) {
                 // Link it
                 skill.agentInstanceId = agent.instanceId;
