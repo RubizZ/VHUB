@@ -1064,6 +1064,35 @@ export default function StrategiesPage() {
         const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
         ctx.arc(0, 0, radius, 0, 2 * Math.PI);
         ctx.fill();
+        
+        const isFreePlaced = skill.behavior?.spawn === "ground" || (skill.unlinked && skill.behavior?.spawn === "player");
+        const hasDirection = (skill.targetX !== undefined && skill.targetY !== undefined) || skill.customRotation !== undefined;
+        
+        if (isFreePlaced && hasDirection) {
+           ctx.save();
+           let sa = 0;
+           if (skill.targetX !== undefined && skill.targetY !== undefined) {
+              sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
+           } else if (skill.customRotation !== undefined) {
+              sa = skill.customRotation;
+           }
+           ctx.rotate(sa);
+           
+           ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+           ctx.lineWidth = 4 / scale;
+           ctx.lineCap = "round";
+           ctx.lineJoin = "round";
+           const arrowSize = Math.min(radius * 0.4, 18 / scale);
+           
+           ctx.beginPath();
+           // Draw a single prominent chevron in the center of the circle pointing in the direction
+           ctx.moveTo(-arrowSize/2, -arrowSize);
+           ctx.lineTo(arrowSize/2, 0);
+           ctx.lineTo(-arrowSize/2, arrowSize);
+           ctx.stroke();
+           ctx.restore();
+        }
+        
         ctx.globalAlpha = strokeAlpha;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
@@ -1072,6 +1101,8 @@ export default function StrategiesPage() {
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
            const sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
            ctx.rotate(sa);
+        } else if (skill.customRotation !== undefined) {
+           ctx.rotate(skill.customRotation);
         }
         
         let length = (geom.length || 0) * mToPx;
@@ -1105,6 +1136,35 @@ export default function StrategiesPage() {
            ctx.rect(0, -width/2, length, width);
         }
         ctx.fill();
+        
+        const isFreePlaced = skill.behavior?.spawn === "ground" || (skill.unlinked && skill.behavior?.spawn === "player");
+        const hasDirection = (skill.targetX !== undefined && skill.targetY !== undefined) || skill.customRotation !== undefined;
+        
+        if (isFreePlaced && hasDirection) {
+           ctx.save();
+           ctx.clip(); // Ensure arrows don't bleed out of the cone/trapezoid
+           
+           ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+           ctx.lineWidth = 3 / scale;
+           ctx.lineCap = "round";
+           ctx.lineJoin = "round";
+           
+           const spacingPx = 40 / scale;
+           const numArrows = Math.max(1, Math.floor(length / spacingPx));
+           const spacing = length / (numArrows + 1);
+           const arrowSize = Math.min(width * 0.25, 12 / scale);
+           
+           ctx.beginPath();
+           for (let i = 1; i <= numArrows; i++) {
+              const cx = i * spacing;
+              ctx.moveTo(cx - arrowSize, -arrowSize);
+              ctx.lineTo(cx, 0);
+              ctx.lineTo(cx - arrowSize, arrowSize);
+           }
+           ctx.stroke();
+           ctx.restore();
+        }
+        
         ctx.globalAlpha = strokeAlpha;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
