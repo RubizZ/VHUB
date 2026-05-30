@@ -3325,20 +3325,30 @@ body.landing-page {
     padding: 10px 16px;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .editor-toolbar-panel-premium::-webkit-scrollbar {
+    display: none;
   }
   .pill-toggle-premium-vertical {
     flex-direction: row;
     width: auto;
+    flex-shrink: 0;
   }
   .tool-group-premium-vertical {
     flex-direction: row;
     width: auto;
+    flex-shrink: 0;
   }
   .color-palette-premium-vertical {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
     width: auto;
+    flex-shrink: 0;
   }
 }
 .editor-toolbar-panel-premium-right {
@@ -3361,6 +3371,13 @@ body.landing-page {
     padding: 10px 16px;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .editor-toolbar-panel-premium-right::-webkit-scrollbar {
+    display: none;
   }
 }
 
