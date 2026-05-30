@@ -3190,6 +3190,7 @@ ctx.restore();
     
     if (draggedSkillTargetRef.current) {
       draggedSkillTargetRef.current = null;
+      redrawImmediate();
       updateUndoRedo();
       scheduleAutoSave();
     }
