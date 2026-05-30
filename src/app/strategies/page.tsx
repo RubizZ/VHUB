@@ -1462,15 +1462,19 @@ export default function StrategiesPage() {
         
         const isHoveredAgent = hoveredAgentRef.current?.instanceId === a.instanceId;
         const isDragHoveredAgent = dragHoveredLinkAgentRef.current?.instanceId === a.instanceId;
+        const isDraggedAgent = draggedAgentRef.current?.instanceId === a.instanceId;
         
-        if (isHoveredAgent || isDragHoveredAgent) {
+        if (isDraggedAgent) {
            ctx.strokeStyle = "#ffffff";
            ctx.lineWidth = 3.5;
            ctx.shadowColor = "#ffffff";
            ctx.shadowBlur = 8;
+        } else if (isHoveredAgent || isDragHoveredAgent) {
+           ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
+           ctx.lineWidth = 4.5;
         } else {
            ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
-           ctx.lineWidth = draggedAgentRef.current === a ? 4.5 : 2.5;
+           ctx.lineWidth = 2.5;
         }
         ctx.stroke();
         ctx.shadowBlur = 0;
