@@ -1465,10 +1465,10 @@ export default function StrategiesPage() {
         const isDraggedAgent = draggedAgentRef.current?.instanceId === a.instanceId;
         
         if (isDraggedAgent) {
-           ctx.strokeStyle = "#ffffff";
+           ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
            ctx.lineWidth = 3.5;
-           ctx.shadowColor = "#ffffff";
-           ctx.shadowBlur = 8;
+           ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+           ctx.shadowBlur = 6;
         } else if (isHoveredAgent || isDragHoveredAgent) {
            ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
            ctx.lineWidth = 4.5;
