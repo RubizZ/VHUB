@@ -1119,6 +1119,30 @@ export default function StrategiesPage() {
           ctx.closePath();
           ctx.fill();
         }
+      } else if (geom.type === "path") {
+        const tx = (skill.targetX !== undefined ? skill.targetX - skill.x : 0);
+        const ty = (skill.targetY !== undefined ? skill.targetY - skill.y : 0);
+        const dist = Math.sqrt(tx*tx + ty*ty);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(tx, ty);
+        
+        ctx.globalAlpha = strokeAlpha;
+        ctx.lineWidth = (geom.width ? geom.width * mToPx : 4) / scale;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        
+        if (dist > 0) {
+          const arrowAngle = Math.atan2(ty, tx);
+          const arrowSize = 10 / scale;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - arrowSize * Math.cos(arrowAngle - Math.PI/6), ty - arrowSize * Math.sin(arrowAngle - Math.PI/6));
+          ctx.lineTo(tx - arrowSize * Math.cos(arrowAngle + Math.PI/6), ty - arrowSize * Math.sin(arrowAngle + Math.PI/6));
+          ctx.closePath();
+          ctx.fill();
+        }
       } else if (geom.type === "infinite-wall") {
         // Draw an infinite wall: a thick line that extends across the whole canvas
         // Direction is determined by the vector from skill origin to target
@@ -1159,7 +1183,8 @@ export default function StrategiesPage() {
          let cxImg = 0;
          let cyImg = 0;
          const isProj = skill.behavior?.flags?.projectile;
-         if (isProj && skill.targetX !== undefined && skill.targetY !== undefined) {
+         const isTeleport = skill.behavior?.flags?.teleportsAgentInstantly || skill.behavior?.flags?.teleportsToDeployed;
+         if ((isProj || isTeleport) && skill.targetX !== undefined && skill.targetY !== undefined) {
             cxImg = skill.targetX - skill.x;
             cyImg = skill.targetY - skill.y;
          } else {
@@ -1207,8 +1232,12 @@ export default function StrategiesPage() {
         if (!isBaseHovered && !isTargetHovered) isBaseHovered = true;
       }
 
+      const isTeleportFlag = skill.behavior?.flags?.teleportsAgentInstantly || skill.behavior?.flags?.teleportsToDeployed;
+      const isProjFlag = skill.behavior?.flags?.projectile;
+      const isOriginDestSkill = (isProjFlag || isTeleportFlag) && skill.behavior?.spawn === "player" && skill.targetX !== undefined && skill.targetY !== undefined;
+
       // Draw handles if not preview and is hovered or dragged
-      if (skill.instanceId !== "preview" && showHandles) {
+      if (skill.instanceId !== "preview" && (showHandles || isOriginDestSkill)) {
         const anchorR = 10 / scale;
 
         // Add a subtle hover glow for base anchor
@@ -1228,30 +1257,32 @@ export default function StrategiesPage() {
         ctx.lineWidth = (isBaseHovered ? 3 : 2) / scale;
         ctx.stroke();
 
-        ctx.save();
-        ctx.rotate(-angle);
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1.5 / scale;
-        ctx.beginPath();
-        const crossL = 6 / scale;
-        const arrowL = 2.5 / scale;
-        // Up
-        ctx.moveTo(0, -2/scale); ctx.lineTo(0, -crossL);
-        ctx.lineTo(-arrowL, -crossL + arrowL); ctx.moveTo(0, -crossL); ctx.lineTo(arrowL, -crossL + arrowL);
-        // Down
-        ctx.moveTo(0, 2/scale); ctx.lineTo(0, crossL);
-        ctx.lineTo(-arrowL, crossL - arrowL); ctx.moveTo(0, crossL); ctx.lineTo(arrowL, crossL - arrowL);
-        // Left
-        ctx.moveTo(-2/scale, 0); ctx.lineTo(-crossL, 0);
-        ctx.lineTo(-crossL + arrowL, -arrowL); ctx.moveTo(-crossL, 0); ctx.lineTo(-crossL + arrowL, arrowL);
-        // Right
-        ctx.moveTo(2/scale, 0); ctx.lineTo(crossL, 0);
-        ctx.lineTo(crossL - arrowL, -arrowL); ctx.moveTo(crossL, 0); ctx.lineTo(crossL - arrowL, arrowL);
-        ctx.stroke();
-        ctx.restore();
+        if (showHandles) {
+          ctx.save();
+          ctx.rotate(-angle);
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 1.5 / scale;
+          ctx.beginPath();
+          const crossL = 6 / scale;
+          const arrowL = 2.5 / scale;
+          // Up
+          ctx.moveTo(0, -2/scale); ctx.lineTo(0, -crossL);
+          ctx.lineTo(-arrowL, -crossL + arrowL); ctx.moveTo(0, -crossL); ctx.lineTo(arrowL, -crossL + arrowL);
+          // Down
+          ctx.moveTo(0, 2/scale); ctx.lineTo(0, crossL);
+          ctx.lineTo(-arrowL, crossL - arrowL); ctx.moveTo(0, crossL); ctx.lineTo(arrowL, crossL - arrowL);
+          // Left
+          ctx.moveTo(-2/scale, 0); ctx.lineTo(-crossL, 0);
+          ctx.lineTo(-crossL + arrowL, -arrowL); ctx.moveTo(-crossL, 0); ctx.lineTo(-crossL + arrowL, arrowL);
+          // Right
+          ctx.moveTo(2/scale, 0); ctx.lineTo(crossL, 0);
+          ctx.lineTo(crossL - arrowL, -arrowL); ctx.moveTo(crossL, 0); ctx.lineTo(crossL - arrowL, arrowL);
+          ctx.stroke();
+          ctx.restore();
+        }
 
         // Draw another handle at the target if it exists
-        if (skill.targetX !== undefined && skill.targetY !== undefined) {
+        if (showHandles && skill.targetX !== undefined && skill.targetY !== undefined) {
           const tx = skill.targetX - skill.x;
           const ty = skill.targetY - skill.y;
           
@@ -2859,25 +2890,19 @@ ctx.restore();
            skill.targetY = skill.y + Math.sin(sa) * dist;
          }
        } else {
-         const isGroundProj = (skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly) && skill.behavior?.spawn !== "player";
-         if (isGroundProj) {
-            const maxRange = skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
-            if (maxRange > 0) {
-               const agentObjForRange = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
-               const originX = agentObjForRange?.x ?? skill.x;
-               const originY = agentObjForRange?.y ?? skill.y;
-               const maxPx = maxRange * mToPx;
-               const dx = pos.x - originX;
-               const dy = pos.y - originY;
-               const dist = Math.sqrt(dx*dx + dy*dy);
-               if (dist > maxPx) {
-                  const angle = Math.atan2(dy, dx);
-                  skill.targetX = originX + Math.cos(angle) * maxPx;
-                  skill.targetY = originY + Math.sin(angle) * maxPx;
-               } else {
-                  skill.targetX = pos.x;
-                  skill.targetY = pos.y;
-               }
+         const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+         if (maxRange > 0) {
+            const agentObjForRange = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+            const originX = agentObjForRange?.x ?? skill.x;
+            const originY = agentObjForRange?.y ?? skill.y;
+            const maxPx = maxRange * mToPx;
+            const dx = pos.x - originX;
+            const dy = pos.y - originY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > maxPx) {
+               const angle = Math.atan2(dy, dx);
+               skill.targetX = originX + Math.cos(angle) * maxPx;
+               skill.targetY = originY + Math.sin(angle) * maxPx;
             } else {
                skill.targetX = pos.x;
                skill.targetY = pos.y;
@@ -2910,19 +2935,19 @@ ctx.restore();
               skill.x += dx;
               skill.y += dy;
               
-              const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
-              if (!isProj) {
+              const isFixed = skill.behavior?.flags?.fixedTarget;
+              if (!isFixed) {
                 if (skill.targetX !== undefined) skill.targetX += dx;
                 if (skill.targetY !== undefined) skill.targetY += dy;
                 if (skill.pathPoints) {
                    skill.pathPoints.forEach(pt => {
-                      pt.x += dx;
-                      pt.y += dy;
-                   });
-                }
+                    pt.x += dx;
+                    pt.y += dy;
+                 });
+                 }
               }
-           }
-        });
+            }
+         });
         redraw();
         const now = Date.now();
         if (now - lastAgentBroadcastTimeRef.current > 80) {

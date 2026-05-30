@@ -44,9 +44,14 @@ interface SkillFormData {
   flagIsolatesTarget: boolean;
   flagOpaque: boolean;
   flagHasHitbox: boolean;
+  flagFixedTarget: boolean;
   // flags con sub-config
   flagProjectile: boolean;
-  projectileBounces: number;
+  projectileSpeed: number;
+  projectileDuration: number;
+  projectileMaxDistance: number;
+  flagBouncing: boolean;
+  bouncingCount: number;
   flagChargeable: boolean;
   chargeMinLength: number;
   chargeMaxLength: number;
@@ -109,8 +114,13 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagIsolatesTarget: false,
     flagOpaque: false,
     flagHasHitbox: false,
+    flagFixedTarget: false,
     flagProjectile: false,
-    projectileBounces: 1,
+    projectileSpeed: 0,
+    projectileDuration: 0,
+    projectileMaxDistance: 0,
+    flagBouncing: false,
+    bouncingCount: 1,
     flagChargeable: false,
     chargeMinLength: 10,
     chargeMaxLength: 35,
@@ -200,9 +210,13 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
         flagOpaque: skill.behavior?.flags?.opaque || false,
         flagHasHitbox: skill.behavior?.flags?.hasHitbox || false,
-        // flag projectile (objeto anidado)
+        flagFixedTarget: skill.behavior?.flags?.fixedTarget || false,
         flagProjectile: !!skill.behavior?.flags?.projectile,
-        projectileBounces: skill.behavior?.flags?.projectile?.bounces ?? 1,
+        projectileSpeed: skill.behavior?.flags?.projectile?.speed ?? 0,
+        projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
+        projectileMaxDistance: skill.behavior?.flags?.projectile?.maxDistance ?? 0,
+        flagBouncing: !!skill.behavior?.flags?.bouncing || (skill.behavior?.flags?.projectile as any)?.bounces !== undefined,
+        bouncingCount: skill.behavior?.flags?.bouncing?.bounces ?? (skill.behavior?.flags?.projectile as any)?.bounces ?? 1,
         // flag chargeable (objeto anidado)
         flagChargeable: !!skill.behavior?.flags?.chargeable,
         chargeMinLength: skill.behavior?.flags?.chargeable?.minLength ?? 10,
@@ -260,8 +274,13 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagIsolatesTarget: false,
         flagOpaque: false,
         flagHasHitbox: false,
+        flagFixedTarget: false,
         flagProjectile: false,
-        projectileBounces: 1,
+        projectileSpeed: 0,
+        projectileDuration: 0,
+        projectileMaxDistance: 0,
+        flagBouncing: false,
+        bouncingCount: 1,
         flagChargeable: false,
         chargeMinLength: 10,
         chargeMaxLength: 35,
@@ -334,9 +353,17 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             isolatesTarget: formData.flagIsolatesTarget || undefined,
             opaque: formData.flagOpaque || undefined,
             hasHitbox: formData.flagHasHitbox || undefined,
+            fixedTarget: formData.flagFixedTarget || undefined,
             // flags con sub-config (presencia = activo)
             projectile: formData.flagProjectile
-              ? { bounces: Number(formData.projectileBounces) || undefined }
+              ? { 
+                  speed: Number(formData.projectileSpeed) || undefined,
+                  duration: Number(formData.projectileDuration) || undefined,
+                  maxDistance: Number(formData.projectileMaxDistance) || undefined,
+                }
+              : undefined,
+            bouncing: formData.flagBouncing
+              ? { bounces: Number(formData.bouncingCount) }
               : undefined,
             chargeable: formData.flagChargeable
               ? { minLength: Number(formData.chargeMinLength), maxLength: Number(formData.chargeMaxLength), timePerMeter: Number(formData.chargeTimePerMeter) }
@@ -760,17 +787,55 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           <span>Tiene hitbox física (rebota proyectiles como el muro de Sage)</span>
                         </label>
 
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 8 }}>
+                          <input type="checkbox" checked={formData.flagFixedTarget} onChange={e => setFormData({...formData, flagFixedTarget: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Mantener el destino fijo en el mapa al arrastrar al agente (ej: Humos, granadas que apuntan a un punto exacto)</span>
+                        </label>
+
 
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
 
                         <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagProjectile} onChange={e => setFormData({...formData, flagProjectile: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Es un proyectil (físicas de rebote o parábola)</span>
+                          <span>Es un proyectil (parábola o trayectoria recta)</span>
                         </label>
                         {formData.flagProjectile && (
+                          <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
+                              <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileSpeed} onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const duration = (val > 0 && formData.projectileMaxDistance > 0) ? parseFloat((formData.projectileMaxDistance / val).toFixed(2)) : formData.projectileDuration;
+                                setFormData({...formData, projectileSpeed: val, projectileDuration: duration});
+                              }} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
+                              <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileMaxDistance} onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const duration = formData.projectileSpeed > 0 ? parseFloat((val / formData.projectileSpeed).toFixed(2)) : formData.projectileDuration;
+                                setFormData({...formData, projectileMaxDistance: val, projectileDuration: duration});
+                              }} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
+                              <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileDuration} onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const distance = formData.projectileSpeed > 0 ? parseFloat((formData.projectileSpeed * val).toFixed(2)) : formData.projectileMaxDistance;
+                                setFormData({...formData, projectileDuration: val, projectileMaxDistance: distance});
+                              }} />
+                            </div>
+                          </div>
+                        )}
+
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagBouncing} onChange={e => setFormData({...formData, flagBouncing: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Rebota (físicas de rebote en paredes)</span>
+                        </label>
+                        {formData.flagBouncing && (
                           <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0 = infinito)</label>
-                            <input type="number" min="0" className="input-field" value={formData.projectileBounces} onChange={e => setFormData({...formData, projectileBounces: Number(e.target.value)})} style={{ width: 120 }} />
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0=inf)</label>
+                            <input type="number" min="0" className="input-field" value={formData.bouncingCount} onChange={e => setFormData({...formData, bouncingCount: Number(e.target.value)})} style={{ width: 120 }} />
                           </div>
                         )}
 
