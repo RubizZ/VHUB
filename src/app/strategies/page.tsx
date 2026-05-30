@@ -3226,20 +3226,35 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
            let tX = pos.x;
            let tY = pos.y;
            
-           if (agentObj && !skill.unlinked) {
-              const maxRange = skill.behavior?.maxCastRange || 0;
-              if (maxRange > 0) {
-                 const maxPx = maxRange * mToPx;
-                 const dx = tX - agentObj.x;
-                 const dy = tY - agentObj.y;
-                 const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
-                    const angle = Math.atan2(dy, dx);
-                    tX = agentObj.x + Math.cos(angle) * maxPx;
-                    tY = agentObj.y + Math.sin(angle) * maxPx;
-                 }
-              }
-           }
+           if (skill.behavior?.flags?.twoPointDirectional) {
+               // For directional skills: limit target from the skill's first point (skill.x/y)
+               const maxRange = skill.behavior?.maxCastRange || 0;
+               if (maxRange > 0) {
+                  const maxPx = maxRange * mToPx;
+                  const dx = tX - skill.x;
+                  const dy = tY - skill.y;
+                  const dist = Math.sqrt(dx*dx + dy*dy);
+                  if (dist > maxPx) {
+                     const angle = Math.atan2(dy, dx);
+                     tX = skill.x + Math.cos(angle) * maxPx;
+                     tY = skill.y + Math.sin(angle) * maxPx;
+                  }
+               }
+            } else if (agentObj && !skill.unlinked) {
+               // For cables: limit target from the agent (range to cast the skill)
+               const maxRange = skill.behavior?.maxCastRange || 0;
+               if (maxRange > 0) {
+                  const maxPx = maxRange * mToPx;
+                  const dx = tX - agentObj.x;
+                  const dy = tY - agentObj.y;
+                  const dist = Math.sqrt(dx*dx + dy*dy);
+                  if (dist > maxPx) {
+                     const angle = Math.atan2(dy, dx);
+                     tX = agentObj.x + Math.cos(angle) * maxPx;
+                     tY = agentObj.y + Math.sin(angle) * maxPx;
+                  }
+               }
+            }
            
            const maxGeomLen = (geom.length || 0) * mToPx;
            if (maxGeomLen > 0 && !skill.behavior?.flags?.twoPointDirectional) {
