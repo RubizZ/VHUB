@@ -218,6 +218,7 @@ export default function StrategiesPage() {
   const draggedSkillOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
   const draggedSkillRotationRef = useRef<CanvasSkill | null>(null);
+  const dragHoveredLinkAgentRef = useRef<CanvasAgent | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const pathsRef = useRef<CanvasPath[]>([]);
   const agentsRef = useRef<CanvasAgent[]>([]);
@@ -1458,9 +1459,21 @@ export default function StrategiesPage() {
         ctx.restore();
         ctx.beginPath();
         ctx.arc(0, 0, 18, 0, Math.PI * 2);
-        ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
-        ctx.lineWidth = draggedAgentRef.current === a ? 4.5 : 2.5;
+        
+        const isHoveredAgent = hoveredAgentRef.current?.instanceId === a.instanceId;
+        const isDragHoveredAgent = dragHoveredLinkAgentRef.current?.instanceId === a.instanceId;
+        
+        if (isHoveredAgent || isDragHoveredAgent) {
+           ctx.strokeStyle = "#ffffff";
+           ctx.lineWidth = 3.5;
+           ctx.shadowColor = "#ffffff";
+           ctx.shadowBlur = 8;
+        } else {
+           ctx.strokeStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
+           ctx.lineWidth = draggedAgentRef.current === a ? 4.5 : 2.5;
+        }
         ctx.stroke();
+        ctx.shadowBlur = 0;
       } else {
         ctx.beginPath();
         ctx.fillStyle = a.team === "enemy" ? "#ff4655" : "#3b82f6";
@@ -2694,7 +2707,35 @@ ctx.restore();
           if (draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
             canvas.style.cursor = "grabbing";
           } else {
-            canvas.style.cursor = "grabbing";
+            let cursorStyle = "grabbing";
+            dragHoveredLinkAgentRef.current = null;
+            if (draggedSkillRef.current) {
+               const skill = draggedSkillRef.current;
+               if (skill.unlinked && skill.behavior?.spawn === "player") {
+                  const originalCreator = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+                  if (originalCreator) {
+                     const mToPx = selectedMap?.pixelsPerMeter || 20;
+                     let linkableHoveredAgent = null;
+                     for (let i = agentsRef.current.length - 1; i >= 0; i--) {
+                        const agent = agentsRef.current[i];
+                        const dist = Math.sqrt((agent.x - pos.x)**2 + (agent.y - pos.y)**2);
+                        if (dist < 1.0 * mToPx) {
+                           linkableHoveredAgent = agent;
+                           break;
+                        }
+                     }
+                     if (linkableHoveredAgent) {
+                        if (linkableHoveredAgent.id === originalCreator.id) {
+                           cursorStyle = "copy";
+                           dragHoveredLinkAgentRef.current = linkableHoveredAgent;
+                        } else {
+                           cursorStyle = "not-allowed";
+                        }
+                     }
+                  }
+               }
+            }
+            canvas.style.cursor = cursorStyle;
           }
           if (hoveredAgentRef.current || hoveredSkillRef.current) {
             hoveredAgentRef.current = null;
@@ -3237,6 +3278,7 @@ ctx.restore();
         }
       }
       draggedSkillRef.current = null;
+      dragHoveredLinkAgentRef.current = null;
       redrawImmediate();
       updateUndoRedo();
       scheduleAutoSave();
