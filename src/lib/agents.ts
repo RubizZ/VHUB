@@ -72,6 +72,8 @@ export interface SkillBehaviorFlags {
 export interface SkillBehavior {
   charges?: number;
   castTime?: number;
+  duration?: number;
+  hp?: number;
   rechargeTime?: number;
   rechargeKills?: number;            // Kills necesarias para recargar la habilidad (ej: 2)
   debuffApplied?: string;            // Nombre del debuffo aplicado a enemigos (ej: "Vulnerable")

@@ -20,6 +20,8 @@ interface SkillFormData {
   geometryAngle: number;
   behaviorCharges: number;
   behaviorCastTime: number;
+  behaviorDuration: number;
+  behaviorHp: number;
   behaviorRechargeTime: number;
   behaviorRechargeKills: number;
   behaviorDebuffApplied: string;
@@ -92,6 +94,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     geometryAngle: 90,
     behaviorCharges: 1,
     behaviorCastTime: 0,
+    behaviorDuration: 0,
+    behaviorHp: 0,
     behaviorRechargeTime: 0,
     behaviorRechargeKills: 0,
     behaviorDebuffApplied: "",
@@ -188,6 +192,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         geometryAngle: skill.geometry?.angle || 90,
         behaviorCharges: skill.behavior?.charges || 1,
         behaviorCastTime: skill.behavior?.castTime || 0,
+        behaviorDuration: skill.behavior?.duration || 0,
+        behaviorHp: skill.behavior?.hp || 0,
         behaviorRechargeTime: skill.behavior?.rechargeTime || 0,
         behaviorRechargeKills: skill.behavior?.rechargeKills || 0,
         behaviorDebuffApplied: skill.behavior?.debuffApplied || "",
@@ -254,6 +260,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         geometryAngle: 90,
         behaviorCharges: 1,
         behaviorCastTime: 0,
+        behaviorDuration: 0,
+        behaviorHp: 0,
         behaviorRechargeTime: 0,
         behaviorRechargeKills: 0,
         behaviorDebuffApplied: "",
@@ -333,6 +341,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         behavior: {
           charges: formData.behaviorCharges,
           castTime: formData.behaviorCastTime,
+          duration: Number(formData.behaviorDuration) || undefined,
+          hp: Number(formData.behaviorHp) || undefined,
           rechargeTime: formData.behaviorRechargeTime,
           rechargeKills: formData.behaviorRechargeKills,
           debuffApplied: formData.behaviorDebuffApplied || undefined,
@@ -906,6 +916,14 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         <div className="form-group">
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo Casteo (s)</label>
                           <input type="number" step="0.1" className="input-field" value={formData.behaviorCastTime} onChange={e => setFormData({...formData, behaviorCastTime: parseFloat(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Duración Vida Útil (s, 0=inf)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Puntos de Vida (HP)</label>
+                          <input type="number" className="input-field" value={formData.behaviorHp} onChange={e => setFormData({...formData, behaviorHp: Number(e.target.value)})} />
                         </div>
                         <div className="form-group">
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo de Recarga (s, 0=nunca)</label>
