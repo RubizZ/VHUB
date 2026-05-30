@@ -860,7 +860,7 @@ export default function StrategiesPage() {
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
               const pFlag = pSkill.skill.behavior?.flags?.projectile;
-              const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (pSkill.skill.behavior?.maxCastRange || pSkill.skill.behavior?.groundRange || 0);
+              const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (pSkill.skill.behavior?.maxCastRange || 0);
               let tX = worldMousePosRef.current.x;
               let tY = worldMousePosRef.current.y;
               
@@ -2513,7 +2513,7 @@ ctx.restore();
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
               const pFlag = skill.behavior?.flags?.projectile;
-const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || 0);
               let tX = pos.x;
               let tY = pos.y;
               
@@ -3108,7 +3108,7 @@ const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDis
          }
        } else {
          const pFlag = skill.behavior?.flags?.projectile;
-const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || 0);
          
          let tX = pos.x;
          let tY = pos.y;
@@ -3522,7 +3522,7 @@ const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDis
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
               const pFlag = skill.behavior?.flags?.projectile;
-const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || 0);
               let tX = pos.x;
               let tY = pos.y;
               
