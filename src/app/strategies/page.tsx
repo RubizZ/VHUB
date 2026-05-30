@@ -3186,7 +3186,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
            let tX = pos.x;
            let tY = pos.y;
            
-           if (agentObj) {
+           if (agentObj && !skill.unlinked) {
               const maxRange = skill.behavior?.maxCastRange || 0;
               if (maxRange > 0) {
                  const maxPx = maxRange * mToPx;
@@ -3318,10 +3318,14 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         let clampedY = newY;
         
         const skill = draggedSkillRef.current;
-        if (skill.behavior?.spawn === "ground" && !skill.unlinked) {
-            const agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+        let agentObj = null;
+        if (skill.agentInstanceId && !skill.unlinked) {
+            agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+        }
+        
+        if (skill.behavior?.spawn === "ground" && agentObj) {
             const maxRange = skill.behavior?.maxCastRange || 0;
-            if (agentObj && maxRange > 0) {
+            if (maxRange > 0) {
                 const mToPx = selectedMap?.pixelsPerMeter || 20;
                 const maxPx = maxRange * mToPx;
                 const dx = newX - agentObj.x;
@@ -3340,8 +3344,26 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         
         draggedSkillRef.current.x = clampedX;
         draggedSkillRef.current.y = clampedY;
-        if (draggedSkillRef.current.targetX !== undefined) draggedSkillRef.current.targetX += dx;
-        if (draggedSkillRef.current.targetY !== undefined) draggedSkillRef.current.targetY += dy;
+        if (draggedSkillRef.current.targetX !== undefined && draggedSkillRef.current.targetY !== undefined) {
+           draggedSkillRef.current.targetX += dx;
+           draggedSkillRef.current.targetY += dy;
+           
+           if (!draggedSkillRef.current.unlinked && agentObj) {
+               const maxRange = draggedSkillRef.current.behavior?.maxCastRange || 0;
+               if (maxRange > 0) {
+                  const mToPx = selectedMap?.pixelsPerMeter || 20;
+                  const maxPx = maxRange * mToPx;
+                  const tDx = draggedSkillRef.current.targetX - agentObj.x;
+                  const tDy = draggedSkillRef.current.targetY - agentObj.y;
+                  const tDist = Math.sqrt(tDx*tDx + tDy*tDy);
+                  if (tDist > maxPx) {
+                      const angle = Math.atan2(tDy, tDx);
+                      draggedSkillRef.current.targetX = agentObj.x + Math.cos(angle) * maxPx;
+                      draggedSkillRef.current.targetY = agentObj.y + Math.sin(angle) * maxPx;
+                  }
+               }
+           }
+        }
         if (draggedSkillRef.current.pathPoints) {
            draggedSkillRef.current.pathPoints.forEach(pt => {
               pt.x += dx;
