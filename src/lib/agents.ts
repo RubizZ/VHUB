@@ -15,6 +15,7 @@ export interface ProjectileFlag {
   speed?: number;
   maxDistance?: number;
   duration?: number;
+  fixedDistance?: boolean;
 }
 
 export interface BouncingFlag {

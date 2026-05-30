@@ -864,7 +864,7 @@ export default function StrategiesPage() {
                  const dx = tX - agentObj.x;
                  const dy = tY - agentObj.y;
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
+                 if (pSkill.skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                     const angle = Math.atan2(dy, dx);
                     tX = agentObj.x + Math.cos(angle) * maxPx;
                     tY = agentObj.y + Math.sin(angle) * maxPx;
@@ -894,7 +894,7 @@ export default function StrategiesPage() {
                  const dx = worldMousePosRef.current.x - (agentObj?.x ?? worldMousePosRef.current.x);
                  const dy = worldMousePosRef.current.y - (agentObj?.y ?? worldMousePosRef.current.y);
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
+                 if (pSkill.skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                     const angle = Math.atan2(dy, dx);
                     initTargetX = (agentObj?.x ?? worldMousePosRef.current.x) + Math.cos(angle) * maxPx;
                     initTargetY = (agentObj?.y ?? worldMousePosRef.current.y) + Math.sin(angle) * maxPx;
@@ -2408,7 +2408,7 @@ ctx.restore();
                  const dx = pos.x - (agentObj?.x ?? pos.x);
                  const dy = pos.y - (agentObj?.y ?? pos.y);
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
+                 if (skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                     const angle = Math.atan2(dy, dx);
                     initTargetX = (agentObj?.x ?? pos.x) + Math.cos(angle) * maxPx;
                     initTargetY = (agentObj?.y ?? pos.y) + Math.sin(angle) * maxPx;
@@ -2933,7 +2933,7 @@ ctx.restore();
             const dx = pos.x - originX;
             const dy = pos.y - originY;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > maxPx) {
+            if (skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                tX = originX + Math.cos(sa) * maxPx;
                tY = originY + Math.sin(sa) * maxPx;
             }
@@ -3320,7 +3320,7 @@ ctx.restore();
                  const dx = tX - agentObj.x;
                  const dy = tY - agentObj.y;
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
+                 if (skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                     const angle = Math.atan2(dy, dx);
                     tX = agentObj.x + Math.cos(angle) * maxPx;
                     tY = agentObj.y + Math.sin(angle) * maxPx;
@@ -3350,7 +3350,7 @@ ctx.restore();
                  const dx = pos.x - (agentObj?.x ?? pos.x);
                  const dy = pos.y - (agentObj?.y ?? pos.y);
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 if (dist > maxPx) {
+                 if (skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
                     const angle = Math.atan2(dy, dx);
                     initTargetX = (agentObj?.x ?? pos.x) + Math.cos(angle) * maxPx;
                     initTargetY = (agentObj?.y ?? pos.y) + Math.sin(angle) * maxPx;
