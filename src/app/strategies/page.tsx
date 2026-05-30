@@ -2267,6 +2267,8 @@ ctx.restore();
         let foundSkillRot: CanvasSkill | null = null;
         const foundSkillTarget = [...skillsRef.current].reverse().find(s => {
           if (s.draggedBy && s.draggedBy !== myUserId) return false;
+          const linkedAgent = !s.unlinked && s.behavior?.spawn === "player" ? agentsRef.current.find(a => a.instanceId === s.agentInstanceId) : null;
+          if (linkedAgent && linkedAgent.draggedBy && linkedAgent.draggedBy !== myUserId) return false;
           if (s.targetX === undefined || s.targetY === undefined) return false;
           
           if (s.behavior?.flags?.projectile && (s.geometry?.type === "cross" || s.geometry?.type === "rectangle" || s.geometry?.type === "cone" || s.geometry?.type === "trapezoid")) {
@@ -2303,6 +2305,8 @@ ctx.restore();
 
         const foundSkill = [...skillsRef.current].reverse().find(s => {
           if (s.draggedBy && s.draggedBy !== myUserId) return false;
+          const linkedAgent = !s.unlinked && s.behavior?.spawn === "player" ? agentsRef.current.find(a => a.instanceId === s.agentInstanceId) : null;
+          if (linkedAgent && linkedAgent.draggedBy && linkedAgent.draggedBy !== myUserId) return false;
           return isSkillHit(s, mouseX, mouseY, pos);
         });
         if (foundSkill) {
@@ -2817,6 +2821,8 @@ ctx.restore();
           let foundHoverSkillTarget: CanvasSkill | null = null;
           const isOverSkillTarget = skillsRef.current.some(s => {
              if (s.draggedBy && s.draggedBy !== myUserId) return false;
+             const linkedAgent = !s.unlinked && s.behavior?.spawn === "player" ? agentsRef.current.find(a => a.instanceId === s.agentInstanceId) : null;
+             if (linkedAgent && linkedAgent.draggedBy && linkedAgent.draggedBy !== myUserId) return false;
              if (s.targetX === undefined || s.targetY === undefined) return false;
              const screenPos = getScreenPos(s.targetX, s.targetY);
              const dx = screenPos.x - mouseX;
@@ -2829,6 +2835,8 @@ ctx.restore();
           let foundHoverSkill: CanvasSkill | null = null;
           const isOverSkill = skillsRef.current.some(s => {
             if (s.draggedBy && s.draggedBy !== myUserId) return false;
+            const linkedAgent = !s.unlinked && s.behavior?.spawn === "player" ? agentsRef.current.find(a => a.instanceId === s.agentInstanceId) : null;
+            if (linkedAgent && linkedAgent.draggedBy && linkedAgent.draggedBy !== myUserId) return false;
             const hit = isSkillHit(s, mouseX, mouseY, pos);
             if (hit) foundHoverSkill = s;
             return hit;
