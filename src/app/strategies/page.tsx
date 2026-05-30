@@ -1754,7 +1754,7 @@ ctx.restore();
     });
   }, [current, myUserId]);
 
-  const broadcastEraseElements = useCallback((erasedPathIds: string[], erasedAgentIds: string[]) => {
+  const broadcastEraseElements = useCallback((erasedPathIds: string[], erasedAgentIds: string[], erasedSkillIds: string[] = []) => {
     if (!current || !isSupabaseConfigured || !channelRef.current) return;
     channelRef.current.send({
       type: "broadcast",
@@ -1762,6 +1762,7 @@ ctx.restore();
       payload: {
         erasedPathIds,
         erasedAgentIds,
+        erasedSkillIds,
         userId: myUserId
       }
     });
@@ -1829,6 +1830,9 @@ ctx.restore();
         }
         redoStackRef.current.push(action);
         broadcastAgentUpdate(action.agent, false);
+        if (action.linkedSkills) {
+           action.linkedSkills.forEach(ls => broadcastSkillUpdate(ls.skill, false));
+        }
         loadedAgentIdsRef.current.add(action.agent.instanceId);
         break;
       }
@@ -1845,12 +1849,14 @@ ctx.restore();
       case 'add-skill': {
         skillsRef.current = skillsRef.current.filter(s => s.instanceId !== action.skill.instanceId);
         redoStackRef.current.push(action);
+        broadcastEraseElements([], [], [action.skill.instanceId]);
         break;
       }
       case 'remove-skill': {
         skillsRef.current.splice(action.index, 0, action.skill);
         loadedSkillIdsRef.current.add(action.skill.instanceId);
         redoStackRef.current.push(action);
+        broadcastSkillUpdate(action.skill, false);
         break;
       }
       case 'clear-all': {
@@ -1899,7 +1905,8 @@ ctx.restore();
            skillsRef.current = skillsRef.current.filter(s => !skillIds.has(s.instanceId));
         }
         undoStackRef.current.push(action);
-        broadcastEraseElements([], [action.agent.instanceId]);
+        const skillIds = action.linkedSkills ? action.linkedSkills.map(ls => ls.skill.instanceId) : [];
+        broadcastEraseElements([], [action.agent.instanceId], skillIds);
         break;
       }
       case 'move-agent': {
@@ -1916,11 +1923,13 @@ ctx.restore();
         skillsRef.current.push(action.skill);
         loadedSkillIdsRef.current.add(action.skill.instanceId);
         undoStackRef.current.push(action);
+        broadcastSkillUpdate(action.skill, false);
         break;
       }
       case 'remove-skill': {
         skillsRef.current = skillsRef.current.filter(s => s.instanceId !== action.skill.instanceId);
         undoStackRef.current.push(action);
+        broadcastEraseElements([], [], [action.skill.instanceId]);
         break;
       }
       case 'clear-all': {
@@ -2383,7 +2392,8 @@ ctx.restore();
         }
         updateUndoRedo();
         redrawImmediate();
-        broadcastEraseElements([], [hitAgent.instanceId]);
+        const deletedSkillIds = Array.from(new Set(linkedSkills.map(ls => ls.skill.instanceId)));
+        broadcastEraseElements([], [hitAgent.instanceId], deletedSkillIds);
         scheduleAutoSave();
       }
       if (hitSkill) {
@@ -2393,6 +2403,7 @@ ctx.restore();
         skillsRef.current = skillsRef.current.filter(s => s.instanceId !== hitSkill.instanceId);
         updateUndoRedo();
         redrawImmediate();
+        broadcastEraseElements([], [], [hitSkill.instanceId]);
         scheduleAutoSave();
       }
       drawingRef.current = true;
@@ -3017,13 +3028,16 @@ ctx.restore();
       });
 
       if (skillsRef.current.length < initialSkillsCount) {
+        const deletedSkillIds: string[] = [];
         for (const skill of erasedSkills) {
           const idx = skillsRef.current.findIndex(s => s.instanceId === skill.instanceId);
           undoStackRef.current.push({ type: 'remove-skill', skill, index: idx < 0 ? skillsRef.current.length : idx });
+          deletedSkillIds.push(skill.instanceId);
         }
         redoStackRef.current = [];
         redraw();
         updateUndoRedo();
+        broadcastEraseElements([], [], deletedSkillIds);
         scheduleAutoSave();
       }
     }
@@ -3843,7 +3857,7 @@ ctx.restore();
         })
         .on("broadcast", { event: "erase-elements" }, ({ payload }) => {
           if (!payload || payload.userId === myUserId) return;
-          const { erasedPathIds, erasedAgentIds } = payload;
+          const { erasedPathIds, erasedAgentIds, erasedSkillIds } = payload;
 
           if (erasedPathIds && erasedPathIds.length > 0) {
             const toRemove = new Set(erasedPathIds);
@@ -3853,6 +3867,11 @@ ctx.restore();
           if (erasedAgentIds && erasedAgentIds.length > 0) {
             const toRemove = new Set(erasedAgentIds);
             agentsRef.current = agentsRef.current.filter(a => !toRemove.has(a.instanceId));
+          }
+
+          if (erasedSkillIds && erasedSkillIds.length > 0) {
+            const toRemove = new Set(erasedSkillIds);
+            skillsRef.current = skillsRef.current.filter(s => !toRemove.has(s.instanceId));
           }
 
           redraw();
@@ -5654,6 +5673,7 @@ ctx.restore();
                         index: idx
                       });
                       redrawImmediate();
+                      broadcastSkillUpdate(skillsRef.current[idx], false);
                       setHoverMenuState(prev => ({ ...prev, visible: false }));
                       hoveredSkillRef.current = null;
                     }
@@ -5715,6 +5735,7 @@ ctx.restore();
                     redoStackRef.current = [];
                     updateUndoRedo();
                     redrawImmediate();
+                    broadcastEraseElements([], [], [ctxSkill.instanceId]);
                     setHoverMenuState(prev => ({ ...prev, visible: false }));
                   }
                 }}
@@ -5986,7 +6007,8 @@ ctx.restore();
                 }
                 updateUndoRedo();
                 redraw();
-                broadcastEraseElements([], [ctxAgent.instanceId]);
+                const deletedSkillIds = Array.from(new Set(linkedSkills.map(ls => ls.skill.instanceId)));
+                broadcastEraseElements([], [ctxAgent.instanceId], deletedSkillIds);
                 scheduleAutoSave();
                 setHoverMenuState(prev => ({ ...prev, visible: false }));
               }}
