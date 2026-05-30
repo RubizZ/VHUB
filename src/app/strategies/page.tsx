@@ -855,8 +855,32 @@ export default function StrategiesPage() {
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              initTargetX = worldMousePosRef.current.x;
-              initTargetY = worldMousePosRef.current.y;
+              const maxRange = pSkill.skill.behavior?.flags?.projectile?.maxDistance || pSkill.skill.behavior?.maxCastRange || pSkill.skill.behavior?.groundRange || 0;
+              let tX = worldMousePosRef.current.x;
+              let tY = worldMousePosRef.current.y;
+              
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = tX - agentObj.x;
+                 const dy = tY - agentObj.y;
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    tX = agentObj.x + Math.cos(angle) * maxPx;
+                    tY = agentObj.y + Math.sin(angle) * maxPx;
+                 }
+              }
+              
+              const dx = tX - startX;
+              const dy = tY - startY;
+              const projDist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              if (projDist <= 0.1) {
+                 initTargetX = startX + Math.cos(sa) * 0.1;
+                 initTargetY = startY + Math.sin(sa) * 0.1;
+              } else {
+                 initTargetX = tX;
+                 initTargetY = tY;
+              }
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
@@ -1240,8 +1264,10 @@ export default function StrategiesPage() {
       if (skill.instanceId !== "preview" && (showHandles || isOriginDestSkill)) {
         const anchorR = 10 / scale;
 
+        const isLinkedSkill = !skill.unlinked && skill.behavior?.spawn === "player";
+
         // Add a subtle hover glow for base anchor
-        if (isBaseHovered) {
+        if (isBaseHovered && !isLinkedSkill) {
           ctx.beginPath();
           ctx.arc(0, 0, anchorR + 4/scale, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
@@ -1253,11 +1279,11 @@ export default function StrategiesPage() {
         ctx.arc(0, 0, anchorR, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
         ctx.fill();
-        ctx.strokeStyle = isBaseHovered ? "#fff" : skill.color;
-        ctx.lineWidth = (isBaseHovered ? 3 : 2) / scale;
+        ctx.strokeStyle = (isBaseHovered && !isLinkedSkill) ? "#fff" : skill.color;
+        ctx.lineWidth = (isBaseHovered && !isLinkedSkill ? 3 : 2) / scale;
         ctx.stroke();
 
-        if (showHandles) {
+        if (showHandles && !isLinkedSkill) {
           ctx.save();
           ctx.rotate(-angle);
           ctx.strokeStyle = "#fff";
@@ -1990,8 +2016,11 @@ ctx.restore();
   };
 
   const isSkillHit = (s: CanvasSkill, mouseX: number, mouseY: number, pos: { x: number, y: number }): boolean => {
-    const screenPos = getScreenPos(s.x, s.y);
-    if (Math.sqrt((screenPos.x - mouseX) ** 2 + (screenPos.y - mouseY) ** 2) <= 12 * zoomRef.current) return true;
+    const isLinked = !s.unlinked && s.behavior?.spawn === "player";
+    if (!isLinked) {
+      const screenPos = getScreenPos(s.x, s.y);
+      if (Math.sqrt((screenPos.x - mouseX) ** 2 + (screenPos.y - mouseY) ** 2) <= 12 * zoomRef.current) return true;
+    }
     
     if (s.targetX !== undefined && s.targetY !== undefined) {
       const targetScreenPos = getScreenPos(s.targetX, s.targetY);
@@ -2860,22 +2889,26 @@ ctx.restore();
          if (!agentObj) isLinked = false;
        }
        
+       let originX = skill.x;
+       let originY = skill.y;
+       let sa = 0;
+       
+       if (isLinked && agentObj) {
+          originX = agentObj.x;
+          originY = agentObj.y;
+          sa = Math.atan2(pos.y - originY, pos.x - originX);
+          if (skill.behavior?.spawnOffset) {
+             skill.x = originX + Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+             skill.y = originY + Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+          } else {
+             skill.x = originX;
+             skill.y = originY;
+          }
+       } else {
+          sa = Math.atan2(pos.y - originY, pos.x - originX);
+       }
+       
        if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
-         let originX = skill.x;
-         let originY = skill.y;
-         
-         if (isLinked && agentObj) {
-            originX = agentObj.x;
-            originY = agentObj.y;
-            const sa = Math.atan2(pos.y - originY, pos.x - originX);
-            if (skill.behavior?.spawnOffset) {
-               skill.x = originX + Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
-               skill.y = originY + Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
-            }
-         }
-         
-         const sa = Math.atan2(pos.y - originY, pos.x - originX);
-         
          if (!isChargeable) {
            const length = (geom.length || 0) * mToPx;
            skill.targetX = skill.x + Math.cos(sa) * length;
@@ -2891,26 +2924,33 @@ ctx.restore();
          }
        } else {
          const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+         
+         let tX = pos.x;
+         let tY = pos.y;
+
          if (maxRange > 0) {
-            const agentObjForRange = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
-            const originX = agentObjForRange?.x ?? skill.x;
-            const originY = agentObjForRange?.y ?? skill.y;
             const maxPx = maxRange * mToPx;
             const dx = pos.x - originX;
             const dy = pos.y - originY;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > maxPx) {
-               const angle = Math.atan2(dy, dx);
-               skill.targetX = originX + Math.cos(angle) * maxPx;
-               skill.targetY = originY + Math.sin(angle) * maxPx;
-            } else {
-               skill.targetX = pos.x;
-               skill.targetY = pos.y;
+               tX = originX + Math.cos(sa) * maxPx;
+               tY = originY + Math.sin(sa) * maxPx;
             }
-         } else {
-            skill.targetX = pos.x;
-            skill.targetY = pos.y;
          }
+         
+         if (isLinked && agentObj) {
+            const dx = tX - skill.x;
+            const dy = tY - skill.y;
+            const projDist = dx * Math.cos(sa) + dy * Math.sin(sa);
+            if (projDist <= 0.1) {
+               tX = skill.x + Math.cos(sa) * 0.1;
+               tY = skill.y + Math.sin(sa) * 0.1;
+            }
+         }
+         
+         skill.targetX = tX;
+         skill.targetY = tY;
        }
        
        if (skill.behavior?.flags?.controllablePath) {
@@ -3271,8 +3311,32 @@ ctx.restore();
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              initTargetX = pos.x;
-              initTargetY = pos.y;
+              const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              let tX = pos.x;
+              let tY = pos.y;
+              
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = tX - agentObj.x;
+                 const dy = tY - agentObj.y;
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    tX = agentObj.x + Math.cos(angle) * maxPx;
+                    tY = agentObj.y + Math.sin(angle) * maxPx;
+                 }
+              }
+              
+              const dx = tX - startX;
+              const dy = tY - startY;
+              const projDist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              if (projDist <= 0.1) {
+                 initTargetX = startX + Math.cos(sa) * 0.1;
+                 initTargetY = startY + Math.sin(sa) * 0.1;
+              } else {
+                 initTargetX = tX;
+                 initTargetY = tY;
+              }
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
