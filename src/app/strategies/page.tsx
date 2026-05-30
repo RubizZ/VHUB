@@ -2045,6 +2045,11 @@ ctx.restore();
     if (geom.type === "none") {
       return Math.sqrt(wdx * wdx + wdy * wdy) <= 12 / zoomRef.current;
     } else if (geom.type === "circle") {
+      if (isProj && s.targetX !== undefined && s.targetY !== undefined) {
+         // For projectiles, the circle is usually a large AoE indicator.
+         // We already check the target anchor (and image) above, so skip the huge circle hit detection.
+         return false;
+      }
       const radius = (geom.radius !== undefined ? geom.radius : geom.width / 2) * mToPx;
       return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
     } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
