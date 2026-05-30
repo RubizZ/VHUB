@@ -74,6 +74,7 @@ interface CanvasSkill {
   createdBy?: string;
   unlinked?: boolean;
   customRotation?: number;
+  draggedBy?: string;
 }
 
 type UndoAction =
@@ -246,6 +247,7 @@ export default function StrategiesPage() {
   const lastCursorBroadcastTimeRef = useRef<number>(0);
   const lastStrokeBroadcastTimeRef = useRef<number>(0);
   const lastAgentBroadcastTimeRef = useRef<number>(0);
+  const lastSkillBroadcastTimeRef = useRef<number>(0);
   const activePathIdRef = useRef<string | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const customCursorRef = useRef<HTMLDivElement | null>(null);
@@ -1739,6 +1741,19 @@ ctx.restore();
     });
   }, [current, myUserId]);
 
+  const broadcastSkillUpdate = useCallback((skill: CanvasSkill, dragging: boolean) => {
+    if (!current || !isSupabaseConfigured || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "drag-skill",
+      payload: {
+        skill,
+        dragging,
+        userId: myUserId
+      }
+    });
+  }, [current, myUserId]);
+
   const broadcastEraseElements = useCallback((erasedPathIds: string[], erasedAgentIds: string[]) => {
     if (!current || !isSupabaseConfigured || !channelRef.current) return;
     channelRef.current.send({
@@ -2240,6 +2255,7 @@ ctx.restore();
         
         let foundSkillRot: CanvasSkill | null = null;
         const foundSkillTarget = [...skillsRef.current].reverse().find(s => {
+          if (s.draggedBy && s.draggedBy !== myUserId) return false;
           if (s.targetX === undefined || s.targetY === undefined) return false;
           
           if (s.behavior?.flags?.projectile && (s.geometry?.type === "cross" || s.geometry?.type === "rectangle" || s.geometry?.type === "cone" || s.geometry?.type === "trapezoid")) {
@@ -2275,6 +2291,7 @@ ctx.restore();
         }
 
         const foundSkill = [...skillsRef.current].reverse().find(s => {
+          if (s.draggedBy && s.draggedBy !== myUserId) return false;
           return isSkillHit(s, mouseX, mouseY, pos);
         });
         if (foundSkill) {
@@ -2785,6 +2802,7 @@ ctx.restore();
 
           let foundHoverSkillTarget: CanvasSkill | null = null;
           const isOverSkillTarget = skillsRef.current.some(s => {
+             if (s.draggedBy && s.draggedBy !== myUserId) return false;
              if (s.targetX === undefined || s.targetY === undefined) return false;
              const screenPos = getScreenPos(s.targetX, s.targetY);
              const dx = screenPos.x - mouseX;
@@ -2796,6 +2814,7 @@ ctx.restore();
 
           let foundHoverSkill: CanvasSkill | null = null;
           const isOverSkill = skillsRef.current.some(s => {
+            if (s.draggedBy && s.draggedBy !== myUserId) return false;
             const hit = isSkillHit(s, mouseX, mouseY, pos);
             if (hit) foundHoverSkill = s;
             return hit;
@@ -3093,6 +3112,11 @@ ctx.restore();
        }
        
        redrawImmediate();
+       const now = Date.now();
+       if (now - lastSkillBroadcastTimeRef.current > 80) {
+         broadcastSkillUpdate(skill, true);
+         lastSkillBroadcastTimeRef.current = now;
+       }
        return;
     }
 
@@ -3126,6 +3150,11 @@ ctx.restore();
         const now = Date.now();
         if (now - lastAgentBroadcastTimeRef.current > 80) {
           broadcastAgentUpdate(draggedAgentRef.current, true);
+          skillsRef.current.forEach(skill => {
+            if (skill.agentInstanceId === draggedAgentRef.current?.instanceId && !skill.unlinked && skill.behavior?.spawn === "player") {
+              broadcastSkillUpdate(skill, true);
+            }
+          });
           lastAgentBroadcastTimeRef.current = now;
         }
       } else if (draggedSkillRef.current) {
@@ -3145,6 +3174,11 @@ ctx.restore();
            });
         }
         redraw();
+        const now = Date.now();
+        if (now - lastSkillBroadcastTimeRef.current > 80) {
+          broadcastSkillUpdate(draggedSkillRef.current, true);
+          lastSkillBroadcastTimeRef.current = now;
+        }
       }
       return;
     }
@@ -3255,6 +3289,11 @@ ctx.restore();
         }
       }
       broadcastAgentUpdate(agent, false);
+      skillsRef.current.forEach(skill => {
+         if (skill.agentInstanceId === agent.instanceId && !skill.unlinked && skill.behavior?.spawn === "player") {
+            broadcastSkillUpdate(skill, false);
+         }
+      });
       loadedAgentIdsRef.current.add(agent.instanceId);
       scheduleAutoSave();
     }
@@ -3305,6 +3344,7 @@ ctx.restore();
           }
         }
       }
+      broadcastSkillUpdate(skill, false);
       draggedSkillRef.current = null;
       dragHoveredLinkAgentRef.current = null;
       redrawImmediate();
@@ -3312,6 +3352,7 @@ ctx.restore();
       scheduleAutoSave();
     }
     if (draggedSkillRotationRef.current) {
+      broadcastSkillUpdate(draggedSkillRotationRef.current, false);
       draggedSkillRotationRef.current = null;
       redrawImmediate();
       updateUndoRedo();
@@ -3319,6 +3360,7 @@ ctx.restore();
     }
     
     if (draggedSkillTargetRef.current) {
+      broadcastSkillUpdate(draggedSkillTargetRef.current, false);
       draggedSkillTargetRef.current = null;
       redrawImmediate();
       updateUndoRedo();
@@ -3777,6 +3819,25 @@ ctx.restore();
 
           if (!payload.dragging) {
             loadedAgentIdsRef.current.add(remoteAgent.instanceId);
+          }
+          redraw();
+        })
+        .on("broadcast", { event: "drag-skill" }, ({ payload }) => {
+          if (!payload || payload.userId === myUserId) return;
+          const remoteSkill = payload.skill;
+          if (!remoteSkill) return;
+          
+          remoteSkill.draggedBy = payload.dragging ? payload.userId : undefined;
+
+          const idx = skillsRef.current.findIndex(s => s.instanceId === remoteSkill.instanceId);
+          if (idx !== -1) {
+            skillsRef.current[idx] = remoteSkill;
+          } else {
+            skillsRef.current.push(remoteSkill);
+          }
+
+          if (!payload.dragging) {
+            loadedSkillIdsRef.current.add(remoteSkill.instanceId);
           }
           redraw();
         })
