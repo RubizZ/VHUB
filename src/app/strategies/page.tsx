@@ -964,28 +964,30 @@ export default function StrategiesPage() {
       }
       
       if (isTwoPoint && skill.targetX !== undefined && skill.targetY !== undefined) {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(skill.targetX - skill.x, skill.targetY - skill.y);
-        ctx.strokeStyle = skill.color;
-        ctx.lineWidth = 3 / scale;
-        ctx.globalAlpha = 0.8;
-        ctx.stroke();
-        
-        if (sImg && sImg.complete) {
-           ctx.save();
-           ctx.rotate(-angle);
-           ctx.drawImage(sImg, -8, -8, 16, 16);
-           ctx.restore();
+        if (!skill.geometry || skill.geometry.type === "none" || skill.geometry.type === "line") {
+           ctx.beginPath();
+           ctx.moveTo(0, 0);
+           ctx.lineTo(skill.targetX - skill.x, skill.targetY - skill.y);
+           ctx.strokeStyle = skill.color;
+           ctx.lineWidth = 3 / scale;
+           ctx.globalAlpha = 0.8;
+           ctx.stroke();
            
-           ctx.save();
-           ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
-           ctx.rotate(-angle);
-           ctx.drawImage(sImg, -8, -8, 16, 16);
+           if (sImg && sImg.complete) {
+              ctx.save();
+              ctx.rotate(-angle);
+              ctx.drawImage(sImg, -8, -8, 16, 16);
+              ctx.restore();
+              
+              ctx.save();
+              ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
+              ctx.rotate(-angle);
+              ctx.drawImage(sImg, -8, -8, 16, 16);
+              ctx.restore();
+           }
            ctx.restore();
+           continue;
         }
-        ctx.restore();
-        continue;
       }
 
       const isControllablePath = skill.behavior?.flags?.controllablePath;
@@ -1111,11 +1113,16 @@ export default function StrategiesPage() {
         }
         
         let length = (geom.length || 0) * mToPx;
-        if (skill.behavior?.flags?.chargeable && skill.targetX !== undefined && skill.targetY !== undefined) {
+        const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+        if ((skill.behavior?.flags?.chargeable || isTwoPoint) && skill.targetX !== undefined && skill.targetY !== undefined) {
           const dist = Math.sqrt((skill.targetX - skill.x)**2 + (skill.targetY - skill.y)**2);
-          const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
-          const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
-          length = Math.max(minLen, Math.min(maxLen, dist));
+          if (isTwoPoint) {
+             length = dist;
+          } else {
+             const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
+             const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
+             length = Math.max(minLen, Math.min(maxLen, dist));
+          }
         }
         
         const width = (geom.width || 0) * mToPx;
@@ -2540,8 +2547,14 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
                  initTargetY = tY;
               }
            } else {
-              initTargetX = startX + Math.cos(sa) * length;
-              initTargetY = startY + Math.sin(sa) * length;
+               const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+               if (isTwoPoint) {
+                  initTargetX = pos.x;
+                  initTargetY = pos.y;
+               } else {
+                  initTargetX = startX + Math.cos(sa) * length;
+                  initTargetY = startY + Math.sin(sa) * length;
+               }
            }
         } else {
            // ground spawn: enforce maxCastRange if set
@@ -2568,8 +2581,14 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
               initTargetX = pos.x + (skill.behavior?.flags?.chargeable?.minLength || skill.geometry?.length || 0) * mToPx;
               initTargetY = pos.y;
            } else {
-              initTargetX = pos.x + length;
-              initTargetY = pos.y;
+               const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+               if (isTwoPoint) {
+                  initTargetX = pos.x;
+                  initTargetY = pos.y;
+               } else {
+                  initTargetX = pos.x + length;
+                  initTargetY = pos.y;
+               }
            }
         }
       }
@@ -3093,7 +3112,11 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
        }
        
        if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
-         if (!isChargeable) {
+         const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+         if (isTwoPoint) {
+            skill.targetX = pos.x;
+            skill.targetY = pos.y;
+         } else if (!isChargeable) {
            const length = (geom.length || 0) * mToPx;
            skill.targetX = skill.x + Math.cos(sa) * length;
            skill.targetY = skill.y + Math.sin(sa) * length;
