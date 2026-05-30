@@ -2252,6 +2252,8 @@ ctx.restore();
         const mouseY = cy - rect.top;
         const found = [...agentsRef.current].reverse().find(a => {
           if (a.draggedBy && a.draggedBy !== myUserId) return false;
+          const hasDraggedLinkedSkill = skillsRef.current.some(s => s.agentInstanceId === a.instanceId && !s.unlinked && s.behavior?.spawn === "player" && s.draggedBy && s.draggedBy !== myUserId);
+          if (hasDraggedLinkedSkill) return false;
           const screenPos = getScreenPos(a.x, a.y);
           const dx = screenPos.x - mouseX;
           const dy = screenPos.y - mouseY;
@@ -2810,6 +2812,8 @@ ctx.restore();
           let foundHoverAgent: CanvasAgent | null = null;
           const isOverAgent = agentsRef.current.some(a => {
             if (a.draggedBy && a.draggedBy !== myUserId) return false;
+            const hasDraggedLinkedSkill = skillsRef.current.some(s => s.agentInstanceId === a.instanceId && !s.unlinked && s.behavior?.spawn === "player" && s.draggedBy && s.draggedBy !== myUserId);
+            if (hasDraggedLinkedSkill) return false;
             const screenPos = getScreenPos(a.x, a.y);
             const dx = screenPos.x - mouseX;
             const dy = screenPos.y - mouseY;
