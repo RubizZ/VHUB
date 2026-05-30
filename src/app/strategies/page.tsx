@@ -859,7 +859,8 @@ export default function StrategiesPage() {
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              const maxRange = pSkill.skill.behavior?.flags?.projectile?.maxDistance || pSkill.skill.behavior?.maxCastRange || pSkill.skill.behavior?.groundRange || 0;
+              const pFlag = pSkill.skill.behavior?.flags?.projectile;
+              const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (pSkill.skill.behavior?.maxCastRange || pSkill.skill.behavior?.groundRange || 0);
               let tX = worldMousePosRef.current.x;
               let tY = worldMousePosRef.current.y;
               
@@ -2511,7 +2512,8 @@ ctx.restore();
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              const pFlag = skill.behavior?.flags?.projectile;
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
               let tX = pos.x;
               let tY = pos.y;
               
@@ -3105,7 +3107,8 @@ ctx.restore();
            skill.targetY = skill.y + Math.sin(sa) * dist;
          }
        } else {
-         const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+         const pFlag = skill.behavior?.flags?.projectile;
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
          
          let tX = pos.x;
          let tY = pos.y;
@@ -3518,7 +3521,8 @@ ctx.restore();
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              const pFlag = skill.behavior?.flags?.projectile;
+const maxRange = (pFlag && typeof pFlag.maxDistance === 'number') ? pFlag.maxDistance : (skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0);
               let tX = pos.x;
               let tY = pos.y;
               
