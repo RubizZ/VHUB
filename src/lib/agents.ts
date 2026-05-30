@@ -12,6 +12,12 @@ export interface SkillGeometry {
 
 // Flags con sub-parámetros propios (su presencia implica activación)
 export interface ProjectileFlag {
+  speed?: number;
+  maxDistance?: number;
+  duration?: number;
+}
+
+export interface BouncingFlag {
   bounces?: number;
 }
 
@@ -38,7 +44,8 @@ export interface InstantSelfBuffFlag {
 
 export interface SkillBehaviorFlags {
   throughWall?: boolean;
-  projectile?: ProjectileFlag;       // presencia = activo; sub-campos: bounces
+  projectile?: ProjectileFlag;       // presencia = activo; sub-campos: speed, maxDistance, duration
+  bouncing?: BouncingFlag;           // presencia = activo; sub-campos: bounces
   chargeable?: ChargeableFlag;       // presencia = activo; sub-campos: minLength, maxLength, timePerMeter
   rolling?: RollingFlag;             // presencia = activo; sub-campos: waveCount, timeBetweenWaves
   controllablePath?: ControllablePathFlag; // presencia = activo; sub-campos: speed, duration
@@ -58,6 +65,7 @@ export interface SkillBehaviorFlags {
   stoppableInFlight?: boolean;       // Habilidades en movimiento que se pueden detener manualmente (ej. Harbor C)
   generatesSoulOrbs?: boolean;       // Enemigos sueltan orbes al morir o asistir (ej. Reyna/Iso)
   isolatesTarget?: boolean;          // Aísla al objetivo a un "mundo aparte" (ej. Iso X)
+  fixedTarget?: boolean;             // El destino (target) no se traslada cuando el agente se mueve
 }
 
 export interface SkillBehavior {
