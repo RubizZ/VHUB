@@ -5799,9 +5799,9 @@ ctx.restore();
       {editingSkillGlobalParams && (
         <div className="modal-overlay" style={{ zIndex: 100000 }}>
           <div className="modal-content card glass-card premium-modal" style={{ width: "95%", maxWidth: 800, padding: 0, overflow: "hidden", height: "80vh", background: "var(--bg-card)" }}>
-            <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.5)" }}>
+            <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.5)", alignItems: "center" }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Editar Parámetros de Habilidad (Global)</h3>
-              <button className="icon-action-btn" onClick={() => setEditingSkillGlobalParams(null)}>✕</button>
+              <button onClick={() => setEditingSkillGlobalParams(null)} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 4 }}>✕</button>
             </div>
             <div style={{ height: "calc(100% - 60px)", overflow: "auto" }}>
               <AgentSkillsManager 
