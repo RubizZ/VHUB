@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross";
+  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross" | "line";
   radius?: number;
   width?: number;
   length?: number;
@@ -58,7 +58,8 @@ export interface SkillBehaviorFlags {
   selfRevive?: boolean;              // Auto-resurrección (ej. Clove X)
   targetRevive?: boolean;            // Resurrección a aliado (ej. Sage X)
   activatableDeployable?: boolean;   // Se puede activar una vez desplegada (ej. Cypher Q)
-  twoPointDeployment?: boolean;      // Se despliega trazando línea entre dos puntos (ej. Cypher C)
+  twoPointDeployment?: boolean;      // Requiere dos puntos para desplegarse (ej. Cypher C, Fade C)
+  twoPointDirectional?: boolean;     // Si es true, el segundo punto indica solo dirección (la geometría no se acorta)
   deployablePreRound?: boolean;      // Puede ser desplegada durante la fase de compra/pre-ronda
   triggerOnSight?: boolean;          // Se detona/activa automáticamente al ver a un enemigo (ej. Wingman de Gekko)
   opaque?: boolean;                  // La figura renderizada bloquea la visión (se pinta opaca)

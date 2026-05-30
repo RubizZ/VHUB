@@ -13,7 +13,7 @@ interface SkillFormData {
   color: string;
   charges: number;
   castTime: number;
-  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross";
+  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross" | "line";
   geometryRadius: number;
   geometryWidth: number;
   geometryLength: number;
@@ -39,6 +39,7 @@ interface SkillFormData {
   flagTargetRevive: boolean;
   flagActivatableDeployable: boolean;
   flagTwoPointDeployment: boolean;
+  flagTwoPointDirectional: boolean;
   flagDeployablePreRound: boolean;
   flagTriggerOnSight: boolean;
   flagStoppableInFlight: boolean;
@@ -112,6 +113,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagTargetRevive: false,
     flagActivatableDeployable: false,
     flagTwoPointDeployment: false,
+    flagTwoPointDirectional: false,
     flagDeployablePreRound: false,
     flagTriggerOnSight: false,
     flagStoppableInFlight: false,
@@ -211,6 +213,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
         flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
         flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
+        flagTwoPointDirectional: skill.behavior?.flags?.twoPointDirectional || false,
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
         flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
         flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
@@ -278,6 +281,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagTargetRevive: false,
         flagActivatableDeployable: false,
         flagTwoPointDeployment: false,
+        flagTwoPointDirectional: false,
         flagDeployablePreRound: false,
         flagTriggerOnSight: false,
         flagStoppableInFlight: false,
@@ -360,6 +364,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             targetRevive: formData.flagTargetRevive || undefined,
             activatableDeployable: formData.flagActivatableDeployable || undefined,
             twoPointDeployment: formData.flagTwoPointDeployment || undefined,
+            twoPointDirectional: formData.flagTwoPointDirectional || undefined,
             deployablePreRound: formData.flagDeployablePreRound || undefined,
             triggerOnSight: formData.flagTriggerOnSight || undefined,
             stoppableInFlight: formData.flagStoppableInFlight || undefined,
@@ -654,17 +659,35 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
 
                       <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap", background: "rgba(255,255,255,0.02)", padding: 16, borderRadius: 12 }}>
                         <div className="form-group" style={{ flex: "1 1 100%" }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Modo de Despliegue</label>
+                          <select className="input-field" value={!formData.flagTwoPointDeployment ? "1pt" : (formData.flagTwoPointDirectional ? "2pt-dir" : "2pt-conn")} onChange={e => {
+                            const val = e.target.value;
+                            if (val === "1pt") {
+                              setFormData({...formData, flagTwoPointDeployment: false, flagTwoPointDirectional: false});
+                            } else if (val === "2pt-conn") {
+                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: false, geometryType: "line"});
+                            } else if (val === "2pt-dir") {
+                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: true});
+                            }
+                          }}>
+                            <option value="1pt">1 Punto (Normal)</option>
+                            <option value="2pt-conn">2 Puntos (Conexión / Cable)</option>
+                            <option value="2pt-dir">2 Puntos (Direccional / Área)</option>
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ flex: "1 1 100%" }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica Visual</label>
-                          <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
+                          <select className="input-field" value={formData.geometryType} disabled={formData.flagTwoPointDeployment && !formData.flagTwoPointDirectional} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
                             <option value="none">Ninguna (Solo Icono)</option>
                             <option value="circle">Círculo / Área</option>
-                            <option value="rectangle">Rectángulo / Línea</option>
+                            <option value="rectangle">Rectángulo</option>
                             <option value="cone">Cono (Área frontal)</option>
                             <option value="infinite-wall">Muro Infinito</option>
                             <option value="path">Ruta / Camino</option>
                             <option value="trapezoid">Trapecio (Muro Iso)</option>
                             <option value="curve">Curva (Bola de efecto)</option>
                             <option value="cross">Cruz (Granada Raze)</option>
+                            <option value="line">Línea (Solo conexión)</option>
                           </select>
                         </div>
                         {formData.geometryType === "circle" && (
@@ -673,16 +696,18 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
                           </div>
                         )}
-                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve") && (
+                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve" || formData.geometryType === "line") && (
                           <>
                             <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho (m)</label>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho/Grosor (m)</label>
                               <input type="number" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
                             </div>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance (m)</label>
-                              <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
-                            </div>
+                            {formData.geometryType !== "line" && (
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance (m)</label>
+                                <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
+                              </div>
+                            )}
                           </>
                         )}
                         {(formData.geometryType === "cone" || formData.geometryType === "curve") && (
@@ -707,11 +732,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           <input type="checkbox" checked={formData.flagActivatableDeployable} onChange={e => setFormData({...formData, flagActivatableDeployable: e.target.checked})} />
                           <span className="checkbox-custom"></span>
                           <span>Activable (Cárcel Cypher)</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, flagTwoPointDeployment: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Dos Puntos (Cables Cypher)</span>
                         </label>
                         <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
                           <input type="checkbox" checked={formData.flagControllablePath} onChange={e => setFormData({...formData, flagControllablePath: e.target.checked})} />

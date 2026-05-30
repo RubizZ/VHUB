@@ -963,33 +963,6 @@ export default function StrategiesPage() {
          }
       }
       
-      if (isTwoPoint && skill.targetX !== undefined && skill.targetY !== undefined) {
-        if (!skill.geometry || skill.geometry.type === "none" || skill.geometry.type === "line") {
-           ctx.beginPath();
-           ctx.moveTo(0, 0);
-           ctx.lineTo(skill.targetX - skill.x, skill.targetY - skill.y);
-           ctx.strokeStyle = skill.color;
-           ctx.lineWidth = 3 / scale;
-           ctx.globalAlpha = 0.8;
-           ctx.stroke();
-           
-           if (sImg && sImg.complete) {
-              ctx.save();
-              ctx.rotate(-angle);
-              ctx.drawImage(sImg, -8, -8, 16, 16);
-              ctx.restore();
-              
-              ctx.save();
-              ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
-              ctx.rotate(-angle);
-              ctx.drawImage(sImg, -8, -8, 16, 16);
-              ctx.restore();
-           }
-           ctx.restore();
-           continue;
-        }
-      }
-
       const isControllablePath = skill.behavior?.flags?.controllablePath;
       if (isControllablePath && skill.pathPoints && skill.pathPoints.length > 0) {
         ctx.beginPath();
@@ -1103,7 +1076,7 @@ export default function StrategiesPage() {
         ctx.globalAlpha = strokeAlpha;
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
-      } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid") {
+      } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "line") {
         ctx.save();
         if (skill.targetX !== undefined && skill.targetY !== undefined) {
            const sa = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
@@ -1113,11 +1086,15 @@ export default function StrategiesPage() {
         }
         
         let length = (geom.length || 0) * mToPx;
-        if (skill.behavior?.flags?.chargeable && skill.targetX !== undefined && skill.targetY !== undefined) {
+        if (skill.targetX !== undefined && skill.targetY !== undefined) {
           const dist = Math.sqrt((skill.targetX - skill.x)**2 + (skill.targetY - skill.y)**2);
-          const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
-          const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
-          length = Math.max(minLen, Math.min(maxLen, dist));
+          if (skill.behavior?.flags?.chargeable) {
+            const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
+            const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
+            length = Math.max(minLen, Math.min(maxLen, dist));
+          } else if (skill.behavior?.flags?.twoPointDeployment && !skill.behavior?.flags?.twoPointDirectional) {
+            length = dist;
+          }
         }
         
         const width = (geom.width || 0) * mToPx;
@@ -1139,10 +1116,19 @@ export default function StrategiesPage() {
            ctx.lineTo(sweep, centerWidth/2);
            ctx.lineTo(0, width/2);
            ctx.closePath();
-        } else {
-           ctx.rect(0, -width/2, length, width);
-        }
-        ctx.fill();
+        } else if (geom.type === "line") {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(length, 0);
+         } else {
+            ctx.rect(0, -width/2, length, width);
+         }
+         
+         if (geom.type === "line") {
+            ctx.lineWidth = Math.max(width, 2 / scale);
+            ctx.stroke();
+         } else {
+            ctx.fill();
+         }
         
         const isFreePlaced = skill.behavior?.spawn === "ground" || (skill.unlinked && skill.behavior?.spawn === "player");
         const hasDirection = (skill.targetX !== undefined && skill.targetY !== undefined) || skill.customRotation !== undefined;
@@ -1283,8 +1269,17 @@ export default function StrategiesPage() {
             if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "curve")) {
                const tX = skill.targetX !== undefined ? skill.targetX - skill.x : 0;
                const tY = skill.targetY !== undefined ? skill.targetY - skill.y : 0;
-               cxImg = tX / 2;
-               cyImg = tY / 2;
+               
+               if (skill.behavior?.flags?.twoPointDirectional) {
+                  const mToPx = selectedMap?.pixelsPerMeter || 20;
+                  const length = (geom.length || 0) * mToPx;
+                  const angleToTarget = Math.atan2(tY, tX);
+                  cxImg = Math.cos(angleToTarget) * (length / 2);
+                  cyImg = Math.sin(angleToTarget) * (length / 2);
+               } else {
+                  cxImg = tX / 2;
+                  cyImg = tY / 2;
+               }
             }
          }
          
@@ -1431,6 +1426,42 @@ export default function StrategiesPage() {
           ctx.restore();
         }
       }
+      // Draw out-of-range warning for ground skills
+      if (skill.behavior?.spawn === "ground" && skill.behavior?.maxCastRange && !skill.unlinked && skill.instanceId !== "preview") {
+        const agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+        if (agentObj) {
+          const mToPx = selectedMap?.pixelsPerMeter || 20;
+          const maxPx = skill.behavior.maxCastRange * mToPx;
+          const dist = Math.sqrt((skill.x - agentObj.x)**2 + (skill.y - agentObj.y)**2);
+          if (dist > maxPx + 1) { // 1px epsilon
+            ctx.save();
+            ctx.translate(0, -20 / scale); // Position above the anchor
+            ctx.rotate(-angle); // Keep upright
+
+            // Draw warning triangle
+            const size = 12 / scale;
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(size, size * 0.8);
+            ctx.lineTo(-size, size * 0.8);
+            ctx.closePath();
+            ctx.fillStyle = "#ff4655";
+            ctx.fill();
+            ctx.strokeStyle = "#111";
+            ctx.lineWidth = 2 / scale;
+            ctx.stroke();
+
+            // Draw exclamation mark
+            ctx.fillStyle = "#fff";
+            ctx.font = `bold ${14 / scale}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("!", 0, size * 0.2);
+
+            ctx.restore();
+          }
+        }
+      }
       
       ctx.restore();
     }
@@ -1438,6 +1469,61 @@ export default function StrategiesPage() {
     for (const a of agentsRef.current) {
       let img = agentImgsRef.current.get(a.id);
       const agent = findAgent(a.id);
+
+      // --- Draw Range Circles ---
+      const isDraggedAgent = draggedAgentRef.current?.instanceId === a.instanceId;
+      let shouldDrawRange = false;
+      let rangeToDraw = 0;
+      const mToPx = selectedMap?.pixelsPerMeter || 20;
+      
+      const activeSkill = draggedSkillRef.current || draggedSkillTargetRef.current;
+      if (activeSkill && activeSkill.agentInstanceId === a.instanceId && !activeSkill.unlinked && activeSkill.behavior?.spawn === "ground") {
+        const maxRange = activeSkill.behavior?.maxCastRange || 0;
+        if (maxRange > 0) {
+           shouldDrawRange = true;
+           rangeToDraw = maxRange;
+        }
+      } else if (isDraggedAgent) {
+        const hasSkillNearLimit = skillsRef.current.some(s => {
+           if (s.agentInstanceId === a.instanceId && !s.unlinked && s.behavior?.spawn === "ground") {
+              const maxRange = s.behavior?.maxCastRange || 0;
+              if (maxRange > 0) {
+                 const dist = Math.sqrt((s.x - a.x)**2 + (s.y - a.y)**2);
+                 if (dist > maxRange * mToPx * 0.8) return true;
+              }
+           }
+           return false;
+        });
+        
+        if (hasSkillNearLimit) {
+           skillsRef.current.forEach(s => {
+              if (s.agentInstanceId === a.instanceId && !s.unlinked && s.behavior?.spawn === "ground") {
+                 const maxRange = s.behavior?.maxCastRange || 0;
+                 if (maxRange > 0) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(a.x, a.y, maxRange * mToPx, 0, Math.PI * 2);
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+                    ctx.lineWidth = 2 / scale;
+                    ctx.setLineDash([4 / scale, 4 / scale]);
+                    ctx.stroke();
+                    ctx.restore();
+                 }
+              }
+           });
+        }
+      }
+      
+      if (shouldDrawRange && rangeToDraw > 0) {
+         ctx.save();
+         ctx.beginPath();
+         ctx.arc(a.x, a.y, rangeToDraw * mToPx, 0, Math.PI * 2);
+         ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+         ctx.lineWidth = 2 / scale;
+         ctx.setLineDash([4 / scale, 4 / scale]);
+         ctx.stroke();
+         ctx.restore();
+      }
 
       if (!img && agent && agent.displayIcon) {
         const newImg = new Image();
@@ -2542,14 +2628,8 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
                  initTargetY = tY;
               }
            } else {
-               const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
-               if (isTwoPoint) {
-                  initTargetX = pos.x;
-                  initTargetY = pos.y;
-               } else {
-                  initTargetX = startX + Math.cos(sa) * length;
-                  initTargetY = startY + Math.sin(sa) * length;
-               }
+              initTargetX = startX + Math.cos(sa) * length;
+              initTargetY = startY + Math.sin(sa) * length;
            }
         } else {
            // ground spawn: enforce maxCastRange if set
@@ -2576,14 +2656,8 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
               initTargetX = pos.x + (skill.behavior?.flags?.chargeable?.minLength || skill.geometry?.length || 0) * mToPx;
               initTargetY = pos.y;
            } else {
-               const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
-               if (isTwoPoint) {
-                  initTargetX = pos.x;
-                  initTargetY = pos.y;
-               } else {
-                  initTargetX = pos.x + length;
-                  initTargetY = pos.y;
-               }
+              initTargetX = pos.x + length;
+              initTargetY = pos.y;
            }
         }
       }
@@ -3106,8 +3180,41 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
           sa = Math.atan2(pos.y - originY, pos.x - originX);
        }
        
-       if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
-         if (!isChargeable) {
+       if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "line")) {
+         if (skill.behavior?.flags?.twoPointDeployment) {
+           const agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+           let tX = pos.x;
+           let tY = pos.y;
+           
+           if (agentObj) {
+              const maxRange = skill.behavior?.maxCastRange || 0;
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = tX - agentObj.x;
+                 const dy = tY - agentObj.y;
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    tX = agentObj.x + Math.cos(angle) * maxPx;
+                    tY = agentObj.y + Math.sin(angle) * maxPx;
+                 }
+              }
+           }
+           
+           const maxGeomLen = (geom.length || 0) * mToPx;
+           if (maxGeomLen > 0) {
+              const dx = tX - skill.x;
+              const dy = tY - skill.y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              if (dist > maxGeomLen) {
+                 const angle = Math.atan2(dy, dx);
+                 tX = skill.x + Math.cos(angle) * maxGeomLen;
+                 tY = skill.y + Math.sin(angle) * maxGeomLen;
+              }
+           }
+           skill.targetX = tX;
+           skill.targetY = tY;
+         } else if (!isChargeable) {
            const length = (geom.length || 0) * mToPx;
            skill.targetX = skill.x + Math.cos(sa) * length;
            skill.targetY = skill.y + Math.sin(sa) * length;
@@ -3206,11 +3313,33 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
       } else if (draggedSkillRef.current) {
         const newX = pos.x + draggedSkillOffsetRef.current.x;
         const newY = pos.y + draggedSkillOffsetRef.current.y;
-        const dx = newX - draggedSkillRef.current.x;
-        const dy = newY - draggedSkillRef.current.y;
         
-        draggedSkillRef.current.x = newX;
-        draggedSkillRef.current.y = newY;
+        let clampedX = newX;
+        let clampedY = newY;
+        
+        const skill = draggedSkillRef.current;
+        if (skill.behavior?.spawn === "ground" && !skill.unlinked) {
+            const agentObj = agentsRef.current.find(a => a.instanceId === skill.agentInstanceId);
+            const maxRange = skill.behavior?.maxCastRange || 0;
+            if (agentObj && maxRange > 0) {
+                const mToPx = selectedMap?.pixelsPerMeter || 20;
+                const maxPx = maxRange * mToPx;
+                const dx = newX - agentObj.x;
+                const dy = newY - agentObj.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    clampedX = agentObj.x + Math.cos(angle) * maxPx;
+                    clampedY = agentObj.y + Math.sin(angle) * maxPx;
+                }
+            }
+        }
+        
+        const dx = clampedX - draggedSkillRef.current.x;
+        const dy = clampedY - draggedSkillRef.current.y;
+        
+        draggedSkillRef.current.x = clampedX;
+        draggedSkillRef.current.y = clampedY;
         if (draggedSkillRef.current.targetX !== undefined) draggedSkillRef.current.targetX += dx;
         if (draggedSkillRef.current.targetY !== undefined) draggedSkillRef.current.targetY += dy;
         if (draggedSkillRef.current.pathPoints) {
@@ -5695,7 +5824,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
             }}
           >
             <div style={{ display: "flex", gap: 4 }}>
-              {ctxSkill.behavior?.spawn === "player" && !ctxSkill.unlinked && (
+              {!ctxSkill.unlinked && (
                 <button
                   onClick={() => {
                     const idx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
