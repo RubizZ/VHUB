@@ -2475,8 +2475,32 @@ ctx.restore();
               initTargetX = startX + Math.cos(sa) * dist;
               initTargetY = startY + Math.sin(sa) * dist;
            } else if (isProj && !isGeomWithTarget) {
-              initTargetX = pos.x;
-              initTargetY = pos.y;
+              const maxRange = skill.behavior?.flags?.projectile?.maxDistance || skill.behavior?.maxCastRange || skill.behavior?.groundRange || 0;
+              let tX = pos.x;
+              let tY = pos.y;
+              
+              if (maxRange > 0) {
+                 const maxPx = maxRange * mToPx;
+                 const dx = tX - agentObj.x;
+                 const dy = tY - agentObj.y;
+                 const dist = Math.sqrt(dx*dx + dy*dy);
+                 if (skill.behavior?.flags?.projectile?.fixedDistance || dist > maxPx) {
+                    const angle = Math.atan2(dy, dx);
+                    tX = agentObj.x + Math.cos(angle) * maxPx;
+                    tY = agentObj.y + Math.sin(angle) * maxPx;
+                 }
+              }
+              
+              const dx = tX - startX;
+              const dy = tY - startY;
+              const projDist = dx * Math.cos(sa) + dy * Math.sin(sa);
+              if (projDist <= 0.1) {
+                 initTargetX = startX + Math.cos(sa) * 0.1;
+                 initTargetY = startY + Math.sin(sa) * 0.1;
+              } else {
+                 initTargetX = tX;
+                 initTargetY = tY;
+              }
            } else {
               initTargetX = startX + Math.cos(sa) * length;
               initTargetY = startY + Math.sin(sa) * length;
