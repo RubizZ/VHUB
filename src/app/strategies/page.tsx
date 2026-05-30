@@ -1113,16 +1113,11 @@ export default function StrategiesPage() {
         }
         
         let length = (geom.length || 0) * mToPx;
-        const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
-        if ((skill.behavior?.flags?.chargeable || isTwoPoint) && skill.targetX !== undefined && skill.targetY !== undefined) {
+        if (skill.behavior?.flags?.chargeable && skill.targetX !== undefined && skill.targetY !== undefined) {
           const dist = Math.sqrt((skill.targetX - skill.x)**2 + (skill.targetY - skill.y)**2);
-          if (isTwoPoint) {
-             length = dist;
-          } else {
-             const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
-             const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
-             length = Math.max(minLen, Math.min(maxLen, dist));
-          }
+          const minLen = (skill.behavior?.flags?.chargeable?.minLength || geom.length || 0) * mToPx;
+          const maxLen = (skill.behavior?.flags?.chargeable?.maxLength || geom.length || 0) * mToPx;
+          length = Math.max(minLen, Math.min(maxLen, dist));
         }
         
         const width = (geom.width || 0) * mToPx;
@@ -3112,11 +3107,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
        }
        
        if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid")) {
-         const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
-         if (isTwoPoint) {
-            skill.targetX = pos.x;
-            skill.targetY = pos.y;
-         } else if (!isChargeable) {
+         if (!isChargeable) {
            const length = (geom.length || 0) * mToPx;
            skill.targetX = skill.x + Math.cos(sa) * length;
            skill.targetY = skill.y + Math.sin(sa) * length;
