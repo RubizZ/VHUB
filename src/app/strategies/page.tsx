@@ -2333,9 +2333,10 @@ ctx.restore();
   const startDraw = (e: React.MouseEvent | React.TouchEvent | React.DragEvent) => {
     if (isPlacingSecondPointRef.current && draggedSkillTargetRef.current) {
         // Confirm second point placement
+        const confirmedSkill = draggedSkillTargetRef.current;
         isPlacingSecondPointRef.current = false;
         draggedSkillTargetRef.current = null;
-        setTool("select");
+        broadcastSkillUpdate(confirmedSkill, false);
         redrawImmediate();
         updateUndoRedo();
         scheduleAutoSave();
@@ -2611,7 +2612,7 @@ ctx.restore();
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
-      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
+      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve" || skill.geometry.type === "line");
       const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
       
       if (isGeomWithTarget || isProj) {
@@ -2690,6 +2691,13 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         }
       }
       
+      // For two-point deployment skills, always set initial target at mouse position
+      // so the user can aim with the mouse before the second click
+      if (skill.behavior?.flags?.twoPointDeployment) {
+        initTargetX = pos.x;
+        initTargetY = pos.y;
+      }
+
       const newSkill: CanvasSkill = {
         instanceId: Math.random().toString(36).substring(2, 9),
         agentInstanceId,
@@ -2887,7 +2895,9 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
       }
 
       if (tool === "select") {
-        if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
+        if (isPlacingSecondPointRef.current) {
+          canvas.style.cursor = "crosshair";
+        } else if (draggedAgentRef.current || draggedSkillRef.current || draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
           if (draggedSkillTargetRef.current || draggedSkillRotationRef.current) {
             canvas.style.cursor = "grabbing";
           } else {
@@ -3591,11 +3601,15 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
     }
     
     if (draggedSkillTargetRef.current) {
-      broadcastSkillUpdate(draggedSkillTargetRef.current, false);
-      draggedSkillTargetRef.current = null;
-      redrawImmediate();
-      updateUndoRedo();
-      scheduleAutoSave();
+      // If we're in the middle of placing a second point, don't clear the ref
+      // The second click (mousedown) will confirm and clear it
+      if (!isPlacingSecondPointRef.current) {
+        broadcastSkillUpdate(draggedSkillTargetRef.current, false);
+        draggedSkillTargetRef.current = null;
+        redrawImmediate();
+        updateUndoRedo();
+        scheduleAutoSave();
+      }
     }
     const canvas = canvasRef.current;
     if (canvas && tool === "select") {
@@ -3703,7 +3717,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
 
       let initTargetX: number | undefined = undefined;
       let initTargetY: number | undefined = undefined;
-      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve");
+      const isGeomWithTarget = skill.geometry && (skill.geometry.type === "rectangle" || skill.geometry.type === "cone" || skill.geometry.type === "trapezoid" || skill.geometry.type === "curve" || skill.geometry.type === "line");
       const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.teleportsAgentInstantly;
       
       if (isGeomWithTarget || isProj) {
@@ -3782,6 +3796,13 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         }
       }
 
+      // For two-point deployment skills, always set initial target at drop/mouse position
+      // so the user can aim with the mouse before the second click
+      if (skill.behavior?.flags?.twoPointDeployment) {
+        initTargetX = pos.x;
+        initTargetY = pos.y;
+      }
+
       const newSkill: CanvasSkill = {
         instanceId: Math.random().toString(36).substring(2, 9),
         agentInstanceId: pendingData.agentInstanceId,
@@ -3809,7 +3830,14 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
       
       pendingSkillRef.current = null;
       mousePosRef.current = null;
-      setTool("select");
+      
+      // For two-point deployment skills, keep draggedSkillTargetRef so the user can place the second point
+      if (newSkill.behavior?.flags?.twoPointDeployment && newSkill.targetX !== undefined) {
+        draggedSkillTargetRef.current = newSkill;
+        isPlacingSecondPointRef.current = true;
+      } else {
+        setTool("select");
+      }
       redraw();
       updateUndoRedo();
       scheduleAutoSave();
