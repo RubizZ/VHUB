@@ -2675,7 +2675,8 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
         pathPoints: skill.behavior?.flags?.controllablePath ? [{x: startX, y: startY}, {x: pos.x, y: pos.y}] : undefined,
         color: skillColor,
-        createdBy: myUserId
+        createdBy: myUserId,
+        unlinked: skill.behavior?.spawn === "ground"
       };
       
       skillsRef.current.push(newSkill);
@@ -3761,7 +3762,8 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
         projectileMode: skill.behavior?.flags?.projectile ? projectileMode : undefined,
         pathPoints: skill.behavior?.flags?.controllablePath ? [{x: startX, y: startY}, {x: pos.x, y: pos.y}] : undefined,
         color: pendingData.color,
-        createdBy: myUserId
+        createdBy: myUserId,
+        unlinked: skill.behavior?.spawn === "ground"
       };
       skillsRef.current.push(newSkill);
       loadedSkillIdsRef.current.add(newSkill.instanceId);
@@ -5883,6 +5885,73 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
                     <path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71" />
                     <path d="m5.17 11.67-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71" />
                     <line x1="8" y1="8" x2="16" y2="16" />
+                  </svg>
+                </button>
+              )}
+              {ctxSkill.unlinked && (
+                <button
+                  onClick={() => {
+                    const idx = skillsRef.current.findIndex(s => s.instanceId === ctxSkill.instanceId);
+                    if (idx >= 0) {
+                      const oldSkill = { ...skillsRef.current[idx] };
+                      skillsRef.current[idx].unlinked = false;
+                      
+                      const s = skillsRef.current[idx];
+                      if (s.behavior?.spawn === "player") {
+                          const agent = agentsRef.current.find(a => a.instanceId === s.agentInstanceId);
+                          if (agent) {
+                              const mToPx = selectedMap?.pixelsPerMeter || 20;
+                              let newX = agent.x;
+                              let newY = agent.y;
+                              let sa = 0;
+                              if (s.targetX !== undefined && s.targetY !== undefined) {
+                                 sa = Math.atan2(s.targetY - s.y, s.targetX - s.x);
+                              }
+                              if (s.behavior?.spawnOffset) {
+                                 newX = agent.x + Math.cos(sa) * s.behavior.spawnOffset * mToPx;
+                                 newY = agent.y + Math.sin(sa) * s.behavior.spawnOffset * mToPx;
+                              }
+                              const dx = newX - s.x;
+                              const dy = newY - s.y;
+                              s.x = newX;
+                              s.y = newY;
+                              if (s.targetX !== undefined) s.targetX += dx;
+                              if (s.targetY !== undefined) s.targetY += dy;
+                              if (s.pathPoints) {
+                                 s.pathPoints.forEach(pt => { pt.x += dx; pt.y += dy; });
+                              }
+                          }
+                      }
+                      
+                      undoStackRef.current.push({
+                        type: 'remove-skill',
+                        skill: oldSkill,
+                        index: idx
+                      });
+                      redrawImmediate();
+                      broadcastSkillUpdate(skillsRef.current[idx], false);
+                      setHoverMenuState(prev => ({ ...prev, visible: false }));
+                      hoveredSkillRef.current = null;
+                    }
+                  }}
+                  title="Vincular al agente"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.1)",
+                    border: "none",
+                    borderRadius: 8,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    cursor: "pointer",
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                   </svg>
                 </button>
               )}
