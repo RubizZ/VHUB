@@ -638,7 +638,14 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                       <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 24 }}>
                         <div className="form-group" style={{ flex: 2 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
-                          <select className="input-field" value={formData.behaviorSpawn} onChange={e => setFormData({...formData, behaviorSpawn: e.target.value as SkillFormData["behaviorSpawn"]})}>
+                          <select className="input-field" value={formData.behaviorSpawn} onChange={e => {
+                            const val = e.target.value as SkillFormData["behaviorSpawn"];
+                            if (val === "player") {
+                               setFormData({...formData, behaviorSpawn: val, flagTwoPointDeployment: false, flagTwoPointDirectional: false});
+                            } else {
+                               setFormData({...formData, behaviorSpawn: val});
+                            }
+                          }}>
                             <option value="player">Sale de la posición del jugador</option>
                             <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
                           </select>
@@ -660,7 +667,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                       <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap", background: "rgba(255,255,255,0.02)", padding: 16, borderRadius: 12 }}>
                         <div className="form-group" style={{ flex: "1 1 100%" }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Modo de Despliegue</label>
-                          <select className="input-field" value={!formData.flagTwoPointDeployment ? "1pt" : (formData.flagTwoPointDirectional ? "2pt-dir" : "2pt-conn")} onChange={e => {
+                          <select className="input-field" disabled={formData.behaviorSpawn === "player"} value={!formData.flagTwoPointDeployment ? "1pt" : (formData.flagTwoPointDirectional ? "2pt-dir" : "2pt-conn")} onChange={e => {
                             const val = e.target.value;
                             if (val === "1pt") {
                               setFormData({...formData, flagTwoPointDeployment: false, flagTwoPointDirectional: false});
@@ -702,12 +709,10 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                               <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho/Grosor (m)</label>
                               <input type="number" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
                             </div>
-                            {formData.geometryType !== "line" && (
                               <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance (m)</label>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "line" ? "Largo Máx. del Cable (m)" : "Largo/Alcance (m)"}</label>
                                 <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
                               </div>
-                            )}
                           </>
                         )}
                         {(formData.geometryType === "cone" || formData.geometryType === "curve") && (

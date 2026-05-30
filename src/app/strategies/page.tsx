@@ -219,6 +219,7 @@ export default function StrategiesPage() {
   const draggedSkillRef = useRef<CanvasSkill | null>(null);
   const draggedSkillOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
+  const isPlacingSecondPointRef = useRef<boolean>(false);
   const draggedSkillRotationRef = useRef<CanvasSkill | null>(null);
   const dragHoveredLinkAgentRef = useRef<CanvasAgent | null>(null);
   const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -1266,7 +1267,7 @@ export default function StrategiesPage() {
             cyImg = skill.targetY - skill.y;
          } else {
             const geom = skill.geometry;
-            if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "curve")) {
+            if (geom && (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "curve" || geom.type === "line")) {
                const tX = skill.targetX !== undefined ? skill.targetX - skill.x : 0;
                const tY = skill.targetY !== undefined ? skill.targetY - skill.y : 0;
                
@@ -1477,11 +1478,15 @@ export default function StrategiesPage() {
       const mToPx = selectedMap?.pixelsPerMeter || 20;
       
       const activeSkill = draggedSkillRef.current || draggedSkillTargetRef.current;
-      if (activeSkill && activeSkill.agentInstanceId === a.instanceId && !activeSkill.unlinked && activeSkill.behavior?.spawn === "ground") {
-        const maxRange = activeSkill.behavior?.maxCastRange || 0;
-        if (maxRange > 0) {
-           shouldDrawRange = true;
-           rangeToDraw = maxRange;
+      if (activeSkill && activeSkill.agentInstanceId === a.instanceId && !activeSkill.unlinked) {
+        const isGroundSpawn = activeSkill.behavior?.spawn === "ground";
+        const isDraggingTarget = draggedSkillTargetRef.current?.instanceId === activeSkill.instanceId;
+        if (isGroundSpawn || isDraggingTarget) {
+          const maxRange = activeSkill.behavior?.maxCastRange || 0;
+          if (maxRange > 0) {
+             shouldDrawRange = true;
+             rangeToDraw = maxRange;
+          }
         }
       } else if (isDraggedAgent) {
         const hasSkillNearLimit = skillsRef.current.some(s => {
@@ -2038,6 +2043,18 @@ ctx.restore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isPlacingSecondPointRef.current && draggedSkillTargetRef.current) {
+          const sId = draggedSkillTargetRef.current.instanceId;
+          skillsRef.current = skillsRef.current.filter(s => s.instanceId !== sId);
+          undoStackRef.current.pop();
+          isPlacingSecondPointRef.current = false;
+          draggedSkillTargetRef.current = null;
+          setTool("select");
+          redrawImmediate();
+          broadcastEraseElements([], [], [sId]);
+        }
+      }
       if (view === "editor" && (e.ctrlKey || e.metaKey)) {
         if (e.key.toLowerCase() === "z") {
           e.preventDefault();
@@ -2313,7 +2330,18 @@ ctx.restore();
     return closest;
   };
 
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+  const startDraw = (e: React.MouseEvent | React.TouchEvent | React.DragEvent) => {
+    if (isPlacingSecondPointRef.current && draggedSkillTargetRef.current) {
+        // Confirm second point placement
+        isPlacingSecondPointRef.current = false;
+        draggedSkillTargetRef.current = null;
+        setTool("select");
+        redrawImmediate();
+        updateUndoRedo();
+        scheduleAutoSave();
+        return;
+    }
+
     let cx = 0;
     let cy = 0;
     if ("touches" in e) {
@@ -2692,6 +2720,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
       pendingSkillRef.current = null;
       if (initTargetX !== undefined) {
         draggedSkillTargetRef.current = newSkill;
+        isPlacingSecondPointRef.current = true;
       }
       setTool("select");
       
@@ -3203,7 +3232,7 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
            }
            
            const maxGeomLen = (geom.length || 0) * mToPx;
-           if (maxGeomLen > 0) {
+           if (maxGeomLen > 0 && !skill.behavior?.flags?.twoPointDirectional) {
               const dx = tX - skill.x;
               const dy = tY - skill.y;
               const dist = Math.sqrt(dx*dx + dy*dy);
@@ -3350,18 +3379,22 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
            draggedSkillRef.current.targetY += dy;
            
            if (!draggedSkillRef.current.unlinked && agentObj) {
-               const maxRange = draggedSkillRef.current.behavior?.maxCastRange || 0;
-               if (maxRange > 0) {
-                  const mToPx = selectedMap?.pixelsPerMeter || 20;
-                  const maxPx = maxRange * mToPx;
-                  const tDx = draggedSkillRef.current.targetX - agentObj.x;
-                  const tDy = draggedSkillRef.current.targetY - agentObj.y;
-                  const tDist = Math.sqrt(tDx*tDx + tDy*tDy);
-                  if (tDist > maxPx) {
-                      const angle = Math.atan2(tDy, tDx);
-                      draggedSkillRef.current.targetX = agentObj.x + Math.cos(angle) * maxPx;
-                      draggedSkillRef.current.targetY = agentObj.y + Math.sin(angle) * maxPx;
-                  }
+               // Target point is restricted by agent range for directional skills and projectiles.
+               // Cables restrict their target point to the first point (maintained during drag).
+               if (!(draggedSkillRef.current.behavior?.flags?.twoPointDeployment && !draggedSkillRef.current.behavior?.flags?.twoPointDirectional)) {
+                   const maxRange = draggedSkillRef.current.behavior?.maxCastRange || 0;
+                   if (maxRange > 0) {
+                      const mToPx = selectedMap?.pixelsPerMeter || 20;
+                      const maxPx = maxRange * mToPx;
+                      const tDx = draggedSkillRef.current.targetX - agentObj.x;
+                      const tDy = draggedSkillRef.current.targetY - agentObj.y;
+                      const tDist = Math.sqrt(tDx*tDx + tDy*tDy);
+                      if (tDist > maxPx) {
+                          const angle = Math.atan2(tDy, tDx);
+                          draggedSkillRef.current.targetX = agentObj.x + Math.cos(angle) * maxPx;
+                          draggedSkillRef.current.targetY = agentObj.y + Math.sin(angle) * maxPx;
+                      }
+                   }
                }
            }
         }
@@ -5503,7 +5536,20 @@ const maxRange = pFlag ? Number(pFlag.maxDistance || 0) : (skill.behavior?.maxCa
                   onMouseDown={(e) => { if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); startDraw(e); }} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={() => { mousePosRef.current = null; hoveredPathIdRef.current = null; if (customCursorRef.current) customCursorRef.current.style.display = "none"; redrawImmediate(); }}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                   onDragEnter={handleCanvasDragEnter} onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
-                  onContextMenu={e => { e.preventDefault(); if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); }} />
+                  onContextMenu={e => { 
+                    e.preventDefault(); 
+                    if (hoverMenuState?.visible) setHoverMenuState(prev => ({ ...prev, visible: false })); 
+                    if (isPlacingSecondPointRef.current && draggedSkillTargetRef.current) {
+                      const sId = draggedSkillTargetRef.current.instanceId;
+                      skillsRef.current = skillsRef.current.filter(s => s.instanceId !== sId);
+                      undoStackRef.current.pop();
+                      isPlacingSecondPointRef.current = false;
+                      draggedSkillTargetRef.current = null;
+                      setTool("select");
+                      redrawImmediate();
+                      broadcastEraseElements([], [], [sId]);
+                    }
+                  }} />
 
                 <div
                   ref={customCursorRef}
