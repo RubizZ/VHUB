@@ -168,7 +168,7 @@ export function LandingPage() {
           <span style={{ fontWeight: 800, fontSize: "16px", letterSpacing: "1px" }}>VHUB</span>
         </div>
         <p className="landing-footer-disclaimer">
-          <strong>VHUB</strong> no cuenta con el respaldo de Riot Games y no refleja los puntos de vista ni las opiniones de Riot Games ni de nadie oficialmente involucrado en la producción o gestión de las propiedades de Riot Games. Riot Games y todas las propiedades asociadas son marcas comerciales o marcas comerciales registradas de Riot Games, Inc. VHUB se creó bajo la política de &quot;Jibber Jabber legal&quot; de Riot Games utilizando activos propiedad de Riot Games. Riot Games no respalda ni patrocina este proyecto.
+          <strong>VHUB</strong>{" "}no cuenta con el respaldo de Riot Games y no refleja los puntos de vista ni las opiniones de Riot Games ni de nadie oficialmente involucrado en la producción o gestión de las propiedades de Riot Games. Riot Games y todas las propiedades asociadas son marcas comerciales o marcas comerciales registradas de Riot Games, Inc. VHUB se creó bajo la política de &quot;Jibber Jabber legal&quot; de Riot Games utilizando activos propiedad de Riot Games. Riot Games no respalda ni patrocina este proyecto.
         </p>
       </footer>
     </div>

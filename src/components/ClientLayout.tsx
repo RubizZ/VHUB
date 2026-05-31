@@ -81,7 +81,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <p style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.6', textAlign: 'justify', margin: 0 }}>
-                <strong>VHUB</strong> no cuenta con el respaldo de Riot Games y no refleja los puntos de vista ni las opiniones de Riot Games ni de nadie oficialmente involucrado en la producción o gestión de las propiedades de Riot Games. Riot Games y todas las propiedades asociadas son marcas comerciales o marcas comerciales registradas de Riot Games, Inc.
+                <strong>VHUB</strong>{" "}no cuenta con el respaldo de Riot Games y no refleja los puntos de vista ni las opiniones de Riot Games ni de nadie oficialmente involucrado en la producción o gestión de las propiedades de Riot Games. Riot Games y todas las propiedades asociadas son marcas comerciales o marcas comerciales registradas de Riot Games, Inc.
               </p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.5', textAlign: 'justify', margin: 0, borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px' }}>
                 VHUB se creó bajo la política "Jibber Jabber legal" de Riot Games utilizando activos propiedad de Riot Games. Riot Games no respalda ni patrocina este proyecto.
