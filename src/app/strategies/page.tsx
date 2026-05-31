@@ -120,7 +120,7 @@ type View = "maps" | "strategies" | "editor";
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
 let pendingRedrawRef: number | null = null;
 
-function getProjRangeAndFixed(skill: AgentSkill) {
+function getProjRangeAndFixed(skill: { behavior?: SkillBehavior }) {
     const pFlag = skill?.behavior?.flags?.projectile;
     let maxRange = 0;
     if (skill?.behavior?.spawn !== "player") {
