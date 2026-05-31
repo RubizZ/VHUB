@@ -53,7 +53,7 @@ interface SkillFormData {
   projectileSpeed: number;
   projectileDuration: number;
   projectileMaxDistance: number;
-  projectileFixedDistance: boolean;
+
   flagBouncing: boolean;
   bouncingCount: number;
   flagChargeable: boolean;
@@ -126,7 +126,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     projectileSpeed: 0,
     projectileDuration: 0,
     projectileMaxDistance: 0,
-    projectileFixedDistance: false,
     flagBouncing: false,
     bouncingCount: 1,
     flagChargeable: false,
@@ -226,7 +225,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileSpeed: skill.behavior?.flags?.projectile?.speed ?? 0,
         projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
         projectileMaxDistance: skill.behavior?.flags?.projectile?.maxDistance ?? 0,
-        projectileFixedDistance: skill.behavior?.flags?.projectile?.fixedDistance ?? false,
         flagBouncing: !!skill.behavior?.flags?.bouncing || (skill.behavior?.flags?.projectile as any)?.bounces !== undefined,
         bouncingCount: skill.behavior?.flags?.bouncing?.bounces ?? (skill.behavior?.flags?.projectile as any)?.bounces ?? 1,
         // flag chargeable (objeto anidado)
@@ -294,7 +292,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileSpeed: 0,
         projectileDuration: 0,
         projectileMaxDistance: 0,
-        projectileFixedDistance: false,
         flagBouncing: false,
         bouncingCount: 1,
         flagChargeable: false,
@@ -379,7 +376,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   speed: Number(formData.projectileSpeed) || undefined,
                   duration: Number(formData.projectileDuration) || undefined,
                   maxDistance: Number(formData.projectileMaxDistance) || undefined,
-                  fixedDistance: formData.projectileFixedDistance || undefined,
                 }
               : undefined,
             bouncing: formData.flagBouncing
@@ -867,10 +863,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                                 }} />
                               </div>
                             </div>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.projectileFixedDistance} onChange={e => setFormData({...formData, projectileFixedDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Distancia fija (el proyectil siempre recorre esta distancia exacta y no se puede acortar)</span>
-                            </label>
+                            
                           </div>
                         )}
 

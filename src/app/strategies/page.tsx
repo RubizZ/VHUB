@@ -18,6 +18,23 @@ import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getProjRangeAndFixed(skill: any) {
+    const pFlag = skill?.behavior?.flags?.projectile;
+    let maxRange = skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
+    let isFixed = false;
+    if (pFlag) {
+        if (pFlag.maxDistance === 0 || pFlag.maxDistance === undefined) {
+            isFixed = true;
+            maxRange = (pFlag.speed || 0) * (pFlag.duration || 0);
+            if (maxRange === 0) maxRange = skill?.behavior?.maxCastRange || 0;
+        } else {
+            maxRange = pFlag.maxDistance;
+        }
+    }
+    return { maxRange, isFixed };
+}
+
 interface Strategy {
     id: number;
     map_id: string;
@@ -1071,10 +1088,7 @@ export default function StrategiesPage() {
                         initTargetX = startX + Math.cos(sa) * dist;
                         initTargetY = startY + Math.sin(sa) * dist;
                     } else if (isProj && !isGeomWithTarget) {
-                        const pFlag = pSkill.skill.behavior?.flags?.projectile;
-                        const maxRange = pFlag
-                            ? Number(pFlag.maxDistance || 0)
-                            : pSkill.skill.behavior?.maxCastRange || 0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(pSkill.skill);
                         let tX = worldMousePosRef.current.x;
                         let tY = worldMousePosRef.current.y;
 
@@ -1084,8 +1098,7 @@ export default function StrategiesPage() {
                             const dy = tY - agentObj.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                pSkill.skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
@@ -1111,10 +1124,7 @@ export default function StrategiesPage() {
                 } else {
                     // ground spawn: enforce maxCastRange if set
                     if (isProj && !isGeomWithTarget) {
-                        const maxRange =
-                            pSkill.skill.behavior?.maxCastRange ||
-                            pSkill.skill.behavior?.groundRange ||
-                            0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(pSkill.skill);
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
                             const dx =
@@ -1125,8 +1135,7 @@ export default function StrategiesPage() {
                                 (agentObj?.y ?? worldMousePosRef.current.y);
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                pSkill.skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
@@ -3450,10 +3459,7 @@ export default function StrategiesPage() {
                         initTargetX = startX + Math.cos(sa) * dist;
                         initTargetY = startY + Math.sin(sa) * dist;
                     } else if (isProj && !isGeomWithTarget) {
-                        const pFlag = skill.behavior?.flags?.projectile;
-                        const maxRange = pFlag
-                            ? Number(pFlag.maxDistance || 0)
-                            : skill.behavior?.maxCastRange || 0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
                         let tX = pos.x;
                         let tY = pos.y;
 
@@ -3463,8 +3469,7 @@ export default function StrategiesPage() {
                             const dy = tY - agentObj.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
@@ -3490,18 +3495,14 @@ export default function StrategiesPage() {
                 } else {
                     // ground spawn: enforce maxCastRange if set
                     if (isProj && !isGeomWithTarget) {
-                        const maxRange =
-                            skill.behavior?.maxCastRange ||
-                            skill.behavior?.groundRange ||
-                            0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
                             const dx = pos.x - (agentObj?.x ?? pos.x);
                             const dy = pos.y - (agentObj?.y ?? pos.y);
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
@@ -4346,10 +4347,7 @@ export default function StrategiesPage() {
                     skill.targetY = skill.y + Math.sin(sa) * dist;
                 }
             } else {
-                const pFlag = skill.behavior?.flags?.projectile;
-                const maxRange = pFlag
-                    ? Number(pFlag.maxDistance || 0)
-                    : skill.behavior?.maxCastRange || 0;
+                const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
 
                 let tX = pos.x;
                 let tY = pos.y;
@@ -4360,7 +4358,7 @@ export default function StrategiesPage() {
                     const dy = pos.y - originY;
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     if (
-                        skill.behavior?.flags?.projectile?.fixedDistance ||
+                        projIsFixed ||
                         dist > maxPx
                     ) {
                         tX = originX + Math.cos(sa) * maxPx;
@@ -4943,10 +4941,7 @@ export default function StrategiesPage() {
                         initTargetX = startX + Math.cos(sa) * dist;
                         initTargetY = startY + Math.sin(sa) * dist;
                     } else if (isProj && !isGeomWithTarget) {
-                        const pFlag = skill.behavior?.flags?.projectile;
-                        const maxRange = pFlag
-                            ? Number(pFlag.maxDistance || 0)
-                            : skill.behavior?.maxCastRange || 0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
                         let tX = pos.x;
                         let tY = pos.y;
 
@@ -4956,8 +4951,7 @@ export default function StrategiesPage() {
                             const dy = tY - agentObj.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
@@ -4983,18 +4977,14 @@ export default function StrategiesPage() {
                 } else {
                     // ground spawn: enforce maxCastRange if set
                     if (isProj && !isGeomWithTarget) {
-                        const maxRange =
-                            skill.behavior?.maxCastRange ||
-                            skill.behavior?.groundRange ||
-                            0;
+                        const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
                             const dx = pos.x - (agentObj?.x ?? pos.x);
                             const dy = pos.y - (agentObj?.y ?? pos.y);
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (
-                                skill.behavior?.flags?.projectile
-                                    ?.fixedDistance ||
+                                projIsFixed ||
                                 dist > maxPx
                             ) {
                                 const angle = Math.atan2(dy, dx);
