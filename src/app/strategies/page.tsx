@@ -1,10 +1,18 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AgentSkillsManager } from "@/components/AgentSkillsManager";
 import { useSession } from "next-auth/react";
 import { type ValorantMap } from "@/lib/maps";
-import { ROLE_COLORS, type ValorantAgent, type AgentRole } from "@/lib/agents";
+import {
+    ROLE_COLORS,
+    type ValorantAgent,
+    type AgentRole,
+    type SkillGeometry,
+    type SkillBehavior,
+    type AgentSkill,
+} from "@/lib/agents";
 import { type ValorantWeapon, WEAPON_CATEGORY_LABELS } from "@/lib/weapons";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -66,8 +74,8 @@ interface CanvasSkill {
     y: number;
     targetX?: number;
     targetY?: number;
-    geometry: any;
-    behavior: any;
+    geometry: SkillGeometry;
+    behavior: SkillBehavior;
     projectileMode?: "bounce" | "parabola";
     isActive?: boolean;
     pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "controllablePath"
@@ -127,8 +135,8 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
     const max = Math.max(r, g, b),
         min = Math.min(r, g, b);
     let h = 0,
-        s = 0,
-        l = (max + min) / 2;
+        s = 0;
+    const l = (max + min) / 2;
 
     if (max !== min) {
         const d = max - min;
@@ -214,8 +222,7 @@ export default function StrategiesPage() {
     const [tool, setTool] = useState<Tool>("select");
     const [color, setColor] = useState("#FF4655");
     const [activeTeam, setActiveTeam] = useState<"ally" | "enemy">("ally");
-    const [showNewStrat, setShowNewStrat] = useState(false);
-    const [newName, setNewName] = useState("");
+
     const [activeRole, setActiveRole] = useState<AgentRole | null>(null);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -229,7 +236,7 @@ export default function StrategiesPage() {
         y: number;
         visible: boolean;
     }>({ agent: null, skill: null, x: 0, y: 0, visible: false });
-    const hoverMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const hoverMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hoveredAgentRef = useRef<CanvasAgent | null>(null);
     const hoveredSkillRef = useRef<CanvasSkill | null>(null);
     const isAgentDroppedRef = useRef<boolean>(false);
@@ -245,7 +252,7 @@ export default function StrategiesPage() {
 
     // Brush Size States
     const [pencilSize, setPencilSize] = useState<number>(5);
-    const [projectileMode, setProjectileMode] = useState<"bounce" | "parabola">(
+    const [projectileMode] = useState<"bounce" | "parabola">(
         "bounce",
     );
     const [arrowSize, setArrowSize] = useState<number>(5);
@@ -286,7 +293,7 @@ export default function StrategiesPage() {
     const skillsRef = useRef<CanvasSkill[]>([]);
     const pendingSkillRef = useRef<{
         agentInstanceId: string;
-        skill: any;
+        skill: AgentSkill;
         color: string;
     } | null>(null);
     const loadedSkillIdsRef = useRef<Set<string>>(new Set());
@@ -334,8 +341,8 @@ export default function StrategiesPage() {
     const myUserId = session?.user?.id || "";
     const myUserName = session?.user?.name || "Anónimo";
     const myUserImage = session?.user?.image || null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const myPlayerColor = (session?.user as any)?.avatarColor || "#FF4655";
+    const myPlayerColor =
+        (session?.user as { avatarColor?: string })?.avatarColor || "#FF4655";
 
     useEffect(() => {
         if (isDraggingColor) return;
@@ -780,7 +787,7 @@ export default function StrategiesPage() {
 
     const redraw = useCallback(() => {
         scheduleRedraw();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [
         selectedMap,
         selectedSide,
@@ -814,7 +821,9 @@ export default function StrategiesPage() {
         const currentPan = panRef.current;
         const currentZoom = zoomRef.current;
         const currentSide = selectedSide;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const currentTool = tool;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const currentEraserSize = eraserSizeRef.current;
 
         if (!(mapImg && mapImg.complete)) {
@@ -1172,8 +1181,11 @@ export default function StrategiesPage() {
             ctx.save();
             ctx.translate(skill.x, skill.y);
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isActivatable = skill.behavior?.flags?.activatableDeployable;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isActive = skill.isActive;
 
             const agent = agentsRef.current.find(
@@ -1298,7 +1310,7 @@ export default function StrategiesPage() {
             } else if (geom.type === "circle") {
                 ctx.beginPath();
                 const radius =
-                    (geom.radius !== undefined ? geom.radius : geom.width / 2) *
+                    (geom.radius !== undefined ? geom.radius : (geom.width || 0) / 2) *
                     mToPx;
                 ctx.arc(0, 0, radius, 0, 2 * Math.PI);
                 ctx.fill();
@@ -1404,6 +1416,7 @@ export default function StrategiesPage() {
                     ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
                     ctx.closePath();
                 } else if (geom.type === "trapezoid") {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const wingWidth = width * 0.2;
                     const centerWidth = width * 0.6;
                     const sweep = Math.min(length * 0.3, 15);
@@ -2294,7 +2307,7 @@ export default function StrategiesPage() {
             ctx.fillText(label, labelX, labelY + 2);
             ctx.restore();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [selectedMap, selectedSide, tool, agents, remoteCursors]);
 
     // Keep ref always up-to-date so scheduleRedraw can call the latest version
@@ -2408,7 +2421,7 @@ export default function StrategiesPage() {
             });
         }
         scheduleAutoSave();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [current, myUserId, updateUndoRedo, scheduleAutoSave]);
 
     const undo = useCallback(() => {
@@ -2866,7 +2879,7 @@ export default function StrategiesPage() {
                 return false;
             }
             const radius =
-                (geom.radius !== undefined ? geom.radius : geom.width / 2) *
+                (geom.radius !== undefined ? geom.radius : (geom.width || 0) / 2) *
                 mToPx;
             return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
         } else if (
@@ -3564,7 +3577,10 @@ export default function StrategiesPage() {
 
             drawingRef.current = true;
             pendingSkillRef.current = null;
-            if (initTargetX !== undefined && skill.behavior?.spawn === "ground") {
+            if (
+                initTargetX !== undefined &&
+                skill.behavior?.spawn === "ground"
+            ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
             } else {
@@ -3852,6 +3868,7 @@ export default function StrategiesPage() {
                         return hit;
                     });
 
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     let foundHoverSkillTarget: CanvasSkill | null = null;
                     const isOverSkillTarget = skillsRef.current.some((s) => {
                         if (s.draggedBy && s.draggedBy !== myUserId)
@@ -4264,22 +4281,29 @@ export default function StrategiesPage() {
                         const maxRange = skill.behavior?.maxCastRange || 0;
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
-                            
+
                             // When dragging the second point and linked, also correct the first point if it's out of range
-                            if (!isPlacingSecondPointRef.current && !skill.unlinked && draggedSkillTargetRef.current?.instanceId === skill.instanceId) {
+                            if (
+                                !isPlacingSecondPointRef.current &&
+                                !skill.unlinked &&
+                                draggedSkillTargetRef.current?.instanceId ===
+                                    skill.instanceId
+                            ) {
                                 // Check if first point is out of range
                                 const dx1 = skill.x - agentObj.x;
                                 const dy1 = skill.y - agentObj.y;
                                 const dist1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-                                
+
                                 if (dist1 > maxPx) {
                                     // Move first point closer to agent while maintaining direction
                                     const angle1 = Math.atan2(dy1, dx1);
-                                    skill.x = agentObj.x + Math.cos(angle1) * maxPx;
-                                    skill.y = agentObj.y + Math.sin(angle1) * maxPx;
+                                    skill.x =
+                                        agentObj.x + Math.cos(angle1) * maxPx;
+                                    skill.y =
+                                        agentObj.y + Math.sin(angle1) * maxPx;
                                 }
                             }
-                            
+
                             // Now limit second point by maxCastRange from agent
                             const dx = tX - agentObj.x;
                             const dy = tY - agentObj.y;
@@ -5112,12 +5136,15 @@ export default function StrategiesPage() {
         setPan({ x: 0, y: 0 });
         router.push(`?strategy=${s.id}`);
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const d = (
                 typeof s.canvas_data === "string"
                     ? JSON.parse(s.canvas_data || "{}")
                     : s.canvas_data || {}
-            ) as any;
+            ) as {
+                paths?: CanvasPath[];
+                agents?: CanvasAgent[];
+                skills?: CanvasSkill[];
+            };
             syncCanvasLocalState(d.paths || [], d.agents || [], d.skills || []);
 
             // Pre-load agent images
@@ -5246,7 +5273,7 @@ export default function StrategiesPage() {
                         }
                     }
                     setCollabUsers(users);
-                    
+
                     // Remove cursors for users that left presence
                     setRemoteCursors((prev) => {
                         let changed = false;
@@ -5433,19 +5460,27 @@ export default function StrategiesPage() {
 
             const handleVisibilityChange = () => {
                 if (document.hidden) {
-                    channel.send({
-                        type: "broadcast",
-                        event: "cursor-leave",
-                        payload: { userId: myUserId }
-                    }).catch(() => {});
+                    channel
+                        .send({
+                            type: "broadcast",
+                            event: "cursor-leave",
+                            payload: { userId: myUserId },
+                        })
+                        .catch(() => {});
                 }
             };
-            document.addEventListener("visibilitychange", handleVisibilityChange);
+            document.addEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
 
             channelRef.current = channel;
 
             return () => {
-                document.removeEventListener("visibilitychange", handleVisibilityChange);
+                document.removeEventListener(
+                    "visibilitychange",
+                    handleVisibilityChange,
+                );
                 channel.untrack();
                 supabase.removeChannel(channel);
                 channelRef.current = null;
@@ -5504,12 +5539,15 @@ export default function StrategiesPage() {
                         !drawingRef.current &&
                         !draggedAgentRef.current
                     ) {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const d = (
                             typeof remote.canvas_data === "string"
                                 ? JSON.parse(remote.canvas_data || "{}")
                                 : remote.canvas_data || {}
-                        ) as any;
+                        ) as {
+                            paths?: CanvasPath[];
+                            agents?: CanvasAgent[];
+                            skills?: CanvasSkill[];
+                        };
                         syncCanvasLocalState(
                             d.paths || [],
                             d.agents || [],
@@ -5541,7 +5579,7 @@ export default function StrategiesPage() {
             setCollabUsers([]);
             setRemoteCursors(new Map());
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [view, current?.id, myUserId]);
 
     // ── Collaboration: Clean up remote cursors that go stale ──
@@ -5562,7 +5600,7 @@ export default function StrategiesPage() {
             mapId?: string;
         }) => {
             const finalName =
-                params?.name || newName.trim() || "Nueva Estrategia";
+                params?.name || "Nueva Estrategia";
             const finalSide = params?.side || selectedSide;
             const finalMapId = params?.mapId || selectedMap?.id;
             if (!finalMapId) {
@@ -5637,7 +5675,7 @@ export default function StrategiesPage() {
             while (existingNames.has(`Estrategia sin nombre ${x}`)) {
                 x++;
             }
-        } catch (err) {
+        } catch {
             // Ignored
         }
         setCreateModalState({
@@ -7594,9 +7632,6 @@ export default function StrategiesPage() {
                                                     className="tool-btn-premium active"
                                                     title={
                                                         pendingSkillRef.current
-                                                            .skill
-                                                            .displayName ||
-                                                        pendingSkillRef.current
                                                             .skill.name ||
                                                         "Habilidad Seleccionada"
                                                     }
@@ -7652,15 +7687,13 @@ export default function StrategiesPage() {
                                                     }}
                                                 >
                                                     {pendingSkillRef.current
-                                                        .skill.displayName ||
-                                                        pendingSkillRef.current
-                                                            .skill.name ||
+                                                        .skill.name ||
                                                         "Habilidad"}
                                                 </span>
                                             </div>
                                         )}
-                                        {(session?.user as any)?.role ===
-                                            "super_admin" && (
+                                        {(session?.user as { role?: string })
+                                            ?.role === "super_admin" && (
                                             <>
                                                 <div
                                                     style={{
@@ -8853,6 +8886,7 @@ export default function StrategiesPage() {
                                                         />
                                                     </svg>
                                                 );
+                                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                                 const MoveIcon = (
                                                     <svg
                                                         width="14"
@@ -9779,7 +9813,7 @@ export default function StrategiesPage() {
                                         </svg>
                                     </button>
                                 )}
-                                {(session?.user as any)?.role ===
+                                {(session?.user as { role?: string })?.role ===
                                     "super_admin" && (
                                     <button
                                         onClick={() => {
@@ -10137,8 +10171,11 @@ export default function StrategiesPage() {
                                             onClick={() => {
                                                 if (!skill) {
                                                     if (
-                                                        (session?.user as any)
-                                                            ?.role ===
+                                                        (
+                                                            session?.user as {
+                                                                role?: string;
+                                                            }
+                                                        )?.role ===
                                                         "super_admin"
                                                     ) {
                                                         setEditingSkillGlobalParams(
