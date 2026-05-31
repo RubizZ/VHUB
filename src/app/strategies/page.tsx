@@ -6903,232 +6903,116 @@ export default function StrategiesPage() {
                             style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: 16,
-                                padding: 16,
-                                background: "rgba(255,255,255,0.02)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                minHeight: "60vh",
+                                background: "rgba(20, 20, 25, 0.7)",
+                                backdropFilter: "blur(12px)",
+                                border: "1px solid rgba(255, 255, 255, 0.05)",
+                                borderRadius: 16,
+                                position: "relative",
+                                overflow: "hidden",
                             }}
                         >
-                            {/* Header Skeleton */}
+                            {/* Animated Background Glow */}
                             <div
                                 style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    width: "40vw",
+                                    height: "40vw",
+                                    background: "radial-gradient(circle, rgba(255, 70, 85, 0.15) 0%, rgba(0,0,0,0) 70%)",
+                                    transform: "translate(-50%, -50%)",
+                                    animation: "pulse 3s infinite alternate",
+                                    zIndex: 0,
                                 }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 16,
-                                    }}
-                                >
-                                    <Skeleton
-                                        width={40}
-                                        height={40}
-                                        style={{ borderRadius: 12 }}
-                                    />
-                                    <div
+                            />
+
+                            <div style={{ zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+                                {/* Spinner / Logo */}
+                                <div style={{ position: "relative", width: 80, height: 80 }}>
+                                    <svg
+                                        viewBox="0 0 100 100"
                                         style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 6,
+                                            width: "100%",
+                                            height: "100%",
+                                            animation: "spin 2s linear infinite",
                                         }}
                                     >
-                                        <Skeleton
-                                            width={200}
-                                            height={24}
-                                            style={{ borderRadius: 4 }}
+                                        <circle
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="none"
+                                            stroke="rgba(255, 255, 255, 0.05)"
+                                            strokeWidth="4"
                                         />
-                                        <Skeleton
-                                            width={120}
-                                            height={14}
-                                            style={{ borderRadius: 4 }}
+                                        <circle
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="none"
+                                            stroke="#FF4655"
+                                            strokeWidth="4"
+                                            strokeDasharray="251"
+                                            strokeDashoffset="150"
+                                            strokeLinecap="round"
                                         />
+                                    </svg>
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            top: "50%",
+                                            left: "50%",
+                                            transform: "translate(-50%, -50%)",
+                                        }}
+                                    >
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4655" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 2L2 22h20L12 2z" />
+                                        </svg>
                                     </div>
                                 </div>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 12,
-                                    }}
-                                >
-                                    <div style={{ display: "flex" }}>
-                                        <Skeleton
-                                            width={32}
-                                            height={32}
-                                            style={{
-                                                borderRadius: "50%",
-                                                marginLeft: -8,
-                                            }}
-                                        />
-                                        <Skeleton
-                                            width={32}
-                                            height={32}
-                                            style={{
-                                                borderRadius: "50%",
-                                                marginLeft: -8,
-                                            }}
-                                        />
-                                        <Skeleton
-                                            width={32}
-                                            height={32}
-                                            style={{
-                                                borderRadius: "50%",
-                                                marginLeft: -8,
-                                            }}
-                                        />
-                                    </div>
-                                    <Skeleton
-                                        width={100}
-                                        height={36}
-                                        style={{ borderRadius: 8 }}
-                                    />
+
+                                {/* Loading Text */}
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                                    <h2
+                                        style={{
+                                            margin: 0,
+                                            fontSize: 24,
+                                            fontWeight: 800,
+                                            letterSpacing: "0.2em",
+                                            color: "#fff",
+                                            textTransform: "uppercase",
+                                            textShadow: "0 0 10px rgba(255,255,255,0.3)",
+                                        }}
+                                    >
+                                        Sincronizando
+                                    </h2>
+                                    <span
+                                        style={{
+                                            color: "rgba(255, 255, 255, 0.5)",
+                                            fontSize: 14,
+                                            fontWeight: 500,
+                                            letterSpacing: "0.1em",
+                                            textTransform: "uppercase",
+                                        }}
+                                    >
+                                        Iniciando entorno táctico...
+                                    </span>
                                 </div>
                             </div>
-
-                            {/* Main Area Skeleton */}
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 16,
-                                    flex: 1,
-                                    minHeight: 0,
-                                }}
-                            >
-                                {/* Toolbar Sidebar */}
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 8,
-                                        width: 64,
-                                    }}
-                                >
-                                    <Skeleton
-                                        width={64}
-                                        height={64}
-                                        style={{ borderRadius: 16 }}
-                                    />
-                                    <Skeleton
-                                        width={64}
-                                        height={64}
-                                        style={{ borderRadius: 16 }}
-                                    />
-                                    <Skeleton
-                                        width={64}
-                                        height={64}
-                                        style={{ borderRadius: 16 }}
-                                    />
-                                    <Skeleton
-                                        width={64}
-                                        height={64}
-                                        style={{ borderRadius: 16 }}
-                                    />
-                                    <Skeleton
-                                        width={64}
-                                        height={64}
-                                        style={{ borderRadius: 16 }}
-                                    />
-                                </div>
-
-                                {/* Canvas */}
-                                <Skeleton
-                                    width="100%"
-                                    height="100%"
-                                    style={{ borderRadius: 16, flex: 1 }}
-                                />
-                            </div>
-
-                            {/* Agent Bar Skeleton */}
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 4,
-                                    alignItems: "center",
-                                    opacity: 0.8,
-                                    background: "rgba(0,0,0,0.2)",
-                                    padding: 8,
-                                    borderRadius: 16,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 4,
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <Skeleton
-                                        width={58}
-                                        height={58}
-                                        style={{ borderRadius: 8 }}
-                                    />
-                                    <Skeleton
-                                        width={58}
-                                        height={58}
-                                        style={{ borderRadius: 8 }}
-                                    />
-                                </div>
-                                <div
-                                    style={{
-                                        width: 1,
-                                        height: 32,
-                                        background: "rgba(255,255,255,0.08)",
-                                        flexShrink: 0,
-                                        margin: "0 12px",
-                                    }}
-                                />
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 24,
-                                        flex: 1,
-                                        overflow: "hidden",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    {[1, 2, 3].map((i) => (
-                                        <div
-                                            key={i}
-                                            style={{
-                                                display: "flex",
-                                                gap: 8,
-                                                alignItems: "center",
-                                            }}
-                                        >
-                                            <Skeleton
-                                                width={120}
-                                                height={32}
-                                                style={{ borderRadius: 16 }}
-                                            />
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 4,
-                                                }}
-                                            >
-                                                <Skeleton
-                                                    width={58}
-                                                    height={58}
-                                                    style={{ borderRadius: 8 }}
-                                                />
-                                                <Skeleton
-                                                    width={58}
-                                                    height={58}
-                                                    style={{ borderRadius: 8 }}
-                                                />
-                                                <Skeleton
-                                                    width={58}
-                                                    height={58}
-                                                    style={{ borderRadius: 8 }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            
+                            <style>{`
+                                @keyframes spin {
+                                    0% { transform: rotate(0deg); }
+                                    100% { transform: rotate(360deg); }
+                                }
+                                @keyframes pulse {
+                                    0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+                                    100% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                                }
+                            `}</style>
                         </div>
                     )}
 
