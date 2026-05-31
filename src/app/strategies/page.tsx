@@ -6912,6 +6912,7 @@ export default function StrategiesPage() {
                                 borderRadius: 16,
                                 position: "relative",
                                 overflow: "hidden",
+                                animation: "fadeIn 0.5s ease-out forwards",
                             }}
                         >
                             {/* Animated Background Glow */}
@@ -7022,7 +7023,10 @@ export default function StrategiesPage() {
                     !mapsLoading &&
                     !agentsLoading &&
                     !weaponsLoading && (
-                        <div className="editor-card-premium">
+                        <div 
+                            className="editor-card-premium"
+                            style={{ animation: "fadeIn 0.5s ease-out forwards" }}
+                        >
                             {/* Top Toolbar Panel */}
                             <div className="editor-top-bar-premium">
                                 <div
