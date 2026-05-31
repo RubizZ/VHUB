@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
+import NextImage from "next/image";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AgentSkillsManager } from "@/components/AgentSkillsManager";
@@ -236,7 +236,9 @@ export default function StrategiesPage() {
         y: number;
         visible: boolean;
     }>({ agent: null, skill: null, x: 0, y: 0, visible: false });
-    const hoverMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hoverMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
     const hoveredAgentRef = useRef<CanvasAgent | null>(null);
     const hoveredSkillRef = useRef<CanvasSkill | null>(null);
     const isAgentDroppedRef = useRef<boolean>(false);
@@ -252,9 +254,7 @@ export default function StrategiesPage() {
 
     // Brush Size States
     const [pencilSize, setPencilSize] = useState<number>(5);
-    const [projectileMode] = useState<"bounce" | "parabola">(
-        "bounce",
-    );
+    const [projectileMode] = useState<"bounce" | "parabola">("bounce");
     const [arrowSize, setArrowSize] = useState<number>(5);
     const [eraserSize, setEraserSize] = useState<number>(20);
     const [eraserMode, setEraserMode] = useState<"pixels" | "lines">("pixels");
@@ -787,7 +787,6 @@ export default function StrategiesPage() {
 
     const redraw = useCallback(() => {
         scheduleRedraw();
-         
     }, [
         selectedMap,
         selectedSide,
@@ -1310,8 +1309,9 @@ export default function StrategiesPage() {
             } else if (geom.type === "circle") {
                 ctx.beginPath();
                 const radius =
-                    (geom.radius !== undefined ? geom.radius : (geom.width || 0) / 2) *
-                    mToPx;
+                    (geom.radius !== undefined
+                        ? geom.radius
+                        : (geom.width || 0) / 2) * mToPx;
                 ctx.arc(0, 0, radius, 0, 2 * Math.PI);
                 ctx.fill();
 
@@ -2307,7 +2307,6 @@ export default function StrategiesPage() {
             ctx.fillText(label, labelX, labelY + 2);
             ctx.restore();
         }
-         
     }, [selectedMap, selectedSide, tool, agents, remoteCursors]);
 
     // Keep ref always up-to-date so scheduleRedraw can call the latest version
@@ -2421,7 +2420,6 @@ export default function StrategiesPage() {
             });
         }
         scheduleAutoSave();
-         
     }, [current, myUserId, updateUndoRedo, scheduleAutoSave]);
 
     const undo = useCallback(() => {
@@ -2879,8 +2877,9 @@ export default function StrategiesPage() {
                 return false;
             }
             const radius =
-                (geom.radius !== undefined ? geom.radius : (geom.width || 0) / 2) *
-                mToPx;
+                (geom.radius !== undefined
+                    ? geom.radius
+                    : (geom.width || 0) / 2) * mToPx;
             return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
         } else if (
             geom.type === "rectangle" ||
@@ -5579,7 +5578,6 @@ export default function StrategiesPage() {
             setCollabUsers([]);
             setRemoteCursors(new Map());
         };
-         
     }, [view, current?.id, myUserId]);
 
     // ── Collaboration: Clean up remote cursors that go stale ──
@@ -5599,8 +5597,7 @@ export default function StrategiesPage() {
             side?: "attack" | "defense";
             mapId?: string;
         }) => {
-            const finalName =
-                params?.name || "Nueva Estrategia";
+            const finalName = params?.name || "Nueva Estrategia";
             const finalSide = params?.side || selectedSide;
             const finalMapId = params?.mapId || selectedMap?.id;
             if (!finalMapId) {
@@ -5847,12 +5844,15 @@ export default function StrategiesPage() {
                                                     className="map-card-premium"
                                                     onClick={() => goToMap(m)}
                                                 >
-                                                    <img
+                                                    <NextImage
                                                         src={
                                                             m.listViewIconTall ||
-                                                            undefined
+                                                            "/placeholder.png"
                                                         }
                                                         alt={m.name}
+                                                        width={400}
+                                                        height={600}
+                                                        unoptimized
                                                         className="map-img-premium"
                                                     />
                                                     <div className="map-card-overlay-premium">
@@ -5931,12 +5931,15 @@ export default function StrategiesPage() {
                                                     className="map-card-premium out-of-rotation"
                                                     onClick={() => goToMap(m)}
                                                 >
-                                                    <img
+                                                    <NextImage
                                                         src={
                                                             m.listViewIconTall ||
-                                                            undefined
+                                                            "/placeholder.png"
                                                         }
                                                         alt={m.name}
+                                                        width={400}
+                                                        height={600}
+                                                        unoptimized
                                                         className="map-img-premium"
                                                     />
                                                     <div className="map-card-overlay-premium">
@@ -6420,7 +6423,7 @@ export default function StrategiesPage() {
                                                                                         )
                                                                                             return null;
                                                                                         return (
-                                                                                            <img
+                                                                                            <NextImage
                                                                                                 key={`${agentId}-${idx}`}
                                                                                                 src={
                                                                                                     agent.displayIcon
@@ -6428,9 +6431,10 @@ export default function StrategiesPage() {
                                                                                                 alt={
                                                                                                     agent.name
                                                                                                 }
+                                                                                                width={20}
+                                                                                                height={20}
+                                                                                                unoptimized
                                                                                                 style={{
-                                                                                                    width: 20,
-                                                                                                    height: 20,
                                                                                                     borderRadius: 4,
                                                                                                 }}
                                                                                             />
@@ -6470,7 +6474,7 @@ export default function StrategiesPage() {
                                                                                         )
                                                                                             return null;
                                                                                         return (
-                                                                                            <img
+                                                                                            <NextImage
                                                                                                 key={`${agentId}-${idx}`}
                                                                                                 src={
                                                                                                     agent.displayIcon
@@ -6478,9 +6482,10 @@ export default function StrategiesPage() {
                                                                                                 alt={
                                                                                                     agent.name
                                                                                                 }
+                                                                                                width={20}
+                                                                                                height={20}
+                                                                                                unoptimized
                                                                                                 style={{
-                                                                                                    width: 20,
-                                                                                                    height: 20,
                                                                                                     borderRadius: 4,
                                                                                                 }}
                                                                                             />
@@ -6691,7 +6696,7 @@ export default function StrategiesPage() {
                                                                                                 )
                                                                                                     return null;
                                                                                                 return (
-                                                                                                    <img
+                                                                                                    <NextImage
                                                                                                         key={
                                                                                                             ca.instanceId
                                                                                                         }
@@ -6704,9 +6709,10 @@ export default function StrategiesPage() {
                                                                                                         title={
                                                                                                             agent.name
                                                                                                         }
+                                                                                                        width={32}
+                                                                                                        height={32}
+                                                                                                        unoptimized
                                                                                                         style={{
-                                                                                                            width: 32,
-                                                                                                            height: 32,
                                                                                                             borderRadius: 6,
                                                                                                             border: `2px solid ${ROLE_COLORS[agent.role]}`,
                                                                                                         }}
@@ -7422,9 +7428,12 @@ export default function StrategiesPage() {
                                                     }}
                                                 >
                                                     {u.userImage ? (
-                                                        <img
+                                                        <NextImage
                                                             src={u.userImage}
                                                             alt={u.userName}
+                                                            width={32}
+                                                            height={32}
+                                                            unoptimized
                                                             style={{
                                                                 width: "100%",
                                                                 height: "100%",
@@ -7644,7 +7653,7 @@ export default function StrategiesPage() {
                                                 >
                                                     {pendingSkillRef.current
                                                         .skill.displayIcon ? (
-                                                        <img
+                                                        <NextImage
                                                             src={
                                                                 pendingSkillRef
                                                                     .current
@@ -7652,9 +7661,10 @@ export default function StrategiesPage() {
                                                                     .displayIcon
                                                             }
                                                             alt="Skill Icon"
+                                                            width={24}
+                                                            height={24}
+                                                            unoptimized
                                                             style={{
-                                                                width: 24,
-                                                                height: 24,
                                                                 objectFit:
                                                                     "contain",
                                                                 filter: `drop-shadow(0 0 4px ${pendingSkillRef.current.color})`,
@@ -9519,11 +9529,14 @@ export default function StrategiesPage() {
                                                                 )
                                                             }
                                                         >
-                                                            <img
+                                                            <NextImage
                                                                 src={
                                                                     a.displayIcon
                                                                 }
                                                                 alt={a.name}
+                                                                width={40}
+                                                                height={40}
+                                                                unoptimized
                                                                 className="agent-icon-horizontal"
                                                                 style={{
                                                                     border: `1.5px solid ${ROLE_COLORS[a.role] || "#fff"}`,
@@ -10391,8 +10404,11 @@ export default function StrategiesPage() {
                                         >
                                             {skill?.displayIcon ? (
                                                 <>
-                                                    <img
+                                                    <NextImage
                                                         src={skill.displayIcon}
+                                                        width={32}
+                                                        height={32}
+                                                        unoptimized
                                                         style={{
                                                             width: "100%",
                                                             height: "100%",
@@ -10576,12 +10592,14 @@ export default function StrategiesPage() {
                                         const w = findWeapon(ctxAgent.weaponId);
                                         if (!w?.killStreamIcon) return null;
                                         return (
-                                            <img
+                                            <NextImage
                                                 src={w.killStreamIcon}
                                                 alt={w.displayName}
                                                 title={w.displayName}
+                                                width={60}
+                                                height={18}
+                                                unoptimized
                                                 style={{
-                                                    height: 18,
                                                     objectFit: "contain",
                                                     filter: "invert(1) brightness(2)",
                                                     opacity: 0.9,
