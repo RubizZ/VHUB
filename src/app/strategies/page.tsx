@@ -1930,7 +1930,7 @@ export default function StrategiesPage() {
                     draggedSkillTargetRef.current?.instanceId ===
                     activeSkill.instanceId;
                 if (isGroundSpawn || isDraggingTarget) {
-                    const maxRange = activeSkill.behavior?.maxCastRange || 0;
+                    const { maxRange } = getProjRangeAndFixed(activeSkill);
                     if (maxRange > 0) {
                         shouldDrawRange = true;
                         rangeToDraw = maxRange;
