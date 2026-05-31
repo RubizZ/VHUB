@@ -5231,10 +5231,12 @@ export default function StrategiesPage() {
                 .on("presence", { event: "sync" }, () => {
                     const state = channel.presenceState();
                     const users: CollabUser[] = [];
+                    const activeUserIds = new Set<string>();
                     for (const key of Object.keys(state)) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const presences = state[key] as any[];
                         if (presences.length > 0) {
+                            activeUserIds.add(key);
                             users.push({
                                 userId: key,
                                 userName: presences[0].userName || "Anónimo",
@@ -5244,6 +5246,19 @@ export default function StrategiesPage() {
                         }
                     }
                     setCollabUsers(users);
+                    
+                    // Remove cursors for users that left presence
+                    setRemoteCursors((prev) => {
+                        let changed = false;
+                        const next = new Map(prev);
+                        for (const key of Array.from(next.keys())) {
+                            if (!activeUserIds.has(key)) {
+                                next.delete(key);
+                                changed = true;
+                            }
+                        }
+                        return changed ? next : prev;
+                    });
                 })
                 .on("broadcast", { event: "cursor-move" }, ({ payload }) => {
                     if (!payload || payload.userId === myUserId) return;
@@ -5258,6 +5273,14 @@ export default function StrategiesPage() {
                             canvasX: payload.canvasX,
                             canvasY: payload.canvasY,
                         });
+                        return next;
+                    });
+                })
+                .on("broadcast", { event: "cursor-leave" }, ({ payload }) => {
+                    if (!payload || payload.userId === myUserId) return;
+                    setRemoteCursors((prev) => {
+                        const next = new Map(prev);
+                        next.delete(payload.userId);
                         return next;
                     });
                 })
@@ -5408,9 +5431,21 @@ export default function StrategiesPage() {
                     }
                 });
 
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    channel.send({
+                        type: "broadcast",
+                        event: "cursor-leave",
+                        payload: { userId: myUserId }
+                    }).catch(() => {});
+                }
+            };
+            document.addEventListener("visibilitychange", handleVisibilityChange);
+
             channelRef.current = channel;
 
             return () => {
+                document.removeEventListener("visibilitychange", handleVisibilityChange);
                 channel.untrack();
                 supabase.removeChannel(channel);
                 channelRef.current = null;
