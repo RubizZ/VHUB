@@ -122,13 +122,18 @@ let pendingRedrawRef: number | null = null;
 
 function getProjRangeAndFixed(skill: AgentSkill) {
     const pFlag = skill?.behavior?.flags?.projectile;
-    let maxRange = skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
+    let maxRange = 0;
+    if (skill?.behavior?.spawn !== "player") {
+        maxRange = skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
+    }
     let isFixed = false;
     if (pFlag) {
         if (pFlag.maxDistance === 0 || pFlag.maxDistance === undefined) {
             isFixed = true;
             maxRange = (pFlag.speed || 0) * (pFlag.duration || 0);
-            if (maxRange === 0) maxRange = skill?.behavior?.maxCastRange || 0;
+            if (maxRange === 0 && skill?.behavior?.spawn !== "player") {
+                maxRange = skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
+            }
         } else {
             maxRange = pFlag.maxDistance;
         }
