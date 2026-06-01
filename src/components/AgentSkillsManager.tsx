@@ -16,6 +16,8 @@ interface SkillFormData {
   geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
   geometryRadius: number;
   geometryWidth: number;
+  geometryEndWidth: number;
+  geometryHideBase: boolean;
   geometryLength: number;
   geometryAngle: number;
   behaviorCharges: number;
@@ -97,6 +99,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     geometryType: "circle",
     geometryRadius: 5,
     geometryWidth: 5,
+    geometryEndWidth: 2,
+    geometryHideBase: false,
     geometryLength: 5,
     geometryAngle: 90,
     behaviorCharges: 1,
@@ -200,6 +204,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         geometryType: (skill.geometry?.type as SkillFormData["geometryType"]) || "circle",
         geometryRadius: skill.geometry?.radius || 5,
         geometryWidth: skill.geometry?.width || 5,
+        geometryEndWidth: skill.geometry?.endWidth || 2,
+        geometryHideBase: skill.geometry?.hideBase || false,
         geometryLength: skill.geometry?.length || 5,
         geometryAngle: skill.geometry?.angle || 90,
         behaviorCharges: skill.behavior?.charges || 1,
@@ -273,6 +279,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         geometryType: "circle",
         geometryRadius: 5,
         geometryWidth: 5,
+        geometryEndWidth: 2,
+        geometryHideBase: false,
         geometryLength: 5,
         geometryAngle: 90,
         behaviorCharges: 1,
@@ -357,6 +365,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           type: formData.geometryType,
           radius: formData.geometryType === "circle" ? Number(formData.geometryRadius) : undefined,
           width: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryWidth) : undefined,
+          endWidth: formData.geometryType === "trapezoid" ? Number(formData.geometryEndWidth) : undefined,
+          hideBase: formData.geometryType === "trapezoid" ? formData.geometryHideBase : undefined,
           length: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryLength) : undefined,
           angle: (formData.geometryType === "cone" || formData.geometryType === "curve") ? Number(formData.geometryAngle) : undefined,
         },
@@ -724,17 +734,29 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
                           </div>
                         )}
-                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve" || formData.geometryType === "line") && (
+                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve" || formData.geometryType === "line" || formData.geometryType === "trapezoid") && (
                           <>
                             <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho/Grosor (m)</label>
-                              <input type="number" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "trapezoid" ? "Anchura Inicial (m)" : "Ancho/Grosor (m)"}</label>
+                              <input type="number" step="0.1" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
                             </div>
+                            {formData.geometryType === "trapezoid" && (
                               <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "line" ? "Largo Máx. del Cable (m)" : "Largo/Alcance (m)"}</label>
-                                <input type="number" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Anchura Final (m)</label>
+                                <input type="number" step="0.1" className="input-field" value={formData.geometryEndWidth} onChange={e => setFormData({...formData, geometryEndWidth: Number(e.target.value)})} />
                               </div>
+                            )}
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "line" ? "Largo Máx. del Cable (m)" : "Largo/Alcance (m)"}</label>
+                              <input type="number" step="0.1" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
+                            </div>
                           </>
+                        )}
+                        {formData.geometryType === "trapezoid" && (
+                          <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: -8, marginBottom: 12 }}>
+                            <input type="checkbox" checked={formData.geometryHideBase} onChange={e => setFormData({...formData, geometryHideBase: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                            <span>Ocultar la base más ancha (dejarla abierta)</span>
+                          </label>
                         )}
                         {(formData.geometryType === "cone" || formData.geometryType === "curve") && (
                           <div className="form-group" style={{ flex: 1 }}>

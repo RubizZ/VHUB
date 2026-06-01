@@ -1438,15 +1438,10 @@ export default function StrategiesPage() {
                     ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
                     ctx.closePath();
                 } else if (geom.type === "trapezoid") {
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    const wingWidth = width * 0.2;
-                    const centerWidth = width * 0.6;
-                    const sweep = Math.min(length * 0.3, 15);
+                    const endWidth = (geom.endWidth !== undefined ? geom.endWidth : (geom.width || 0) * 0.5) * mToPx;
                     ctx.moveTo(0, -width / 2);
-                    ctx.lineTo(sweep, -centerWidth / 2);
-                    ctx.lineTo(length, -centerWidth / 2);
-                    ctx.lineTo(length, centerWidth / 2);
-                    ctx.lineTo(sweep, centerWidth / 2);
+                    ctx.lineTo(length, -endWidth / 2);
+                    ctx.lineTo(length, endWidth / 2);
                     ctx.lineTo(0, width / 2);
                     ctx.closePath();
                 } else if (geom.type === "line") {
@@ -1459,6 +1454,27 @@ export default function StrategiesPage() {
                 if (geom.type === "line") {
                     ctx.lineWidth = Math.max(width, 2 / scale);
                     ctx.stroke();
+                } else if (geom.type === "trapezoid" && geom.hideBase) {
+                    ctx.fill();
+                    ctx.beginPath();
+                    const endWidth = (geom.endWidth !== undefined ? geom.endWidth : (geom.width || 0) * 0.5) * mToPx;
+                    if (width >= endWidth) {
+                        // Longer base is at start (x=0). Hide it, draw the end line and laterals
+                        ctx.moveTo(0, -width / 2);
+                        ctx.lineTo(length, -endWidth / 2);
+                        ctx.lineTo(length, endWidth / 2);
+                        ctx.lineTo(0, width / 2);
+                    } else {
+                        // Longer base is at end (x=length). Hide it, draw the start line and laterals
+                        ctx.moveTo(length, -endWidth / 2);
+                        ctx.lineTo(0, -width / 2);
+                        ctx.lineTo(0, width / 2);
+                        ctx.lineTo(length, endWidth / 2);
+                    }
+                    ctx.globalAlpha = strokeAlpha;
+                    ctx.lineWidth = 2 / scale;
+                    ctx.stroke();
+                    ctx.globalAlpha = baseAlpha;
                 } else {
                     ctx.fill();
                     ctx.globalAlpha = strokeAlpha;

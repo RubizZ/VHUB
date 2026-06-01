@@ -6,8 +6,10 @@ export interface SkillGeometry {
   type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
   radius?: number;
   width?: number;
+  endWidth?: number;
   length?: number;
   angle?: number;
+  hideBase?: boolean;
 }
 
 // Flags con sub-parámetros propios (su presencia implica activación)
