@@ -68,7 +68,6 @@ export interface SkillBehaviorFlags {
   stoppableInFlight?: boolean;       // Habilidades en movimiento que se pueden detener manualmente (ej. Harbor C)
   generatesSoulOrbs?: boolean;       // Enemigos sueltan orbes al morir o asistir (ej. Reyna/Iso)
   isolatesTarget?: boolean;          // Aísla al objetivo a un "mundo aparte" (ej. Iso X)
-  fixedTarget?: boolean;             // El destino (target) no se traslada cuando el agente se mueve
 }
 
 export interface SkillBehavior {

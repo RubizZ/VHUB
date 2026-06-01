@@ -47,7 +47,6 @@ interface SkillFormData {
   flagIsolatesTarget: boolean;
   flagOpaque: boolean;
   flagHasHitbox: boolean;
-  flagFixedTarget: boolean;
   // flags con sub-config
   flagProjectile: boolean;
   projectileSpeed: number;
@@ -122,7 +121,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagIsolatesTarget: false,
     flagOpaque: false,
     flagHasHitbox: false,
-    flagFixedTarget: false,
     flagProjectile: false,
     projectileSpeed: 0,
     projectileDuration: 0,
@@ -222,7 +220,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
         flagOpaque: skill.behavior?.flags?.opaque || false,
         flagHasHitbox: skill.behavior?.flags?.hasHitbox || false,
-        flagFixedTarget: skill.behavior?.flags?.fixedTarget || false,
         flagProjectile: !!skill.behavior?.flags?.projectile,
         projectileSpeed: skill.behavior?.flags?.projectile?.speed ?? 0,
         projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
@@ -290,7 +287,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagIsolatesTarget: false,
         flagOpaque: false,
         flagHasHitbox: false,
-        flagFixedTarget: false,
         flagProjectile: false,
         projectileSpeed: 0,
         projectileDuration: 0,
@@ -373,7 +369,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             isolatesTarget: formData.flagIsolatesTarget || undefined,
             opaque: formData.flagOpaque || undefined,
             hasHitbox: formData.flagHasHitbox || undefined,
-            fixedTarget: formData.flagFixedTarget || undefined,
             // flags con sub-config (presencia = activo)
             projectile: formData.flagProjectile
               ? { 
@@ -826,11 +821,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagHasHitbox} onChange={e => setFormData({...formData, flagHasHitbox: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                           <span>Tiene hitbox física (rebota proyectiles como el muro de Sage)</span>
-                        </label>
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 8 }}>
-                          <input type="checkbox" checked={formData.flagFixedTarget} onChange={e => setFormData({...formData, flagFixedTarget: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Mantener el destino fijo en el mapa al arrastrar al agente (ej: Humos, granadas que apuntan a un punto exacto)</span>
                         </label>
 
 
