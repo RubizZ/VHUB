@@ -266,6 +266,7 @@ export default function StrategiesPage() {
     const [hoverMenuState, setHoverMenuState] = useState<{
         agent: CanvasAgent | null;
         skill: CanvasSkill | null;
+        anchor?: "start" | "target";
         x: number;
         y: number;
         visible: boolean;
@@ -275,6 +276,7 @@ export default function StrategiesPage() {
     );
     const hoveredAgentRef = useRef<CanvasAgent | null>(null);
     const hoveredSkillRef = useRef<CanvasSkill | null>(null);
+    const hoveredSkillAnchorRef = useRef<"start" | "target" | null>(null);
     const isAgentDroppedRef = useRef<boolean>(false);
 
     // Strategy Settings States
@@ -3949,26 +3951,35 @@ export default function StrategiesPage() {
                                 redrawImmediate();
                             }
                         } else if (foundHoverSkill) {
-                            if (hoveredSkillRef.current !== foundHoverSkill) {
-                                hoveredSkillRef.current = foundHoverSkill;
-                                hoveredAgentRef.current = null;
+                            const fSkill = foundHoverSkill as CanvasSkill;
+                            let menuX = fSkill.x;
+                            let menuY = fSkill.y;
+                            let anchor: "start" | "target" = "start";
 
-                                const fSkill = foundHoverSkill as CanvasSkill;
-                                let menuX = fSkill.x;
-                                let menuY = fSkill.y;
-                                if (
-                                    fSkill.behavior?.flags?.projectile &&
-                                    fSkill.targetX !== undefined &&
-                                    fSkill.targetY !== undefined
-                                ) {
+                            if (fSkill.targetX !== undefined && fSkill.targetY !== undefined) {
+                                const screenStart = getScreenPos(fSkill.x, fSkill.y);
+                                const screenTarget = getScreenPos(fSkill.targetX, fSkill.targetY);
+                                const distStart = Math.sqrt((screenStart.x - mouseX) ** 2 + (screenStart.y - mouseY) ** 2);
+                                const distTarget = Math.sqrt((screenTarget.x - mouseX) ** 2 + (screenTarget.y - mouseY) ** 2);
+                                
+                                if (distTarget < distStart) {
                                     menuX = fSkill.targetX;
                                     menuY = fSkill.targetY;
+                                    anchor = "target";
                                 }
+                            }
+
+                            if (hoveredSkillRef.current !== foundHoverSkill || hoveredSkillAnchorRef.current !== anchor) {
+                                hoveredSkillRef.current = foundHoverSkill;
+                                hoveredSkillAnchorRef.current = anchor;
+                                hoveredAgentRef.current = null;
+
                                 const screenPos = getScreenPos(menuX, menuY);
 
                                 setHoverMenuState({
                                     agent: null,
                                     skill: foundHoverSkill,
+                                    anchor: anchor,
                                     x: screenPos.x + rect.left,
                                     y: screenPos.y + rect.top,
                                     visible: true,
@@ -9513,7 +9524,7 @@ export default function StrategiesPage() {
                         let cx = ctxSkill.x;
                         let cy = ctxSkill.y;
                         if (
-                            ctxSkill.behavior?.flags?.projectile &&
+                            hoverMenuState.anchor === "target" &&
                             ctxSkill.targetX !== undefined &&
                             ctxSkill.targetY !== undefined
                         ) {
