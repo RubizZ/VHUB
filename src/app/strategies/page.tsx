@@ -1410,6 +1410,10 @@ export default function StrategiesPage() {
                     ctx.stroke();
                 } else {
                     ctx.fill();
+                    ctx.globalAlpha = strokeAlpha;
+                    ctx.lineWidth = 2 / scale;
+                    ctx.stroke();
+                    ctx.globalAlpha = baseAlpha;
                 }
 
                 const isFreePlaced =
@@ -1448,9 +1452,6 @@ export default function StrategiesPage() {
                     ctx.restore();
                 }
 
-                ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = 2 / scale;
-                ctx.stroke();
                 ctx.restore();
             } else if (geom.type === "curve") {
                 const tx =
