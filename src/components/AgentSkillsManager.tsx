@@ -370,7 +370,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           debuffApplied: formData.behaviorDebuffApplied || undefined,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           spawnOffset: Number(formData.behaviorSpawnOffset) || undefined,
-          maxCastRange: Number(formData.behaviorGroundRange) || undefined,
+          maxCastRange: formData.behaviorSpawn === "player" ? undefined : (Number(formData.behaviorGroundRange) || undefined),
           consumesSkillKey: formData.consumesSkillKey || undefined,
           flags: {
             throughWall: formData.flagThroughWall || undefined,
@@ -920,8 +920,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                               </div>
                               <div className="form-group" style={{ flex: 1 }}>
                                 <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Anchura (m)</label>
-                                <input type="number" step="0.1" min="1" className="input-field" value={formData.groundPathWidth} onChange={e => {
-                                  setFormData({...formData, groundPathWidth: Math.max(1, parseFloat(e.target.value) || 1)});
+                                <input type="number" step="0.1" min="0.1" className="input-field" value={formData.groundPathWidth} onChange={e => {
+                                  setFormData({...formData, groundPathWidth: Math.max(0.1, parseFloat(e.target.value) || 0.1)});
                                 }} />
                               </div>
                             </div>
