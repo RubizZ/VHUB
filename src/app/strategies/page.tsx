@@ -137,6 +137,9 @@ function getProjRangeAndFixed(skill: { behavior?: SkillBehavior }) {
         } else {
             maxRange = pFlag.maxDistance;
         }
+        if (pFlag.fixedDistance || pFlag.alwaysMaxDistance) {
+            isFixed = true;
+        }
     }
     return { maxRange, isFixed };
 }
