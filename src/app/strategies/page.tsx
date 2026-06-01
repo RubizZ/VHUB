@@ -723,15 +723,8 @@ export default function StrategiesPage() {
             const newMap = allMaps.find((m) => m.id === configMapId);
             if (newMap) {
                 setSelectedMap(newMap);
-                // Reset map image so it reloads
+                // Reset map image so the useEffect reloads it
                 mapImgRef.current = null;
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.src = newMap.displayIcon || "";
-                img.onload = () => {
-                    mapImgRef.current = img;
-                    redraw();
-                };
             }
         }
         setCurrent({
