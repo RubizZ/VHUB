@@ -696,7 +696,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             } else if (val === "2pt-conn") {
                               setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: false, geometryType: "line"});
                             } else if (val === "2pt-dir") {
-                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: true});
+                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: true, geometryType: "rectangle"});
                             }
                           }}>
                             <option value="1pt">1 Punto (Normal)</option>
@@ -706,13 +706,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         </div>
                         <div className="form-group" style={{ flex: "1 1 100%" }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica Visual</label>
-                          <select className="input-field" value={formData.geometryType} disabled={formData.flagTwoPointDeployment && !formData.flagTwoPointDirectional} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
+                          <select className="input-field" value={formData.geometryType} disabled={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
                             <option value="none">Ninguna (Solo Icono)</option>
                             <option value="circle">Círculo / Área</option>
                             <option value="rectangle">Rectángulo</option>
                             <option value="cone">Cono (Área frontal)</option>
                             <option value="infinite-wall">Muro Infinito</option>
-                            <option value="path">Ruta / Camino</option>
                             <option value="trapezoid">Trapecio (Muro Iso)</option>
                             <option value="curve">Curva (Bola de efecto)</option>
                             <option value="cross">Cruz (Granada Raze)</option>
