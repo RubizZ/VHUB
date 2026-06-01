@@ -127,9 +127,8 @@ function getProjRangeAndFixed(skill: {
         skill?.behavior?.flags?.projectile ||
         skill?.behavior?.flags?.groundPath;
     let maxRange = 0;
-    if (skill?.behavior?.spawn !== "player") {
-        maxRange =
-            skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
+    if (skill?.behavior?.spawn === "ground") {
+        maxRange = skill?.behavior?.maxCastRange || 0;
     }
     let isFixed = false;
     if (pFlag) {
@@ -143,7 +142,11 @@ function getProjRangeAndFixed(skill: {
         }
     }
 
-    if (skill?.behavior?.spawnOffset && !skill.unlinked) {
+    if (
+        skill?.behavior?.spawn === "player" &&
+        skill.behavior.spawnOffset &&
+        !skill.unlinked
+    ) {
         maxRange += skill.behavior.spawnOffset;
     }
 
@@ -1072,14 +1075,16 @@ export default function StrategiesPage() {
                 pSkill.skill.behavior?.flags?.teleportsAgentInstantly ||
                 !!pSkill.skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
-                !isProj && pSkill.skill.geometry &&
+                !isProj &&
+                pSkill.skill.geometry &&
                 (pSkill.skill.geometry.type === "rectangle" ||
                     pSkill.skill.geometry.type === "cone" ||
                     pSkill.skill.geometry.type === "trapezoid" ||
                     pSkill.skill.geometry.type === "curve");
 
             if (isGeomWithTarget || isProj) {
-                const length = (pSkill.skill.geometry?.length || 0) * mToPx;
+                const length =
+                    ((pSkill.skill.geometry as any)?.length || 0) * mToPx;
 
                 if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
                     const sa = playerToMouseAngle;
@@ -1087,7 +1092,7 @@ export default function StrategiesPage() {
                         const maxLen =
                             (pSkill.skill.behavior?.flags?.chargeable
                                 ?.maxLength ||
-                                pSkill.skill.geometry?.length ||
+                                (pSkill.skill.geometry as any)?.length ||
                                 0) * mToPx;
                         const dx = worldMousePosRef.current.x - startX;
                         const dy = worldMousePosRef.current.y - startY;
@@ -1134,12 +1139,12 @@ export default function StrategiesPage() {
                             getProjRangeAndFixed(pSkill.skill);
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
-                            let spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
+                            const spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
                             let angle = 0;
                             if (agentObj) {
                                 angle = Math.atan2(
                                     worldMousePosRef.current.y - agentObj.y,
-                                    worldMousePosRef.current.x - agentObj.x
+                                    worldMousePosRef.current.x - agentObj.x,
                                 );
                             }
                             initTargetX = startX + Math.cos(angle) * spawnLen;
@@ -1153,7 +1158,7 @@ export default function StrategiesPage() {
                             startX +
                             (pSkill.skill.behavior?.flags?.chargeable
                                 ?.minLength ||
-                                pSkill.skill.geometry?.length ||
+                                (pSkill.skill.geometry as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = startY;
@@ -1372,7 +1377,7 @@ export default function StrategiesPage() {
                 const radius =
                     (geom.radius !== undefined
                         ? geom.radius
-                        : (geom.width || 0) / 2) * mToPx;
+                        : ((geom as any).width || 0) / 2) * mToPx;
                 ctx.arc(0, 0, radius, 0, 2 * Math.PI);
                 ctx.fill();
 
@@ -1426,7 +1431,7 @@ export default function StrategiesPage() {
                     }
                 }
 
-                const width = (geom.width || 0) * mToPx;
+                const width = ((geom as any).width || 0) * mToPx;
 
                 ctx.beginPath();
                 if (geom.type === "cone") {
@@ -1438,7 +1443,10 @@ export default function StrategiesPage() {
                     ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
                     ctx.closePath();
                 } else if (geom.type === "trapezoid") {
-                    const endWidth = (geom.endWidth !== undefined ? geom.endWidth : (geom.width || 0) * 0.5) * mToPx;
+                    const endWidth =
+                        (geom.endWidth !== undefined
+                            ? geom.endWidth
+                            : ((geom as any).width || 0) * 0.5) * mToPx;
                     ctx.moveTo(0, -width / 2);
                     ctx.lineTo(length, -endWidth / 2);
                     ctx.lineTo(length, endWidth / 2);
@@ -1457,7 +1465,10 @@ export default function StrategiesPage() {
                 } else if (geom.type === "trapezoid" && geom.hideBase) {
                     ctx.fill();
                     ctx.beginPath();
-                    const endWidth = (geom.endWidth !== undefined ? geom.endWidth : (geom.width || 0) * 0.5) * mToPx;
+                    const endWidth =
+                        (geom.endWidth !== undefined
+                            ? geom.endWidth
+                            : ((geom as any).width || 0) * 0.5) * mToPx;
                     if (width >= endWidth) {
                         // Longer base is at start (x=0). Hide it, draw the end line and laterals
                         ctx.moveTo(0, -width / 2);
@@ -1542,7 +1553,9 @@ export default function StrategiesPage() {
                 ctx.quadraticCurveTo(cpX, cpY, tx, ty);
 
                 ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = (geom.width ? geom.width * mToPx : 4) / scale;
+                ctx.lineWidth =
+                    ((geom as any).width ? (geom as any).width * mToPx : 4) /
+                    scale;
                 ctx.lineCap = "round";
                 ctx.stroke();
 
@@ -2890,14 +2903,14 @@ export default function StrategiesPage() {
             const radius =
                 (geom.radius !== undefined
                     ? geom.radius
-                    : (geom.width || 0) / 2) * mToPx;
+                    : ((geom as any).width || 0) / 2) * mToPx;
             return Math.sqrt(wdx * wdx + wdy * wdy) <= radius;
         } else if (
             geom.type === "rectangle" ||
             geom.type === "cone" ||
             geom.type === "trapezoid"
         ) {
-            const width = (geom.width || 0) * mToPx;
+            const width = ((geom as any).width || 0) * mToPx;
             let length = (geom.length || 0) * mToPx;
             if (
                 s.behavior?.flags?.chargeable &&
@@ -3438,7 +3451,8 @@ export default function StrategiesPage() {
                 skill.behavior?.flags?.teleportsAgentInstantly ||
                 !!skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
-                !isProj && skill.geometry &&
+                !isProj &&
+                skill.geometry &&
                 (skill.geometry.type === "rectangle" ||
                     skill.geometry.type === "cone" ||
                     skill.geometry.type === "trapezoid" ||
@@ -3446,14 +3460,16 @@ export default function StrategiesPage() {
                     skill.geometry.type === "line");
 
             if (isGeomWithTarget || isProj) {
-                const length = (skill.geometry?.length || 0) * mToPx;
+                const length =
+                    (("length" in skill.geometry ? skill.geometry.length : 0) ||
+                        0) * mToPx;
 
                 if (skill.behavior?.spawn === "player" && agentObj) {
                     const sa = playerToMouseAngle;
                     if (skill.behavior?.flags?.chargeable) {
                         const maxLen =
                             (skill.behavior?.flags?.chargeable?.maxLength ||
-                                skill.geometry?.length ||
+                                (skill.geometry as any)?.length ||
                                 0) * mToPx;
                         const dx = pos.x - startX;
                         const dy = pos.y - startY;
@@ -3499,10 +3515,13 @@ export default function StrategiesPage() {
                         const { maxRange, isFixed: projIsFixed } =
                             getProjRangeAndFixed(skill);
                         const maxPx = maxRange * mToPx;
-                        let spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
+                        const spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
                         let angle = 0;
                         if (agentObj) {
-                            angle = Math.atan2(pos.y - agentObj.y, pos.x - agentObj.x);
+                            angle = Math.atan2(
+                                pos.y - agentObj.y,
+                                pos.x - agentObj.x,
+                            );
                         }
                         initTargetX = startX + Math.cos(angle) * spawnLen;
                         initTargetY = startY + Math.sin(angle) * spawnLen;
@@ -3510,7 +3529,7 @@ export default function StrategiesPage() {
                         initTargetX =
                             pos.x +
                             (skill.behavior?.flags?.chargeable?.minLength ||
-                                skill.geometry?.length ||
+                                (skill.geometry as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = pos.y;
@@ -4232,7 +4251,10 @@ export default function StrategiesPage() {
                 originX = agentObj.x;
                 originY = agentObj.y;
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
-                if (skill.behavior?.spawnOffset) {
+                if (
+                    skill.behavior?.spawn === "player" &&
+                    skill.behavior.spawnOffset
+                ) {
                     skill.x =
                         originX +
                         Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
@@ -4247,10 +4269,14 @@ export default function StrategiesPage() {
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
             }
 
-            const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.groundPath || skill.behavior?.flags?.teleportsAgentInstantly;
+            const isProj =
+                skill.behavior?.flags?.projectile ||
+                skill.behavior?.flags?.groundPath ||
+                skill.behavior?.flags?.teleportsAgentInstantly;
 
             if (
-                geom && !isProj &&
+                geom &&
+                !isProj &&
                 (geom.type === "rectangle" ||
                     geom.type === "cone" ||
                     geom.type === "trapezoid" ||
@@ -4269,7 +4295,10 @@ export default function StrategiesPage() {
                         agentObj &&
                         (isPlacingSecondPointRef.current || !skill.unlinked)
                     ) {
-                        const maxRange = skill.behavior?.maxCastRange || 0;
+                        const maxRange =
+                            skill.behavior?.spawn === "ground"
+                                ? skill.behavior.maxCastRange || 0
+                                : 0;
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
 
@@ -4495,8 +4524,11 @@ export default function StrategiesPage() {
                             )
                         ) {
                             const maxRange =
-                                draggedSkillRef.current.behavior
-                                    ?.maxCastRange || 0;
+                                draggedSkillRef.current.behavior?.spawn ===
+                                "ground"
+                                    ? draggedSkillRef.current.behavior
+                                          .maxCastRange || 0
+                                    : 0;
                             if (maxRange > 0) {
                                 const mToPx = selectedMap?.pixelsPerMeter || 20;
                                 const maxPx = maxRange * mToPx;
@@ -4914,7 +4946,8 @@ export default function StrategiesPage() {
                 skill.behavior?.flags?.teleportsAgentInstantly ||
                 !!skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
-                !isProj && skill.geometry &&
+                !isProj &&
+                skill.geometry &&
                 (skill.geometry.type === "rectangle" ||
                     skill.geometry.type === "cone" ||
                     skill.geometry.type === "trapezoid" ||
@@ -4922,14 +4955,16 @@ export default function StrategiesPage() {
                     skill.geometry.type === "line");
 
             if (isGeomWithTarget || isProj) {
-                const length = (skill.geometry?.length || 0) * mToPx;
+                const length =
+                    (("length" in skill.geometry ? skill.geometry.length : 0) ||
+                        0) * mToPx;
 
                 if (skill.behavior?.spawn === "player" && agentObj) {
                     const sa = playerToMouseAngle;
                     if (skill.behavior?.flags?.chargeable) {
                         const maxLen =
                             (skill.behavior?.flags?.chargeable?.maxLength ||
-                                skill.geometry?.length ||
+                                (skill.geometry as any)?.length ||
                                 0) * mToPx;
                         const dx = pos.x - startX;
                         const dy = pos.y - startY;
@@ -4975,10 +5010,13 @@ export default function StrategiesPage() {
                         const { maxRange, isFixed: projIsFixed } =
                             getProjRangeAndFixed(skill);
                         const maxPx = maxRange * mToPx;
-                        let spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
+                        const spawnLen = maxPx > 0 ? maxPx : 10 * mToPx;
                         let angle = 0;
                         if (agentObj) {
-                            angle = Math.atan2(pos.y - agentObj.y, pos.x - agentObj.x);
+                            angle = Math.atan2(
+                                pos.y - agentObj.y,
+                                pos.x - agentObj.x,
+                            );
                         }
                         initTargetX = startX + Math.cos(angle) * spawnLen;
                         initTargetY = startY + Math.sin(angle) * spawnLen;
@@ -4986,7 +5024,7 @@ export default function StrategiesPage() {
                         initTargetX =
                             pos.x +
                             (skill.behavior?.flags?.chargeable?.minLength ||
-                                skill.geometry?.length ||
+                                (skill.geometry as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = pos.y;
@@ -10139,10 +10177,9 @@ export default function StrategiesPage() {
 
                                                     if (deployedSkill) {
                                                         const range =
-                                                            skill.behavior
-                                                                ?.maxCastRange ||
-                                                            skill.behavior
-                                                                ?.groundRange ||
+                                                            (
+                                                                skill.behavior as any
+                                                            )?.maxCastRange ||
                                                             13;
                                                         const dx =
                                                             deployedSkill.x -

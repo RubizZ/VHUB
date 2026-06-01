@@ -2,15 +2,16 @@
 
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
-export interface SkillGeometry {
-  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
-  radius?: number;
-  width?: number;
-  endWidth?: number;
-  length?: number;
-  angle?: number;
-  hideBase?: boolean;
-}
+export type SkillGeometry =
+  | { type: "none" }
+  | { type: "circle"; radius: number }
+  | { type: "rectangle"; width: number; length: number }
+  | { type: "cone"; width: number; length: number; angle: number }
+  | { type: "infinite-wall"; width?: number; length?: number }
+  | { type: "trapezoid"; width: number; length: number; endWidth?: number; hideBase?: boolean }
+  | { type: "curve"; width: number; length: number; angle: number }
+  | { type: "cross"; width?: number; length?: number }
+  | { type: "line"; width: number; length: number };
 
 // Flags con sub-parámetros propios (su presencia implica activación)
 export interface ProjectileFlag {
@@ -83,7 +84,7 @@ export interface SkillBehaviorFlags {
   isolatesTarget?: boolean;          // Aísla al objetivo a un "mundo aparte" (ej. Iso X)
 }
 
-export interface SkillBehavior {
+export interface SkillBehaviorBase {
   charges?: number;
   castTime?: number;
   duration?: number;
@@ -91,13 +92,16 @@ export interface SkillBehavior {
   rechargeTime?: number;
   rechargeKills?: number;            // Kills necesarias para recargar la habilidad (ej: 2)
   debuffApplied?: string;            // Nombre del debuffo aplicado a enemigos (ej: "Vulnerable")
-  spawn: "player" | "ground" | "wall" | "projectile";
-  spawnOffset?: number;              // Desplazamiento en metros desde el agente
-  maxCastRange?: number;
-  groundRange?: number;              // legacy
   consumesSkillKey?: string;
   flags?: SkillBehaviorFlags;
 }
+
+export type SkillBehavior = SkillBehaviorBase & (
+  | { spawn: "player"; spawnOffset?: number }
+  | { spawn: "ground"; maxCastRange?: number }
+  | { spawn: "wall" }
+  | { spawn: "projectile" }
+);
 
 export interface AgentSkill {
   id: string;

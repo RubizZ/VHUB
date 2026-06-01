@@ -201,13 +201,13 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         color: skill.color || "",
         charges: skill.behavior?.charges || 1,
         castTime: skill.behavior?.castTime || 0,
-        geometryType: (skill.geometry?.type as SkillFormData["geometryType"]) || "circle",
-        geometryRadius: skill.geometry?.radius || 5,
-        geometryWidth: skill.geometry?.width || 5,
-        geometryEndWidth: skill.geometry?.endWidth || 2,
-        geometryHideBase: skill.geometry?.hideBase || false,
-        geometryLength: skill.geometry?.length || 5,
-        geometryAngle: skill.geometry?.angle || 90,
+        geometryType: ((skill.geometry as any)?.type as SkillFormData["geometryType"]) || "circle",
+        geometryRadius: (skill.geometry as any)?.radius || 5,
+        geometryWidth: (skill.geometry as any)?.width || 5,
+        geometryEndWidth: (skill.geometry as any)?.endWidth || 2,
+        geometryHideBase: (skill.geometry as any)?.hideBase || false,
+        geometryLength: (skill.geometry as any)?.length || 5,
+        geometryAngle: (skill.geometry as any)?.angle || 90,
         behaviorCharges: skill.behavior?.charges || 1,
         behaviorCastTime: skill.behavior?.castTime || 0,
         behaviorDuration: skill.behavior?.duration || 0,
@@ -216,8 +216,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         behaviorRechargeKills: skill.behavior?.rechargeKills || 0,
         behaviorDebuffApplied: skill.behavior?.debuffApplied || "",
         behaviorSpawn: skill.behavior?.spawn || "player",
-        behaviorSpawnOffset: skill.behavior?.spawnOffset || 0,
-        behaviorGroundRange: skill.behavior?.maxCastRange || skill.behavior?.groundRange || 10,
+        behaviorSpawnOffset: skill.behavior?.spawn === "player" ? (skill.behavior.spawnOffset || 0) : 0,
+        behaviorGroundRange: skill.behavior?.spawn === "ground" ? (skill.behavior.maxCastRange || 10) : 10,
         consumesSkillKey: skill.behavior?.consumesSkillKey || "",
         // flags simples
         flagThroughWall: skill.behavior?.flags?.throughWall || false,
@@ -369,7 +369,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           hideBase: formData.geometryType === "trapezoid" ? formData.geometryHideBase : undefined,
           length: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryLength) : undefined,
           angle: (formData.geometryType === "cone" || formData.geometryType === "curve") ? Number(formData.geometryAngle) : undefined,
-        },
+        } as unknown as SkillGeometry,
         behavior: {
           charges: formData.behaviorCharges,
           castTime: formData.behaviorCastTime,
@@ -379,8 +379,8 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           rechargeKills: formData.behaviorRechargeKills,
           debuffApplied: formData.behaviorDebuffApplied || undefined,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
-          spawnOffset: Number(formData.behaviorSpawnOffset) || undefined,
-          maxCastRange: formData.behaviorSpawn === "player" ? undefined : (Number(formData.behaviorGroundRange) || undefined),
+          spawnOffset: formData.behaviorSpawn === "player" ? (Number(formData.behaviorSpawnOffset) || undefined) : undefined,
+          maxCastRange: formData.behaviorSpawn === "ground" ? (Number(formData.behaviorGroundRange) || undefined) : undefined,
           consumesSkillKey: formData.consumesSkillKey || undefined,
           flags: {
             throughWall: formData.flagThroughWall || undefined,
@@ -415,22 +415,34 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   maxDistance: Number(formData.groundPathMaxDistance) || undefined,
                   alwaysMaxDistance: formData.groundPathAlwaysMaxDistance || undefined,
                   width: Number(formData.groundPathWidth) || 1,
+                  controllable: formData.groundPathControllable || undefined,
+                  stoppable: formData.groundPathStoppable || undefined,
                 }
               : undefined,
             bouncing: formData.flagBouncing
-              ? { bounces: Number(formData.bouncingCount) }
+              ? { bounces: Number(formData.bouncingCount) || 1 }
               : undefined,
             chargeable: formData.flagChargeable
-              ? { minLength: Number(formData.chargeMinLength), maxLength: Number(formData.chargeMaxLength), timePerMeter: Number(formData.chargeTimePerMeter) }
+              ? {
+                  minLength: Number(formData.chargeMinLength) || undefined,
+                  maxLength: Number(formData.chargeMaxLength) || undefined,
+                  timePerMeter: Number(formData.chargeTimePerMeter) || undefined,
+                }
               : undefined,
             rolling: formData.flagRolling
-              ? { waveCount: Number(formData.rollWaveCount), timeBetweenWaves: Number(formData.rollTimeBetweenWaves) }
+              ? {
+                  waveCount: Number(formData.rollWaveCount) || undefined,
+                  timeBetweenWaves: Number(formData.rollTimeBetweenWaves) || undefined,
+                }
               : undefined,
             instantSelfBuff: formData.flagInstantSelfBuff
-              ? { duration: Number(formData.instantSelfBuffDuration) || undefined, applied: formData.instantSelfBuffApplied || undefined }
+              ? {
+                  duration: Number(formData.instantSelfBuffDuration) || undefined,
+                  applied: formData.instantSelfBuffApplied || undefined,
+                }
               : undefined,
           }
-        },
+        } as unknown as SkillBehavior,
         displayIcon: formData.displayIcon || undefined,
         enabled: formData.enabled
       };
