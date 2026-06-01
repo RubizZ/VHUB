@@ -123,16 +123,10 @@ export default function MatchesPage() {
   // 3. Sync matches mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const pRes = await fetch("/api/players");
-      const pData = await pRes.json();
-      const playerWithPuuid = pData.players?.find((p: { puuid: string }) => p.puuid);
-      if (!playerWithPuuid) {
-        throw new Error("Ningún jugador tiene un PUUID configurado.");
-      }
       const res = await fetch("/api/matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ puuid: playerWithPuuid.puuid, action: "sync" })
+        body: JSON.stringify({ action: "sync" })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error en la sincronización");

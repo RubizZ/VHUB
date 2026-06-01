@@ -248,43 +248,53 @@ export async function POST(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "No team context" }, { status: 400 });
 
   const body = await req.json();
-  const { puuid, action } = body;
+  const { action } = body;
 
   try {
     if (action === "sync") {
-      if (!puuid) return NextResponse.json({ error: "puuid required for sync" }, { status: 400 });
-
-      // Verificar consentimiento del usuario autenticado
-      const userId = session?.user.id;
-      const requestingUser = await db.user.findUnique({
-        where: { id: userId },
-        include: { player: true }
-      });
-
       const dbTeam = await db.team.findUnique({
         where: { id: teamId },
-        include: { players: true, premierTeam: true }
+        include: { 
+          players: { include: { user: true } }, 
+          premierTeam: true 
+        }
       });
 
       if (!dbTeam) return NextResponse.json({ error: "Equipo no encontrado" }, { status: 400 });
       const ourPuuids = new Set(dbTeam.players.map(p => p.puuid).filter(Boolean));
 
-      if (!requestingUser?.dataConsent) {
+      const consentingPlayers = dbTeam.players.filter(p => p.user?.dataConsent === true && p.riot_name && p.riot_tag);
+
+      if (consentingPlayers.length === 0) {
         return NextResponse.json({
-          error: "No has dado tu consentimiento para procesar tus datos de juego. Actívalo en tu perfil."
+          error: "Ningún jugador del equipo tiene el consentimiento de datos activado y un Riot ID configurado."
         }, { status: 403 });
       }
 
-      // Obtenemos las últimas 10 partidas usando HenrikDev (V3 devuelve el objeto completo)
-      // Usamos la región del jugador o 'eu' por defecto
       const region = 'eu';
-      const player = requestingUser.player;
-      if (!player?.riot_name || !player?.riot_tag) {
-        return NextResponse.json({ error: "El jugador no tiene un Riot ID configurado" }, { status: 400 });
+      let allMatches: any[] = [];
+      for (const player of consentingPlayers) {
+        try {
+          const mList = await getMatches(region, player.riot_name!, player.riot_tag!, 'premier', 20);
+          if (mList && Array.isArray(mList)) {
+            allMatches = allMatches.concat(mList);
+          }
+        } catch (e) {
+          console.warn(`[Sync] Error fetching matches for ${player.riot_name}#${player.riot_tag}:`, e);
+        }
       }
 
-      const matchlist = await getMatches(region, player.riot_name, player.riot_tag, 'premier', 20);
-      if (!matchlist) return NextResponse.json({ error: "No se pudieron obtener las partidas de HenrikDev" }, { status: 502 });
+      if (allMatches.length === 0) {
+        return NextResponse.json({ error: "No se pudieron obtener partidas de HenrikDev para ningún jugador" }, { status: 502 });
+      }
+
+      const matchMap = new Map();
+      for (const match of allMatches) {
+        if (!matchMap.has(match.metadata.matchid)) {
+          matchMap.set(match.metadata.matchid, match);
+        }
+      }
+      const matchlist = Array.from(matchMap.values());
 
       // Asegurar que las temporadas existan antes de procesar partidas
       try {
