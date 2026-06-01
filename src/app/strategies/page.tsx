@@ -4414,7 +4414,8 @@ export default function StrategiesPage() {
                         skill.x += dx;
                         skill.y += dy;
 
-                        const isFixed = skill.behavior?.flags?.fixedTarget;
+                        const isInfiniteProj = skill.behavior?.flags?.projectile && (!skill.behavior?.flags?.projectile.maxDistance || skill.behavior?.flags?.projectile.maxDistance === 0);
+                        const isFixed = skill.behavior?.flags?.fixedTarget || isInfiniteProj;
                         if (!isFixed) {
                             if (skill.targetX !== undefined)
                                 skill.targetX += dx;
