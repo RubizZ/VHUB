@@ -1325,45 +1325,6 @@ export default function StrategiesPage() {
                 ctx.arc(0, 0, radius, 0, 2 * Math.PI);
                 ctx.fill();
 
-                const isFreePlaced =
-                    skill.behavior?.spawn === "ground" ||
-                    (skill.unlinked && skill.behavior?.spawn === "player");
-                const hasDirection =
-                    (skill.targetX !== undefined &&
-                        skill.targetY !== undefined) ||
-                    skill.customRotation !== undefined;
-
-                if (isFreePlaced && hasDirection) {
-                    ctx.save();
-                    let sa = 0;
-                    if (
-                        skill.targetX !== undefined &&
-                        skill.targetY !== undefined
-                    ) {
-                        sa = Math.atan2(
-                            skill.targetY - skill.y,
-                            skill.targetX - skill.x,
-                        );
-                    } else if (skill.customRotation !== undefined) {
-                        sa = skill.customRotation;
-                    }
-                    ctx.rotate(sa);
-
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-                    ctx.lineWidth = 4 / scale;
-                    ctx.lineCap = "round";
-                    ctx.lineJoin = "round";
-                    const arrowSize = Math.min(radius * 0.4, 18 / scale);
-
-                    ctx.beginPath();
-                    // Draw a single prominent chevron in the center of the circle pointing in the direction
-                    ctx.moveTo(-arrowSize / 2, -arrowSize);
-                    ctx.lineTo(arrowSize / 2, 0);
-                    ctx.lineTo(-arrowSize / 2, arrowSize);
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
                 ctx.globalAlpha = strokeAlpha;
                 ctx.lineWidth = 2 / scale;
                 ctx.stroke();
