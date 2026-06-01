@@ -79,7 +79,7 @@ interface CanvasSkill {
     behavior: SkillBehavior;
     projectileMode?: "bounce" | "parabola";
     isActive?: boolean;
-    pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "controllablePath"
+    pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "groundPath" con controllable
     color: string;
     createdBy?: string;
     unlinked?: boolean;
@@ -120,8 +120,8 @@ type View = "maps" | "strategies" | "editor";
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
 let pendingRedrawRef: number | null = null;
 
-function getProjRangeAndFixed(skill: { behavior?: SkillBehavior }) {
-    const pFlag = skill?.behavior?.flags?.projectile;
+function getProjRangeAndFixed(skill: { behavior?: SkillBehavior; unlinked?: boolean }) {
+    const pFlag = skill?.behavior?.flags?.projectile || skill?.behavior?.flags?.groundPath;
     let maxRange = 0;
     if (skill?.behavior?.spawn !== "player") {
         maxRange = skill?.behavior?.maxCastRange || skill?.behavior?.groundRange || 0;
@@ -137,10 +137,15 @@ function getProjRangeAndFixed(skill: { behavior?: SkillBehavior }) {
         } else {
             maxRange = pFlag.maxDistance;
         }
-        if (pFlag.fixedDistance || pFlag.alwaysMaxDistance) {
+        if (pFlag.alwaysMaxDistance) {
             isFixed = true;
         }
     }
+    
+    if (skill?.behavior?.spawnOffset && !skill.unlinked) {
+        maxRange += skill.behavior.spawnOffset;
+    }
+
     return { maxRange, isFixed };
 }
 
@@ -1069,7 +1074,8 @@ export default function StrategiesPage() {
                     pSkill.skill.geometry.type === "curve");
             const isProj =
                 pSkill.skill.behavior?.flags?.projectile ||
-                pSkill.skill.behavior?.flags?.teleportsAgentInstantly;
+                pSkill.skill.behavior?.flags?.teleportsAgentInstantly ||
+                !!pSkill.skill.behavior?.flags?.groundPath;
 
             if (isGeomWithTarget || isProj) {
                 const length = (pSkill.skill.geometry?.length || 0) * mToPx;
@@ -1223,7 +1229,7 @@ export default function StrategiesPage() {
                 }
             }
 
-            const isControllablePath = skill.behavior?.flags?.controllablePath;
+            const isControllablePath = skill.behavior?.flags?.groundPath?.controllable;
             if (
                 isControllablePath &&
                 skill.pathPoints &&
@@ -1282,9 +1288,12 @@ export default function StrategiesPage() {
 
             ctx.save();
 
+            const hasGroundPath = !!skill.behavior?.flags?.groundPath;
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly;
+                skill.behavior?.flags?.teleportsAgentInstantly ||
+                hasGroundPath;
+
             if (
                 isProj &&
                 skill.targetX !== undefined &&
@@ -1292,16 +1301,66 @@ export default function StrategiesPage() {
             ) {
                 const tx = skill.targetX - skill.x;
                 const ty = skill.targetY - skill.y;
-                if (geom.type !== "curve" && geom.type !== "path") {
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(tx, ty);
-                    ctx.strokeStyle = skill.color;
-                    ctx.lineWidth = 2 / scale;
-                    ctx.globalAlpha = 0.6;
-                    ctx.setLineDash([6 / scale, 6 / scale]);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+                const dist = Math.sqrt(tx * tx + ty * ty);
+
+                if (geom.type !== "curve") {
+                    const isGroundPathWithArea = hasGroundPath && (skill.behavior?.flags?.groundPath?.width ?? 1) > 1;
+                    
+                    if (isGroundPathWithArea) {
+                        const gpWidth = (skill.behavior?.flags?.groundPath?.width || 1) * mToPx;
+                        ctx.save();
+                        ctx.rotate(Math.atan2(ty, tx));
+                        ctx.beginPath();
+                        ctx.rect(0, -gpWidth / 2, dist, gpWidth);
+                        ctx.fillStyle = skill.color;
+                        ctx.globalAlpha = baseAlpha * 0.4;
+                        ctx.fill();
+                        ctx.globalAlpha = strokeAlpha;
+                        ctx.lineWidth = 2 / scale;
+                        ctx.strokeStyle = skill.color;
+                        ctx.stroke();
+
+                        if (skill.unlinked) {
+                            ctx.save();
+                            ctx.clip(); // Ensure arrows don't bleed out of the rect
+
+                            ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+                            ctx.lineWidth = 3 / scale;
+                            ctx.lineCap = "round";
+                            ctx.lineJoin = "round";
+
+                            const spacingPx = 40 / scale;
+                            const numArrows = Math.max(
+                                1,
+                                Math.floor(dist / spacingPx),
+                            );
+                            const spacing = dist / (numArrows + 1);
+                            const arrowSize = Math.min(gpWidth * 0.25, 12 / scale);
+
+                            ctx.beginPath();
+                            for (let i = 1; i <= numArrows; i++) {
+                                const cx = i * spacing;
+                                ctx.moveTo(cx - arrowSize, -arrowSize);
+                                ctx.lineTo(cx, 0);
+                                ctx.lineTo(cx - arrowSize, arrowSize);
+                            }
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+
+                        ctx.restore();
+                    } else {
+                        // Dashed line for projectiles and narrow ground paths
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(tx, ty);
+                        ctx.strokeStyle = skill.color;
+                        ctx.lineWidth = 2 / scale;
+                        ctx.globalAlpha = 0.6;
+                        ctx.setLineDash([6 / scale, 6 / scale]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
 
                     ctx.translate(tx, ty);
                 }
@@ -1495,38 +1554,6 @@ export default function StrategiesPage() {
                     ctx.closePath();
                     ctx.fill();
                 }
-            } else if (geom.type === "path") {
-                const tx =
-                    skill.targetX !== undefined ? skill.targetX - skill.x : 0;
-                const ty =
-                    skill.targetY !== undefined ? skill.targetY - skill.y : 0;
-                const dist = Math.sqrt(tx * tx + ty * ty);
-
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(tx, ty);
-
-                ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = (geom.width ? geom.width * mToPx : 4) / scale;
-                ctx.lineCap = "round";
-                ctx.stroke();
-
-                if (dist > 0) {
-                    const arrowAngle = Math.atan2(ty, tx);
-                    const arrowSize = 10 / scale;
-                    ctx.beginPath();
-                    ctx.moveTo(tx, ty);
-                    ctx.lineTo(
-                        tx - arrowSize * Math.cos(arrowAngle - Math.PI / 6),
-                        ty - arrowSize * Math.sin(arrowAngle - Math.PI / 6),
-                    );
-                    ctx.lineTo(
-                        tx - arrowSize * Math.cos(arrowAngle + Math.PI / 6),
-                        ty - arrowSize * Math.sin(arrowAngle + Math.PI / 6),
-                    );
-                    ctx.closePath();
-                    ctx.fill();
-                }
             } else if (geom.type === "infinite-wall") {
                 // Draw an infinite wall: a thick line that extends across the whole canvas
                 // Direction is determined by the vector from skill origin to target
@@ -1576,12 +1603,12 @@ export default function StrategiesPage() {
             if (
                 sImg &&
                 sImg.complete &&
-                !skill.behavior?.flags?.controllablePath &&
+                !skill.behavior?.flags?.groundPath?.controllable &&
                 !showHandles
             ) {
                 let cxImg = 0;
                 let cyImg = 0;
-                const isProj = skill.behavior?.flags?.projectile;
+                const isProj = skill.behavior?.flags?.projectile || skill.behavior?.flags?.groundPath;
                 const isTeleport =
                     skill.behavior?.flags?.teleportsAgentInstantly ||
                     skill.behavior?.flags?.teleportsToDeployed;
@@ -1679,7 +1706,7 @@ export default function StrategiesPage() {
             const isTeleportFlag =
                 skill.behavior?.flags?.teleportsAgentInstantly ||
                 skill.behavior?.flags?.teleportsToDeployed;
-            const isProjFlag = skill.behavior?.flags?.projectile;
+            const isProjFlag = skill.behavior?.flags?.projectile || skill.behavior?.flags?.groundPath;
             const isOriginDestSkill =
                 (isProjFlag || isTeleportFlag) &&
                 skill.behavior?.spawn === "player" &&
@@ -2823,15 +2850,15 @@ export default function StrategiesPage() {
 
         const isProj =
             s.behavior?.flags?.projectile ||
-            s.behavior?.flags?.teleportsAgentInstantly;
+            s.behavior?.flags?.teleportsAgentInstantly ||
+            !!s.behavior?.flags?.groundPath;
         let drawOriginX = s.x;
         let drawOriginY = s.y;
         if (
             isProj &&
             s.targetX !== undefined &&
             s.targetY !== undefined &&
-            geom.type !== "curve" &&
-            geom.type !== "path"
+            geom.type !== "curve"
         ) {
             drawOriginX = s.targetX;
             drawOriginY = s.targetY;
@@ -3403,7 +3430,8 @@ export default function StrategiesPage() {
                     skill.geometry.type === "line");
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly;
+                skill.behavior?.flags?.teleportsAgentInstantly ||
+                !!skill.behavior?.flags?.groundPath;
 
             if (isGeomWithTarget || isProj) {
                 const length = (skill.geometry?.length || 0) * mToPx;
@@ -3518,7 +3546,7 @@ export default function StrategiesPage() {
                 projectileMode: skill.behavior?.flags?.projectile
                     ? projectileMode
                     : undefined,
-                pathPoints: skill.behavior?.flags?.controllablePath
+                pathPoints: skill.behavior?.flags?.groundPath?.controllable
                     ? [
                           { x: startX, y: startY },
                           { x: pos.x, y: pos.y },
@@ -3526,7 +3554,7 @@ export default function StrategiesPage() {
                     : undefined,
                 color: skillColor,
                 createdBy: myUserId,
-                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile,
+                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile || !!skill.behavior?.flags?.groundPath,
             };
 
             skillsRef.current.push(newSkill);
@@ -4343,7 +4371,7 @@ export default function StrategiesPage() {
                 skill.targetY = tY;
             }
 
-            if (skill.behavior?.flags?.controllablePath) {
+            if (skill.behavior?.flags?.groundPath?.controllable) {
                 if (!skill.pathPoints)
                     skill.pathPoints = [{ x: skill.x, y: skill.y }];
                 skill.pathPoints.push({ x: pos.x, y: pos.y });
@@ -4376,7 +4404,8 @@ export default function StrategiesPage() {
                         skill.x += dx;
                         skill.y += dy;
 
-                        const isInfiniteProj = skill.behavior?.flags?.projectile && (!skill.behavior?.flags?.projectile.maxDistance || skill.behavior?.flags?.projectile.maxDistance === 0);
+                        const pFlagForInf = skill.behavior?.flags?.projectile || skill.behavior?.flags?.groundPath;
+                        const isInfiniteProj = pFlagForInf && (!pFlagForInf.maxDistance || pFlagForInf.maxDistance === 0);
                         const isFixed = isInfiniteProj;
                         if (!isFixed) {
                             if (skill.targetX !== undefined)
@@ -4886,7 +4915,8 @@ export default function StrategiesPage() {
                     skill.geometry.type === "line");
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly;
+                skill.behavior?.flags?.teleportsAgentInstantly ||
+                !!skill.behavior?.flags?.groundPath;
 
             if (isGeomWithTarget || isProj) {
                 const length = (skill.geometry?.length || 0) * mToPx;
@@ -5001,7 +5031,7 @@ export default function StrategiesPage() {
                 projectileMode: skill.behavior?.flags?.projectile
                     ? projectileMode
                     : undefined,
-                pathPoints: skill.behavior?.flags?.controllablePath
+                pathPoints: skill.behavior?.flags?.groundPath?.controllable
                     ? [
                           { x: startX, y: startY },
                           { x: pos.x, y: pos.y },
@@ -5009,7 +5039,7 @@ export default function StrategiesPage() {
                     : undefined,
                 color: pendingData.color,
                 createdBy: myUserId,
-                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile,
+                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile || !!skill.behavior?.flags?.groundPath,
             };
             skillsRef.current.push(newSkill);
             loadedSkillIdsRef.current.add(newSkill.instanceId);

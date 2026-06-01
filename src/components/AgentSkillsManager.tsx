@@ -13,7 +13,7 @@ interface SkillFormData {
   color: string;
   charges: number;
   castTime: number;
-  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross" | "line";
+  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
   geometryRadius: number;
   geometryWidth: number;
   geometryLength: number;
@@ -42,7 +42,6 @@ interface SkillFormData {
   flagTwoPointDirectional: boolean;
   flagDeployablePreRound: boolean;
   flagTriggerOnSight: boolean;
-  flagStoppableInFlight: boolean;
   flagGeneratesSoulOrbs: boolean;
   flagIsolatesTarget: boolean;
   flagOpaque: boolean;
@@ -53,6 +52,16 @@ interface SkillFormData {
   projectileDuration: number;
   projectileMaxDistance: number;
   projectileAlwaysMaxDistance: boolean;
+  projectileStoppable: boolean;
+
+  flagGroundPath: boolean;
+  groundPathSpeed: number;
+  groundPathDuration: number;
+  groundPathMaxDistance: number;
+  groundPathAlwaysMaxDistance: boolean;
+  groundPathWidth: number;
+  groundPathControllable: boolean;
+  groundPathStoppable: boolean;
 
   flagBouncing: boolean;
   bouncingCount: number;
@@ -63,9 +72,6 @@ interface SkillFormData {
   flagRolling: boolean;
   rollWaveCount: number;
   rollTimeBetweenWaves: number;
-  flagControllablePath: boolean;
-  controllablePathSpeed: number;
-  controllablePathDuration: number;
   flagInstantSelfBuff: boolean;
   instantSelfBuffDuration: number;
   instantSelfBuffApplied: string;
@@ -116,7 +122,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagTwoPointDirectional: false,
     flagDeployablePreRound: false,
     flagTriggerOnSight: false,
-    flagStoppableInFlight: false,
     flagGeneratesSoulOrbs: false,
     flagIsolatesTarget: false,
     flagOpaque: false,
@@ -126,6 +131,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     projectileDuration: 0,
     projectileMaxDistance: 0,
     projectileAlwaysMaxDistance: false,
+    projectileStoppable: false,
+    flagGroundPath: false,
+    groundPathSpeed: 0,
+    groundPathDuration: 0,
+    groundPathMaxDistance: 0,
+    groundPathAlwaysMaxDistance: false,
+    groundPathWidth: 1,
+    groundPathControllable: false,
+    groundPathStoppable: false,
     flagBouncing: false,
     bouncingCount: 1,
     flagChargeable: false,
@@ -135,9 +149,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagRolling: false,
     rollWaveCount: 5,
     rollTimeBetweenWaves: 0.2,
-    flagControllablePath: false,
-    controllablePathSpeed: 0,
-    controllablePathDuration: 0,
     flagInstantSelfBuff: false,
     instantSelfBuffDuration: 0,
     instantSelfBuffApplied: "",
@@ -215,7 +226,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagTwoPointDirectional: skill.behavior?.flags?.twoPointDirectional || false,
         flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
         flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
-        flagStoppableInFlight: skill.behavior?.flags?.stoppableInFlight || false,
         flagGeneratesSoulOrbs: skill.behavior?.flags?.generatesSoulOrbs || false,
         flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
         flagOpaque: skill.behavior?.flags?.opaque || false,
@@ -225,6 +235,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
         projectileMaxDistance: skill.behavior?.flags?.projectile?.maxDistance ?? 0,
         projectileAlwaysMaxDistance: skill.behavior?.flags?.projectile?.alwaysMaxDistance ?? false,
+        projectileStoppable: skill.behavior?.flags?.projectile?.stoppable ?? false,
+        flagGroundPath: !!skill.behavior?.flags?.groundPath,
+        groundPathSpeed: skill.behavior?.flags?.groundPath?.speed ?? 0,
+        groundPathDuration: skill.behavior?.flags?.groundPath?.duration ?? 0,
+        groundPathMaxDistance: skill.behavior?.flags?.groundPath?.maxDistance ?? 0,
+        groundPathAlwaysMaxDistance: skill.behavior?.flags?.groundPath?.alwaysMaxDistance ?? false,
+        groundPathWidth: skill.behavior?.flags?.groundPath?.width ?? 1,
+        groundPathControllable: skill.behavior?.flags?.groundPath?.controllable ?? false,
+        groundPathStoppable: skill.behavior?.flags?.groundPath?.stoppable ?? false,
         flagBouncing: !!skill.behavior?.flags?.bouncing || (skill.behavior?.flags?.projectile as any)?.bounces !== undefined,
         bouncingCount: skill.behavior?.flags?.bouncing?.bounces ?? (skill.behavior?.flags?.projectile as any)?.bounces ?? 1,
         // flag chargeable (objeto anidado)
@@ -237,9 +256,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         rollWaveCount: skill.behavior?.flags?.rolling?.waveCount ?? 5,
         rollTimeBetweenWaves: skill.behavior?.flags?.rolling?.timeBetweenWaves ?? 0.2,
         // flag controllablePath (objeto anidado)
-        flagControllablePath: !!skill.behavior?.flags?.controllablePath,
-        controllablePathSpeed: skill.behavior?.flags?.controllablePath?.speed ?? 0,
-        controllablePathDuration: skill.behavior?.flags?.controllablePath?.duration ?? 0,
         // flag instantSelfBuff (objeto anidado)
         flagInstantSelfBuff: !!skill.behavior?.flags?.instantSelfBuff,
         instantSelfBuffDuration: skill.behavior?.flags?.instantSelfBuff?.duration ?? 0,
@@ -282,7 +298,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagTwoPointDirectional: false,
         flagDeployablePreRound: false,
         flagTriggerOnSight: false,
-        flagStoppableInFlight: false,
         flagGeneratesSoulOrbs: false,
         flagIsolatesTarget: false,
         flagOpaque: false,
@@ -292,6 +307,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileDuration: 0,
         projectileMaxDistance: 0,
         projectileAlwaysMaxDistance: false,
+        projectileStoppable: false,
+        flagGroundPath: false,
+        groundPathSpeed: 0,
+        groundPathDuration: 0,
+        groundPathMaxDistance: 0,
+        groundPathAlwaysMaxDistance: false,
+        groundPathWidth: 1,
+        groundPathControllable: false,
+        groundPathStoppable: false,
         flagBouncing: false,
         bouncingCount: 1,
         flagChargeable: false,
@@ -301,9 +325,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRolling: false,
         rollWaveCount: 5,
         rollTimeBetweenWaves: 0.2,
-        flagControllablePath: false,
-        controllablePathSpeed: 0,
-        controllablePathDuration: 0,
         flagInstantSelfBuff: false,
         instantSelfBuffDuration: 0,
         instantSelfBuffApplied: "",
@@ -364,7 +385,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             twoPointDirectional: formData.flagTwoPointDirectional || undefined,
             deployablePreRound: formData.flagDeployablePreRound || undefined,
             triggerOnSight: formData.flagTriggerOnSight || undefined,
-            stoppableInFlight: formData.flagStoppableInFlight || undefined,
             generatesSoulOrbs: formData.flagGeneratesSoulOrbs || undefined,
             isolatesTarget: formData.flagIsolatesTarget || undefined,
             opaque: formData.flagOpaque || undefined,
@@ -378,6 +398,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   alwaysMaxDistance: formData.projectileAlwaysMaxDistance || undefined,
                 }
               : undefined,
+            groundPath: formData.flagGroundPath
+              ? {
+                  speed: Number(formData.groundPathSpeed) || undefined,
+                  duration: Number(formData.groundPathDuration) || undefined,
+                  maxDistance: Number(formData.groundPathMaxDistance) || undefined,
+                  alwaysMaxDistance: formData.groundPathAlwaysMaxDistance || undefined,
+                  width: Number(formData.groundPathWidth) || 1,
+                }
+              : undefined,
             bouncing: formData.flagBouncing
               ? { bounces: Number(formData.bouncingCount) }
               : undefined,
@@ -386,9 +415,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
               : undefined,
             rolling: formData.flagRolling
               ? { waveCount: Number(formData.rollWaveCount), timeBetweenWaves: Number(formData.rollTimeBetweenWaves) }
-              : undefined,
-            controllablePath: formData.flagControllablePath
-              ? { speed: Number(formData.controllablePathSpeed) || undefined, duration: Number(formData.controllablePathDuration) || undefined }
               : undefined,
             instantSelfBuff: formData.flagInstantSelfBuff
               ? { duration: Number(formData.instantSelfBuffDuration) || undefined, applied: formData.instantSelfBuffApplied || undefined }
@@ -734,11 +760,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           <span className="checkbox-custom"></span>
                           <span>Activable (Cárcel Cypher)</span>
                         </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagControllablePath} onChange={e => setFormData({...formData, flagControllablePath: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Ruta Controlable (Perro Fade)</span>
-                        </label>
+
                         <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
                           <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
                           <span className="checkbox-custom"></span>
@@ -798,10 +820,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           <span>Se detona/activa automáticamente al ver enemigo (Ej: Wingman de Gekko, Prowler de Fade)</span>
                         </label>
                         
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagStoppableInFlight} onChange={e => setFormData({...formData, flagStoppableInFlight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Se puede detener manualmente mientras avanza (Ej: Cascade de Harbor)</span>
-                        </label>
+
                         
                         <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                           <input type="checkbox" checked={formData.flagGeneratesSoulOrbs} onChange={e => setFormData({...formData, flagGeneratesSoulOrbs: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
@@ -861,6 +880,63 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
                               <input type="checkbox" checked={formData.projectileAlwaysMaxDistance} onChange={e => setFormData({...formData, projectileAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                               <span>Forzar recorrido máximo (no se puede acortar)</span>
+                            </label>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                              <input type="checkbox" checked={formData.projectileStoppable} onChange={e => setFormData({...formData, projectileStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Se puede detener manualmente en vuelo (ej. Harbor C)</span>
+                            </label>
+                          </div>
+                        )}
+
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagGroundPath} onChange={e => setFormData({...formData, flagGroundPath: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Recorre un camino (desplazamiento por el suelo que genera un área)</span>
+                        </label>
+                        {formData.flagGroundPath && (
+                          <div className="form-col" style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                            <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
+                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathMaxDistance} onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const speed = formData.groundPathDuration > 0 ? parseFloat((val / formData.groundPathDuration).toFixed(2)) : formData.groundPathSpeed;
+                                  setFormData({...formData, groundPathMaxDistance: val, groundPathSpeed: speed});
+                                }} />
+                              </div>
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
+                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathDuration} onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const speed = val > 0 ? parseFloat((formData.groundPathMaxDistance / val).toFixed(2)) : formData.groundPathSpeed;
+                                  setFormData({...formData, groundPathDuration: val, groundPathSpeed: speed});
+                                }} />
+                              </div>
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
+                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathSpeed} onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const duration = (val > 0 && formData.groundPathMaxDistance > 0) ? parseFloat((formData.groundPathMaxDistance / val).toFixed(2)) : formData.groundPathDuration;
+                                  setFormData({...formData, groundPathSpeed: val, groundPathDuration: duration});
+                                }} />
+                              </div>
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Anchura (m)</label>
+                                <input type="number" step="0.1" min="1" className="input-field" value={formData.groundPathWidth} onChange={e => {
+                                  setFormData({...formData, groundPathWidth: Math.max(1, parseFloat(e.target.value) || 1)});
+                                }} />
+                              </div>
+                            </div>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
+                              <input type="checkbox" checked={formData.groundPathAlwaysMaxDistance} onChange={e => setFormData({...formData, groundPathAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Forzar recorrido máximo (no se puede acortar)</span>
+                            </label>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                              <input type="checkbox" checked={formData.groundPathControllable} onChange={e => setFormData({...formData, groundPathControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Ruta controlable (se dirige con el ratón)</span>
+                            </label>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                              <input type="checkbox" checked={formData.groundPathStoppable} onChange={e => setFormData({...formData, groundPathStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Se puede detener manualmente en vuelo (ej. Harbor C)</span>
                             </label>
                           </div>
                         )}
@@ -966,18 +1042,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                         </>
                       )}
 
-                      {formData.flagControllablePath && (
-                        <div className="form-row" style={{ display: "flex", gap: 16 }}>
-                          <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Velocidad (m/s)</label>
-                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.controllablePathSpeed} onChange={e => setFormData({...formData, controllablePathSpeed: parseFloat(e.target.value)})} />
-                          </div>
-                          <div className="form-group" style={{ flex: 1, marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración Máx (s)</label>
-                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.controllablePathDuration} onChange={e => setFormData({...formData, controllablePathDuration: parseFloat(e.target.value)})} />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 

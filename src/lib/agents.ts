@@ -3,7 +3,7 @@
 export type AgentRole = 'duelist' | 'initiator' | 'controller' | 'sentinel';
 
 export interface SkillGeometry {
-  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "path" | "trapezoid" | "curve" | "cross" | "line";
+  type: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
   radius?: number;
   width?: number;
   length?: number;
@@ -15,8 +15,18 @@ export interface ProjectileFlag {
   speed?: number;
   maxDistance?: number;
   duration?: number;
-  fixedDistance?: boolean;
   alwaysMaxDistance?: boolean;
+  stoppable?: boolean;
+}
+
+export interface GroundPathFlag {
+  speed?: number;
+  maxDistance?: number;
+  duration?: number;
+  width: number;
+  alwaysMaxDistance?: boolean;
+  controllable?: boolean;
+  stoppable?: boolean;
 }
 
 export interface BouncingFlag {
@@ -47,6 +57,7 @@ export interface InstantSelfBuffFlag {
 export interface SkillBehaviorFlags {
   throughWall?: boolean;
   projectile?: ProjectileFlag;       // presencia = activo; sub-campos: speed, maxDistance, duration
+  groundPath?: GroundPathFlag;       // presencia = activo; sub-campos: speed, maxDistance, duration, width
   bouncing?: BouncingFlag;           // presencia = activo; sub-campos: bounces
   chargeable?: ChargeableFlag;       // presencia = activo; sub-campos: minLength, maxLength, timePerMeter
   rolling?: RollingFlag;             // presencia = activo; sub-campos: waveCount, timeBetweenWaves
