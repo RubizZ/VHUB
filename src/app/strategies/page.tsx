@@ -3564,7 +3564,7 @@ export default function StrategiesPage() {
                     : undefined,
                 color: skillColor,
                 createdBy: myUserId,
-                unlinked: skill.behavior?.spawn === "ground",
+                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile,
             };
 
             skillsRef.current.push(newSkill);
@@ -5047,7 +5047,7 @@ export default function StrategiesPage() {
                     : undefined,
                 color: pendingData.color,
                 createdBy: myUserId,
-                unlinked: skill.behavior?.spawn === "ground",
+                unlinked: skill.behavior?.spawn === "ground" || !!skill.behavior?.flags?.projectile,
             };
             skillsRef.current.push(newSkill);
             loadedSkillIdsRef.current.add(newSkill.instanceId);
