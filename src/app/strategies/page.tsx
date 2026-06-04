@@ -1235,7 +1235,8 @@ export default function StrategiesPage() {
             }
 
             const isControllablePath =
-                skill.behavior?.flags?.groundPath?.controllable;
+                skill.behavior?.flags?.groundPath?.controllable ||
+                skill.behavior?.flags?.projectile?.controllable;
             if (
                 isControllablePath &&
                 skill.pathPoints &&
@@ -1654,6 +1655,7 @@ export default function StrategiesPage() {
                 sImg &&
                 sImg.complete &&
                 !skill.behavior?.flags?.groundPath?.controllable &&
+                !skill.behavior?.flags?.projectile?.controllable &&
                 !showHandles
             ) {
                 let cxImg = 0;
@@ -3557,7 +3559,7 @@ export default function StrategiesPage() {
                 projectileMode: skill.behavior?.flags?.projectile
                     ? projectileMode
                     : undefined,
-                pathPoints: skill.behavior?.flags?.groundPath?.controllable
+                pathPoints: (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable)
                     ? [
                           { x: startX, y: startY },
                           { x: initTargetX ?? pos.x, y: initTargetY ?? pos.y },
@@ -4404,7 +4406,7 @@ export default function StrategiesPage() {
                 skill.targetY = tY;
             }
 
-            if (skill.behavior?.flags?.groundPath?.controllable) {
+            if (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable) {
                 if (!skill.pathPoints)
                     skill.pathPoints = [{ x: skill.x, y: skill.y }];
                 skill.pathPoints.push({ x: pos.x, y: pos.y });
@@ -5061,7 +5063,7 @@ export default function StrategiesPage() {
                 projectileMode: skill.behavior?.flags?.projectile
                     ? projectileMode
                     : undefined,
-                pathPoints: skill.behavior?.flags?.groundPath?.controllable
+                pathPoints: (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable)
                     ? [
                           { x: startX, y: startY },
                           { x: initTargetX ?? pos.x, y: initTargetY ?? pos.y },

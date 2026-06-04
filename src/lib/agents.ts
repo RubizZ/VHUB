@@ -19,6 +19,7 @@ export interface ProjectileFlag {
   maxDistance?: number;
   duration?: number;
   alwaysMaxDistance?: boolean;
+  controllable?: boolean;
   stoppable?: boolean;
 }
 
