@@ -54,6 +54,7 @@ interface SkillFormData {
   projectileDuration: number;
   projectileMaxDistance: number;
   projectileAlwaysMaxDistance: boolean;
+  projectileControllable: boolean;
   projectileStoppable: boolean;
 
   flagGroundPath: boolean;
@@ -135,6 +136,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     projectileDuration: 0,
     projectileMaxDistance: 0,
     projectileAlwaysMaxDistance: false,
+    projectileControllable: false,
     projectileStoppable: false,
     flagGroundPath: false,
     groundPathSpeed: 0,
@@ -241,6 +243,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
         projectileMaxDistance: skill.behavior?.flags?.projectile?.maxDistance ?? 0,
         projectileAlwaysMaxDistance: skill.behavior?.flags?.projectile?.alwaysMaxDistance ?? false,
+        projectileControllable: skill.behavior?.flags?.projectile?.controllable ?? false,
         projectileStoppable: skill.behavior?.flags?.projectile?.stoppable ?? false,
         flagGroundPath: !!skill.behavior?.flags?.groundPath,
         groundPathSpeed: skill.behavior?.flags?.groundPath?.speed ?? 0,
@@ -315,6 +318,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileDuration: 0,
         projectileMaxDistance: 0,
         projectileAlwaysMaxDistance: false,
+        projectileControllable: false,
         projectileStoppable: false,
         flagGroundPath: false,
         groundPathSpeed: 0,
@@ -406,6 +410,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   duration: Number(formData.projectileDuration) || undefined,
                   maxDistance: Number(formData.projectileMaxDistance) || undefined,
                   alwaysMaxDistance: formData.projectileAlwaysMaxDistance || undefined,
+                  controllable: formData.projectileControllable || undefined,
                 }
               : undefined,
             groundPath: formData.flagGroundPath
@@ -913,6 +918,10 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                             <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
                               <input type="checkbox" checked={formData.projectileAlwaysMaxDistance} onChange={e => setFormData({...formData, projectileAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                               <span>Forzar recorrido máximo (no se puede acortar)</span>
+                            </label>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                              <input type="checkbox" checked={formData.projectileControllable} onChange={e => setFormData({...formData, projectileControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Ruta controlable (se dirige con el ratón)</span>
                             </label>
                             <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
                               <input type="checkbox" checked={formData.projectileStoppable} onChange={e => setFormData({...formData, projectileStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
