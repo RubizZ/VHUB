@@ -224,7 +224,9 @@ export default function AvailabilityPage() {
     const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
     const weekScrollRef = useRef<HTMLDivElement>(null);
     const weekScrollRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const weekScrollInitRef = useRef<string | null>(null);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
+    const prevScrollRef = useRef<{ height: number, top: number } | null>(null);
     const calendarContainerRef = useRef<HTMLDivElement | null>(null);
     const abortControllers = useRef<Record<number, AbortController>>({});
     const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<
@@ -770,32 +772,6 @@ export default function AvailabilityPage() {
     const checkUpcomingScrollPosition = useCallback(() => {
         if (!listContainerRef.current) return;
         const container = listContainerRef.current;
-        
-        // --- Infinite Scroll Logic ---
-        if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
-            // Cargar predictivamente cuando quede el 30% del contenido por ver,
-            // lo que equivale aproximadamente a la mitad de los elementos en una dirección (pasado/futuro)
-            const scrollThreshold = container.scrollHeight * 0.3; 
-            
-            // Bottom Check (Future Events)
-            if (
-                container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold &&
-                hasNextPage &&
-                !isFetchingNextPage
-            ) {
-                fetchNextPage();
-            }
-            
-            // Top Check (Past Events)
-            if (
-                container.scrollTop < scrollThreshold &&
-                hasPreviousPage &&
-                !isFetchingPreviousPage
-            ) {
-                fetchPreviousPage();
-            }
-        }
-        // -----------------------------
 
         if (!firstUpcomingId) return;
         const card = eventRefsMap.current[firstUpcomingId];
@@ -811,7 +787,51 @@ export default function AvailabilityPage() {
         } else {
             setUpcomingScrollPosition("in-view");
         }
-    }, [firstUpcomingId, viewMode, hasInitialScrolled, hasNextPage, isFetchingNextPage, fetchNextPage, hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage]);
+    }, [firstUpcomingId]);
+
+    const handleListScroll = useCallback(() => {
+        if (!listContainerRef.current) return;
+        const container = listContainerRef.current;
+        
+        // --- Infinite Scroll Logic ---
+        if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
+            const scrollThreshold = container.scrollHeight * 0.3; 
+            
+            if (
+                container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold &&
+                hasNextPage &&
+                !isFetchingNextPage
+            ) {
+                fetchNextPage();
+            }
+            
+            if (
+                container.scrollTop < scrollThreshold &&
+                hasPreviousPage &&
+                !isFetchingPreviousPage
+            ) {
+                prevScrollRef.current = {
+                    height: container.scrollHeight,
+                    top: container.scrollTop
+                };
+                fetchPreviousPage();
+            }
+        }
+        // -----------------------------
+
+        checkUpcomingScrollPosition();
+    }, [viewMode, hasInitialScrolled, hasNextPage, isFetchingNextPage, fetchNextPage, hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage, checkUpcomingScrollPosition]);
+
+    useEffect(() => {
+        if (prevScrollRef.current && listContainerRef.current && !isFetchingPreviousPage) {
+            const container = listContainerRef.current;
+            const diff = container.scrollHeight - prevScrollRef.current.height;
+            if (diff > 0) {
+                container.scrollTop = prevScrollRef.current.top + diff;
+            }
+            prevScrollRef.current = null;
+        }
+    }, [events, isFetchingPreviousPage]);
 
     useEffect(() => {
         if (viewMode === "list") {
@@ -860,6 +880,10 @@ export default function AvailabilityPage() {
     useEffect(() => {
         if (viewMode === "week" && weekScrollRef.current) {
             if (isLoadingEvents) return; // Prevent jumping before events load
+            
+            const currentWeekKey = weekDays.length > 0 ? weekDays[0].date : null;
+            if (currentWeekKey && weekScrollInitRef.current === currentWeekKey) return;
+
             // Scroll to hour 09:00 by default (morning start)
             // Each hour row is 60px tall, so 1 minute = 1px
             const PX_PER_MIN = 1; // matches the hour row height (60px/hour = 1px/min)
@@ -880,7 +904,12 @@ export default function AvailabilityPage() {
             if (weekScrollRef.current) {
                 const containerHeight = weekScrollRef.current.clientHeight || 600;
                 weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
+                if (currentWeekKey) {
+                    weekScrollInitRef.current = currentWeekKey;
+                }
             }
+        } else if (viewMode !== "week") {
+            weekScrollInitRef.current = null;
         }
     }, [viewMode, weekDays, isLoadingEvents]);
 
@@ -2645,7 +2674,7 @@ export default function AvailabilityPage() {
                     >
                         <div
                             ref={listContainerRef}
-                            onScroll={checkUpcomingScrollPosition}
+                            onScroll={handleListScroll}
                             className="events-list-container"
                             style={{
                                 display: "flex",
