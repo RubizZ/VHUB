@@ -838,9 +838,21 @@ export default function StrategiesPage() {
 
     // The actual drawing function that reads from refs (no stale closures for pan/zoom)
     const redrawImmediate = useCallback(() => {
-        const ctx = ctxRef.current;
         const canvas = canvasRef.current;
-        if (!ctx || !canvas || canvas.width <= 0 || canvas.height <= 0) return;
+        if (!canvas) return;
+        
+        // Ensure canvas resolution matches its display size before drawing
+        if (canvas.parentElement) {
+            const pw = canvas.parentElement.clientWidth;
+            const ph = canvas.parentElement.clientHeight;
+            if (pw > 0 && ph > 0 && (canvas.width !== pw || canvas.height !== ph)) {
+                canvas.width = pw;
+                canvas.height = ph;
+            }
+        }
+
+        const ctx = ctxRef.current;
+        if (!ctx || canvas.width <= 0 || canvas.height <= 0) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#0a0e14";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
