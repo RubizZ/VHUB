@@ -1312,9 +1312,12 @@ export default function StrategiesPage() {
                         ctx.globalAlpha = baseAlpha * 0.4;
                         ctx.fill();
                         ctx.globalAlpha = strokeAlpha;
-                        ctx.lineWidth = 2 / scale;
+                        ctx.lineWidth = 4 / scale;
                         ctx.strokeStyle = skill.color;
+                        ctx.save();
+                        ctx.clip();
                         ctx.stroke();
+                        ctx.restore();
 
                         if (skill.unlinked) {
                             ctx.save();
@@ -1372,8 +1375,11 @@ export default function StrategiesPage() {
                 ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = 2 / scale;
+                ctx.lineWidth = 4 / scale;
+                ctx.save();
+                ctx.clip();
                 ctx.stroke();
+                ctx.restore();
             } else if (geom.type === "circle") {
                 ctx.beginPath();
                 const radius =
@@ -1384,8 +1390,11 @@ export default function StrategiesPage() {
                 ctx.fill();
 
                 ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = 2 / scale;
+                ctx.lineWidth = 4 / scale;
+                ctx.save();
+                ctx.clip();
                 ctx.stroke();
+                ctx.restore();
             } else if (
                 geom.type === "rectangle" ||
                 geom.type === "cone" ||
@@ -1466,6 +1475,8 @@ export default function StrategiesPage() {
                     ctx.stroke();
                 } else if (geom.type === "trapezoid" && geom.hideBase) {
                     ctx.fill();
+                    ctx.save();
+                    ctx.clip();
                     ctx.beginPath();
                     const endWidth =
                         (geom.endWidth !== undefined
@@ -1485,14 +1496,18 @@ export default function StrategiesPage() {
                         ctx.lineTo(length, endWidth / 2);
                     }
                     ctx.globalAlpha = strokeAlpha;
-                    ctx.lineWidth = 2 / scale;
+                    ctx.lineWidth = 4 / scale;
                     ctx.stroke();
+                    ctx.restore();
                     ctx.globalAlpha = baseAlpha;
                 } else {
                     ctx.fill();
                     ctx.globalAlpha = strokeAlpha;
-                    ctx.lineWidth = 2 / scale;
+                    ctx.lineWidth = 4 / scale;
+                    ctx.save();
+                    ctx.clip();
                     ctx.stroke();
+                    ctx.restore();
                     ctx.globalAlpha = baseAlpha;
                 }
 
@@ -2707,7 +2722,10 @@ export default function StrategiesPage() {
         if (!canvas) return;
 
         const handleWheelRaw = (e: WheelEvent) => {
-            e.preventDefault();
+            // Prevent default page scroll if any
+            if (e.cancelable) {
+                e.preventDefault();
+            }
 
             const scaleFactor = 1.15;
             const currentZoom = zoomRef.current;
@@ -2737,7 +2755,7 @@ export default function StrategiesPage() {
 
         canvas.addEventListener("wheel", handleWheelRaw, { passive: false });
         return () => canvas.removeEventListener("wheel", handleWheelRaw);
-    }, [view, current]);
+    }, [view, current, initCanvas]);
 
     useEffect(() => {
         redraw();
