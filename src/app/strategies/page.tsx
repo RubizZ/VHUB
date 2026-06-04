@@ -2718,44 +2718,9 @@ export default function StrategiesPage() {
     }, [view, initCanvas, redraw]);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const handleWheelRaw = (e: WheelEvent) => {
-            // Prevent default page scroll if any
-            if (e.cancelable) {
-                e.preventDefault();
-            }
-
-            const scaleFactor = 1.15;
-            const currentZoom = zoomRef.current;
-            const currentPan = panRef.current;
-
-            let newZoom = currentZoom;
-            if (e.deltaY < 0) {
-                newZoom = Math.min(currentZoom * scaleFactor, 6);
-            } else {
-                newZoom = Math.max(currentZoom / scaleFactor, 0.4);
-            }
-
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const dx = mouseX - canvas.width / 2 - currentPan.x;
-            const dy = mouseY - canvas.height / 2 - currentPan.y;
-
-            const zoomRatio = newZoom / currentZoom;
-            const newPanX = mouseX - canvas.width / 2 - dx * zoomRatio;
-            const newPanY = mouseY - canvas.height / 2 - dy * zoomRatio;
-
-            setZoom(newZoom);
-            setPan({ x: newPanX, y: newPanY });
-        };
-
-        canvas.addEventListener("wheel", handleWheelRaw, { passive: false });
-        return () => canvas.removeEventListener("wheel", handleWheelRaw);
-    }, [view, current, initCanvas]);
+        // Redraw when view or current changes
+        redraw();
+    }, [view, current]);
 
     useEffect(() => {
         redraw();
@@ -8666,6 +8631,34 @@ export default function StrategiesPage() {
                                     onDragEnter={handleCanvasDragEnter}
                                     onDragOver={handleCanvasDragOver}
                                     onDrop={handleCanvasDrop}
+                                    onWheel={(e) => {
+                                        const scaleFactor = 1.15;
+                                        const currentZoom = zoomRef.current;
+                                        const currentPan = panRef.current;
+
+                                        let newZoom = currentZoom;
+                                        if (e.deltaY < 0) {
+                                            newZoom = Math.min(currentZoom * scaleFactor, 6);
+                                        } else {
+                                            newZoom = Math.max(currentZoom / scaleFactor, 0.4);
+                                        }
+
+                                        const canvas = canvasRef.current;
+                                        if (!canvas) return;
+                                        const rect = canvas.getBoundingClientRect();
+                                        const mouseX = e.clientX - rect.left;
+                                        const mouseY = e.clientY - rect.top;
+
+                                        const dx = mouseX - canvas.width / 2 - currentPan.x;
+                                        const dy = mouseY - canvas.height / 2 - currentPan.y;
+
+                                        const zoomRatio = newZoom / currentZoom;
+                                        const newPanX = mouseX - canvas.width / 2 - dx * zoomRatio;
+                                        const newPanY = mouseY - canvas.height / 2 - dy * zoomRatio;
+
+                                        setZoom(newZoom);
+                                        setPan({ x: newPanX, y: newPanY });
+                                    }}
                                 >
                                     <canvas
                                         ref={canvasRef}
