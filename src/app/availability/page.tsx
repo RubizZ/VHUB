@@ -705,15 +705,42 @@ export default function AvailabilityPage() {
             events.length > 0 &&
             players.length > 0
         ) {
+            const handleScroll = (targetEl: HTMLElement) => {
+                const container = listContainerRef?.current;
+                
+                const onScrollEnd = () => {
+                    setHasInitialScrolled(true);
+                    if (container) {
+                        container.removeEventListener('scrollend', onScrollEnd);
+                    } else {
+                        window.removeEventListener('scrollend', onScrollEnd);
+                    }
+                    clearTimeout(fallbackTimer);
+                };
+                
+                // Fallback in case scrollend doesn't fire (e.g., already at position or unsupported)
+                const fallbackTimer = setTimeout(onScrollEnd, 800);
+                
+                if (container) {
+                    container.addEventListener('scrollend', onScrollEnd);
+                } else {
+                    window.addEventListener('scrollend', onScrollEnd);
+                }
+                
+                targetEl.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            };
+
             // Prioridad 1: scroll a evento específico (clic desde calendario)
             if (scrollToEventId !== null) {
                 setTimeout(() => {
                     const targetEl = eventRefsMap.current[scrollToEventId];
                     if (targetEl) {
-                        targetEl.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
+                        handleScroll(targetEl);
+                    } else {
+                        setHasInitialScrolled(true);
                     }
                     setScrollToEventId(null);
                 }, 300);
@@ -723,12 +750,10 @@ export default function AvailabilityPage() {
             if (firstUpcomingRef.current && !hasInitialScrolled) {
                 setTimeout(() => {
                     if (!scrollToEventId && firstUpcomingRef.current) {
-                        firstUpcomingRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
+                        handleScroll(firstUpcomingRef.current);
+                    } else {
+                        setHasInitialScrolled(true);
                     }
-                    setHasInitialScrolled(true);
                 }, 300);
             }
         }
