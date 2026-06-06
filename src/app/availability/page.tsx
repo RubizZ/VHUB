@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useSession } from "next-auth/react";
@@ -12,7 +11,13 @@ import React, {
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
+import {
+    useQuery,
+    useMutation,
+    useQueryClient,
+    useInfiniteQuery,
+    keepPreviousData,
+} from "@tanstack/react-query";
 
 interface Player {
     id: string;
@@ -82,10 +87,21 @@ const formatDateLocal = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-
-const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) => {
-    const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-    const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+const getCalendarData = (
+    targetDate: Date,
+    events: any[],
+    isMounted: boolean,
+) => {
+    const startOfMonth = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        1,
+    );
+    const endOfMonth = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth() + 1,
+        0,
+    );
     const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     let monthLabel = targetDate.toLocaleDateString("es-ES", {
         month: "long",
@@ -101,11 +117,19 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
     const weekDays = [];
     const todayStr = formatDateLocal(new Date());
 
-    const prevMonthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), 0);
+    const prevMonthEnd = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        0,
+    );
     const prevMonthDays = prevMonthEnd.getDate();
 
     for (let i = startDayOffset - 1; i >= 0; i--) {
-        const d = new Date(targetDate.getFullYear(), targetDate.getMonth() - 1, prevMonthDays - i);
+        const d = new Date(
+            targetDate.getFullYear(),
+            targetDate.getMonth() - 1,
+            prevMonthDays - i,
+        );
         const dateStr = formatDateLocal(d);
         days.push({
             day: prevMonthDays - i,
@@ -127,11 +151,15 @@ const getCalendarData = (targetDate: Date, events: any[], isMounted: boolean) =>
             events: events.filter((e: any) => e.localDate === dateStr),
         });
     }
-    
+
     const totalDays = days.length;
     const remainingDays = 42 - totalDays;
     for (let i = 1; i <= remainingDays; i++) {
-        const d = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, i);
+        const d = new Date(
+            targetDate.getFullYear(),
+            targetDate.getMonth() + 1,
+            i,
+        );
         const dateStr = formatDateLocal(d);
         days.push({
             day: i,
@@ -181,11 +209,19 @@ export default function AvailabilityPage() {
         map: "",
     });
     const searchParams = useSearchParams();
-    const initialView = searchParams.get("view") as "list" | "calendar" | "week" | null;
+    const initialView = searchParams.get("view") as
+        | "list"
+        | "calendar"
+        | "week"
+        | null;
     const initialDateStr = searchParams.get("date");
-    const initialDate = initialDateStr ? new Date(initialDateStr + "T12:00:00") : new Date();
+    const initialDate = initialDateStr
+        ? new Date(initialDateStr + "T12:00:00")
+        : new Date();
 
-    const [viewMode, setViewMode] = useState<"list" | "calendar" | "week" | null>(initialView);
+    const [viewMode, setViewMode] = useState<
+        "list" | "calendar" | "week" | null
+    >(initialView);
     const [currentDate, setCurrentDate] = useState(initialDate);
     const [isMounted, setIsMounted] = useState(false);
 
@@ -220,14 +256,14 @@ export default function AvailabilityPage() {
     const [exportTab, setExportTab] = useState<"team" | "personal">("personal");
     const [origin, setOrigin] = useState("");
 
-    const myPlayerId = (session?.user as any)?.playerId;
+    const myPlayerId = session?.user?.playerId;
     const firstUpcomingRef = useRef<HTMLDivElement>(null);
     const eventRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
     const weekScrollRef = useRef<HTMLDivElement>(null);
     const weekScrollRefs = useRef<(HTMLDivElement | null)[]>([]);
     const weekScrollInitRef = useRef<string | null>(null);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
-    const prevScrollRef = useRef<{ height: number, top: number } | null>(null);
+    const prevScrollRef = useRef<{ height: number; top: number } | null>(null);
     const calendarContainerRef = useRef<HTMLDivElement | null>(null);
     const abortControllers = useRef<Record<number, AbortController>>({});
     const [upcomingScrollPosition, setUpcomingScrollPosition] = useState<
@@ -275,8 +311,16 @@ export default function AvailabilityPage() {
 
     const dateBoundaries = useMemo(() => {
         if (viewMode === "calendar") {
-            const start = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
-            const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
+            const start = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() - 2,
+                1,
+            );
+            const end = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + 3,
+                0,
+            );
             return {
                 start: formatDateLocal(start),
                 end: formatDateLocal(end),
@@ -294,38 +338,52 @@ export default function AvailabilityPage() {
         return { start: null, end: null };
     }, [currentDate, viewMode]);
 
-    const { data: calendarEventsData, isLoading: calendarEventsLoading, error: calendarError } = useQuery({
-        queryKey: ["events", "calendar", dateBoundaries.start, dateBoundaries.end, typeFilter],
+    const {
+        data: calendarEventsData,
+        isLoading: calendarEventsLoading,
+        error: calendarError,
+    } = useQuery({
+        queryKey: [
+            "events",
+            "calendar",
+            dateBoundaries.start,
+            dateBoundaries.end,
+            typeFilter,
+        ],
         queryFn: async () => {
             if (!dateBoundaries.start || !dateBoundaries.end) return null;
             const params = new URLSearchParams({ view: "calendar" });
-            if (dateBoundaries.start) params.set("startDate", dateBoundaries.start);
+            if (dateBoundaries.start)
+                params.set("startDate", dateBoundaries.start);
             if (dateBoundaries.end) params.set("endDate", dateBoundaries.end);
             if (typeFilter !== "all") params.set("type", typeFilter);
-            
+
             const res = await fetch(`/api/events?${params.toString()}`);
             if (res.status === 401) {
                 window.location.href = "/login";
                 return null;
             }
             const d = await res.json();
-            if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
+            if (!res.ok)
+                throw new Error(d.error || `Events API failed: ${res.status}`);
             return d;
         },
-        enabled: (viewMode === "calendar" || viewMode === "week") && !!dateBoundaries.start,
-        placeholderData: keepPreviousData
+        enabled:
+            (viewMode === "calendar" || viewMode === "week") &&
+            !!dateBoundaries.start,
+        placeholderData: keepPreviousData,
     });
 
-    const { 
-        data: listEventsData, 
-        isLoading: listEventsLoading, 
+    const {
+        data: listEventsData,
+        isLoading: listEventsLoading,
         error: listError,
-        fetchNextPage, 
-        hasNextPage, 
-        fetchPreviousPage, 
+        fetchNextPage,
+        hasNextPage,
+        fetchPreviousPage,
         hasPreviousPage,
         isFetchingNextPage,
-        isFetchingPreviousPage
+        isFetchingPreviousPage,
     } = useInfiniteQuery({
         queryKey: ["events", "list", typeFilter],
         queryFn: async ({ pageParam }) => {
@@ -341,34 +399,51 @@ export default function AvailabilityPage() {
                 return null;
             }
             const d = await res.json();
-            if (!res.ok) throw new Error(d.error || `Events API failed: ${res.status}`);
+            if (!res.ok)
+                throw new Error(d.error || `Events API failed: ${res.status}`);
             return d;
         },
-        initialPageParam: null as { cursor: string, direction: string } | null,
-        getNextPageParam: (lastPage) => lastPage?.nextCursor ? { cursor: lastPage.nextCursor, direction: "future" } : null,
-        getPreviousPageParam: (firstPage) => firstPage?.prevCursor ? { cursor: firstPage.prevCursor, direction: "past" } : null,
+        initialPageParam: null as { cursor: string; direction: string } | null,
+        getNextPageParam: (lastPage) =>
+            lastPage?.nextCursor
+                ? { cursor: lastPage.nextCursor, direction: "future" }
+                : null,
+        getPreviousPageParam: (firstPage) =>
+            firstPage?.prevCursor
+                ? { cursor: firstPage.prevCursor, direction: "past" }
+                : null,
         enabled: viewMode === "list" || viewMode === null,
     });
 
     const isListView = viewMode === "list" || viewMode === null;
     const eventsData = isListView
-        ? { 
-            events: listEventsData?.pages.flatMap(p => p?.events || []) || [], 
-            seasons: listEventsData?.pages[0]?.seasons || [], 
-            activeSeasonId: listEventsData?.pages[0]?.activeSeasonId || "" 
+        ? {
+              events:
+                  listEventsData?.pages.flatMap((p) => p?.events || []) || [],
+              seasons: listEventsData?.pages[0]?.seasons || [],
+              activeSeasonId: listEventsData?.pages[0]?.activeSeasonId || "",
           }
-        : { 
-            events: calendarEventsData?.events || [], 
-            seasons: calendarEventsData?.seasons || [], 
-            activeSeasonId: calendarEventsData?.activeSeasonId || "" 
+        : {
+              events: calendarEventsData?.events || [],
+              seasons: calendarEventsData?.seasons || [],
+              activeSeasonId: calendarEventsData?.activeSeasonId || "",
           };
 
-    const isLoadingEvents = isListView ? listEventsLoading : calendarEventsLoading;
-    const error = isListView ? (listError ? (listError as Error).message : null) : (calendarError ? (calendarError as Error).message : null);
+    const isLoadingEvents = isListView
+        ? listEventsLoading
+        : calendarEventsLoading;
+    const error = isListView
+        ? listError
+            ? (listError as Error).message
+            : null
+        : calendarError
+          ? (calendarError as Error).message
+          : null;
 
     // Derived events formatting and availability map
     const { events, avail } = useMemo(() => {
-        if (!eventsData?.events) return { events: [] as Ev[], avail: {} as Record<number, Avail[]> };
+        if (!eventsData?.events)
+            return { events: [] as Ev[], avail: {} as Record<number, Avail[]> };
 
         const loadedEvents: Ev[] = (eventsData.events || []).map((ev: any) => {
             const utcDate = new Date(`${ev.date}T${ev.time}:00Z`);
@@ -449,7 +524,7 @@ export default function AvailabilityPage() {
         },
         onError: (err: any) => {
             alert(err.message);
-        }
+        },
     });
 
     const createEvent = async () => {
@@ -457,11 +532,19 @@ export default function AvailabilityPage() {
     };
 
     const setAvailabilityMutation = useMutation({
-        mutationFn: async ({ eventId, status }: { eventId: number; status: string }) => {
+        mutationFn: async ({
+            eventId,
+            status,
+        }: {
+            eventId: number;
+            status: string;
+        }) => {
             if (!myPlayerId) {
-                throw new Error("No estás vinculado a ningún jugador. Contacta con tu administrador.");
+                throw new Error(
+                    "No estás vinculado a ningún jugador. Contacta con tu administrador.",
+                );
             }
-            
+
             if (abortControllers.current[eventId]) {
                 abortControllers.current[eventId].abort();
             }
@@ -476,12 +559,14 @@ export default function AvailabilityPage() {
                     player_id: myPlayerId,
                     status,
                 }),
-                signal: controller.signal
+                signal: controller.signal,
             });
 
             if (!res.ok) {
                 const d = await res.json();
-                throw new Error(d.error || "Error al actualizar disponibilidad");
+                throw new Error(
+                    d.error || "Error al actualizar disponibilidad",
+                );
             }
             return res.json();
         },
@@ -490,22 +575,44 @@ export default function AvailabilityPage() {
 
             // Cancel any outgoing refetches so they don't overwrite our optimistic update
             await queryClient.cancelQueries({ queryKey: ["events", "list"] });
-            await queryClient.cancelQueries({ queryKey: ["events", "calendar"] });
+            await queryClient.cancelQueries({
+                queryKey: ["events", "calendar"],
+            });
 
             // Snapshot previous values
-            const previousListData = queryClient.getQueryData(["events", "list"]);
-            const previousCalendarData = queryClient.getQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end]);
+            const previousListData = queryClient.getQueryData([
+                "events",
+                "list",
+            ]);
+            const previousCalendarData = queryClient.getQueryData([
+                "events",
+                "calendar",
+                dateBoundaries.start,
+                dateBoundaries.end,
+            ]);
 
             // Helper to patch availability in an event list
             const patchAvailability = (events: any[]) =>
                 events.map((ev: any) => {
                     if (ev.id !== eventId) return ev;
                     const newAvail = [...(ev.availability || [])];
-                    const existingIdx = newAvail.findIndex((a: any) => a.player_id === myPlayerId);
+                    const existingIdx = newAvail.findIndex(
+                        (a: any) => a.player_id === myPlayerId,
+                    );
                     if (existingIdx !== -1) {
-                        newAvail[existingIdx] = { ...newAvail[existingIdx], status };
+                        newAvail[existingIdx] = {
+                            ...newAvail[existingIdx],
+                            status,
+                        };
                     } else {
-                        newAvail.push({ player_id: myPlayerId, status, player: { name: session?.user?.name || "Yo", avatar_color: "#E11D48" } });
+                        newAvail.push({
+                            player_id: myPlayerId,
+                            status,
+                            player: {
+                                name: session?.user?.name || "Yo",
+                                avatar_color: "#E11D48",
+                            },
+                        });
                     }
                     return { ...ev, availability: newAvail };
                 });
@@ -517,16 +624,24 @@ export default function AvailabilityPage() {
                     ...old,
                     pages: old.pages.map((page: any) => ({
                         ...page,
-                        events: patchAvailability(page.events || [])
-                    }))
+                        events: patchAvailability(page.events || []),
+                    })),
                 };
             });
 
             // Optimistically update the calendar query too if it exists
-            queryClient.setQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end], (old: any) => {
-                if (!old?.events) return old;
-                return { ...old, events: patchAvailability(old.events) };
-            });
+            queryClient.setQueryData(
+                [
+                    "events",
+                    "calendar",
+                    dateBoundaries.start,
+                    dateBoundaries.end,
+                ],
+                (old: any) => {
+                    if (!old?.events) return old;
+                    return { ...old, events: patchAvailability(old.events) };
+                },
+            );
 
             return { previousListData, previousCalendarData };
         },
@@ -534,17 +649,28 @@ export default function AvailabilityPage() {
             setTimeout(() => setUpdatingEventId(null), 500);
         },
         onError: (err: any, variables, context: any) => {
-            if (err.name === 'AbortError') return;
-            
+            if (err.name === "AbortError") return;
+
             if (context?.previousListData) {
-                queryClient.setQueryData(["events", "list"], context.previousListData);
+                queryClient.setQueryData(
+                    ["events", "list"],
+                    context.previousListData,
+                );
             }
             if (context?.previousCalendarData) {
-                queryClient.setQueryData(["events", "calendar", dateBoundaries.start, dateBoundaries.end], context.previousCalendarData);
+                queryClient.setQueryData(
+                    [
+                        "events",
+                        "calendar",
+                        dateBoundaries.start,
+                        dateBoundaries.end,
+                    ],
+                    context.previousCalendarData,
+                );
             }
             alert(err.message);
             setUpdatingEventId(null);
-        }
+        },
     });
 
     const setAvailability = async (eventId: number, status: string) => {
@@ -553,12 +679,14 @@ export default function AvailabilityPage() {
 
     const deleteEventMutation = useMutation({
         mutationFn: async (id: number) => {
-            const res = await fetch(`/api/events?id=${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/events?id=${id}`, {
+                method: "DELETE",
+            });
             if (!res.ok) throw new Error("Error deleting event");
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["events"] });
-        }
+        },
     });
 
     const deleteEvent = async (id: number) => {
@@ -567,7 +695,10 @@ export default function AvailabilityPage() {
 
     const regenerateTokenMutation = useMutation({
         mutationFn: async (type: "team" | "personal") => {
-            const url = type === "team" ? "/api/teams/calendar-token" : "/api/users/calendar-token";
+            const url =
+                type === "team"
+                    ? "/api/teams/calendar-token"
+                    : "/api/users/calendar-token";
             const res = await fetch(url, { method: "POST" });
             const d = await res.json();
             if (!res.ok) throw new Error(d.error || "Error regenerating token");
@@ -575,18 +706,27 @@ export default function AvailabilityPage() {
         },
         onSuccess: (data, type) => {
             if (type === "team") {
-                queryClient.invalidateQueries({ queryKey: ["teamCalendarToken"] });
+                queryClient.invalidateQueries({
+                    queryKey: ["teamCalendarToken"],
+                });
             } else {
-                queryClient.invalidateQueries({ queryKey: ["userCalendarToken"] });
+                queryClient.invalidateQueries({
+                    queryKey: ["userCalendarToken"],
+                });
             }
         },
         onError: (err: any) => {
             console.error("Error regenerating token", err);
-        }
+        },
     });
 
     const regenerateToken = async (type: "team" | "personal") => {
-        if (!confirm("¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.")) return;
+        if (
+            !confirm(
+                "¿Estás seguro de que quieres regenerar el enlace? El anterior dejará de funcionar en todas las aplicaciones donde lo hayas configurado.",
+            )
+        )
+            return;
         regenerateTokenMutation.mutate(type);
     };
 
@@ -711,26 +851,26 @@ export default function AvailabilityPage() {
         ) {
             const handleScroll = (targetEl: HTMLElement) => {
                 const container = listContainerRef?.current;
-                
+
                 const onScrollEnd = () => {
                     setHasInitialScrolled(true);
                     if (container) {
-                        container.removeEventListener('scrollend', onScrollEnd);
+                        container.removeEventListener("scrollend", onScrollEnd);
                     } else {
-                        window.removeEventListener('scrollend', onScrollEnd);
+                        window.removeEventListener("scrollend", onScrollEnd);
                     }
                     clearTimeout(fallbackTimer);
                 };
-                
+
                 // Fallback in case scrollend doesn't fire (e.g., already at position or unsupported)
                 const fallbackTimer = setTimeout(onScrollEnd, 800);
-                
+
                 if (container) {
-                    container.addEventListener('scrollend', onScrollEnd);
+                    container.addEventListener("scrollend", onScrollEnd);
                 } else {
-                    window.addEventListener('scrollend', onScrollEnd);
+                    window.addEventListener("scrollend", onScrollEnd);
                 }
-                
+
                 targetEl.scrollIntoView({
                     behavior: "smooth",
                     block: "center",
@@ -821,19 +961,22 @@ export default function AvailabilityPage() {
     const handleListScroll = useCallback(() => {
         if (!listContainerRef.current) return;
         const container = listContainerRef.current;
-        
+
         // --- Infinite Scroll Logic ---
         if ((viewMode === "list" || viewMode === null) && hasInitialScrolled) {
-            const scrollThreshold = container.scrollHeight * 0.3; 
-            
+            const scrollThreshold = container.scrollHeight * 0.3;
+
             if (
-                container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold &&
+                container.scrollHeight -
+                    container.scrollTop -
+                    container.clientHeight <
+                    scrollThreshold &&
                 hasNextPage &&
                 !isFetchingNextPage
             ) {
                 fetchNextPage();
             }
-            
+
             if (
                 container.scrollTop < scrollThreshold &&
                 hasPreviousPage &&
@@ -841,7 +984,7 @@ export default function AvailabilityPage() {
             ) {
                 prevScrollRef.current = {
                     height: container.scrollHeight,
-                    top: container.scrollTop
+                    top: container.scrollTop,
                 };
                 fetchPreviousPage();
             }
@@ -849,10 +992,24 @@ export default function AvailabilityPage() {
         // -----------------------------
 
         checkUpcomingScrollPosition();
-    }, [viewMode, hasInitialScrolled, hasNextPage, isFetchingNextPage, fetchNextPage, hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage, checkUpcomingScrollPosition]);
+    }, [
+        viewMode,
+        hasInitialScrolled,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        hasPreviousPage,
+        isFetchingPreviousPage,
+        fetchPreviousPage,
+        checkUpcomingScrollPosition,
+    ]);
 
     useEffect(() => {
-        if (prevScrollRef.current && listContainerRef.current && !isFetchingPreviousPage) {
+        if (
+            prevScrollRef.current &&
+            listContainerRef.current &&
+            !isFetchingPreviousPage
+        ) {
             const container = listContainerRef.current;
             const diff = container.scrollHeight - prevScrollRef.current.height;
             if (diff > 0) {
@@ -875,14 +1032,21 @@ export default function AvailabilityPage() {
         (session?.user as any)?.role === "team_admin" ||
         (session?.user as any)?.role === "super_admin";
 
-    
     const [dragOffset, setDragOffset] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
 
     const carouselData = useMemo(() => {
         if (viewMode === "calendar") {
-            const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-            const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            const prevMonth = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() - 1,
+                1,
+            );
+            const nextMonth = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + 1,
+                1,
+            );
             return [
                 getCalendarData(prevMonth, events, isMounted),
                 getCalendarData(currentDate, events, isMounted),
@@ -902,16 +1066,20 @@ export default function AvailabilityPage() {
         return [getCalendarData(currentDate, events, isMounted)];
     }, [currentDate, events, isMounted, viewMode]);
 
-    const centerData = carouselData[1] || carouselData[0] || getCalendarData(currentDate, events, isMounted);
+    const centerData =
+        carouselData[1] ||
+        carouselData[0] ||
+        getCalendarData(currentDate, events, isMounted);
     const { weekDays, monthLabel } = centerData;
-
 
     useEffect(() => {
         if (viewMode === "week" && weekScrollRef.current) {
             if (isLoadingEvents) return; // Prevent jumping before events load
-            
-            const currentWeekKey = weekDays.length > 0 ? weekDays[0].date : null;
-            if (currentWeekKey && weekScrollInitRef.current === currentWeekKey) return;
+
+            const currentWeekKey =
+                weekDays.length > 0 ? weekDays[0].date : null;
+            if (currentWeekKey && weekScrollInitRef.current === currentWeekKey)
+                return;
 
             // Scroll to hour 09:00 by default (morning start)
             // Each hour row is 60px tall, so 1 minute = 1px
@@ -927,12 +1095,17 @@ export default function AvailabilityPage() {
                     },
                     0,
                 );
-                targetMinutes = Math.max(0, totalMinutes / allEvents.length - 60); // 1h antes del promedio
+                targetMinutes = Math.max(
+                    0,
+                    totalMinutes / allEvents.length - 60,
+                ); // 1h antes del promedio
             }
 
             if (weekScrollRef.current) {
-                const containerHeight = weekScrollRef.current.clientHeight || 600;
-                weekScrollRef.current.scrollTop = targetMinutes * PX_PER_MIN - containerHeight / 4;
+                const containerHeight =
+                    weekScrollRef.current.clientHeight || 600;
+                weekScrollRef.current.scrollTop =
+                    targetMinutes * PX_PER_MIN - containerHeight / 4;
                 if (currentWeekKey) {
                     weekScrollInitRef.current = currentWeekKey;
                 }
@@ -946,9 +1119,6 @@ export default function AvailabilityPage() {
         setTouchStartX(clientX);
     };
 
-    
-
-    
     const handleDragEnd = () => {
         if (touchStartX === null) return;
         if (touchEndX === null) {
@@ -960,15 +1130,16 @@ export default function AvailabilityPage() {
         const distance = touchStartX - touchEndX;
         const isLeftSwipe = distance > 50;
         const isRightSwipe = distance < -50;
-        
+
         setTouchStartX(null);
         setTouchEndX(null);
 
         if (isLeftSwipe || isRightSwipe) {
             setIsAnimating(true);
-            const containerWidth = calendarContainerRef.current?.clientWidth || window.innerWidth;
+            const containerWidth =
+                calendarContainerRef.current?.clientWidth || window.innerWidth;
             setDragOffset(isLeftSwipe ? -containerWidth : containerWidth);
-            
+
             setTimeout(() => {
                 setIsAnimating(false);
                 setDragOffset(0);
@@ -989,7 +1160,6 @@ export default function AvailabilityPage() {
         setTouchEndX(clientX);
         setDragOffset(clientX - touchStartX);
     };
-
 
     const changeDate = (offset: number) => {
         if (viewMode === "calendar") {
@@ -1048,77 +1218,124 @@ export default function AvailabilityPage() {
                             Planifica tus sesiones y confirma tu asistencia
                         </p>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", width: "100%" }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Vista:</span>
-                            <div
-                            className="glass-card"
+                    <div
+                        style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 12,
+                            justifyContent: "space-between",
+                            width: "100%",
+                        }}
+                    >
+                        <div
                             style={{
                                 display: "flex",
-                                padding: 4,
-                                borderRadius: 10,
+                                gap: 8,
+                                alignItems: "center",
+                                flexWrap: "wrap",
                             }}
                         >
-                            <button
-                                className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => {
-                                    setViewMode("list");
-                                    setHasInitialScrolled(false);
+                            <span
+                                style={{
+                                    fontSize: 14,
+                                    color: "var(--text-muted)",
+                                    fontWeight: 500,
                                 }}
-                                style={{ borderRadius: 8 }}
                             >
-                                📋 Lista
-                            </button>
-                            <button
-                                className={`btn btn-sm ${viewMode === "week" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => {
-                                    setViewMode("week");
-                                    setHasInitialScrolled(false);
-                                    setCurrentDate(new Date());
+                                Vista:
+                            </span>
+                            <div
+                                className="glass-card"
+                                style={{
+                                    display: "flex",
+                                    padding: 4,
+                                    borderRadius: 10,
                                 }}
-                                style={{ borderRadius: 8 }}
                             >
-                                📅 Semana
-                            </button>
-                            <button
-                                className={`btn btn-sm ${viewMode === "calendar" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => {
-                                    setViewMode("calendar");
-                                    setHasInitialScrolled(false);
-                                    setCurrentDate(new Date());
+                                <button
+                                    className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-ghost"}`}
+                                    onClick={() => {
+                                        setViewMode("list");
+                                        setHasInitialScrolled(false);
+                                    }}
+                                    style={{ borderRadius: 8 }}
+                                >
+                                    📋 Lista
+                                </button>
+                                <button
+                                    className={`btn btn-sm ${viewMode === "week" ? "btn-primary" : "btn-ghost"}`}
+                                    onClick={() => {
+                                        setViewMode("week");
+                                        setHasInitialScrolled(false);
+                                        setCurrentDate(new Date());
+                                    }}
+                                    style={{ borderRadius: 8 }}
+                                >
+                                    📅 Semana
+                                </button>
+                                <button
+                                    className={`btn btn-sm ${viewMode === "calendar" ? "btn-primary" : "btn-ghost"}`}
+                                    onClick={() => {
+                                        setViewMode("calendar");
+                                        setHasInitialScrolled(false);
+                                        setCurrentDate(new Date());
+                                    }}
+                                    style={{ borderRadius: 8 }}
+                                >
+                                    📅 Mes
+                                </button>
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    alignItems: "center",
                                 }}
-                                style={{ borderRadius: 8 }}
                             >
-                                📅 Mes
+                                <span
+                                    style={{
+                                        fontSize: 14,
+                                        color: "var(--text-muted)",
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    Filtro:
+                                </span>
+                                <select
+                                    value={typeFilter}
+                                    onChange={(e) => {
+                                        setTypeFilter(e.target.value);
+                                        setHasInitialScrolled(false);
+                                    }}
+                                    className="input"
+                                    style={{
+                                        borderRadius: 8,
+                                        padding: "4px 8px",
+                                        height: "32px",
+                                        fontSize: 14,
+                                        minWidth: 120,
+                                    }}
+                                >
+                                    <option value="all">
+                                        Todos los eventos
+                                    </option>
+                                    <option value="match">Partido</option>
+                                    <option value="practice">Práctica</option>
+                                    <option value="playoffs">Playoffs</option>
+                                    <option value="custom">
+                                        Personalizado
+                                    </option>
+                                </select>
+                            </div>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setShowExport(true)}
+                                title="Exportar a Google Calendar, Apple, etc."
+                            >
+                                🔗 Exportar
                             </button>
                         </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Filtro:</span>
-                            <select
-                                value={typeFilter}
-                                onChange={(e) => {
-                                    setTypeFilter(e.target.value);
-                                    setHasInitialScrolled(false);
-                                }}
-                                className="input"
-                                style={{ borderRadius: 8, padding: "4px 8px", height: "32px", fontSize: 14, minWidth: 120 }}
-                            >
-                                <option value="all">Todos los eventos</option>
-                                <option value="match">Partido</option>
-                                <option value="practice">Práctica</option>
-                                <option value="playoffs">Playoffs</option>
-                                <option value="custom">Personalizado</option>
-                            </select>
-                        </div>
-                        <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setShowExport(true)}
-                            title="Exportar a Google Calendar, Apple, etc."
-                        >
-                            🔗 Exportar
-                        </button>
-                    </div>
-                    {canManage && (
+                        {canManage && (
                             <button
                                 className="btn btn-primary"
                                 onClick={() => setShowNew(true)}
@@ -1129,8 +1346,6 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
             </div>
-
-
 
             <div
                 className="page-content animate-in"
@@ -1203,53 +1418,74 @@ export default function AvailabilityPage() {
                                     </div>
                                 ))}
                                 {(() => {
-                                    const { days: skelDays } = getCalendarData(currentDate, [], true);
+                                    const { days: skelDays } = getCalendarData(
+                                        currentDate,
+                                        [],
+                                        true,
+                                    );
                                     return skelDays.map((d, i) => (
                                         <div
                                             key={i}
                                             style={{
                                                 height: 120,
                                                 padding: 10,
-                                                borderRight: "1px solid var(--border-color)",
-                                                borderBottom: "1px solid var(--border-color)",
+                                                borderRight:
+                                                    "1px solid var(--border-color)",
+                                                borderBottom:
+                                                    "1px solid var(--border-color)",
                                                 background: d.isOtherMonth
                                                     ? "rgba(0,0,0,0.2)"
                                                     : d.isToday
-                                                        ? "rgba(133, 107, 77, 0.06)"
-                                                        : d.isPast
-                                                            ? "rgba(0,0,0,0.4)"
-                                                            : "transparent",
+                                                      ? "rgba(133, 107, 77, 0.06)"
+                                                      : d.isPast
+                                                        ? "rgba(0,0,0,0.4)"
+                                                        : "transparent",
                                                 position: "relative",
                                                 opacity: d.isOtherMonth
                                                     ? 0.06
                                                     : d.isPast
-                                                        ? 0.25
-                                                        : 1,
-                                                filter: d.isOtherMonth || d.isPast
-                                                    ? "grayscale(1) contrast(0.6)"
-                                                    : "none",
+                                                      ? 0.25
+                                                      : 1,
+                                                filter:
+                                                    d.isOtherMonth || d.isPast
+                                                        ? "grayscale(1) contrast(0.6)"
+                                                        : "none",
                                                 boxShadow: d.isToday
                                                     ? "inset 0 0 20px rgba(133, 107, 77, 0.1)"
                                                     : "none",
                                             }}
                                         >
-                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    alignItems: "center",
+                                                }}
+                                            >
                                                 <span
                                                     className="calendar-day-number"
                                                     style={{
-                                                        fontWeight: d.isToday ? 800 : 500,
+                                                        fontWeight: d.isToday
+                                                            ? 800
+                                                            : 500,
                                                         color: d.isToday
                                                             ? "white"
                                                             : d.isOtherMonth
-                                                                ? "rgba(255, 255, 255, 0.1)"
-                                                                : d.isPast
-                                                                    ? "var(--text-muted)"
-                                                                    : "var(--text-primary)",
-                                                        background: d.isToday ? "var(--val-red)" : "transparent",
+                                                              ? "rgba(255, 255, 255, 0.1)"
+                                                              : d.isPast
+                                                                ? "var(--text-muted)"
+                                                                : "var(--text-primary)",
+                                                        background: d.isToday
+                                                            ? "var(--val-red)"
+                                                            : "transparent",
                                                         display: "flex",
                                                         alignItems: "center",
-                                                        justifyContent: "center",
-                                                        boxShadow: d.isToday ? "0 0 10px var(--val-red-glow)" : "none",
+                                                        justifyContent:
+                                                            "center",
+                                                        boxShadow: d.isToday
+                                                            ? "0 0 10px var(--val-red-glow)"
+                                                            : "none",
                                                         width: 24,
                                                         height: 24,
                                                         borderRadius: "50%",
@@ -1259,9 +1495,26 @@ export default function AvailabilityPage() {
                                                     {d.day}
                                                 </span>
                                             </div>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
-                                                {i % 3 === 0 && <Skeleton width="80%" height={16} />}
-                                                {i % 5 === 0 && <Skeleton width="60%" height={16} />}
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: 4,
+                                                    marginTop: 8,
+                                                }}
+                                            >
+                                                {i % 3 === 0 && (
+                                                    <Skeleton
+                                                        width="80%"
+                                                        height={16}
+                                                    />
+                                                )}
+                                                {i % 5 === 0 && (
+                                                    <Skeleton
+                                                        width="60%"
+                                                        height={16}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     ));
@@ -1271,7 +1524,11 @@ export default function AvailabilityPage() {
                     </div>
                 ) : viewMode === "calendar" || viewMode === "week" ? (
                     (() => {
-                        const containerWidth = typeof window !== 'undefined' ? (calendarContainerRef.current?.clientWidth || window.innerWidth) : 1000;
+                        const containerWidth =
+                            typeof window !== "undefined"
+                                ? calendarContainerRef.current?.clientWidth ||
+                                  window.innerWidth
+                                : 1000;
                         let activeCarouselIndex = 1;
                         if (dragOffset < -containerWidth / 2) {
                             activeCarouselIndex = 2; // Next slide
@@ -1280,13 +1537,15 @@ export default function AvailabilityPage() {
                         }
 
                         const activeData = carouselData[activeCarouselIndex];
-                        const activeWeekDays = activeData ? activeData.weekDays : weekDays;
+                        const activeWeekDays = activeData
+                            ? activeData.weekDays
+                            : weekDays;
 
                         const weekMap =
                             viewMode === "week"
                                 ? activeWeekDays
-                                    .flatMap((d: any) => d.events)
-                                    .find((e: any) => e.map_obj)?.map_obj
+                                      .flatMap((d: any) => d.events)
+                                      .find((e: any) => e.map_obj)?.map_obj
                                 : null;
 
                         return (
@@ -1325,7 +1584,8 @@ export default function AvailabilityPage() {
                                             opacity: 0.15,
                                             zIndex: 0,
                                             pointerEvents: "none",
-                                            transition: "background-image 0.3s ease-in-out",
+                                            transition:
+                                                "background-image 0.3s ease-in-out",
                                         }}
                                     />
                                 )}
@@ -1360,12 +1620,21 @@ export default function AvailabilityPage() {
                                             <button
                                                 className="btn btn-ghost btn-sm"
                                                 onClick={() => {
-                                                    const upcomingEv = calendarEventsData.globalNextEvent;
+                                                    const upcomingEv =
+                                                        calendarEventsData.globalNextEvent;
                                                     if (upcomingEv.date) {
-                                                        setCurrentDate(new Date(`${upcomingEv.date}T00:00:00`));
-                                                        setActiveHighlightId(upcomingEv.id);
+                                                        setCurrentDate(
+                                                            new Date(
+                                                                `${upcomingEv.date}T00:00:00`,
+                                                            ),
+                                                        );
+                                                        setActiveHighlightId(
+                                                            upcomingEv.id,
+                                                        );
                                                         setTimeout(() => {
-                                                            setActiveHighlightId(null);
+                                                            setActiveHighlightId(
+                                                                null,
+                                                            );
                                                         }, 1200);
                                                     }
                                                 }}
@@ -1402,11 +1671,23 @@ export default function AvailabilityPage() {
                                 <div
                                     ref={calendarContainerRef}
                                     className="calendar-grid-container"
-                                    onTouchStart={(e) => handleDragStart(e.targetTouches[0].clientX)}
-                                    onTouchMove={(e) => handleDragMove(e.targetTouches[0].clientX)}
+                                    onTouchStart={(e) =>
+                                        handleDragStart(
+                                            e.targetTouches[0].clientX,
+                                        )
+                                    }
+                                    onTouchMove={(e) =>
+                                        handleDragMove(
+                                            e.targetTouches[0].clientX,
+                                        )
+                                    }
                                     onTouchEnd={handleDragEnd}
-                                    onMouseDown={(e) => handleDragStart(e.clientX)}
-                                    onMouseMove={(e) => handleDragMove(e.clientX)}
+                                    onMouseDown={(e) =>
+                                        handleDragStart(e.clientX)
+                                    }
+                                    onMouseMove={(e) =>
+                                        handleDragMove(e.clientX)
+                                    }
                                     onMouseUp={handleDragEnd}
                                     onMouseLeave={handleDragEnd}
                                     style={{
@@ -1429,1282 +1710,1452 @@ export default function AvailabilityPage() {
                                             width: "300%",
                                             height: "100%",
                                             transform: `translateX(calc(-33.3333% + ${dragOffset}px))`,
-                                            transition: isAnimating ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)" : "none",
+                                            transition: isAnimating
+                                                ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
+                                                : "none",
                                         }}
                                     >
-                                        {carouselData.map((data, slideIndex) => {
-                                            if (!data) return null;
-                                            const { dayNames, days, weekDays, monthLabel } = data;
-                                            return (
-                                                <div key={slideIndex} style={{ display: "flex", flexDirection: "column", flex: "0 0 33.3333%", width: "33.3333%", height: "100%", overflowY: viewMode === "week" ? "hidden" : "auto", overflowX: "hidden" }}>
-                                                    {viewMode === "calendar" ? (
-                                        <div
-                                            className="calendar-grid"
-                                            style={{
-                                                display: "grid",
-                                                gridTemplateColumns:
-                                                    "repeat(7, minmax(0, 1fr))",
-                                                background:
-                                                    "rgba(255,255,255,0.01)",
-                                                gap: 0,
-                                                padding: 0,
-                                                flex: 1,
-                                                minWidth: 0,
-                                                height: "100%",
-                                            }}
-                                        >
-                                            {dayNames.map((name) => (
-                                                <div
-                                                    key={name}
-                                                    style={{
-                                                        padding: "12px 0",
-                                                        textAlign: "center",
-                                                        fontSize: 11,
-                                                        fontWeight: 800,
-                                                        color: "var(--text-muted)",
-                                                        borderBottom:
-                                                            "1px solid var(--border-color)",
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap",
-                                                        minWidth: 0,
-                                                    }}
-                                                >
-                                                    {name}
-                                                </div>
-                                            ))}
-                                            {days.map((d, i) => (
-                                                <div
-                                                    key={i}
-                                                    className={`animate-scale-in calendar-cell-padding`}
-                                                    style={{
-                                                        flex: 1,
-                                                        minWidth: 0,
-                                                        minHeight: 80,
-                                                        borderRight:
-                                                            "1px solid var(--border-color)",
-                                                        borderBottom:
-                                                            "1px solid var(--border-color)",
-                                                        background: d.isOtherMonth
-                                                            ? "rgba(0,0,0,0.2)"
-                                                            : d.isToday
-                                                                ? "rgba(133, 107, 77, 0.06)"
-                                                                : d.isPast
-                                                                    ? "rgba(0,0,0,0.4)"
-                                                                    : "transparent",
-                                                        position: "relative",
-                                                        opacity: d.isOtherMonth
-                                                            ? 0.06
-                                                            : d.isPast
-                                                                ? 0.25
-                                                                : 1,
-                                                        filter: d.isOtherMonth || d.isPast
-                                                            ? "grayscale(1) contrast(0.6)"
-                                                            : "none",
-                                                        animationDelay: `${(i % 7) * 0.05}s`,
-                                                        boxShadow: d.isToday
-                                                            ? "inset 0 0 20px rgba(133, 107, 77, 0.1)"
-                                                            : "none",
-                                                        zIndex: d.isToday
-                                                            ? 2
-                                                            : 1,
-                                                    }}
-                                                >
-                                                    <>
-                                                        <div
+                                        {carouselData.map(
+                                            (data, slideIndex) => {
+                                                if (!data) return null;
+                                                const {
+                                                    dayNames,
+                                                    days,
+                                                    weekDays,
+                                                    monthLabel,
+                                                } = data;
+                                                return (
+                                                    <div
+                                                        key={slideIndex}
+                                                        style={{
+                                                            display: "flex",
+                                                            flexDirection:
+                                                                "column",
+                                                            flex: "0 0 33.3333%",
+                                                            width: "33.3333%",
+                                                            height: "100%",
+                                                            overflowY:
+                                                                viewMode ===
+                                                                "week"
+                                                                    ? "hidden"
+                                                                    : "auto",
+                                                            overflowX: "hidden",
+                                                        }}
+                                                    >
+                                                        {viewMode ===
+                                                        "calendar" ? (
+                                                            <div
+                                                                className="calendar-grid"
                                                                 style={{
                                                                     display:
-                                                                        "flex",
-                                                                    justifyContent:
-                                                                        "space-between",
-                                                                    alignItems:
-                                                                        "center",
+                                                                        "grid",
+                                                                    gridTemplateColumns:
+                                                                        "repeat(7, minmax(0, 1fr))",
+                                                                    background:
+                                                                        "rgba(255,255,255,0.01)",
+                                                                    gap: 0,
+                                                                    padding: 0,
+                                                                    flex: 1,
+                                                                    minWidth: 0,
+                                                                    height: "100%",
                                                                 }}
                                                             >
-                                                                <span
-                                                                    className="calendar-day-number"
-                                                                    style={{
-                                                                        fontWeight:
-                                                                            d.isToday
-                                                                                ? 800
-                                                                                : 500,
-                                                                        color: d.isToday
-                                                                            ? "white"
-                                                                            : d.isOtherMonth
-                                                                                ? "rgba(255, 255, 255, 0.1)"
-                                                                                : d.isPast
-                                                                                    ? "var(--text-muted)"
-                                                                                    : "var(--text-primary)",
-                                                                        background:
-                                                                            d.isToday
-                                                                                ? "var(--val-red)"
-                                                                                : "transparent",
-                                                                        display:
-                                                                            "flex",
-                                                                        alignItems:
-                                                                            "center",
-                                                                        justifyContent:
-                                                                            "center",
-                                                                        boxShadow:
-                                                                            d.isToday
-                                                                                ? "0 0 10px var(--val-red-glow)"
-                                                                                : "none",
-                                                                    }}
-                                                                >
-                                                                    {d.day}
-                                                                </span>
-                                                                {d.isToday && (
-                                                                    <span
-                                                                        style={{
-                                                                            fontSize: 8,
-                                                                            fontWeight: 900,
-                                                                            color: "var(--val-red)",
-                                                                            letterSpacing: 1,
-                                                                            textTransform:
-                                                                                "uppercase",
-                                                                        }}
-                                                                    >
-                                                                        Hoy
-                                                                    </span>
+                                                                {dayNames.map(
+                                                                    (name) => (
+                                                                        <div
+                                                                            key={
+                                                                                name
+                                                                            }
+                                                                            style={{
+                                                                                padding:
+                                                                                    "12px 0",
+                                                                                textAlign:
+                                                                                    "center",
+                                                                                fontSize: 11,
+                                                                                fontWeight: 800,
+                                                                                color: "var(--text-muted)",
+                                                                                borderBottom:
+                                                                                    "1px solid var(--border-color)",
+                                                                                overflow:
+                                                                                    "hidden",
+                                                                                textOverflow:
+                                                                                    "ellipsis",
+                                                                                whiteSpace:
+                                                                                    "nowrap",
+                                                                                minWidth: 0,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                name
+                                                                            }
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                                {days.map(
+                                                                    (d, i) => (
+                                                                        <div
+                                                                            key={
+                                                                                i
+                                                                            }
+                                                                            className={`animate-scale-in calendar-cell-padding`}
+                                                                            style={{
+                                                                                flex: 1,
+                                                                                minWidth: 0,
+                                                                                minHeight: 80,
+                                                                                borderRight:
+                                                                                    "1px solid var(--border-color)",
+                                                                                borderBottom:
+                                                                                    "1px solid var(--border-color)",
+                                                                                background:
+                                                                                    d.isOtherMonth
+                                                                                        ? "rgba(0,0,0,0.2)"
+                                                                                        : d.isToday
+                                                                                          ? "rgba(133, 107, 77, 0.06)"
+                                                                                          : d.isPast
+                                                                                            ? "rgba(0,0,0,0.4)"
+                                                                                            : "transparent",
+                                                                                position:
+                                                                                    "relative",
+                                                                                opacity:
+                                                                                    d.isOtherMonth
+                                                                                        ? 0.06
+                                                                                        : d.isPast
+                                                                                          ? 0.25
+                                                                                          : 1,
+                                                                                filter:
+                                                                                    d.isOtherMonth ||
+                                                                                    d.isPast
+                                                                                        ? "grayscale(1) contrast(0.6)"
+                                                                                        : "none",
+                                                                                animationDelay: `${(i % 7) * 0.05}s`,
+                                                                                boxShadow:
+                                                                                    d.isToday
+                                                                                        ? "inset 0 0 20px rgba(133, 107, 77, 0.1)"
+                                                                                        : "none",
+                                                                                zIndex: d.isToday
+                                                                                    ? 2
+                                                                                    : 1,
+                                                                            }}
+                                                                        >
+                                                                            <>
+                                                                                <div
+                                                                                    style={{
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        justifyContent:
+                                                                                            "space-between",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                    }}
+                                                                                >
+                                                                                    <span
+                                                                                        className="calendar-day-number"
+                                                                                        style={{
+                                                                                            fontWeight:
+                                                                                                d.isToday
+                                                                                                    ? 800
+                                                                                                    : 500,
+                                                                                            color: d.isToday
+                                                                                                ? "white"
+                                                                                                : d.isOtherMonth
+                                                                                                  ? "rgba(255, 255, 255, 0.1)"
+                                                                                                  : d.isPast
+                                                                                                    ? "var(--text-muted)"
+                                                                                                    : "var(--text-primary)",
+                                                                                            background:
+                                                                                                d.isToday
+                                                                                                    ? "var(--val-red)"
+                                                                                                    : "transparent",
+                                                                                            display:
+                                                                                                "flex",
+                                                                                            alignItems:
+                                                                                                "center",
+                                                                                            justifyContent:
+                                                                                                "center",
+                                                                                            boxShadow:
+                                                                                                d.isToday
+                                                                                                    ? "0 0 10px var(--val-red-glow)"
+                                                                                                    : "none",
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            d.day
+                                                                                        }
+                                                                                    </span>
+                                                                                    {d.isToday && (
+                                                                                        <span
+                                                                                            style={{
+                                                                                                fontSize: 8,
+                                                                                                fontWeight: 900,
+                                                                                                color: "var(--val-red)",
+                                                                                                letterSpacing: 1,
+                                                                                                textTransform:
+                                                                                                    "uppercase",
+                                                                                            }}
+                                                                                        >
+                                                                                            Hoy
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div
+                                                                                    style={{
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        flexDirection:
+                                                                                            "column",
+                                                                                        gap: 4,
+                                                                                        marginTop: 2,
+                                                                                        minWidth: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    {isLoadingEvents
+                                                                                        ? (() => {
+                                                                                              const hash =
+                                                                                                  (i *
+                                                                                                      43 +
+                                                                                                      d.day *
+                                                                                                          17) %
+                                                                                                  12;
+                                                                                              if (
+                                                                                                  hash <
+                                                                                                  3
+                                                                                              ) {
+                                                                                                  return null;
+                                                                                              } else if (
+                                                                                                  hash <
+                                                                                                  7
+                                                                                              ) {
+                                                                                                  const width =
+                                                                                                      70 +
+                                                                                                      ((hash *
+                                                                                                          7) %
+                                                                                                          31);
+                                                                                                  return (
+                                                                                                      <Skeleton
+                                                                                                          width={`${width}%`}
+                                                                                                          height={
+                                                                                                              16
+                                                                                                          }
+                                                                                                          style={{
+                                                                                                              borderRadius: 4,
+                                                                                                          }}
+                                                                                                      />
+                                                                                                  );
+                                                                                              } else if (
+                                                                                                  hash <
+                                                                                                  10
+                                                                                              ) {
+                                                                                                  const w1 =
+                                                                                                      80 +
+                                                                                                      ((hash *
+                                                                                                          3) %
+                                                                                                          21);
+                                                                                                  const w2 =
+                                                                                                      60 +
+                                                                                                      ((hash *
+                                                                                                          9) %
+                                                                                                          21);
+                                                                                                  return (
+                                                                                                      <>
+                                                                                                          <Skeleton
+                                                                                                              width={`${w1}%`}
+                                                                                                              height={
+                                                                                                                  16
+                                                                                                              }
+                                                                                                              style={{
+                                                                                                                  borderRadius: 4,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                          <Skeleton
+                                                                                                              width={`${w2}%`}
+                                                                                                              height={
+                                                                                                                  16
+                                                                                                              }
+                                                                                                              style={{
+                                                                                                                  borderRadius: 4,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                      </>
+                                                                                                  );
+                                                                                              } else {
+                                                                                                  const w1 =
+                                                                                                      90 +
+                                                                                                      ((hash *
+                                                                                                          2) %
+                                                                                                          11);
+                                                                                                  const w2 =
+                                                                                                      75 +
+                                                                                                      ((hash *
+                                                                                                          5) %
+                                                                                                          16);
+                                                                                                  const w3 =
+                                                                                                      50 +
+                                                                                                      ((hash *
+                                                                                                          8) %
+                                                                                                          21);
+                                                                                                  return (
+                                                                                                      <>
+                                                                                                          <Skeleton
+                                                                                                              width={`${w1}%`}
+                                                                                                              height={
+                                                                                                                  16
+                                                                                                              }
+                                                                                                              style={{
+                                                                                                                  borderRadius: 4,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                          <Skeleton
+                                                                                                              width={`${w2}%`}
+                                                                                                              height={
+                                                                                                                  16
+                                                                                                              }
+                                                                                                              style={{
+                                                                                                                  borderRadius: 4,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                          <Skeleton
+                                                                                                              width={`${w3}%`}
+                                                                                                              height={
+                                                                                                                  16
+                                                                                                              }
+                                                                                                              style={{
+                                                                                                                  borderRadius: 4,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                      </>
+                                                                                                  );
+                                                                                              }
+                                                                                          })()
+                                                                                        : d.events.map(
+                                                                                              (
+                                                                                                  ev: any,
+                                                                                              ) => {
+                                                                                                  const ea =
+                                                                                                      avail[
+                                                                                                          ev
+                                                                                                              .id
+                                                                                                      ] ||
+                                                                                                      [];
+                                                                                                  const confirmedCount =
+                                                                                                      ea.filter(
+                                                                                                          (
+                                                                                                              a: any,
+                                                                                                          ) =>
+                                                                                                              a.status ===
+                                                                                                                  "available" ||
+                                                                                                              a.status ===
+                                                                                                                  "played",
+                                                                                                      ).length;
+                                                                                                  const myStatus =
+                                                                                                      ea.find(
+                                                                                                          (
+                                                                                                              a,
+                                                                                                          ) =>
+                                                                                                              String(
+                                                                                                                  a.player_id,
+                                                                                                              ) ===
+                                                                                                              String(
+                                                                                                                  myPlayerId,
+                                                                                                              ),
+                                                                                                      )
+                                                                                                          ?.status ||
+                                                                                                      "pending";
+                                                                                                  const isCancelled =
+                                                                                                      ev.status ===
+                                                                                                      "cancelled";
+                                                                                                  const isNoPlayers =
+                                                                                                      ev.status ===
+                                                                                                      "no_players";
+                                                                                                  const isNotPlayed =
+                                                                                                      ev.status ===
+                                                                                                      "not_played";
+
+                                                                                                  const unavailable =
+                                                                                                      ea.filter(
+                                                                                                          (
+                                                                                                              a,
+                                                                                                          ) =>
+                                                                                                              a.status ===
+                                                                                                              "unavailable",
+                                                                                                      ).length;
+                                                                                                  const isImpossible =
+                                                                                                      isMounted &&
+                                                                                                      (
+                                                                                                          ev as any
+                                                                                                      )
+                                                                                                          .localDate >=
+                                                                                                          todayStr &&
+                                                                                                      players.length >=
+                                                                                                          5 &&
+                                                                                                      players.length -
+                                                                                                          unavailable <
+                                                                                                          5;
+
+                                                                                                  const isRed =
+                                                                                                      isCancelled ||
+                                                                                                      isNoPlayers ||
+                                                                                                      isNotPlayed ||
+                                                                                                      isImpossible;
+                                                                                                  const color =
+                                                                                                      ev.type ===
+                                                                                                      "playoffs"
+                                                                                                          ? "var(--val-yellow)"
+                                                                                                          : ev.type ===
+                                                                                                              "match"
+                                                                                                            ? "var(--val-match)"
+                                                                                                            : "var(--val-practice)";
+                                                                                                  const evColorDark =
+                                                                                                      ev.type ===
+                                                                                                      "playoffs"
+                                                                                                          ? "var(--val-yellow-dark)"
+                                                                                                          : ev.type ===
+                                                                                                              "match"
+                                                                                                            ? "#5c4a35"
+                                                                                                            : "#808080";
+                                                                                                  const isFirstUpcoming =
+                                                                                                      ev.id ===
+                                                                                                      firstUpcomingId;
+
+                                                                                                  const hoverBorderColor =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "rgba(255, 255, 255, 0.65)"
+                                                                                                              : evColorDark
+                                                                                                          : color;
+
+                                                                                                  const hoverSheenActive =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "rgba(255, 255, 255, 0.15)"
+                                                                                                              : "rgba(0, 0, 0, 0.12)"
+                                                                                                          : "rgba(255, 255, 255, 0.12)";
+
+                                                                                                  const hoverInsetShadow =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
+                                                                                                              : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
+                                                                                                          : `inset 0 0 5px ${color}`;
+
+                                                                                                  return (
+                                                                                                      <div
+                                                                                                          key={
+                                                                                                              ev.id
+                                                                                                          }
+                                                                                                          onClick={() =>
+                                                                                                              setSelectedEventId(
+                                                                                                                  ev.id,
+                                                                                                              )
+                                                                                                          }
+                                                                                                          className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                                          style={{
+                                                                                                              padding:
+                                                                                                                  "4px 6px",
+                                                                                                              borderRadius: 4,
+                                                                                                              minWidth: 0,
+                                                                                                              background:
+                                                                                                                  isRed
+                                                                                                                      ? "transparent"
+                                                                                                                      : myStatus ===
+                                                                                                                          "unavailable"
+                                                                                                                        ? "transparent"
+                                                                                                                        : myStatus ===
+                                                                                                                            "pending"
+                                                                                                                          ? "transparent"
+                                                                                                                          : ev.status ===
+                                                                                                                                  "completed" ||
+                                                                                                                              (ev.linkedMatches &&
+                                                                                                                                  ev
+                                                                                                                                      .linkedMatches
+                                                                                                                                      .length >
+                                                                                                                                      0)
+                                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${color}`
+                                                                                                                            : myStatus ===
+                                                                                                                                    "maybe" ||
+                                                                                                                                (myStatus ===
+                                                                                                                                    "available" &&
+                                                                                                                                    confirmedCount <
+                                                                                                                                        5)
+                                                                                                                              ? `repeating-linear-gradient(45deg, ${color}, ${color} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                              : color,
+                                                                                                              color:
+                                                                                                                  isRed ||
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable" ||
+                                                                                                                  myStatus ===
+                                                                                                                      "pending"
+                                                                                                                      ? color
+                                                                                                                      : "white",
+                                                                                                              fontWeight: 700,
+                                                                                                              display:
+                                                                                                                  "flex",
+                                                                                                              flexWrap:
+                                                                                                                  "wrap",
+                                                                                                              alignItems:
+                                                                                                                  "center",
+                                                                                                              whiteSpace:
+                                                                                                                  "normal",
+                                                                                                              overflow:
+                                                                                                                  "visible",
+                                                                                                              textOverflow:
+                                                                                                                  "clip",
+                                                                                                              wordBreak:
+                                                                                                                  "break-word",
+                                                                                                              cursor: "pointer",
+                                                                                                              textDecoration:
+                                                                                                                  isCancelled ||
+                                                                                                                  isNoPlayers ||
+                                                                                                                  isNotPlayed ||
+                                                                                                                  isImpossible ||
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable"
+                                                                                                                      ? "line-through"
+                                                                                                                      : "none",
+                                                                                                              opacity:
+                                                                                                                  isCancelled ||
+                                                                                                                  isNoPlayers ||
+                                                                                                                  isNotPlayed ||
+                                                                                                                  isImpossible
+                                                                                                                      ? 0.4
+                                                                                                                      : myStatus ===
+                                                                                                                          "unavailable"
+                                                                                                                        ? 0.85
+                                                                                                                        : 1,
+                                                                                                              border:
+                                                                                                                  isRed ||
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable"
+                                                                                                                      ? `1px solid ${color}`
+                                                                                                                      : myStatus ===
+                                                                                                                          "pending"
+                                                                                                                        ? `1px dashed ${color}`
+                                                                                                                        : "1px solid rgba(255,255,255,0.1)",
+                                                                                                              boxShadow:
+                                                                                                                  isFirstUpcoming
+                                                                                                                      ? `0 0 10px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
+                                                                                                                      : "none",
+                                                                                                              zIndex: isFirstUpcoming
+                                                                                                                  ? 5
+                                                                                                                  : undefined,
+                                                                                                              ["--hover-border-color" as any]:
+                                                                                                                  hoverBorderColor,
+                                                                                                              ["--hover-sheen-active" as any]:
+                                                                                                                  hoverSheenActive,
+                                                                                                              ["--hover-inset-shadow" as any]:
+                                                                                                                  hoverInsetShadow,
+                                                                                                              ["--hover-color" as any]:
+                                                                                                                  color,
+                                                                                                              ["--ev-color" as any]:
+                                                                                                                  color,
+                                                                                                          }}
+                                                                                                          title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
+                                                                                                      >
+                                                                                                          {isFirstUpcoming && (
+                                                                                                              <div
+                                                                                                                  style={{
+                                                                                                                      marginRight: 4,
+                                                                                                                      marginBottom: 0,
+                                                                                                                      width: "fit-content",
+                                                                                                                      maxWidth:
+                                                                                                                          "100%",
+                                                                                                                      whiteSpace:
+                                                                                                                          "nowrap",
+                                                                                                                      overflow:
+                                                                                                                          "hidden",
+                                                                                                                      textOverflow:
+                                                                                                                          "ellipsis",
+                                                                                                                      background:
+                                                                                                                          ev.type ===
+                                                                                                                          "match"
+                                                                                                                              ? "var(--val-match)"
+                                                                                                                              : ev.type ===
+                                                                                                                                  "playoffs"
+                                                                                                                                ? "var(--val-yellow)"
+                                                                                                                                : "var(--val-practice)",
+                                                                                                                      color:
+                                                                                                                          ev.type ===
+                                                                                                                          "playoffs"
+                                                                                                                              ? "black"
+                                                                                                                              : "white",
+                                                                                                                      padding:
+                                                                                                                          "1px 3px",
+                                                                                                                      borderRadius: 3,
+                                                                                                                      fontSize: 7,
+                                                                                                                      fontWeight: 900,
+                                                                                                                      boxShadow:
+                                                                                                                          "0 0 8px rgba(255,255,255,0.2)",
+                                                                                                                  }}
+                                                                                                              >
+                                                                                                                  PRÓXIMO
+                                                                                                              </div>
+                                                                                                          )}
+                                                                                                          <span
+                                                                                                              className="mobile-hidden"
+                                                                                                              style={{
+                                                                                                                  marginRight: 4,
+                                                                                                              }}
+                                                                                                          >
+                                                                                                              {
+                                                                                                                  ev.localTime
+                                                                                                              }
+                                                                                                          </span>
+                                                                                                          <span>
+                                                                                                              {getEventDisplayName(
+                                                                                                                  ev,
+                                                                                                              )}
+                                                                                                          </span>
+                                                                                                      </div>
+                                                                                                  );
+                                                                                              },
+                                                                                          )}
+                                                                                </div>
+                                                                            </>
+                                                                        </div>
+                                                                    ),
                                                                 )}
                                                             </div>
+                                                        ) : (
                                                             <div
+                                                                className="week-view"
                                                                 style={{
                                                                     display:
                                                                         "flex",
                                                                     flexDirection:
                                                                         "column",
-                                                                    gap: 4,
-                                                                    marginTop: 2,
+                                                                    flex: 1,
+                                                                    minHeight: 0,
                                                                     minWidth: 0,
+                                                                    position:
+                                                                        "relative",
+                                                                    background:
+                                                                        "transparent",
                                                                 }}
                                                             >
-                                                                {isLoadingEvents
-                                                                    ? (() => {
-                                                                        const hash =
-                                                                            (i *
-                                                                                43 +
-                                                                                d.day *
-                                                                                17) %
-                                                                            12;
-                                                                        if (
-                                                                            hash <
-                                                                            3
-                                                                        ) {
-                                                                            return null;
-                                                                        } else if (
-                                                                            hash <
-                                                                            7
-                                                                        ) {
-                                                                            const width =
-                                                                                70 +
-                                                                                ((hash *
-                                                                                    7) %
-                                                                                    31);
-                                                                            return (
-                                                                                <Skeleton
-                                                                                    width={`${width}%`}
-                                                                                    height={
-                                                                                        16
-                                                                                    }
-                                                                                    style={{
-                                                                                        borderRadius: 4,
-                                                                                    }}
-                                                                                />
-                                                                            );
-                                                                        } else if (
-                                                                            hash <
-                                                                            10
-                                                                        ) {
-                                                                            const w1 =
-                                                                                80 +
-                                                                                ((hash *
-                                                                                    3) %
-                                                                                    21);
-                                                                            const w2 =
-                                                                                60 +
-                                                                                ((hash *
-                                                                                    9) %
-                                                                                    21);
-                                                                            return (
-                                                                                <>
-                                                                                    <Skeleton
-                                                                                        width={`${w1}%`}
-                                                                                        height={
-                                                                                            16
-                                                                                        }
-                                                                                        style={{
-                                                                                            borderRadius: 4,
-                                                                                        }}
-                                                                                    />
-                                                                                    <Skeleton
-                                                                                        width={`${w2}%`}
-                                                                                        height={
-                                                                                            16
-                                                                                        }
-                                                                                        style={{
-                                                                                            borderRadius: 4,
-                                                                                        }}
-                                                                                    />
-                                                                                </>
-                                                                            );
-                                                                        } else {
-                                                                            const w1 =
-                                                                                90 +
-                                                                                ((hash *
-                                                                                    2) %
-                                                                                    11);
-                                                                            const w2 =
-                                                                                75 +
-                                                                                ((hash *
-                                                                                    5) %
-                                                                                    16);
-                                                                            const w3 =
-                                                                                50 +
-                                                                                ((hash *
-                                                                                    8) %
-                                                                                    21);
-                                                                            return (
-                                                                                <>
-                                                                                    <Skeleton
-                                                                                        width={`${w1}%`}
-                                                                                        height={
-                                                                                            16
-                                                                                        }
-                                                                                        style={{
-                                                                                            borderRadius: 4,
-                                                                                        }}
-                                                                                    />
-                                                                                    <Skeleton
-                                                                                        width={`${w2}%`}
-                                                                                        height={
-                                                                                            16
-                                                                                        }
-                                                                                        style={{
-                                                                                            borderRadius: 4,
-                                                                                        }}
-                                                                                    />
-                                                                                    <Skeleton
-                                                                                        width={`${w3}%`}
-                                                                                        height={
-                                                                                            16
-                                                                                        }
-                                                                                        style={{
-                                                                                            borderRadius: 4,
-                                                                                        }}
-                                                                                    />
-                                                                                </>
-                                                                            );
-                                                                        }
-                                                                    })()
-                                                                    : d.events.map(
-                                                                        (
-                                                                            ev: any,
-                                                                        ) => {
-                                                                            const ea =
-                                                                                avail[
-                                                                                ev
-                                                                                    .id
-                                                                                ] ||
-                                                                                [];
-                                                                            const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
-                                                                            const myStatus =
-                                                                                ea.find(
-                                                                                    (
-                                                                                        a,
-                                                                                    ) =>
-                                                                                        String(
-                                                                                            a.player_id,
-                                                                                        ) ===
-                                                                                        String(
-                                                                                            myPlayerId,
-                                                                                        ),
-                                                                                )
-                                                                                    ?.status ||
-                                                                                "pending";
-                                                                            const isCancelled =
-                                                                                ev.status ===
-                                                                                "cancelled";
-                                                                            const isNoPlayers =
-                                                                                ev.status ===
-                                                                                "no_players";
-                                                                            const isNotPlayed =
-                                                                                ev.status ===
-                                                                                "not_played";
-
-                                                                            const unavailable =
-                                                                                ea.filter(
-                                                                                    (
-                                                                                        a,
-                                                                                    ) =>
-                                                                                        a.status ===
-                                                                                        "unavailable",
-                                                                                ).length;
-                                                                            const isImpossible =
-                                                                                isMounted &&
-                                                                                (
-                                                                                    ev as any
-                                                                                )
-                                                                                    .localDate >=
-                                                                                todayStr &&
-                                                                                players.length >=
-                                                                                5 &&
-                                                                                players.length -
-                                                                                unavailable <
-                                                                                5;
-
-                                                                            const isRed =
-                                                                                isCancelled ||
-                                                                                isNoPlayers ||
-                                                                                isNotPlayed ||
-                                                                                isImpossible;
-                                                                            const color =
-                                                                                ev.type ===
-                                                                                    "playoffs"
-                                                                                    ? "var(--val-yellow)"
-                                                                                    : ev.type ===
-                                                                                        "match"
-                                                                                        ? "var(--val-match)"
-                                                                                        : "var(--val-practice)";
-                                                                            const evColorDark =
-                                                                                ev.type ===
-                                                                                    "playoffs"
-                                                                                    ? "var(--val-yellow-dark)"
-                                                                                    : ev.type ===
-                                                                                        "match"
-                                                                                        ? "#5c4a35"
-                                                                                        : "#808080";
-                                                                            const isFirstUpcoming =
-                                                                                ev.id ===
-                                                                                firstUpcomingId;
-
-                                                                            const hoverBorderColor =
-                                                                                myStatus ===
-                                                                                    "available"
-                                                                                    ? ev.type ===
-                                                                                        "match"
-                                                                                        ? "rgba(255, 255, 255, 0.65)"
-                                                                                        : evColorDark
-                                                                                    : color;
-
-                                                                            const hoverSheenActive =
-                                                                                myStatus ===
-                                                                                    "available"
-                                                                                    ? ev.type ===
-                                                                                        "match"
-                                                                                        ? "rgba(255, 255, 255, 0.15)"
-                                                                                        : "rgba(0, 0, 0, 0.12)"
-                                                                                    : "rgba(255, 255, 255, 0.12)";
-
-                                                                            const hoverInsetShadow =
-                                                                                myStatus ===
-                                                                                    "available"
-                                                                                    ? ev.type ===
-                                                                                        "match"
-                                                                                        ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
-                                                                                        : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                    : `inset 0 0 5px ${color}`;
-
-                                                                            return (
-                                                                                <div
-                                                                                    key={
-                                                                                        ev.id
-                                                                                    }
-                                                                                    onClick={() =>
-                                                                                        setSelectedEventId(
-                                                                                            ev.id,
-                                                                                        )
-                                                                                    }
-                                                                                    className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
-                                                                                    style={{
-                                                                                        padding:
-                                                                                            "4px 6px",
-                                                                                        borderRadius: 4,
-                                                                                        minWidth: 0,
-                                                                                        background:
-                                                                                            isRed
-                                                                                                ? "transparent"
-                                                                                                : myStatus ===
-                                                                                                    "unavailable"
-                                                                                                    ? "transparent"
-                                                                                                    : myStatus ===
-                                                                                                        "pending"
-                                                                                                        ? "transparent"
-                                                                                                        : ev.status ===
-                                                                                                            "completed" ||
-                                                                                                            (ev.linkedMatches &&
-                                                                                                                ev
-                                                                                                                    .linkedMatches
-                                                                                                                    .length >
-                                                                                                                0)
-                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${color}`
-                                                                                                            : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                                ? `repeating-linear-gradient(45deg, ${color}, ${color} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                                : color,
-                                                                                        color:
-                                                                                            isRed ||
-                                                                                                myStatus ===
-                                                                                                "unavailable" ||
-                                                                                                myStatus ===
-                                                                                                "pending"
-                                                                                                ? color
-                                                                                                : "white",
-                                                                                        fontWeight: 700,
-                                                                                        display: "flex",
-                                                                                        flexWrap: "wrap",
-                                                                                        alignItems: "center",
-                                                                                        whiteSpace: "normal",
-                                                                                        overflow: "visible",
-                                                                                        textOverflow: "clip",
-                                                                                        wordBreak: "break-word",
-                                                                                        cursor: "pointer",
-                                                                                        textDecoration:
-                                                                                            isCancelled ||
-                                                                                                isNoPlayers ||
-                                                                                                isNotPlayed ||
-                                                                                                isImpossible ||
-                                                                                                myStatus ===
-                                                                                                "unavailable"
-                                                                                                ? "line-through"
-                                                                                                : "none",
-                                                                                        opacity:
-                                                                                            isCancelled ||
-                                                                                                isNoPlayers ||
-                                                                                                isNotPlayed ||
-                                                                                                isImpossible
-                                                                                                ? 0.4
-                                                                                                : myStatus ===
-                                                                                                    "unavailable"
-                                                                                                    ? 0.85
-                                                                                                    : 1,
-                                                                                        border:
-                                                                                            isRed ||
-                                                                                                myStatus ===
-                                                                                                "unavailable"
-                                                                                                ? `1px solid ${color}`
-                                                                                                : myStatus ===
-                                                                                                    "pending"
-                                                                                                    ? `1px dashed ${color}`
-                                                                                                    : "1px solid rgba(255,255,255,0.1)",
-                                                                                        boxShadow:
-                                                                                            isFirstUpcoming
-                                                                                                ? `0 0 10px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
-                                                                                                : "none",
-                                                                                        zIndex: isFirstUpcoming
-                                                                                            ? 5
-                                                                                            : undefined,
-                                                                                        ["--hover-border-color" as any]:
-                                                                                            hoverBorderColor,
-                                                                                        ["--hover-sheen-active" as any]:
-                                                                                            hoverSheenActive,
-                                                                                        ["--hover-inset-shadow" as any]:
-                                                                                            hoverInsetShadow,
-                                                                                        ["--hover-color" as any]:
-                                                                                            color,
-                                                                                        ["--ev-color" as any]: color,
-                                                                                    }}
-                                                                                    title={`${ev.localTime} - ${getEventDisplayName(ev)} (${myStatus === "pending" ? "Pendiente" : ev.status})`}
-                                                                                >
-                                                                                    {isFirstUpcoming && (
-                                                                                        <div
-                                                                                            style={{
-                                                                                                marginRight: 4,
-                                                                                                marginBottom: 0,
-                                                                                                width: "fit-content",
-                                                                                                maxWidth: "100%",
-                                                                                                whiteSpace: "nowrap",
-                                                                                                overflow: "hidden",
-                                                                                                textOverflow: "ellipsis",
-                                                                                                background:
-                                                                                                    ev.type ===
-                                                                                                        "match"
-                                                                                                        ? "var(--val-match)"
-                                                                                                        : ev.type ===
-                                                                                                            "playoffs"
-                                                                                                            ? "var(--val-yellow)"
-                                                                                                            : "var(--val-practice)",
-                                                                                                color:
-                                                                                                    ev.type ===
-                                                                                                        "playoffs"
-                                                                                                        ? "black"
-                                                                                                        : "white",
-                                                                                                padding:
-                                                                                                    "1px 3px",
-                                                                                                borderRadius: 3,
-                                                                                                fontSize: 7,
-                                                                                                fontWeight: 900,
-                                                                                                boxShadow:
-                                                                                                    "0 0 8px rgba(255,255,255,0.2)",
-                                                                                            }}
-                                                                                        >
-                                                                                            PRÓXIMO
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <span className="mobile-hidden" style={{ marginRight: 4 }}>
-                                                                                        {ev.localTime}
-                                                                                    </span>
-                                                                                    <span>
-                                                                                        {getEventDisplayName(
-                                                                                            ev,
-                                                                                        )}
-                                                                                    </span>
-                                                                                </div>
-                                                                            );
-                                                                        },
-                                                                    )}
-                                                            </div>
-                                                        </>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className="week-view"
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                flex: 1,
-                                                minHeight: 0,
-                                                minWidth: 0,
-                                                position: "relative",
-                                                background: "transparent",
-                                            }}
-                                        >
-                                            {/* Week header — OUTSIDE scroll so days are always visible */}
-                                            <div
-                                                style={{
-                                                    display: "grid",
-                                                    gridTemplateColumns:
-                                                        "60px repeat(7, minmax(0, 1fr))",
-                                                    borderBottom:
-                                                        "1px solid var(--border-color)",
-                                                    background: "#0a0b14",
-                                                    flexShrink: 0,
-                                                    zIndex: 30,
-                                                }}
-                                            >
-                                                    <div
-                                                        style={{
-                                                            borderRight:
-                                                                "1px solid var(--border-color)",
-                                                        }}
-                                                    />
-                                                    {weekDays.map(
-                                                        (
-                                                            d: any,
-                                                            idx: number,
-                                                        ) => (
-                                                            <div
-                                                                key={idx}
-                                                                style={{
-                                                                    padding:
-                                                                        "12px 8px",
-                                                                    textAlign:
-                                                                        "center",
-                                                                    borderRight:
-                                                                        idx < 6
-                                                                            ? "1px solid var(--border-color)"
-                                                                            : "none",
-                                                                    minWidth: 0,
-                                                                    overflow: "hidden",
-                                                                }}
-                                                            >
+                                                                {/* Week header — OUTSIDE scroll so days are always visible */}
                                                                 <div
                                                                     style={{
-                                                                        fontSize: 10,
-                                                                        fontWeight: 800,
-                                                                        color: "var(--text-muted)",
-                                                                        textTransform:
-                                                                            "uppercase",
-                                                                        marginBottom: 4,
-                                                                        overflow: "hidden",
-                                                                        textOverflow: "ellipsis",
-                                                                        whiteSpace: "nowrap",
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        dayNames[
-                                                                        idx
-                                                                        ]
-                                                                    }
-                                                                </div>
-                                                                <div
-                                                                    style={{
-                                                                        fontSize: 16,
-                                                                        fontWeight: 800,
-                                                                        color: d.isToday
-                                                                            ? "var(--val-red)"
-                                                                            : "white",
                                                                         display:
-                                                                            "inline-block",
-                                                                        padding:
-                                                                            "2px 8px",
-                                                                        borderRadius: 6,
-                                                                        background:
-                                                                            d.isToday
-                                                                                ? "rgba(133, 107, 77, 0.1)"
-                                                                                : "transparent",
-                                                                    }}
-                                                                >
-                                                                    {d.day}
-                                                                </div>
-                                                            </div>
-                                                        ),
-                                                    )}
-                                                </div>
-                                                <div
-                                                    ref={(el) => {
-                                                        if (slideIndex === 1) weekScrollRef.current = el;
-                                                        weekScrollRefs.current[slideIndex] = el;
-                                                    }}
-                                                    onScroll={(e) => {
-                                                        const scrollTop = e.currentTarget.scrollTop;
-                                                        weekScrollRefs.current.forEach((ref, idx) => {
-                                                            if (ref && idx !== slideIndex && Math.abs(ref.scrollTop - scrollTop) > 1) {
-                                                                ref.scrollTop = scrollTop;
-                                                            }
-                                                        });
-                                                    }}
-                                                    style={{
-                                                        display: "flex",
-                                                        flex: 1,
-                                                        position: "relative",
-                                                        overflowY: "scroll",
-                                                        backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.2) 59px, var(--border-color) 59px, var(--border-color) 60px, transparent 60px)",
-                                                    }}
-                                                >
-                                                    {/* Time Column */}
-                                                    <div
-                                                        style={{
-                                                            width: 60,
-                                                            flexShrink: 0,
-                                                        }}
-                                                    >
-                                                        {Array.from({
-                                                            length: 24,
-                                                        }).map((_, i) => {
-                                                            const hour = i;
-                                                            return (
-                                                                <div
-                                                                    key={hour}
-                                                                    style={{
-                                                                        height: 60,
-                                                                        padding:
-                                                                            "4px 8px",
-                                                                        fontSize: 10,
-                                                                        color: "var(--text-muted)",
-                                                                        fontWeight: 700,
+                                                                            "grid",
+                                                                        gridTemplateColumns:
+                                                                            "60px repeat(7, minmax(0, 1fr))",
                                                                         borderBottom:
-                                                                            "1px solid rgba(255,255,255,0.02)",
-                                                                    }}
-                                                                >
-                                                                    {hour
-                                                                        .toString()
-                                                                        .padStart(
-                                                                            2,
-                                                                            "0",
-                                                                        )}
-                                                                    :00
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Day Columns */}
-                                                    <div
-                                                        style={{
-                                                            display: "grid",
-                                                            gridTemplateColumns:
-                                                                "repeat(7, minmax(0, 1fr))",
-                                                            flex: 1,
-                                                            position:
-                                                                "relative",
-                                                        }}
-                                                    >
-                                                        {weekDays.map(
-                                                            (
-                                                                d: any,
-                                                                idx: number,
-                                                            ) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="animate-scale-in"
-                                                                    style={{
-                                                                        position:
-                                                                            "relative",
-                                                                        minWidth: 0,
-                                                                        borderRight:
-                                                                            idx <
-                                                                                6
-                                                                                ? "1px solid var(--border-color)"
-                                                                                : "none",
+                                                                            "1px solid var(--border-color)",
                                                                         background:
-                                                                            d.isToday
-                                                                                ? "rgba(133, 107, 77, 0.02)"
-                                                                                : d.isPast
-                                                                                    ? "rgba(0,0,0,0.4)"
-                                                                                    : "transparent",
-                                                                        opacity:
-                                                                            d.isOtherMonth
-                                                                                ? 0.06
-                                                                                : d.isPast
-                                                                                    ? 0.25
-                                                                                    : 1,
-                                                                        filter: d.isOtherMonth || d.isPast
-                                                                            ? "grayscale(1) contrast(0.6)"
-                                                                            : "none",
-                                                                        animationDelay: `${idx * 0.05}s`,
+                                                                            "#0a0b14",
+                                                                        flexShrink: 0,
+                                                                        zIndex: 30,
                                                                     }}
                                                                 >
-                                                                    {/* Grid Lines */}
-                                                                    {Array.from(
-                                                                        {
-                                                                            length: 24,
-                                                                        },
-                                                                    ).map(
+                                                                    <div
+                                                                        style={{
+                                                                            borderRight:
+                                                                                "1px solid var(--border-color)",
+                                                                        }}
+                                                                    />
+                                                                    {weekDays.map(
                                                                         (
-                                                                            _,
-                                                                            i,
+                                                                            d: any,
+                                                                            idx: number,
                                                                         ) => (
                                                                             <div
                                                                                 key={
-                                                                                    i
+                                                                                    idx
                                                                                 }
                                                                                 style={{
-                                                                                    height: 60,
-                                                                                    borderBottom:
-                                                                                        "1px solid rgba(255,255,255,0.03)",
+                                                                                    padding:
+                                                                                        "12px 8px",
+                                                                                    textAlign:
+                                                                                        "center",
+                                                                                    borderRight:
+                                                                                        idx <
+                                                                                        6
+                                                                                            ? "1px solid var(--border-color)"
+                                                                                            : "none",
+                                                                                    minWidth: 0,
+                                                                                    overflow:
+                                                                                        "hidden",
                                                                                 }}
-                                                                            />
+                                                                            >
+                                                                                <div
+                                                                                    style={{
+                                                                                        fontSize: 10,
+                                                                                        fontWeight: 800,
+                                                                                        color: "var(--text-muted)",
+                                                                                        textTransform:
+                                                                                            "uppercase",
+                                                                                        marginBottom: 4,
+                                                                                        overflow:
+                                                                                            "hidden",
+                                                                                        textOverflow:
+                                                                                            "ellipsis",
+                                                                                        whiteSpace:
+                                                                                            "nowrap",
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        dayNames[
+                                                                                            idx
+                                                                                        ]
+                                                                                    }
+                                                                                </div>
+                                                                                <div
+                                                                                    style={{
+                                                                                        fontSize: 16,
+                                                                                        fontWeight: 800,
+                                                                                        color: d.isToday
+                                                                                            ? "var(--val-red)"
+                                                                                            : "white",
+                                                                                        display:
+                                                                                            "inline-block",
+                                                                                        padding:
+                                                                                            "2px 8px",
+                                                                                        borderRadius: 6,
+                                                                                        background:
+                                                                                            d.isToday
+                                                                                                ? "rgba(133, 107, 77, 0.1)"
+                                                                                                : "transparent",
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        d.day
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
                                                                         ),
                                                                     )}
-
-                                                                    {/* Shading overlay for hours in the past today */}
-                                                                    {d.isToday && (
-                                                                        <div
-                                                                            style={{
-                                                                                position:
-                                                                                    "absolute",
-                                                                                top: 0,
-                                                                                left: 0,
-                                                                                right: 0,
-                                                                                height:
-                                                                                    now.getHours() *
-                                                                                    60 +
-                                                                                    now.getMinutes(),
-                                                                                background:
-                                                                                    "rgba(0,0,0,0.4)",
-                                                                                opacity: 0.75,
-                                                                                backdropFilter:
-                                                                                    "grayscale(0.8) contrast(0.8)",
-                                                                                WebkitBackdropFilter:
-                                                                                    "grayscale(0.8) contrast(0.8)",
-                                                                                pointerEvents:
-                                                                                    "none",
-                                                                                zIndex: 15,
-                                                                            }}
-                                                                        />
-                                                                    )}
-
-                                                                    {/* Current Time Indicator */}
-                                                                    {d.isToday && (
-                                                                        <div
-                                                                            style={{
-                                                                                position:
-                                                                                    "absolute",
-                                                                                top:
-                                                                                    now.getHours() *
-                                                                                    60 +
-                                                                                    now.getMinutes(),
-                                                                                left: 0,
-                                                                                right: 0,
-                                                                                height: 2,
-                                                                                background:
-                                                                                    "var(--val-red)",
-                                                                                zIndex: 20,
-                                                                                pointerEvents:
-                                                                                    "none",
-                                                                                boxShadow:
-                                                                                    "0 0 10px var(--val-red-glow)",
-                                                                            }}
-                                                                        >
-                                                                            <div
-                                                                                style={{
-                                                                                    position:
-                                                                                        "absolute",
-                                                                                    left: -4,
-                                                                                    top: -3,
-                                                                                    width: 8,
-                                                                                    height: 8,
-                                                                                    borderRadius:
-                                                                                        "50%",
-                                                                                    background:
-                                                                                        "var(--val-red)",
-                                                                                    boxShadow:
-                                                                                        "0 0 15px var(--val-red-glow)",
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* Events */}
-                                                                    {isLoadingEvents
-                                                                        ? (() => {
-                                                                            const skeletons =
-                                                                                [];
-                                                                            // Organically calculate quantity of skeletons: 1, 2, or 3 per column
-                                                                            const numEvents =
-                                                                                ((idx *
-                                                                                    11 +
-                                                                                    17) %
-                                                                                    3) +
-                                                                                1;
-
-                                                                            for (
-                                                                                let s = 0;
-                                                                                s <
-                                                                                numEvents;
-                                                                                s++
-                                                                            ) {
-                                                                                // Event start hours completely dispersed using non-overlapping slots:
-                                                                                // s=0 (Morning: 9:00 - 12:00)
-                                                                                // s=1 (Afternoon: 14:00 - 17:00)
-                                                                                // s=2 (Evening/Night: 19:00 - 22:00)
-                                                                                let startHour = 9;
-                                                                                if (
-                                                                                    s ===
-                                                                                    0
-                                                                                ) {
-                                                                                    startHour =
-                                                                                        9 +
-                                                                                        ((idx *
-                                                                                            7) %
-                                                                                            4);
-                                                                                } else if (
-                                                                                    s ===
-                                                                                    1
-                                                                                ) {
-                                                                                    startHour =
-                                                                                        14 +
-                                                                                        ((idx *
-                                                                                            13) %
-                                                                                            4);
-                                                                                } else if (
-                                                                                    s ===
-                                                                                    2
-                                                                                ) {
-                                                                                    startHour =
-                                                                                        19 +
-                                                                                        ((idx *
-                                                                                            17) %
-                                                                                            4);
-                                                                                }
-
-                                                                                // Randomize duration: 1h, 1.5h, or 2h
-                                                                                const durationSeed =
-                                                                                    (idx *
-                                                                                        5 +
-                                                                                        s *
-                                                                                        13) %
-                                                                                    3;
-                                                                                const height =
-                                                                                    60 +
-                                                                                    durationSeed *
-                                                                                    30; // 60px, 90px, or 120px
-
-                                                                                skeletons.push(
-                                                                                    {
-                                                                                        top:
-                                                                                            startHour *
-                                                                                            60,
-                                                                                        height,
-                                                                                    },
-                                                                                );
-                                                                            }
-
-                                                                            return skeletons.map(
-                                                                                (
-                                                                                    sk,
-                                                                                    sIdx,
-                                                                                ) => (
-                                                                                    <div
-                                                                                        key={
-                                                                                            sIdx
-                                                                                        }
-                                                                                        style={{
-                                                                                            position:
-                                                                                                "absolute",
-                                                                                            top: sk.top,
-                                                                                            height: sk.height,
-                                                                                            left: 4,
-                                                                                            right: 4,
-                                                                                            zIndex: 10,
-                                                                                        }}
-                                                                                    >
-                                                                                        <Skeleton
-                                                                                            width="100%"
-                                                                                            height="100%"
-                                                                                            style={{
-                                                                                                borderRadius: 6,
-                                                                                            }}
-                                                                                        />
-                                                                                    </div>
-                                                                                ),
-                                                                            );
-                                                                        })()
-                                                                        : d.events.map(
+                                                                </div>
+                                                                <div
+                                                                    ref={(
+                                                                        el,
+                                                                    ) => {
+                                                                        if (
+                                                                            slideIndex ===
+                                                                            1
+                                                                        )
+                                                                            weekScrollRef.current =
+                                                                                el;
+                                                                        weekScrollRefs.current[
+                                                                            slideIndex
+                                                                        ] = el;
+                                                                    }}
+                                                                    onScroll={(
+                                                                        e,
+                                                                    ) => {
+                                                                        const scrollTop =
+                                                                            e
+                                                                                .currentTarget
+                                                                                .scrollTop;
+                                                                        weekScrollRefs.current.forEach(
                                                                             (
-                                                                                ev: any,
+                                                                                ref,
+                                                                                idx,
                                                                             ) => {
-                                                                                const [
-                                                                                    h,
-                                                                                    m,
-                                                                                ] =
-                                                                                    ev.localTime
-                                                                                        .split(
-                                                                                            ":",
-                                                                                        )
-                                                                                        .map(
-                                                                                            Number,
-                                                                                        );
-
-                                                                                const top =
-                                                                                    h *
-                                                                                    60 +
-                                                                                    m;
-                                                                                let duration = 1.5;
                                                                                 if (
-                                                                                    ev.localEndTime
+                                                                                    ref &&
+                                                                                    idx !==
+                                                                                        slideIndex &&
+                                                                                    Math.abs(
+                                                                                        ref.scrollTop -
+                                                                                            scrollTop,
+                                                                                    ) >
+                                                                                        1
                                                                                 ) {
-                                                                                    const [
-                                                                                        eh,
-                                                                                        em,
-                                                                                    ] =
-                                                                                        ev.localEndTime
-                                                                                            .split(
-                                                                                                ":",
-                                                                                            )
-                                                                                            .map(
-                                                                                                Number,
-                                                                                            );
-                                                                                    duration =
-                                                                                        eh -
-                                                                                        h +
-                                                                                        (em -
-                                                                                            m) /
-                                                                                        60;
-                                                                                    if (duration < 0) {
-                                                                                        duration += 24;
-                                                                                    }
+                                                                                    ref.scrollTop =
+                                                                                        scrollTop;
                                                                                 }
-                                                                                const height =
-                                                                                    duration *
-                                                                                    60;
-
-                                                                                const ea =
-                                                                                    avail[
-                                                                                    ev
-                                                                                        .id
-                                                                                    ] ||
-                                                                                    [];
-                                                                                const confirmedCount = ea.filter((a: any) => a.status === "available" || a.status === "played").length;
-                                                                                const myStatus =
-                                                                                    ea.find(
-                                                                                        (
-                                                                                            a,
-                                                                                        ) =>
-                                                                                            String(
-                                                                                                a.player_id,
-                                                                                            ) ===
-                                                                                            String(
-                                                                                                myPlayerId,
-                                                                                            ),
-                                                                                    )
-                                                                                        ?.status ||
-                                                                                    "pending";
-                                                                                const isCancelled =
-                                                                                    ev.status ===
-                                                                                    "cancelled";
-                                                                                const isNoPlayers =
-                                                                                    ev.status ===
-                                                                                    "no_players";
-                                                                                const isNotPlayed =
-                                                                                    ev.status ===
-                                                                                    "not_played";
-                                                                                const unavailable =
-                                                                                    ea.filter(
-                                                                                        (
-                                                                                            a,
-                                                                                        ) =>
-                                                                                            a.status ===
-                                                                                            "unavailable",
-                                                                                    ).length;
-                                                                                const isImpossible =
-                                                                                    isMounted &&
-                                                                                    (
-                                                                                        ev as any
-                                                                                    )
-                                                                                        .localDate >=
-                                                                                    todayStr &&
-                                                                                    players.length >=
-                                                                                    5 &&
-                                                                                    players.length -
-                                                                                    unavailable <
-                                                                                    5;
-
-                                                                                const isRed =
-                                                                                    isCancelled ||
-                                                                                    isNoPlayers ||
-                                                                                    isNotPlayed ||
-                                                                                    isImpossible;
-                                                                                const evTypeColor =
-                                                                                    ev.type ===
-                                                                                        "playoffs"
-                                                                                        ? "var(--val-yellow)"
-                                                                                        : ev.type ===
-                                                                                            "match"
-                                                                                            ? "var(--val-match)"
-                                                                                            : "var(--val-practice)";
-                                                                                const evColorDark =
-                                                                                    ev.type ===
-                                                                                        "playoffs"
-                                                                                        ? "var(--val-yellow-dark)"
-                                                                                        : ev.type ===
-                                                                                            "match"
-                                                                                            ? "#5c4a35"
-                                                                                            : "#808080";
-                                                                                const isFirstUpcoming =
-                                                                                    ev.id ===
-                                                                                    firstUpcomingId;
-
-                                                                                const hoverBorderColor =
-                                                                                    myStatus ===
-                                                                                        "available"
-                                                                                        ? ev.type ===
-                                                                                            "match"
-                                                                                            ? "rgba(255, 255, 255, 0.65)"
-                                                                                            : evColorDark
-                                                                                        : evTypeColor;
-
-                                                                                const hoverSheenActive =
-                                                                                    myStatus ===
-                                                                                        "available"
-                                                                                        ? ev.type ===
-                                                                                            "match"
-                                                                                            ? "rgba(255, 255, 255, 0.15)"
-                                                                                            : "rgba(0, 0, 0, 0.12)"
-                                                                                        : "rgba(255, 255, 255, 0.12)";
-
-                                                                                const hoverInsetShadow =
-                                                                                    myStatus ===
-                                                                                        "available"
-                                                                                        ? ev.type ===
-                                                                                            "match"
-                                                                                            ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
-                                                                                            : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
-                                                                                        : `inset 0 0 5px ${evTypeColor}`;
-
+                                                                            },
+                                                                        );
+                                                                    }}
+                                                                    style={{
+                                                                        display:
+                                                                            "flex",
+                                                                        flex: 1,
+                                                                        position:
+                                                                            "relative",
+                                                                        overflowY:
+                                                                            "scroll",
+                                                                        backgroundImage:
+                                                                            "linear-gradient(to right, rgba(0,0,0,0.2) 59px, var(--border-color) 59px, var(--border-color) 60px, transparent 60px)",
+                                                                    }}
+                                                                >
+                                                                    {/* Time Column */}
+                                                                    <div
+                                                                        style={{
+                                                                            width: 60,
+                                                                            flexShrink: 0,
+                                                                        }}
+                                                                    >
+                                                                        {Array.from(
+                                                                            {
+                                                                                length: 24,
+                                                                            },
+                                                                        ).map(
+                                                                            (
+                                                                                _,
+                                                                                i,
+                                                                            ) => {
+                                                                                const hour =
+                                                                                    i;
                                                                                 return (
                                                                                     <div
                                                                                         key={
-                                                                                            ev.id
+                                                                                            hour
                                                                                         }
-                                                                                        onClick={() =>
-                                                                                            setSelectedEventId(
-                                                                                                ev.id,
-                                                                                            )
-                                                                                        }
-                                                                                        className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
                                                                                         style={{
-                                                                                            position:
-                                                                                                "absolute",
-                                                                                            top: top,
-                                                                                            left: 4,
-                                                                                            right: 4,
-                                                                                            height: height,
+                                                                                            height: 60,
                                                                                             padding:
-                                                                                                "6px",
-                                                                                            borderRadius: 8,
-                                                                                            zIndex: isFirstUpcoming
-                                                                                                ? 25
-                                                                                                : 10,
-                                                                                            background:
-                                                                                                isRed
-                                                                                                    ? "transparent"
-                                                                                                    : myStatus ===
-                                                                                                        "unavailable"
-                                                                                                        ? "transparent"
-                                                                                                        : myStatus ===
-                                                                                                            "pending"
-                                                                                                            ? "transparent"
-                                                                                                            : ev.status ===
-                                                                                                                "completed" ||
-                                                                                                                (ev.linkedMatches &&
-                                                                                                                    ev
-                                                                                                                        .linkedMatches
-                                                                                                                        .length >
-                                                                                                                    0)
-                                                                                                                ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evTypeColor}`
-                                                                                                                : myStatus === "maybe" || (myStatus === "available" && confirmedCount < 5)
-                                                                                                                    ? `repeating-linear-gradient(45deg, ${evTypeColor}, ${evTypeColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
-                                                                                                                    : evTypeColor,
-                                                                                            color:
-                                                                                                isRed ||
-                                                                                                    myStatus ===
-                                                                                                    "unavailable" ||
-                                                                                                    myStatus ===
-                                                                                                    "pending"
-                                                                                                    ? evTypeColor
-                                                                                                    : "white",
+                                                                                                "4px 8px",
+                                                                                            fontSize: 10,
+                                                                                            color: "var(--text-muted)",
                                                                                             fontWeight: 700,
-                                                                                            cursor: "pointer",
-                                                                                            boxShadow:
-                                                                                                isFirstUpcoming
-                                                                                                    ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
-                                                                                                    : myStatus ===
-                                                                                                        "pending" ||
-                                                                                                        myStatus ===
-                                                                                                        "unavailable" ||
-                                                                                                        isRed
-                                                                                                        ? "none"
-                                                                                                        : "0 4px 12px rgba(0,0,0,0.3)",
-                                                                                            border:
-                                                                                                isRed ||
-                                                                                                    myStatus ===
-                                                                                                    "unavailable"
-                                                                                                    ? `1px solid ${evTypeColor}`
-                                                                                                    : myStatus ===
-                                                                                                        "pending"
-                                                                                                        ? `2px dashed ${evTypeColor}`
-                                                                                                        : "1px solid rgba(255,255,255,0.1)",
-                                                                                            display:
-                                                                                                "flex",
-                                                                                            flexDirection:
-                                                                                                height <
-                                                                                                    40
-                                                                                                    ? "row"
-                                                                                                    : "column",
-                                                                                            alignItems:
-                                                                                                height <
-                                                                                                    40
-                                                                                                    ? "center"
-                                                                                                    : "flex-start",
-                                                                                            justifyContent:
-                                                                                                height <
-                                                                                                    40
-                                                                                                    ? "center"
-                                                                                                    : "flex-start",
-                                                                                            gap:
-                                                                                                height <
-                                                                                                    40
-                                                                                                    ? 4
-                                                                                                    : 2,
-                                                                                            overflow:
-                                                                                                "hidden",
-                                                                                            opacity:
-                                                                                                isRed
-                                                                                                    ? 0.4
-                                                                                                    : myStatus ===
-                                                                                                        "unavailable"
-                                                                                                        ? 0.85
-                                                                                                        : 1,
-                                                                                            textDecoration:
-                                                                                                myStatus ===
-                                                                                                    "unavailable" ||
-                                                                                                    isRed
-                                                                                                    ? "line-through"
-                                                                                                    : "none",
-                                                                                            ["--hover-border-color" as any]:
-                                                                                                hoverBorderColor,
-                                                                                            ["--hover-sheen-active" as any]:
-                                                                                                hoverSheenActive,
-                                                                                            ["--hover-inset-shadow" as any]:
-                                                                                                hoverInsetShadow,
-                                                                                            ["--hover-color" as any]:
-                                                                                                evTypeColor,
+                                                                                            borderBottom:
+                                                                                                "1px solid rgba(255,255,255,0.02)",
                                                                                         }}
                                                                                     >
-                                                                                        {isFirstUpcoming && (
-                                                                                            <div
-                                                                                                style={{
-                                                                                                    maxWidth: "100%",
-                                                                                                    whiteSpace: "nowrap",
-                                                                                                    overflow: "hidden",
-                                                                                                    textOverflow: "ellipsis",
-                                                                                                    background:
-                                                                                                        "rgba(255,255,255,0.18)",
-                                                                                                    color: "white",
-                                                                                                    padding:
-                                                                                                        "1px 4px",
-                                                                                                    borderRadius: 4,
-                                                                                                    fontSize: 7,
-                                                                                                    fontWeight: 900,
-                                                                                                    textTransform:
-                                                                                                        "uppercase",
-                                                                                                    letterSpacing: 0.5,
-                                                                                                    marginBottom:
-                                                                                                        height <
-                                                                                                            40
-                                                                                                            ? 0
-                                                                                                            : 2,
-                                                                                                }}
-                                                                                            >
-                                                                                                PRÓXIMO
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div
-                                                                                            style={{
-                                                                                                whiteSpace:
-                                                                                                    height < 40 ? "nowrap" : "normal",
-                                                                                                overflow:
-                                                                                                    "hidden",
-                                                                                                textOverflow:
-                                                                                                    "ellipsis",
-                                                                                                lineHeight: 1.2,
-                                                                                            }}
-                                                                                        >
-                                                                                            {getEventDisplayName(
-                                                                                                ev,
+                                                                                        {hour
+                                                                                            .toString()
+                                                                                            .padStart(
+                                                                                                2,
+                                                                                                "0",
                                                                                             )}
-                                                                                        </div>
-                                                                                        <div
-                                                                                            style={{
-                                                                                                fontSize: 8,
-                                                                                                opacity: 0.7,
-                                                                                                fontWeight: 600,
-                                                                                                textTransform:
-                                                                                                    "uppercase",
-                                                                                            }}
-                                                                                        >
-                                                                                            {ev.map
-                                                                                                ? maps.find(
-                                                                                                    (
-                                                                                                        m: any,
-                                                                                                    ) =>
-                                                                                                        m.id ===
-                                                                                                        ev.map,
-                                                                                                )
-                                                                                                    ?.name ||
-                                                                                                ev.map
-                                                                                                : ev.type ===
-                                                                                                    "playoffs"
-                                                                                                    ? "Pick & Ban"
-                                                                                                    : "Por decidir"}
-                                                                                        </div>
+                                                                                        :00
                                                                                     </div>
                                                                                 );
                                                                             },
                                                                         )}
+                                                                    </div>
+
+                                                                    {/* Day Columns */}
+                                                                    <div
+                                                                        style={{
+                                                                            display:
+                                                                                "grid",
+                                                                            gridTemplateColumns:
+                                                                                "repeat(7, minmax(0, 1fr))",
+                                                                            flex: 1,
+                                                                            position:
+                                                                                "relative",
+                                                                        }}
+                                                                    >
+                                                                        {weekDays.map(
+                                                                            (
+                                                                                d: any,
+                                                                                idx: number,
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        idx
+                                                                                    }
+                                                                                    className="animate-scale-in"
+                                                                                    style={{
+                                                                                        position:
+                                                                                            "relative",
+                                                                                        minWidth: 0,
+                                                                                        borderRight:
+                                                                                            idx <
+                                                                                            6
+                                                                                                ? "1px solid var(--border-color)"
+                                                                                                : "none",
+                                                                                        background:
+                                                                                            d.isToday
+                                                                                                ? "rgba(133, 107, 77, 0.02)"
+                                                                                                : d.isPast
+                                                                                                  ? "rgba(0,0,0,0.4)"
+                                                                                                  : "transparent",
+                                                                                        opacity:
+                                                                                            d.isOtherMonth
+                                                                                                ? 0.06
+                                                                                                : d.isPast
+                                                                                                  ? 0.25
+                                                                                                  : 1,
+                                                                                        filter:
+                                                                                            d.isOtherMonth ||
+                                                                                            d.isPast
+                                                                                                ? "grayscale(1) contrast(0.6)"
+                                                                                                : "none",
+                                                                                        animationDelay: `${idx * 0.05}s`,
+                                                                                    }}
+                                                                                >
+                                                                                    {/* Grid Lines */}
+                                                                                    {Array.from(
+                                                                                        {
+                                                                                            length: 24,
+                                                                                        },
+                                                                                    ).map(
+                                                                                        (
+                                                                                            _,
+                                                                                            i,
+                                                                                        ) => (
+                                                                                            <div
+                                                                                                key={
+                                                                                                    i
+                                                                                                }
+                                                                                                style={{
+                                                                                                    height: 60,
+                                                                                                    borderBottom:
+                                                                                                        "1px solid rgba(255,255,255,0.03)",
+                                                                                                }}
+                                                                                            />
+                                                                                        ),
+                                                                                    )}
+
+                                                                                    {/* Shading overlay for hours in the past today */}
+                                                                                    {d.isToday && (
+                                                                                        <div
+                                                                                            style={{
+                                                                                                position:
+                                                                                                    "absolute",
+                                                                                                top: 0,
+                                                                                                left: 0,
+                                                                                                right: 0,
+                                                                                                height:
+                                                                                                    now.getHours() *
+                                                                                                        60 +
+                                                                                                    now.getMinutes(),
+                                                                                                background:
+                                                                                                    "rgba(0,0,0,0.4)",
+                                                                                                opacity: 0.75,
+                                                                                                backdropFilter:
+                                                                                                    "grayscale(0.8) contrast(0.8)",
+                                                                                                WebkitBackdropFilter:
+                                                                                                    "grayscale(0.8) contrast(0.8)",
+                                                                                                pointerEvents:
+                                                                                                    "none",
+                                                                                                zIndex: 15,
+                                                                                            }}
+                                                                                        />
+                                                                                    )}
+
+                                                                                    {/* Current Time Indicator */}
+                                                                                    {d.isToday && (
+                                                                                        <div
+                                                                                            style={{
+                                                                                                position:
+                                                                                                    "absolute",
+                                                                                                top:
+                                                                                                    now.getHours() *
+                                                                                                        60 +
+                                                                                                    now.getMinutes(),
+                                                                                                left: 0,
+                                                                                                right: 0,
+                                                                                                height: 2,
+                                                                                                background:
+                                                                                                    "var(--val-red)",
+                                                                                                zIndex: 20,
+                                                                                                pointerEvents:
+                                                                                                    "none",
+                                                                                                boxShadow:
+                                                                                                    "0 0 10px var(--val-red-glow)",
+                                                                                            }}
+                                                                                        >
+                                                                                            <div
+                                                                                                style={{
+                                                                                                    position:
+                                                                                                        "absolute",
+                                                                                                    left: -4,
+                                                                                                    top: -3,
+                                                                                                    width: 8,
+                                                                                                    height: 8,
+                                                                                                    borderRadius:
+                                                                                                        "50%",
+                                                                                                    background:
+                                                                                                        "var(--val-red)",
+                                                                                                    boxShadow:
+                                                                                                        "0 0 15px var(--val-red-glow)",
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {/* Events */}
+                                                                                    {isLoadingEvents
+                                                                                        ? (() => {
+                                                                                              const skeletons =
+                                                                                                  [];
+                                                                                              // Organically calculate quantity of skeletons: 1, 2, or 3 per column
+                                                                                              const numEvents =
+                                                                                                  ((idx *
+                                                                                                      11 +
+                                                                                                      17) %
+                                                                                                      3) +
+                                                                                                  1;
+
+                                                                                              for (
+                                                                                                  let s = 0;
+                                                                                                  s <
+                                                                                                  numEvents;
+                                                                                                  s++
+                                                                                              ) {
+                                                                                                  // Event start hours completely dispersed using non-overlapping slots:
+                                                                                                  // s=0 (Morning: 9:00 - 12:00)
+                                                                                                  // s=1 (Afternoon: 14:00 - 17:00)
+                                                                                                  // s=2 (Evening/Night: 19:00 - 22:00)
+                                                                                                  let startHour = 9;
+                                                                                                  if (
+                                                                                                      s ===
+                                                                                                      0
+                                                                                                  ) {
+                                                                                                      startHour =
+                                                                                                          9 +
+                                                                                                          ((idx *
+                                                                                                              7) %
+                                                                                                              4);
+                                                                                                  } else if (
+                                                                                                      s ===
+                                                                                                      1
+                                                                                                  ) {
+                                                                                                      startHour =
+                                                                                                          14 +
+                                                                                                          ((idx *
+                                                                                                              13) %
+                                                                                                              4);
+                                                                                                  } else if (
+                                                                                                      s ===
+                                                                                                      2
+                                                                                                  ) {
+                                                                                                      startHour =
+                                                                                                          19 +
+                                                                                                          ((idx *
+                                                                                                              17) %
+                                                                                                              4);
+                                                                                                  }
+
+                                                                                                  // Randomize duration: 1h, 1.5h, or 2h
+                                                                                                  const durationSeed =
+                                                                                                      (idx *
+                                                                                                          5 +
+                                                                                                          s *
+                                                                                                              13) %
+                                                                                                      3;
+                                                                                                  const height =
+                                                                                                      60 +
+                                                                                                      durationSeed *
+                                                                                                          30; // 60px, 90px, or 120px
+
+                                                                                                  skeletons.push(
+                                                                                                      {
+                                                                                                          top:
+                                                                                                              startHour *
+                                                                                                              60,
+                                                                                                          height,
+                                                                                                      },
+                                                                                                  );
+                                                                                              }
+
+                                                                                              return skeletons.map(
+                                                                                                  (
+                                                                                                      sk,
+                                                                                                      sIdx,
+                                                                                                  ) => (
+                                                                                                      <div
+                                                                                                          key={
+                                                                                                              sIdx
+                                                                                                          }
+                                                                                                          style={{
+                                                                                                              position:
+                                                                                                                  "absolute",
+                                                                                                              top: sk.top,
+                                                                                                              height: sk.height,
+                                                                                                              left: 4,
+                                                                                                              right: 4,
+                                                                                                              zIndex: 10,
+                                                                                                          }}
+                                                                                                      >
+                                                                                                          <Skeleton
+                                                                                                              width="100%"
+                                                                                                              height="100%"
+                                                                                                              style={{
+                                                                                                                  borderRadius: 6,
+                                                                                                              }}
+                                                                                                          />
+                                                                                                      </div>
+                                                                                                  ),
+                                                                                              );
+                                                                                          })()
+                                                                                        : d.events.map(
+                                                                                              (
+                                                                                                  ev: any,
+                                                                                              ) => {
+                                                                                                  const [
+                                                                                                      h,
+                                                                                                      m,
+                                                                                                  ] =
+                                                                                                      ev.localTime
+                                                                                                          .split(
+                                                                                                              ":",
+                                                                                                          )
+                                                                                                          .map(
+                                                                                                              Number,
+                                                                                                          );
+
+                                                                                                  const top =
+                                                                                                      h *
+                                                                                                          60 +
+                                                                                                      m;
+                                                                                                  let duration = 1.5;
+                                                                                                  if (
+                                                                                                      ev.localEndTime
+                                                                                                  ) {
+                                                                                                      const [
+                                                                                                          eh,
+                                                                                                          em,
+                                                                                                      ] =
+                                                                                                          ev.localEndTime
+                                                                                                              .split(
+                                                                                                                  ":",
+                                                                                                              )
+                                                                                                              .map(
+                                                                                                                  Number,
+                                                                                                              );
+                                                                                                      duration =
+                                                                                                          eh -
+                                                                                                          h +
+                                                                                                          (em -
+                                                                                                              m) /
+                                                                                                              60;
+                                                                                                      if (
+                                                                                                          duration <
+                                                                                                          0
+                                                                                                      ) {
+                                                                                                          duration += 24;
+                                                                                                      }
+                                                                                                  }
+                                                                                                  const height =
+                                                                                                      duration *
+                                                                                                      60;
+
+                                                                                                  const ea =
+                                                                                                      avail[
+                                                                                                          ev
+                                                                                                              .id
+                                                                                                      ] ||
+                                                                                                      [];
+                                                                                                  const confirmedCount =
+                                                                                                      ea.filter(
+                                                                                                          (
+                                                                                                              a: any,
+                                                                                                          ) =>
+                                                                                                              a.status ===
+                                                                                                                  "available" ||
+                                                                                                              a.status ===
+                                                                                                                  "played",
+                                                                                                      ).length;
+                                                                                                  const myStatus =
+                                                                                                      ea.find(
+                                                                                                          (
+                                                                                                              a,
+                                                                                                          ) =>
+                                                                                                              String(
+                                                                                                                  a.player_id,
+                                                                                                              ) ===
+                                                                                                              String(
+                                                                                                                  myPlayerId,
+                                                                                                              ),
+                                                                                                      )
+                                                                                                          ?.status ||
+                                                                                                      "pending";
+                                                                                                  const isCancelled =
+                                                                                                      ev.status ===
+                                                                                                      "cancelled";
+                                                                                                  const isNoPlayers =
+                                                                                                      ev.status ===
+                                                                                                      "no_players";
+                                                                                                  const isNotPlayed =
+                                                                                                      ev.status ===
+                                                                                                      "not_played";
+                                                                                                  const unavailable =
+                                                                                                      ea.filter(
+                                                                                                          (
+                                                                                                              a,
+                                                                                                          ) =>
+                                                                                                              a.status ===
+                                                                                                              "unavailable",
+                                                                                                      ).length;
+                                                                                                  const isImpossible =
+                                                                                                      isMounted &&
+                                                                                                      (
+                                                                                                          ev as any
+                                                                                                      )
+                                                                                                          .localDate >=
+                                                                                                          todayStr &&
+                                                                                                      players.length >=
+                                                                                                          5 &&
+                                                                                                      players.length -
+                                                                                                          unavailable <
+                                                                                                          5;
+
+                                                                                                  const isRed =
+                                                                                                      isCancelled ||
+                                                                                                      isNoPlayers ||
+                                                                                                      isNotPlayed ||
+                                                                                                      isImpossible;
+                                                                                                  const evTypeColor =
+                                                                                                      ev.type ===
+                                                                                                      "playoffs"
+                                                                                                          ? "var(--val-yellow)"
+                                                                                                          : ev.type ===
+                                                                                                              "match"
+                                                                                                            ? "var(--val-match)"
+                                                                                                            : "var(--val-practice)";
+                                                                                                  const evColorDark =
+                                                                                                      ev.type ===
+                                                                                                      "playoffs"
+                                                                                                          ? "var(--val-yellow-dark)"
+                                                                                                          : ev.type ===
+                                                                                                              "match"
+                                                                                                            ? "#5c4a35"
+                                                                                                            : "#808080";
+                                                                                                  const isFirstUpcoming =
+                                                                                                      ev.id ===
+                                                                                                      firstUpcomingId;
+
+                                                                                                  const hoverBorderColor =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "rgba(255, 255, 255, 0.65)"
+                                                                                                              : evColorDark
+                                                                                                          : evTypeColor;
+
+                                                                                                  const hoverSheenActive =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "rgba(255, 255, 255, 0.15)"
+                                                                                                              : "rgba(0, 0, 0, 0.12)"
+                                                                                                          : "rgba(255, 255, 255, 0.12)";
+
+                                                                                                  const hoverInsetShadow =
+                                                                                                      myStatus ===
+                                                                                                      "available"
+                                                                                                          ? ev.type ===
+                                                                                                            "match"
+                                                                                                              ? "inset 0 0 4px rgba(255, 255, 255, 0.35)"
+                                                                                                              : "inset 0 0 4px rgba(0, 0, 0, 0.15)"
+                                                                                                          : `inset 0 0 5px ${evTypeColor}`;
+
+                                                                                                  return (
+                                                                                                      <div
+                                                                                                          key={
+                                                                                                              ev.id
+                                                                                                          }
+                                                                                                          onClick={() =>
+                                                                                                              setSelectedEventId(
+                                                                                                                  ev.id,
+                                                                                                              )
+                                                                                                          }
+                                                                                                          className={`calendar-event-hover calendar-event-text ${ev.id === activeHighlightId ? "upcoming-highlight-mini" : ""}`}
+                                                                                                          style={{
+                                                                                                              position:
+                                                                                                                  "absolute",
+                                                                                                              top: top,
+                                                                                                              left: 4,
+                                                                                                              right: 4,
+                                                                                                              height: height,
+                                                                                                              padding:
+                                                                                                                  "6px",
+                                                                                                              borderRadius: 8,
+                                                                                                              zIndex: isFirstUpcoming
+                                                                                                                  ? 25
+                                                                                                                  : 10,
+                                                                                                              background:
+                                                                                                                  isRed
+                                                                                                                      ? "transparent"
+                                                                                                                      : myStatus ===
+                                                                                                                          "unavailable"
+                                                                                                                        ? "transparent"
+                                                                                                                        : myStatus ===
+                                                                                                                            "pending"
+                                                                                                                          ? "transparent"
+                                                                                                                          : ev.status ===
+                                                                                                                                  "completed" ||
+                                                                                                                              (ev.linkedMatches &&
+                                                                                                                                  ev
+                                                                                                                                      .linkedMatches
+                                                                                                                                      .length >
+                                                                                                                                      0)
+                                                                                                                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='140 -100 720 630' fill='none' stroke='rgba%28255,255,255,0.22%29' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 245.44 4.65 C 248.61 2.76 250.63 6.58 252.34 8.59 C 362.37 146.24 472.53 283.79 582.55 421.44 C 584.81 423.40 583.10 427.59 580.05 427.14 C 527.37 427.20 474.68 427.16 422.00 427.16 C 417.78 427.21 413.74 425.11 411.15 421.82 C 356.49 353.53 301.86 285.21 247.20 216.91 C 244.88 214.15 243.68 210.58 243.83 206.99 C 243.83 141.01 243.85 75.02 243.81 9.04 C 243.84 7.48 243.78 5.46 245.44 4.65 Z'/%3E%3Cpath d='M 754.32 4.33 C 756.57 3.48 759.05 5.56 758.72 7.92 C 758.80 73.93 758.71 139.94 758.76 205.95 C 758.91 209.69 758.09 213.56 755.66 216.50 C 739.05 237.28 722.42 258.05 705.81 278.82 C 703.04 282.42 698.51 284.41 693.98 284.18 C 641.65 284.13 589.31 284.21 536.98 284.14 C 533.89 284.62 532.13 280.45 534.41 278.44 C 606.98 187.65 679.61 96.89 752.22 6.12 C 752.77 5.34 753.47 4.74 754.32 4.33 Z'/%3E%3C/svg%3E") repeat, ${evTypeColor}`
+                                                                                                                            : myStatus ===
+                                                                                                                                    "maybe" ||
+                                                                                                                                (myStatus ===
+                                                                                                                                    "available" &&
+                                                                                                                                    confirmedCount <
+                                                                                                                                        5)
+                                                                                                                              ? `repeating-linear-gradient(45deg, ${evTypeColor}, ${evTypeColor} 6px, ${evColorDark} 6px, ${evColorDark} 12px)`
+                                                                                                                              : evTypeColor,
+                                                                                                              color:
+                                                                                                                  isRed ||
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable" ||
+                                                                                                                  myStatus ===
+                                                                                                                      "pending"
+                                                                                                                      ? evTypeColor
+                                                                                                                      : "white",
+                                                                                                              fontWeight: 700,
+                                                                                                              cursor: "pointer",
+                                                                                                              boxShadow:
+                                                                                                                  isFirstUpcoming
+                                                                                                                      ? `0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px ${ev.type === "match" ? "rgba(133, 107, 77, 0.4)" : ev.type === "playoffs" ? "rgba(234, 180, 8, 0.4)" : "rgba(184, 184, 184, 0.4)"}`
+                                                                                                                      : myStatus ===
+                                                                                                                              "pending" ||
+                                                                                                                          myStatus ===
+                                                                                                                              "unavailable" ||
+                                                                                                                          isRed
+                                                                                                                        ? "none"
+                                                                                                                        : "0 4px 12px rgba(0,0,0,0.3)",
+                                                                                                              border:
+                                                                                                                  isRed ||
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable"
+                                                                                                                      ? `1px solid ${evTypeColor}`
+                                                                                                                      : myStatus ===
+                                                                                                                          "pending"
+                                                                                                                        ? `2px dashed ${evTypeColor}`
+                                                                                                                        : "1px solid rgba(255,255,255,0.1)",
+                                                                                                              display:
+                                                                                                                  "flex",
+                                                                                                              flexDirection:
+                                                                                                                  height <
+                                                                                                                  40
+                                                                                                                      ? "row"
+                                                                                                                      : "column",
+                                                                                                              alignItems:
+                                                                                                                  height <
+                                                                                                                  40
+                                                                                                                      ? "center"
+                                                                                                                      : "flex-start",
+                                                                                                              justifyContent:
+                                                                                                                  height <
+                                                                                                                  40
+                                                                                                                      ? "center"
+                                                                                                                      : "flex-start",
+                                                                                                              gap:
+                                                                                                                  height <
+                                                                                                                  40
+                                                                                                                      ? 4
+                                                                                                                      : 2,
+                                                                                                              overflow:
+                                                                                                                  "hidden",
+                                                                                                              opacity:
+                                                                                                                  isRed
+                                                                                                                      ? 0.4
+                                                                                                                      : myStatus ===
+                                                                                                                          "unavailable"
+                                                                                                                        ? 0.85
+                                                                                                                        : 1,
+                                                                                                              textDecoration:
+                                                                                                                  myStatus ===
+                                                                                                                      "unavailable" ||
+                                                                                                                  isRed
+                                                                                                                      ? "line-through"
+                                                                                                                      : "none",
+                                                                                                              ["--hover-border-color" as any]:
+                                                                                                                  hoverBorderColor,
+                                                                                                              ["--hover-sheen-active" as any]:
+                                                                                                                  hoverSheenActive,
+                                                                                                              ["--hover-inset-shadow" as any]:
+                                                                                                                  hoverInsetShadow,
+                                                                                                              ["--hover-color" as any]:
+                                                                                                                  evTypeColor,
+                                                                                                          }}
+                                                                                                      >
+                                                                                                          {isFirstUpcoming && (
+                                                                                                              <div
+                                                                                                                  style={{
+                                                                                                                      maxWidth:
+                                                                                                                          "100%",
+                                                                                                                      whiteSpace:
+                                                                                                                          "nowrap",
+                                                                                                                      overflow:
+                                                                                                                          "hidden",
+                                                                                                                      textOverflow:
+                                                                                                                          "ellipsis",
+                                                                                                                      background:
+                                                                                                                          "rgba(255,255,255,0.18)",
+                                                                                                                      color: "white",
+                                                                                                                      padding:
+                                                                                                                          "1px 4px",
+                                                                                                                      borderRadius: 4,
+                                                                                                                      fontSize: 7,
+                                                                                                                      fontWeight: 900,
+                                                                                                                      textTransform:
+                                                                                                                          "uppercase",
+                                                                                                                      letterSpacing: 0.5,
+                                                                                                                      marginBottom:
+                                                                                                                          height <
+                                                                                                                          40
+                                                                                                                              ? 0
+                                                                                                                              : 2,
+                                                                                                                  }}
+                                                                                                              >
+                                                                                                                  PRÓXIMO
+                                                                                                              </div>
+                                                                                                          )}
+                                                                                                          <div
+                                                                                                              style={{
+                                                                                                                  whiteSpace:
+                                                                                                                      height <
+                                                                                                                      40
+                                                                                                                          ? "nowrap"
+                                                                                                                          : "normal",
+                                                                                                                  overflow:
+                                                                                                                      "hidden",
+                                                                                                                  textOverflow:
+                                                                                                                      "ellipsis",
+                                                                                                                  lineHeight: 1.2,
+                                                                                                              }}
+                                                                                                          >
+                                                                                                              {getEventDisplayName(
+                                                                                                                  ev,
+                                                                                                              )}
+                                                                                                          </div>
+                                                                                                          <div
+                                                                                                              style={{
+                                                                                                                  fontSize: 8,
+                                                                                                                  opacity: 0.7,
+                                                                                                                  fontWeight: 600,
+                                                                                                                  textTransform:
+                                                                                                                      "uppercase",
+                                                                                                              }}
+                                                                                                          >
+                                                                                                              {ev.map
+                                                                                                                  ? maps.find(
+                                                                                                                        (
+                                                                                                                            m: any,
+                                                                                                                        ) =>
+                                                                                                                            m.id ===
+                                                                                                                            ev.map,
+                                                                                                                    )
+                                                                                                                        ?.name ||
+                                                                                                                    ev.map
+                                                                                                                  : ev.type ===
+                                                                                                                      "playoffs"
+                                                                                                                    ? "Pick & Ban"
+                                                                                                                    : "Por decidir"}
+                                                                                                          </div>
+                                                                                                      </div>
+                                                                                                  );
+                                                                                              },
+                                                                                          )}
+                                                                                </div>
+                                                                            ),
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            ),
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            </div>
-                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            },
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -2962,11 +3413,20 @@ export default function AvailabilityPage() {
                                 ))
                             ) : (
                                 <>
-                                    {!hasPreviousPage && events.length > 0 && isListView && (
-                                        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, margin: "10px 0" }}>
-                                            No hay eventos más antiguos.
-                                        </p>
-                                    )}
+                                    {!hasPreviousPage &&
+                                        events.length > 0 &&
+                                        isListView && (
+                                            <p
+                                                style={{
+                                                    textAlign: "center",
+                                                    color: "var(--text-muted)",
+                                                    fontSize: 12,
+                                                    margin: "10px 0",
+                                                }}
+                                            >
+                                                No hay eventos más antiguos.
+                                            </p>
+                                        )}
                                     {events.length === 0 && (
                                         <p
                                             style={{
@@ -3121,26 +3581,26 @@ export default function AvailabilityPage() {
                                                                 firstUpcomingRef as any
                                                             ).current = el;
                                                     }}
-                                                    className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${isInactive
-                                                        ? hasPlayed
-                                                            ? "played-card"
-                                                            : "faded-card"
-                                                        : myStatus ===
-                                                            "unavailable"
-                                                            ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
-                                                            : ev.type ===
-                                                                "match"
+                                                    className={`card glass-card ${isEntryAnimationDone ? "" : "animate-card-in"} ${ev.id === activeHighlightId ? "upcoming-highlight" : ""} ${
+                                                        isInactive
+                                                            ? hasPlayed
+                                                                ? "played-card"
+                                                                : "faded-card"
+                                                            : myStatus ===
+                                                                "unavailable"
+                                                              ? `unavailable-card ${ev.type === "match" ? "hover-lift-match" : ev.type === "playoffs" ? "hover-lift-playoffs" : "hover-lift-practice"}`
+                                                              : ev.type ===
+                                                                  "match"
                                                                 ? "hover-lift-match"
                                                                 : ev.type ===
                                                                     "playoffs"
-                                                                    ? "hover-lift-playoffs"
-                                                                    : "hover-lift-practice"
-                                                        }`}
+                                                                  ? "hover-lift-playoffs"
+                                                                  : "hover-lift-practice"
+                                                    }`}
                                                     style={{
                                                         marginBottom: 12,
                                                         borderLeft: `4px solid ${ev.type === "match" ? "var(--val-match)" : ev.type === "playoffs" ? "var(--val-yellow)" : "var(--val-practice)"}`,
-                                                        scrollMarginTop:
-                                                            "80px",
+                                                        scrollMarginTop: "80px",
                                                         animationDelay: `${Math.min(idx, 5) * 0.1}s`,
                                                         boxShadow:
                                                             isFirstUpcoming
@@ -3151,15 +3611,15 @@ export default function AvailabilityPage() {
                                                                 ? "var(--val-match)"
                                                                 : ev.type ===
                                                                     "playoffs"
-                                                                    ? "var(--val-yellow)"
-                                                                    : "var(--val-practice)",
+                                                                  ? "var(--val-yellow)"
+                                                                  : "var(--val-practice)",
                                                         ["--hover-glow-color" as any]:
                                                             ev.type === "match"
                                                                 ? "rgba(133, 107, 77, 0.3)"
                                                                 : ev.type ===
                                                                     "playoffs"
-                                                                    ? "rgba(245, 158, 11, 0.3)"
-                                                                    : "rgba(184, 184, 184, 0.3)",
+                                                                  ? "rgba(245, 158, 11, 0.3)"
+                                                                  : "rgba(184, 184, 184, 0.3)",
                                                     }}
                                                 >
                                                     <div
@@ -3203,23 +3663,29 @@ export default function AvailabilityPage() {
                                                                         className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"}`}
                                                                     >
                                                                         {ev.type ===
-                                                                            "match"
+                                                                        "match"
                                                                             ? "Partido"
                                                                             : ev.type ===
                                                                                 "playoffs"
-                                                                                ? "Playoffs"
-                                                                                : "Práctica"}
+                                                                              ? "Playoffs"
+                                                                              : "Práctica"}
                                                                     </span>
-                                                                    {ev.season?.name && (
+                                                                    {ev.season
+                                                                        ?.name && (
                                                                         <span
                                                                             className="tag tag-neutral"
                                                                             style={{
                                                                                 fontSize: 10,
                                                                                 fontWeight: 600,
-                                                                                background: "rgba(255,255,255,0.05)"
+                                                                                background:
+                                                                                    "rgba(255,255,255,0.05)",
                                                                             }}
                                                                         >
-                                                                            {ev.season.name}
+                                                                            {
+                                                                                ev
+                                                                                    .season
+                                                                                    .name
+                                                                            }
                                                                         </span>
                                                                     )}
                                                                     {isFirstUpcoming && (
@@ -3244,11 +3710,11 @@ export default function AvailabilityPage() {
                                                                             "-0.5px",
                                                                         textDecoration:
                                                                             isCancelled ||
-                                                                                ev.status ===
+                                                                            ev.status ===
                                                                                 "no_players" ||
-                                                                                ev.status ===
+                                                                            ev.status ===
                                                                                 "not_played" ||
-                                                                                isImpossible
+                                                                            isImpossible
                                                                                 ? "line-through"
                                                                                 : undefined,
                                                                         textShadow:
@@ -3399,7 +3865,11 @@ export default function AvailabilityPage() {
                                                                                         letterSpacing: 1,
                                                                                     }}
                                                                                 >
-                                                                                    Map Pool de la Season
+                                                                                    Map
+                                                                                    Pool
+                                                                                    de
+                                                                                    la
+                                                                                    Season
                                                                                 </div>
                                                                                 <div
                                                                                     style={{
@@ -3421,12 +3891,12 @@ export default function AvailabilityPage() {
                                                                 const mapObj =
                                                                     ev.map
                                                                         ? maps.find(
-                                                                            (
-                                                                                m: any,
-                                                                            ) =>
-                                                                                m.id ===
-                                                                                ev.map,
-                                                                        )
+                                                                              (
+                                                                                  m: any,
+                                                                              ) =>
+                                                                                  m.id ===
+                                                                                  ev.map,
+                                                                          )
                                                                         : null;
                                                                 if (!mapObj)
                                                                     return null;
@@ -3455,12 +3925,12 @@ export default function AvailabilityPage() {
                                                                             cursor: "pointer",
                                                                             ["--hover-color" as any]:
                                                                                 ev.type ===
-                                                                                    "match"
+                                                                                "match"
                                                                                     ? "var(--val-match)"
                                                                                     : "var(--val-practice)",
                                                                             ["--hover-glow-color" as any]:
                                                                                 ev.type ===
-                                                                                    "match"
+                                                                                "match"
                                                                                     ? "rgba(133, 107, 77, 0.2)"
                                                                                     : "rgba(184, 184, 184, 0.2)",
                                                                         }}
@@ -3567,12 +4037,12 @@ export default function AvailabilityPage() {
                                                                     padding: 16,
                                                                     border:
                                                                         confirmed >=
-                                                                            5
+                                                                        5
                                                                             ? "1px solid rgba(0, 212, 170, 0.25)"
                                                                             : "1px solid var(--border-color)",
                                                                     boxShadow:
                                                                         confirmed >=
-                                                                            5
+                                                                        5
                                                                             ? "0 4px 20px rgba(0, 212, 170, 0.03)"
                                                                             : "none",
                                                                     transition:
@@ -3641,7 +4111,7 @@ export default function AvailabilityPage() {
                                                                                 fontWeight: 800,
                                                                                 color:
                                                                                     confirmed >=
-                                                                                        5
+                                                                                    5
                                                                                         ? "var(--val-cyan)"
                                                                                         : "var(--text-secondary)",
                                                                             }}
@@ -3665,196 +4135,277 @@ export default function AvailabilityPage() {
                                                                         gap: 12,
                                                                     }}
                                                                 >
-                                                                    {[...players].sort((a, b) => {
-                                                                        const order: Record<string, number> = { played: 1, available: 2, maybe: 3, pending: 4, unavailable: 5 };
-                                                                        const stA = ea.find(att => att.player_id === a.id)?.status || "pending";
-                                                                        const stB = ea.find(att => att.player_id === b.id)?.status || "pending";
-                                                                        if (order[stA] !== order[stB]) return (order[stA] || 6) - (order[stB] || 6);
-                                                                        return (a.name || "").localeCompare(b.name || "");
-                                                                    }).map(
-                                                                        (p) => {
-                                                                            const ps =
-                                                                                ea.find(
-                                                                                    (
-                                                                                        a,
-                                                                                    ) =>
-                                                                                        a.player_id ===
-                                                                                        p.id,
+                                                                    {[
+                                                                        ...players,
+                                                                    ]
+                                                                        .sort(
+                                                                            (
+                                                                                a,
+                                                                                b,
+                                                                            ) => {
+                                                                                const order: Record<
+                                                                                    string,
+                                                                                    number
+                                                                                > =
+                                                                                    {
+                                                                                        played: 1,
+                                                                                        available: 2,
+                                                                                        maybe: 3,
+                                                                                        pending: 4,
+                                                                                        unavailable: 5,
+                                                                                    };
+                                                                                const stA =
+                                                                                    ea.find(
+                                                                                        (
+                                                                                            att,
+                                                                                        ) =>
+                                                                                            att.player_id ===
+                                                                                            a.id,
+                                                                                    )
+                                                                                        ?.status ||
+                                                                                    "pending";
+                                                                                const stB =
+                                                                                    ea.find(
+                                                                                        (
+                                                                                            att,
+                                                                                        ) =>
+                                                                                            att.player_id ===
+                                                                                            b.id,
+                                                                                    )
+                                                                                        ?.status ||
+                                                                                    "pending";
+                                                                                if (
+                                                                                    order[
+                                                                                        stA
+                                                                                    ] !==
+                                                                                    order[
+                                                                                        stB
+                                                                                    ]
                                                                                 )
-                                                                                    ?.status ||
-                                                                                "pending";
-                                                                            return (
-                                                                                <Link
-                                                                                    href={`/player/${p.id}`}
-                                                                                    key={
-                                                                                        p.id
-                                                                                    }
-                                                                                    title={p.name}
-                                                                                    style={{
-                                                                                        textDecoration: "none", color: "inherit",
-                                                                                        display:
-                                                                                            "flex",
-                                                                                        flexDirection:
-                                                                                            "column",
-                                                                                        alignItems:
-                                                                                            "center",
-                                                                                        gap: 6,
-                                                                                        width: 60,
-                                                                                        textAlign:
-                                                                                            "center",
-                                                                                    }}
-                                                                                >
-                                                                                    <div
+                                                                                    return (
+                                                                                        (order[
+                                                                                            stA
+                                                                                        ] ||
+                                                                                            6) -
+                                                                                        (order[
+                                                                                            stB
+                                                                                        ] ||
+                                                                                            6)
+                                                                                    );
+                                                                                return (
+                                                                                    a.name ||
+                                                                                    ""
+                                                                                ).localeCompare(
+                                                                                    b.name ||
+                                                                                        "",
+                                                                                );
+                                                                            },
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                p,
+                                                                            ) => {
+                                                                                const ps =
+                                                                                    ea.find(
+                                                                                        (
+                                                                                            a,
+                                                                                        ) =>
+                                                                                            a.player_id ===
+                                                                                            p.id,
+                                                                                    )
+                                                                                        ?.status ||
+                                                                                    "pending";
+                                                                                return (
+                                                                                    <Link
+                                                                                        href={`/player/${p.id}`}
+                                                                                        key={
+                                                                                            p.id
+                                                                                        }
+                                                                                        title={
+                                                                                            p.name
+                                                                                        }
                                                                                         style={{
-                                                                                            position:
-                                                                                                "relative",
-                                                                                            width: 36,
-                                                                                            height: 36,
+                                                                                            textDecoration:
+                                                                                                "none",
+                                                                                            color: "inherit",
                                                                                             display:
                                                                                                 "flex",
+                                                                                            flexDirection:
+                                                                                                "column",
                                                                                             alignItems:
                                                                                                 "center",
-                                                                                            justifyContent:
+                                                                                            gap: 6,
+                                                                                            width: 60,
+                                                                                            textAlign:
                                                                                                 "center",
                                                                                         }}
                                                                                     >
-                                                                                        <div
-                                                                                            style={{
-                                                                                                width: "100%",
-                                                                                                height: "100%",
-                                                                                                borderRadius:
-                                                                                                    "50%",
-                                                                                                background:
-                                                                                                    p.avatar_color,
-                                                                                                display:
-                                                                                                    "flex",
-                                                                                                alignItems:
-                                                                                                    "center",
-                                                                                                justifyContent:
-                                                                                                    "center",
-                                                                                                fontSize: 14,
-                                                                                                fontWeight: 800,
-                                                                                                color: "white",
-                                                                                                border: `2px solid ${ps ===
-                                                                                                    "played"
-                                                                                                    ? "var(--val-purple)"
-                                                                                                    : ps ===
-                                                                                                        "available"
-                                                                                                        ? "var(--val-cyan)"
-                                                                                                        : ps ===
-                                                                                                            "maybe"
-                                                                                                            ? "var(--val-yellow)"
-                                                                                                            : ps ===
-                                                                                                                "unavailable"
-                                                                                                                ? "var(--val-red)"
-                                                                                                                : "rgba(255,255,255,0.1)"
-                                                                                                    }`,
-                                                                                                boxShadow:
-                                                                                                    ps !==
-                                                                                                        "pending"
-                                                                                                        ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
-                                                                                                        : "none",
-                                                                                                opacity:
-                                                                                                    ps !==
-                                                                                                        "pending"
-                                                                                                        ? 1
-                                                                                                        : 0.4,
-                                                                                                transition:
-                                                                                                    "all 0.3s ease",
-                                                                                                overflow: "hidden",
-                                                                                            }}
-                                                                                        >
-                                                                                            {p.image ? (
-                                                                                                <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                                                            ) : (
-                                                                                                p.name[0]
-                                                                                            )}
-                                                                                        </div>
-                                                                                        {/* Status Emblem Indicator */}
                                                                                         <div
                                                                                             style={{
                                                                                                 position:
-                                                                                                    "absolute",
-                                                                                                bottom: -2,
-                                                                                                right: -2,
-                                                                                                width: 14,
-                                                                                                height: 14,
-                                                                                                borderRadius:
-                                                                                                    "50%",
-                                                                                                background:
-                                                                                                    ps ===
-                                                                                                        "played"
-                                                                                                        ? "var(--val-purple)"
-                                                                                                        : ps ===
-                                                                                                            "available"
-                                                                                                            ? "var(--val-cyan)"
-                                                                                                            : ps ===
-                                                                                                                "maybe"
-                                                                                                                ? "var(--val-yellow)"
-                                                                                                                : ps ===
-                                                                                                                    "unavailable"
-                                                                                                                    ? "var(--val-red)"
-                                                                                                                    : "rgba(255,255,255,0.15)",
-                                                                                                border: "2px solid #11141b",
+                                                                                                    "relative",
+                                                                                                width: 36,
+                                                                                                height: 36,
                                                                                                 display:
                                                                                                     "flex",
                                                                                                 alignItems:
                                                                                                     "center",
                                                                                                 justifyContent:
                                                                                                     "center",
-                                                                                                fontSize: 8,
-                                                                                                fontWeight: 900,
-                                                                                                color:
-                                                                                                    ps ===
-                                                                                                        "maybe"
-                                                                                                        ? "black"
-                                                                                                        : "white",
-                                                                                                boxShadow:
-                                                                                                    "0 2px 4px rgba(0,0,0,0.5)",
                                                                                             }}
                                                                                         >
-                                                                                            {ps ===
-                                                                                                "played"
-                                                                                                ? "🎮"
-                                                                                                : ps ===
-                                                                                                    "available"
-                                                                                                    ? "✓"
-                                                                                                    : ps ===
+                                                                                            <div
+                                                                                                style={{
+                                                                                                    width: "100%",
+                                                                                                    height: "100%",
+                                                                                                    borderRadius:
+                                                                                                        "50%",
+                                                                                                    background:
+                                                                                                        p.avatar_color,
+                                                                                                    display:
+                                                                                                        "flex",
+                                                                                                    alignItems:
+                                                                                                        "center",
+                                                                                                    justifyContent:
+                                                                                                        "center",
+                                                                                                    fontSize: 14,
+                                                                                                    fontWeight: 800,
+                                                                                                    color: "white",
+                                                                                                    border: `2px solid ${
+                                                                                                        ps ===
+                                                                                                        "played"
+                                                                                                            ? "var(--val-purple)"
+                                                                                                            : ps ===
+                                                                                                                "available"
+                                                                                                              ? "var(--val-cyan)"
+                                                                                                              : ps ===
+                                                                                                                  "maybe"
+                                                                                                                ? "var(--val-yellow)"
+                                                                                                                : ps ===
+                                                                                                                    "unavailable"
+                                                                                                                  ? "var(--val-red)"
+                                                                                                                  : "rgba(255,255,255,0.1)"
+                                                                                                    }`,
+                                                                                                    boxShadow:
+                                                                                                        ps !==
+                                                                                                        "pending"
+                                                                                                            ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
+                                                                                                            : "none",
+                                                                                                    opacity:
+                                                                                                        ps !==
+                                                                                                        "pending"
+                                                                                                            ? 1
+                                                                                                            : 0.4,
+                                                                                                    transition:
+                                                                                                        "all 0.3s ease",
+                                                                                                    overflow:
+                                                                                                        "hidden",
+                                                                                                }}
+                                                                                            >
+                                                                                                {p.image ? (
+                                                                                                    <img
+                                                                                                        src={
+                                                                                                            p.image
+                                                                                                        }
+                                                                                                        alt={
+                                                                                                            p.name
+                                                                                                        }
+                                                                                                        style={{
+                                                                                                            width: "100%",
+                                                                                                            height: "100%",
+                                                                                                            objectFit:
+                                                                                                                "cover",
+                                                                                                        }}
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    p
+                                                                                                        .name[0]
+                                                                                                )}
+                                                                                            </div>
+                                                                                            {/* Status Emblem Indicator */}
+                                                                                            <div
+                                                                                                style={{
+                                                                                                    position:
+                                                                                                        "absolute",
+                                                                                                    bottom: -2,
+                                                                                                    right: -2,
+                                                                                                    width: 14,
+                                                                                                    height: 14,
+                                                                                                    borderRadius:
+                                                                                                        "50%",
+                                                                                                    background:
+                                                                                                        ps ===
+                                                                                                        "played"
+                                                                                                            ? "var(--val-purple)"
+                                                                                                            : ps ===
+                                                                                                                "available"
+                                                                                                              ? "var(--val-cyan)"
+                                                                                                              : ps ===
+                                                                                                                  "maybe"
+                                                                                                                ? "var(--val-yellow)"
+                                                                                                                : ps ===
+                                                                                                                    "unavailable"
+                                                                                                                  ? "var(--val-red)"
+                                                                                                                  : "rgba(255,255,255,0.15)",
+                                                                                                    border: "2px solid #11141b",
+                                                                                                    display:
+                                                                                                        "flex",
+                                                                                                    alignItems:
+                                                                                                        "center",
+                                                                                                    justifyContent:
+                                                                                                        "center",
+                                                                                                    fontSize: 8,
+                                                                                                    fontWeight: 900,
+                                                                                                    color:
+                                                                                                        ps ===
                                                                                                         "maybe"
+                                                                                                            ? "black"
+                                                                                                            : "white",
+                                                                                                    boxShadow:
+                                                                                                        "0 2px 4px rgba(0,0,0,0.5)",
+                                                                                                }}
+                                                                                            >
+                                                                                                {ps ===
+                                                                                                "played"
+                                                                                                    ? "🎮"
+                                                                                                    : ps ===
+                                                                                                        "available"
+                                                                                                      ? "✓"
+                                                                                                      : ps ===
+                                                                                                          "maybe"
                                                                                                         ? "?"
                                                                                                         : ps ===
                                                                                                             "unavailable"
-                                                                                                            ? "✗"
-                                                                                                            : "•"}
+                                                                                                          ? "✗"
+                                                                                                          : "•"}
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                    <div
-                                                                                        style={{
-                                                                                            fontSize: 9,
-                                                                                            color: "var(--text-muted)",
-                                                                                            fontWeight: 700,
-                                                                                            textTransform:
-                                                                                                "uppercase",
-                                                                                            whiteSpace:
-                                                                                                "nowrap",
-                                                                                            overflow:
-                                                                                                "hidden",
-                                                                                            textOverflow:
-                                                                                                "ellipsis",
-                                                                                            width:
-                                                                                                "100%",
-                                                                                        }}
-                                                                                    >
-                                                                                        {
-                                                                                            p.name.split(
-                                                                                                " ",
-                                                                                            )[0]
-                                                                                        }
-                                                                                    </div>
-                                                                                </Link>
-                                                                            );
-                                                                        },
-                                                                    )}
+                                                                                        <div
+                                                                                            style={{
+                                                                                                fontSize: 9,
+                                                                                                color: "var(--text-muted)",
+                                                                                                fontWeight: 700,
+                                                                                                textTransform:
+                                                                                                    "uppercase",
+                                                                                                whiteSpace:
+                                                                                                    "nowrap",
+                                                                                                overflow:
+                                                                                                    "hidden",
+                                                                                                textOverflow:
+                                                                                                    "ellipsis",
+                                                                                                width: "100%",
+                                                                                            }}
+                                                                                        >
+                                                                                            {
+                                                                                                p.name.split(
+                                                                                                    " ",
+                                                                                                )[0]
+                                                                                            }
+                                                                                        </div>
+                                                                                    </Link>
+                                                                                );
+                                                                            },
+                                                                        )}
                                                                 </div>
 
                                                                 {/* Dynamic Detailed Stats Row */}
@@ -4034,15 +4585,19 @@ export default function AvailabilityPage() {
                                                                 {/* Actions Panel (Integrated) */}
                                                                 {myPlayerId &&
                                                                     !isPast &&
-                                                                    ev.status !== "completed" && (
+                                                                    ev.status !==
+                                                                        "completed" && (
                                                                         <div
                                                                             style={{
-                                                                                display: "flex",
-                                                                                alignItems: "center",
+                                                                                display:
+                                                                                    "flex",
+                                                                                alignItems:
+                                                                                    "center",
                                                                                 gap: 12,
                                                                                 marginTop: 14,
                                                                                 paddingTop: 12,
-                                                                                borderTop: "1px solid rgba(255,255,255,0.05)",
+                                                                                borderTop:
+                                                                                    "1px solid rgba(255,255,255,0.05)",
                                                                             }}
                                                                         >
                                                                             <div
@@ -4055,11 +4610,13 @@ export default function AvailabilityPage() {
                                                                                     letterSpacing: 0.5,
                                                                                 }}
                                                                             >
-                                                                                Mi Estado:
+                                                                                Mi
+                                                                                Estado:
                                                                             </div>
                                                                             <div
                                                                                 style={{
-                                                                                    display: "flex",
+                                                                                    display:
+                                                                                        "flex",
                                                                                     gap: 8,
                                                                                     flex: 1,
                                                                                 }}
@@ -4068,7 +4625,10 @@ export default function AvailabilityPage() {
                                                                                     onClick={() =>
                                                                                         setAvailability(
                                                                                             ev.id,
-                                                                                            myStatus === "available" ? "pending" : "available",
+                                                                                            myStatus ===
+                                                                                                "available"
+                                                                                                ? "pending"
+                                                                                                : "available",
                                                                                         )
                                                                                     }
                                                                                     className="transition-smooth"
@@ -4089,44 +4649,66 @@ export default function AvailabilityPage() {
                                                                                         gap: 6,
                                                                                         border:
                                                                                             myStatus ===
-                                                                                                "available"
+                                                                                            "available"
                                                                                                 ? "1px solid var(--val-cyan)"
                                                                                                 : "1px solid rgba(0, 212, 170, 0.15)",
                                                                                         background:
                                                                                             myStatus ===
-                                                                                                "available"
+                                                                                            "available"
                                                                                                 ? "var(--val-cyan)"
                                                                                                 : "rgba(0, 212, 170, 0.03)",
                                                                                         color:
                                                                                             myStatus ===
-                                                                                                "available"
+                                                                                            "available"
                                                                                                 ? "white"
                                                                                                 : "rgba(0, 212, 170, 0.85)",
                                                                                         boxShadow:
                                                                                             myStatus ===
-                                                                                                "available"
+                                                                                            "available"
                                                                                                 ? "0 0 15px rgba(0, 212, 170, 0.3)"
                                                                                                 : "none",
                                                                                         transform:
                                                                                             "scale(1)",
                                                                                     }}
-                                                                                    onMouseEnter={(e) => {
-                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
-                                                                                        e.currentTarget.style.background = myStatus === "available" ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.1)";
+                                                                                    onMouseEnter={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "translateY(-2px)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "available"
+                                                                                                ? "var(--val-cyan)"
+                                                                                                : "rgba(0, 212, 170, 0.1)";
                                                                                     }}
-                                                                                    onMouseLeave={(e) => {
-                                                                                        e.currentTarget.style.transform = "scale(1)";
-                                                                                        e.currentTarget.style.background = myStatus === "available" ? "var(--val-cyan)" : "rgba(0, 212, 170, 0.03)";
+                                                                                    onMouseLeave={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "scale(1)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "available"
+                                                                                                ? "var(--val-cyan)"
+                                                                                                : "rgba(0, 212, 170, 0.03)";
                                                                                     }}
                                                                                 >
-                                                                                    <span>SÍ</span> <span>✅</span>
+                                                                                    <span>
+                                                                                        SÍ
+                                                                                    </span>{" "}
+                                                                                    <span>
+                                                                                        ✅
+                                                                                    </span>
                                                                                 </button>
 
                                                                                 <button
                                                                                     onClick={() =>
                                                                                         setAvailability(
                                                                                             ev.id,
-                                                                                            myStatus === "maybe" ? "pending" : "maybe",
+                                                                                            myStatus ===
+                                                                                                "maybe"
+                                                                                                ? "pending"
+                                                                                                : "maybe",
                                                                                         )
                                                                                     }
                                                                                     className="transition-smooth"
@@ -4147,44 +4729,66 @@ export default function AvailabilityPage() {
                                                                                         gap: 6,
                                                                                         border:
                                                                                             myStatus ===
-                                                                                                "maybe"
+                                                                                            "maybe"
                                                                                                 ? "1px solid var(--val-yellow)"
                                                                                                 : "1px solid rgba(245, 158, 11, 0.15)",
                                                                                         background:
                                                                                             myStatus ===
-                                                                                                "maybe"
+                                                                                            "maybe"
                                                                                                 ? "var(--val-yellow)"
                                                                                                 : "rgba(245, 158, 11, 0.03)",
                                                                                         color:
                                                                                             myStatus ===
-                                                                                                "maybe"
+                                                                                            "maybe"
                                                                                                 ? "black"
                                                                                                 : "rgba(245, 158, 11, 0.85)",
                                                                                         boxShadow:
                                                                                             myStatus ===
-                                                                                                "maybe"
+                                                                                            "maybe"
                                                                                                 ? "0 0 15px rgba(245, 158, 11, 0.3)"
                                                                                                 : "none",
                                                                                         transform:
                                                                                             "scale(1)",
                                                                                     }}
-                                                                                    onMouseEnter={(e) => {
-                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
-                                                                                        e.currentTarget.style.background = myStatus === "maybe" ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.1)";
+                                                                                    onMouseEnter={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "translateY(-2px)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "maybe"
+                                                                                                ? "var(--val-yellow)"
+                                                                                                : "rgba(245, 158, 11, 0.1)";
                                                                                     }}
-                                                                                    onMouseLeave={(e) => {
-                                                                                        e.currentTarget.style.transform = "scale(1)";
-                                                                                        e.currentTarget.style.background = myStatus === "maybe" ? "var(--val-yellow)" : "rgba(245, 158, 11, 0.03)";
+                                                                                    onMouseLeave={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "scale(1)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "maybe"
+                                                                                                ? "var(--val-yellow)"
+                                                                                                : "rgba(245, 158, 11, 0.03)";
                                                                                     }}
                                                                                 >
-                                                                                    <span>DUDA</span> <span>⚠️</span>
+                                                                                    <span>
+                                                                                        DUDA
+                                                                                    </span>{" "}
+                                                                                    <span>
+                                                                                        ⚠️
+                                                                                    </span>
                                                                                 </button>
 
                                                                                 <button
                                                                                     onClick={() =>
                                                                                         setAvailability(
                                                                                             ev.id,
-                                                                                            myStatus === "unavailable" ? "pending" : "unavailable",
+                                                                                            myStatus ===
+                                                                                                "unavailable"
+                                                                                                ? "pending"
+                                                                                                : "unavailable",
                                                                                         )
                                                                                     }
                                                                                     className="transition-smooth"
@@ -4205,37 +4809,56 @@ export default function AvailabilityPage() {
                                                                                         gap: 6,
                                                                                         border:
                                                                                             myStatus ===
-                                                                                                "unavailable"
+                                                                                            "unavailable"
                                                                                                 ? "1px solid var(--val-red)"
                                                                                                 : "1px solid rgba(255, 70, 85, 0.15)",
                                                                                         background:
                                                                                             myStatus ===
-                                                                                                "unavailable"
+                                                                                            "unavailable"
                                                                                                 ? "var(--val-red)"
                                                                                                 : "rgba(255, 70, 85, 0.03)",
                                                                                         color:
                                                                                             myStatus ===
-                                                                                                "unavailable"
+                                                                                            "unavailable"
                                                                                                 ? "white"
                                                                                                 : "rgba(255, 70, 85, 0.85)",
                                                                                         boxShadow:
                                                                                             myStatus ===
-                                                                                                "unavailable"
+                                                                                            "unavailable"
                                                                                                 ? "0 0 15px rgba(255, 70, 85, 0.3)"
                                                                                                 : "none",
                                                                                         transform:
                                                                                             "scale(1)",
                                                                                     }}
-                                                                                    onMouseEnter={(e) => {
-                                                                                        e.currentTarget.style.transform = "translateY(-2px)";
-                                                                                        e.currentTarget.style.background = myStatus === "unavailable" ? "var(--val-red)" : "rgba(255, 70, 85, 0.1)";
+                                                                                    onMouseEnter={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "translateY(-2px)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "unavailable"
+                                                                                                ? "var(--val-red)"
+                                                                                                : "rgba(255, 70, 85, 0.1)";
                                                                                     }}
-                                                                                    onMouseLeave={(e) => {
-                                                                                        e.currentTarget.style.transform = "scale(1)";
-                                                                                        e.currentTarget.style.background = myStatus === "unavailable" ? "var(--val-red)" : "rgba(255, 70, 85, 0.03)";
+                                                                                    onMouseLeave={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.currentTarget.style.transform =
+                                                                                            "scale(1)";
+                                                                                        e.currentTarget.style.background =
+                                                                                            myStatus ===
+                                                                                            "unavailable"
+                                                                                                ? "var(--val-red)"
+                                                                                                : "rgba(255, 70, 85, 0.03)";
                                                                                     }}
                                                                                 >
-                                                                                    <span>NO</span> <span>❌</span>
+                                                                                    <span>
+                                                                                        NO
+                                                                                    </span>{" "}
+                                                                                    <span>
+                                                                                        ❌
+                                                                                    </span>
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -4244,57 +4867,57 @@ export default function AvailabilityPage() {
 
                                                             {(isCancelled ||
                                                                 ev.status ===
-                                                                "no_players" ||
+                                                                    "no_players" ||
                                                                 ev.status ===
-                                                                "not_played" ||
+                                                                    "not_played" ||
                                                                 isImpossible) && (
-                                                                    <div
+                                                                <div
+                                                                    style={{
+                                                                        padding:
+                                                                            "10px 14px",
+                                                                        borderRadius: 8,
+                                                                        background:
+                                                                            "rgba(133, 107, 77, 0.06)",
+                                                                        border: "1px solid rgba(133, 107, 77, 0.2)",
+                                                                        color: "var(--val-red)",
+                                                                        fontSize: 12,
+                                                                        fontWeight: 600,
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 8,
+                                                                        boxShadow:
+                                                                            "0 4px 20px rgba(133, 107, 77, 0.05)",
+                                                                    }}
+                                                                >
+                                                                    <span
                                                                         style={{
-                                                                            padding:
-                                                                                "10px 14px",
-                                                                            borderRadius: 8,
-                                                                            background:
-                                                                                "rgba(133, 107, 77, 0.06)",
-                                                                            border: "1px solid rgba(133, 107, 77, 0.2)",
-                                                                            color: "var(--val-red)",
-                                                                            fontSize: 12,
-                                                                            fontWeight: 600,
-                                                                            display:
-                                                                                "flex",
-                                                                            alignItems:
-                                                                                "center",
-                                                                            gap: 8,
-                                                                            boxShadow:
-                                                                                "0 4px 20px rgba(133, 107, 77, 0.05)",
+                                                                            fontSize: 14,
                                                                         }}
                                                                     >
-                                                                        <span
-                                                                            style={{
-                                                                                fontSize: 14,
-                                                                            }}
-                                                                        >
-                                                                            ⚠️
-                                                                        </span>
-                                                                        <span>
-                                                                            {isCancelled &&
-                                                                                "Cancelado: Ya se jugaron 2 partidos esta semana."}
-                                                                            {ev.status ===
-                                                                                "no_players" &&
-                                                                                "Sin asistencia: No hay suficientes jugadores confirmados."}
-                                                                            {ev.status ===
-                                                                                "not_played" &&
-                                                                                "No jugado: Evento cancelado/no disputado."}
-                                                                            {isImpossible &&
-                                                                                ev.status ===
+                                                                        ⚠️
+                                                                    </span>
+                                                                    <span>
+                                                                        {isCancelled &&
+                                                                            "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                                                                        {ev.status ===
+                                                                            "no_players" &&
+                                                                            "Sin asistencia: No hay suficientes jugadores confirmados."}
+                                                                        {ev.status ===
+                                                                            "not_played" &&
+                                                                            "No jugado: Evento cancelado/no disputado."}
+                                                                        {isImpossible &&
+                                                                            ev.status ===
                                                                                 "scheduled" &&
-                                                                                "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
+                                                                            "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                                                                    </span>
+                                                                </div>
+                                                            )}
 
                                                             {/* Linked Matches */}
                                                             {matches.length >
-                                                                0 ? (
+                                                            0 ? (
                                                                 <div
                                                                     style={{
                                                                         marginTop: 8,
@@ -4326,11 +4949,11 @@ export default function AvailabilityPage() {
                                                                         {matches.map(
                                                                             (
                                                                                 m: LinkedMatch,
-                                                                                mIdx: number
+                                                                                mIdx: number,
                                                                             ) => {
                                                                                 const ourWin =
                                                                                     m.our_team_side ===
-                                                                                        "Blue"
+                                                                                    "Blue"
                                                                                         ? m.team_blue_won
                                                                                         : !m.team_blue_won;
                                                                                 const isBlue =
@@ -4400,18 +5023,39 @@ export default function AvailabilityPage() {
                                                                                                 fontSize: 12,
                                                                                             }}
                                                                                         >
-                                                                                                <span
-                                                                                                    style={{
-                                                                                                        fontWeight: 700,
-                                                                                                    }}
-                                                                                                >
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    fontWeight: 700,
+                                                                                                }}
+                                                                                            >
                                                                                                 {
                                                                                                     m.map_name
                                                                                                 }
                                                                                             </span>
-                                                                                            {ev.type === "playoffs" && (
-                                                                                                <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-cyan)", fontWeight: 800, textTransform: "uppercase", background: "rgba(184, 184, 184, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
-                                                                                                    {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
+                                                                                            {ev.type ===
+                                                                                                "playoffs" && (
+                                                                                                <span
+                                                                                                    style={{
+                                                                                                        marginLeft: 6,
+                                                                                                        fontSize: 10,
+                                                                                                        color: "var(--val-cyan)",
+                                                                                                        fontWeight: 800,
+                                                                                                        textTransform:
+                                                                                                            "uppercase",
+                                                                                                        background:
+                                                                                                            "rgba(184, 184, 184, 0.1)",
+                                                                                                        padding:
+                                                                                                            "2px 6px",
+                                                                                                        borderRadius: 4,
+                                                                                                    }}
+                                                                                                >
+                                                                                                    {mIdx ===
+                                                                                                    0
+                                                                                                        ? "Cuartos"
+                                                                                                        : mIdx ===
+                                                                                                            1
+                                                                                                          ? "Semis"
+                                                                                                          : "Final"}
                                                                                                 </span>
                                                                                             )}
                                                                                             <span
@@ -4461,19 +5105,26 @@ export default function AvailabilityPage() {
                                                                     </div>
                                                                 </div>
                                                             ) : null}
-
-
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
-                                    {!hasNextPage && events.length > 0 && isListView && (
-                                        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, margin: "10px 0" }}>
-                                            No hay más eventos programados.
-                                        </p>
-                                    )}
+                                    {!hasNextPage &&
+                                        events.length > 0 &&
+                                        isListView && (
+                                            <p
+                                                style={{
+                                                    textAlign: "center",
+                                                    color: "var(--text-muted)",
+                                                    fontSize: 12,
+                                                    margin: "10px 0",
+                                                }}
+                                            >
+                                                No hay más eventos programados.
+                                            </p>
+                                        )}
                                 </>
                             )}
                         </div>
@@ -4489,22 +5140,22 @@ export default function AvailabilityPage() {
                                     ? upcomingEv.type === "match"
                                         ? "var(--val-match)"
                                         : upcomingEv.type === "playoffs"
-                                            ? "var(--val-yellow)"
-                                            : "var(--val-practice)"
+                                          ? "var(--val-yellow)"
+                                          : "var(--val-practice)"
                                     : "var(--val-practice)";
                                 const upcomingGlow = upcomingEv
                                     ? upcomingEv.type === "match"
                                         ? "rgba(133, 107, 77, 0.25)"
                                         : upcomingEv.type === "playoffs"
-                                            ? "rgba(234, 180, 8, 0.25)"
-                                            : "rgba(184, 184, 184, 0.25)"
+                                          ? "rgba(234, 180, 8, 0.25)"
+                                          : "rgba(184, 184, 184, 0.25)"
                                     : "rgba(184, 184, 184, 0.25)";
                                 const upcomingBorder = upcomingEv
                                     ? upcomingEv.type === "match"
                                         ? "rgba(133, 107, 77, 0.4)"
                                         : upcomingEv.type === "playoffs"
-                                            ? "rgba(234, 180, 8, 0.4)"
-                                            : "rgba(184, 184, 184, 0.4)"
+                                          ? "rgba(234, 180, 8, 0.4)"
+                                          : "rgba(184, 184, 184, 0.4)"
                                     : "rgba(184, 184, 184, 0.4)";
 
                                 return (
@@ -4512,7 +5163,7 @@ export default function AvailabilityPage() {
                                         onClick={() => {
                                             const card =
                                                 eventRefsMap.current[
-                                                firstUpcomingId
+                                                    firstUpcomingId
                                                 ];
                                             if (card) {
                                                 card.scrollIntoView({
@@ -4538,12 +5189,12 @@ export default function AvailabilityPage() {
                                             transform: "translateX(-50%)",
                                             top:
                                                 upcomingScrollPosition ===
-                                                    "above"
+                                                "above"
                                                     ? 20
                                                     : "auto",
                                             bottom:
                                                 upcomingScrollPosition ===
-                                                    "below"
+                                                "below"
                                                     ? 20
                                                     : "auto",
                                             padding: "10px 20px",
@@ -5107,9 +5758,9 @@ export default function AvailabilityPage() {
                                         readOnly
                                         value={
                                             !isMounted ||
-                                                (exportTab === "team"
-                                                    ? !calendarToken
-                                                    : !userCalendarToken)
+                                            (exportTab === "team"
+                                                ? !calendarToken
+                                                : !userCalendarToken)
                                                 ? "Cargando enlace..."
                                                 : `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`
                                         }
@@ -5156,54 +5807,54 @@ export default function AvailabilityPage() {
                                     {/* Botón de Regenerar junto con el enlace */}
                                     {(exportTab === "personal" ||
                                         canManage) && (
-                                            <button
-                                                className="btn btn-ghost"
+                                        <button
+                                            className="btn btn-ghost"
+                                            style={{
+                                                padding: "0 12px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: "var(--val-red)",
+                                                border: "1px solid rgba(133, 107, 77, 0.2)",
+                                                background:
+                                                    "rgba(133, 107, 77, 0.03)",
+                                                transition: "all 0.2s ease",
+                                            }}
+                                            onClick={() =>
+                                                regenerateToken(exportTab)
+                                            }
+                                            disabled={
+                                                isRegenerating ||
+                                                (exportTab === "team"
+                                                    ? !calendarToken
+                                                    : !userCalendarToken)
+                                            }
+                                            title={
+                                                exportTab === "team"
+                                                    ? "Regenerar Enlace de Seguridad del Equipo"
+                                                    : "Regenerar Enlace de Seguridad Personal"
+                                            }
+                                        >
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                width="14"
+                                                height="14"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
                                                 style={{
-                                                    padding: "0 12px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    color: "var(--val-red)",
-                                                    border: "1px solid rgba(133, 107, 77, 0.2)",
-                                                    background:
-                                                        "rgba(133, 107, 77, 0.03)",
-                                                    transition: "all 0.2s ease",
+                                                    flexShrink: 0,
+                                                    animation: isRegenerating
+                                                        ? "spin 1s linear infinite"
+                                                        : "none",
                                                 }}
-                                                onClick={() =>
-                                                    regenerateToken(exportTab)
-                                                }
-                                                disabled={
-                                                    isRegenerating ||
-                                                    (exportTab === "team"
-                                                        ? !calendarToken
-                                                        : !userCalendarToken)
-                                                }
-                                                title={
-                                                    exportTab === "team"
-                                                        ? "Regenerar Enlace de Seguridad del Equipo"
-                                                        : "Regenerar Enlace de Seguridad Personal"
-                                                }
                                             >
-                                                <svg
-                                                    viewBox="0 0 24 24"
-                                                    width="14"
-                                                    height="14"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    style={{
-                                                        flexShrink: 0,
-                                                        animation: isRegenerating
-                                                            ? "spin 1s linear infinite"
-                                                            : "none",
-                                                    }}
-                                                >
-                                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.72" />
-                                                </svg>
-                                            </button>
-                                        )}
+                                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.72" />
+                                            </svg>
+                                        </button>
+                                    )}
                                 </div>
                                 <p
                                     style={{
@@ -5329,7 +5980,8 @@ export default function AvailabilityPage() {
                     if (!ev) return null;
                     const ea = avail[ev.id] || [];
                     const matches = ev.linkedMatches || [];
-                    const hasPlayed = ev.status === "completed" || matches.length > 0;
+                    const hasPlayed =
+                        ev.status === "completed" || matches.length > 0;
                     const confirmed = ea.filter(
                         (a) =>
                             a.status === "available" || a.status === "played",
@@ -5355,7 +6007,6 @@ export default function AvailabilityPage() {
                         players.length >= 5 &&
                         players.length - unavailable < 5;
 
-
                     const isRed =
                         isCancelled ||
                         isNoPlayers ||
@@ -5365,8 +6016,8 @@ export default function AvailabilityPage() {
                         ev.type === "playoffs"
                             ? "var(--val-yellow)"
                             : ev.type === "match"
-                                ? "var(--val-match)"
-                                : "var(--val-practice)";
+                              ? "var(--val-match)"
+                              : "var(--val-practice)";
                     const evColor =
                         isRed || myStatus === "unavailable"
                             ? "rgba(255,255,255,0.05)"
@@ -5396,21 +6047,23 @@ export default function AvailabilityPage() {
                                             isRed || myStatus === "unavailable"
                                                 ? "rgba(0,0,0,0.5)"
                                                 : myStatus === "pending"
-                                                    ? "rgba(10, 11, 20, 0.6)"
-                                                    : evColorBase,
+                                                  ? "rgba(10, 11, 20, 0.6)"
+                                                  : evColorBase,
                                         display: "flex",
                                         alignItems: "end",
                                         padding: 24,
-                                        boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${isRed ||
+                                        boxShadow: `inset 0 -60px 80px -20px #0a0b14, inset 0 0 100px ${
+                                            isRed ||
                                             myStatus === "unavailable" ||
                                             myStatus === "pending"
-                                            ? "transparent"
-                                            : evColorBase
-                                            }44`,
-                                        borderBottom: `2px solid ${myStatus === "pending"
-                                            ? "rgba(255,255,255,0.1)"
-                                            : evColorBase
-                                            }`,
+                                                ? "transparent"
+                                                : evColorBase
+                                        }44`,
+                                        borderBottom: `2px solid ${
+                                            myStatus === "pending"
+                                                ? "rgba(255,255,255,0.1)"
+                                                : evColorBase
+                                        }`,
                                         overflow: "hidden",
                                     }}
                                 >
@@ -5425,8 +6078,8 @@ export default function AvailabilityPage() {
                                                     myStatus === "unavailable"
                                                     ? 0.2
                                                     : myStatus === "pending"
-                                                        ? 0.75
-                                                        : 0.45,
+                                                      ? 0.75
+                                                      : 0.45,
                                             );
                                         })()}
 
@@ -5446,13 +6099,13 @@ export default function AvailabilityPage() {
                                                         "center",
                                                     opacity:
                                                         isRed ||
-                                                            myStatus ===
+                                                        myStatus ===
                                                             "unavailable"
                                                             ? 0.25
                                                             : myStatus ===
                                                                 "pending"
-                                                                ? 0.8
-                                                                : 0.45,
+                                                              ? 0.8
+                                                              : 0.45,
                                                     pointerEvents: "none",
                                                     zIndex: 0,
                                                 }}
@@ -5501,13 +6154,13 @@ export default function AvailabilityPage() {
                                             }}
                                         >
                                             <span
-                                                className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"} ${(myStatus === "available" || myStatus === "maybe") ? "tag-solid" : ""}`}
+                                                className={`tag ${ev.type === "match" ? "tag-match" : ev.type === "playoffs" ? "tag-gold" : "tag-practice"} ${myStatus === "available" || myStatus === "maybe" ? "tag-solid" : ""}`}
                                             >
                                                 {ev.type === "match"
                                                     ? "Partido"
                                                     : ev.type === "playoffs"
-                                                        ? "Playoffs"
-                                                        : "Práctica"}
+                                                      ? "Playoffs"
+                                                      : "Práctica"}
                                             </span>
                                             {ev.season?.name && (
                                                 <span
@@ -5515,7 +6168,8 @@ export default function AvailabilityPage() {
                                                     style={{
                                                         fontSize: 10,
                                                         fontWeight: 600,
-                                                        background: "rgba(255,255,255,0.05)"
+                                                        background:
+                                                            "rgba(255,255,255,0.05)",
                                                     }}
                                                 >
                                                     {ev.season.name}
@@ -5549,39 +6203,39 @@ export default function AvailabilityPage() {
                                         isNoPlayers ||
                                         isNotPlayed ||
                                         isImpossible) && (
-                                            <div
-                                                style={{
-                                                    padding: "12px 16px",
-                                                    borderRadius: 8,
-                                                    background:
-                                                        "rgba(133, 107, 77, 0.06)",
-                                                    border: "1px solid rgba(133, 107, 77, 0.2)",
-                                                    color: "var(--val-red)",
-                                                    fontSize: 13,
-                                                    fontWeight: 600,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: 10,
-                                                    boxShadow:
-                                                        "0 4px 20px rgba(133, 107, 77, 0.05)",
-                                                }}
-                                            >
-                                                <span style={{ fontSize: 16 }}>
-                                                    ⚠️
-                                                </span>
-                                                <span>
-                                                    {isCancelled &&
-                                                        "Cancelado: Ya se jugaron 2 partidos esta semana."}
-                                                    {isNoPlayers &&
-                                                        "Sin asistencia: No hay suficientes jugadores confirmados."}
-                                                    {isNotPlayed &&
-                                                        "No jugado: Evento cancelado/no disputado."}
-                                                    {isImpossible &&
-                                                        ev.status === "scheduled" &&
-                                                        "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div
+                                            style={{
+                                                padding: "12px 16px",
+                                                borderRadius: 8,
+                                                background:
+                                                    "rgba(133, 107, 77, 0.06)",
+                                                border: "1px solid rgba(133, 107, 77, 0.2)",
+                                                color: "var(--val-red)",
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 10,
+                                                boxShadow:
+                                                    "0 4px 20px rgba(133, 107, 77, 0.05)",
+                                            }}
+                                        >
+                                            <span style={{ fontSize: 16 }}>
+                                                ⚠️
+                                            </span>
+                                            <span>
+                                                {isCancelled &&
+                                                    "Cancelado: Ya se jugaron 2 partidos esta semana."}
+                                                {isNoPlayers &&
+                                                    "Sin asistencia: No hay suficientes jugadores confirmados."}
+                                                {isNotPlayed &&
+                                                    "No jugado: Evento cancelado/no disputado."}
+                                                {isImpossible &&
+                                                    ev.status === "scheduled" &&
+                                                    "Imposible: Falta de jugadores (mínimo 5 confirmados)."}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div
                                         style={{
                                             display: "flex",
@@ -5700,8 +6354,8 @@ export default function AvailabilityPage() {
                                                 {ev.map
                                                     ? ev.map_obj?.name || ev.map
                                                     : ev.type === "playoffs"
-                                                        ? "Pick & Ban"
-                                                        : "Por decidir"}
+                                                      ? "Pick & Ban"
+                                                      : "Por decidir"}
                                             </div>
                                         </div>
                                     </div>
@@ -5753,7 +6407,10 @@ export default function AvailabilityPage() {
                                                     }}
                                                 >
                                                     {ev.linkedMatches.map(
-                                                        (m: any, mIdx: number) => {
+                                                        (
+                                                            m: any,
+                                                            mIdx: number,
+                                                        ) => {
                                                             const isBlue =
                                                                 m.our_team_side ===
                                                                 "Blue";
@@ -5817,9 +6474,30 @@ export default function AvailabilityPage() {
                                                                                 m.map_name
                                                                             }
                                                                         </span>
-                                                                        {ev.type === "playoffs" && (
-                                                                            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--val-yellow)", fontWeight: 800, textTransform: "uppercase", background: "rgba(234, 180, 8, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
-                                                                                {mIdx === 0 ? "Cuartos" : mIdx === 1 ? "Semis" : "Final"}
+                                                                        {ev.type ===
+                                                                            "playoffs" && (
+                                                                            <span
+                                                                                style={{
+                                                                                    marginLeft: 6,
+                                                                                    fontSize: 10,
+                                                                                    color: "var(--val-yellow)",
+                                                                                    fontWeight: 800,
+                                                                                    textTransform:
+                                                                                        "uppercase",
+                                                                                    background:
+                                                                                        "rgba(234, 180, 8, 0.1)",
+                                                                                    padding:
+                                                                                        "2px 6px",
+                                                                                    borderRadius: 4,
+                                                                                }}
+                                                                            >
+                                                                                {mIdx ===
+                                                                                0
+                                                                                    ? "Cuartos"
+                                                                                    : mIdx ===
+                                                                                        1
+                                                                                      ? "Semis"
+                                                                                      : "Final"}
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -5926,138 +6604,236 @@ export default function AvailabilityPage() {
                                                 gap: 12,
                                             }}
                                         >
-                                            {[...players].sort((a, b) => {
-                                                const order: Record<string, number> = { played: 1, available: 2, maybe: 3, pending: 4, unavailable: 5 };
-                                                const stA = ea.find(att => att.player_id === a.id)?.status || "pending";
-                                                const stB = ea.find(att => att.player_id === b.id)?.status || "pending";
-                                                if (order[stA] !== order[stB]) return (order[stA] || 6) - (order[stB] || 6);
-                                                return (a.name || "").localeCompare(b.name || "");
-                                            }).map((p) => {
-                                                const ps =
-                                                    ea.find(
-                                                        (a) =>
-                                                            a.player_id ===
-                                                            p.id,
-                                                    )?.status || "pending";
-                                                return (
-                                                    <Link
-                                                        href={`/player/${p.id}`}
-                                                        key={p.id}
-                                                        title={p.name}
-                                                        style={{
-                                                            textDecoration: "none", color: "inherit",
-                                                            display: "flex",
-                                                            flexDirection: "column",
-                                                            alignItems: "center",
-                                                            gap: 6,
-                                                            width: 60,
-                                                            textAlign: "center",
-                                                        }}
-                                                    >
-                                                        <div
+                                            {[...players]
+                                                .sort((a, b) => {
+                                                    const order: Record<
+                                                        string,
+                                                        number
+                                                    > = {
+                                                        played: 1,
+                                                        available: 2,
+                                                        maybe: 3,
+                                                        pending: 4,
+                                                        unavailable: 5,
+                                                    };
+                                                    const stA =
+                                                        ea.find(
+                                                            (att) =>
+                                                                att.player_id ===
+                                                                a.id,
+                                                        )?.status || "pending";
+                                                    const stB =
+                                                        ea.find(
+                                                            (att) =>
+                                                                att.player_id ===
+                                                                b.id,
+                                                        )?.status || "pending";
+                                                    if (
+                                                        order[stA] !==
+                                                        order[stB]
+                                                    )
+                                                        return (
+                                                            (order[stA] || 6) -
+                                                            (order[stB] || 6)
+                                                        );
+                                                    return (
+                                                        a.name || ""
+                                                    ).localeCompare(
+                                                        b.name || "",
+                                                    );
+                                                })
+                                                .map((p) => {
+                                                    const ps =
+                                                        ea.find(
+                                                            (a) =>
+                                                                a.player_id ===
+                                                                p.id,
+                                                        )?.status || "pending";
+                                                    return (
+                                                        <Link
+                                                            href={`/player/${p.id}`}
+                                                            key={p.id}
+                                                            title={p.name}
                                                             style={{
-                                                                position: "relative",
-                                                                width: 36,
-                                                                height: 36,
+                                                                textDecoration:
+                                                                    "none",
+                                                                color: "inherit",
                                                                 display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
+                                                                flexDirection:
+                                                                    "column",
+                                                                alignItems:
+                                                                    "center",
+                                                                gap: 6,
+                                                                width: 60,
+                                                                textAlign:
+                                                                    "center",
                                                             }}
                                                         >
                                                             <div
                                                                 style={{
-                                                                    width: "100%",
-                                                                    height: "100%",
-                                                                    borderRadius: "50%",
-                                                                    background: p.avatar_color,
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    fontSize: 14,
-                                                                    fontWeight: 800,
-                                                                    color: "white",
-                                                                    border: `2px solid ${ps === "played"
-                                                                        ? "var(--val-purple)"
-                                                                        : ps === "available"
-                                                                            ? "var(--val-cyan)"
-                                                                            : ps === "maybe"
-                                                                                ? "var(--val-yellow)"
-                                                                                : ps === "unavailable"
-                                                                                    ? "var(--val-red)"
-                                                                                    : "rgba(255,255,255,0.1)"
-                                                                        }`,
-                                                                    boxShadow:
-                                                                        ps !== "pending"
-                                                                            ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
-                                                                            : "none",
-                                                                    opacity: ps !== "pending" ? 1 : 0.4,
-                                                                    transition: "all 0.3s ease",
-                                                                    overflow: "hidden",
+                                                                    position:
+                                                                        "relative",
+                                                                    width: 36,
+                                                                    height: 36,
+                                                                    display:
+                                                                        "flex",
+                                                                    alignItems:
+                                                                        "center",
+                                                                    justifyContent:
+                                                                        "center",
                                                                 }}
                                                             >
-                                                                {p.image ? (
-                                                                    <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                                ) : (
-                                                                    p.name[0]
-                                                                )}
-                                                            </div>
-                                                            {/* Status Emblem Indicator */}
-                                                            <div
-                                                                style={{
-                                                                    position: "absolute",
-                                                                    bottom: -2,
-                                                                    right: -2,
-                                                                    width: 14,
-                                                                    height: 14,
-                                                                    borderRadius: "50%",
-                                                                    background:
-                                                                        ps === "played"
-                                                                            ? "var(--val-purple)"
-                                                                            : ps === "available"
-                                                                                ? "var(--val-cyan)"
-                                                                                : ps === "maybe"
+                                                                <div
+                                                                    style={{
+                                                                        width: "100%",
+                                                                        height: "100%",
+                                                                        borderRadius:
+                                                                            "50%",
+                                                                        background:
+                                                                            p.avatar_color,
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        justifyContent:
+                                                                            "center",
+                                                                        fontSize: 14,
+                                                                        fontWeight: 800,
+                                                                        color: "white",
+                                                                        border: `2px solid ${
+                                                                            ps ===
+                                                                            "played"
+                                                                                ? "var(--val-purple)"
+                                                                                : ps ===
+                                                                                    "available"
+                                                                                  ? "var(--val-cyan)"
+                                                                                  : ps ===
+                                                                                      "maybe"
                                                                                     ? "var(--val-yellow)"
-                                                                                    : ps === "unavailable"
-                                                                                        ? "var(--val-red)"
-                                                                                        : "rgba(255,255,255,0.15)",
-                                                                    border: "2px solid #11141b",
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    fontSize: 8,
-                                                                    fontWeight: 900,
-                                                                    color: ps === "maybe" ? "black" : "white",
-                                                                    boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                                                                                    : ps ===
+                                                                                        "unavailable"
+                                                                                      ? "var(--val-red)"
+                                                                                      : "rgba(255,255,255,0.1)"
+                                                                        }`,
+                                                                        boxShadow:
+                                                                            ps !==
+                                                                            "pending"
+                                                                                ? `0 0 10px ${ps === "played" ? "var(--val-purple)" : ps === "available" ? "var(--val-cyan)" : ps === "maybe" ? "var(--val-yellow)" : "var(--val-red)"}44`
+                                                                                : "none",
+                                                                        opacity:
+                                                                            ps !==
+                                                                            "pending"
+                                                                                ? 1
+                                                                                : 0.4,
+                                                                        transition:
+                                                                            "all 0.3s ease",
+                                                                        overflow:
+                                                                            "hidden",
+                                                                    }}
+                                                                >
+                                                                    {p.image ? (
+                                                                        <img
+                                                                            src={
+                                                                                p.image
+                                                                            }
+                                                                            alt={
+                                                                                p.name
+                                                                            }
+                                                                            style={{
+                                                                                width: "100%",
+                                                                                height: "100%",
+                                                                                objectFit:
+                                                                                    "cover",
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        p
+                                                                            .name[0]
+                                                                    )}
+                                                                </div>
+                                                                {/* Status Emblem Indicator */}
+                                                                <div
+                                                                    style={{
+                                                                        position:
+                                                                            "absolute",
+                                                                        bottom: -2,
+                                                                        right: -2,
+                                                                        width: 14,
+                                                                        height: 14,
+                                                                        borderRadius:
+                                                                            "50%",
+                                                                        background:
+                                                                            ps ===
+                                                                            "played"
+                                                                                ? "var(--val-purple)"
+                                                                                : ps ===
+                                                                                    "available"
+                                                                                  ? "var(--val-cyan)"
+                                                                                  : ps ===
+                                                                                      "maybe"
+                                                                                    ? "var(--val-yellow)"
+                                                                                    : ps ===
+                                                                                        "unavailable"
+                                                                                      ? "var(--val-red)"
+                                                                                      : "rgba(255,255,255,0.15)",
+                                                                        border: "2px solid #11141b",
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        justifyContent:
+                                                                            "center",
+                                                                        fontSize: 8,
+                                                                        fontWeight: 900,
+                                                                        color:
+                                                                            ps ===
+                                                                            "maybe"
+                                                                                ? "black"
+                                                                                : "white",
+                                                                        boxShadow:
+                                                                            "0 2px 4px rgba(0,0,0,0.5)",
+                                                                    }}
+                                                                >
+                                                                    {ps ===
+                                                                    "played"
+                                                                        ? "🎮"
+                                                                        : ps ===
+                                                                            "available"
+                                                                          ? "✓"
+                                                                          : ps ===
+                                                                              "maybe"
+                                                                            ? "?"
+                                                                            : ps ===
+                                                                                "unavailable"
+                                                                              ? "✗"
+                                                                              : "•"}
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                style={{
+                                                                    fontSize: 9,
+                                                                    color: "var(--text-muted)",
+                                                                    fontWeight: 700,
+                                                                    textTransform:
+                                                                        "uppercase",
+                                                                    whiteSpace:
+                                                                        "nowrap",
+                                                                    overflow:
+                                                                        "hidden",
+                                                                    textOverflow:
+                                                                        "ellipsis",
+                                                                    width: "100%",
                                                                 }}
                                                             >
-                                                                {ps === "played"
-                                                                    ? "🎮"
-                                                                    : ps === "available"
-                                                                        ? "✓"
-                                                                        : ps === "maybe"
-                                                                            ? "?"
-                                                                            : ps === "unavailable"
-                                                                                ? "✗"
-                                                                                : "•"}
+                                                                {
+                                                                    p.name.split(
+                                                                        " ",
+                                                                    )[0]
+                                                                }
                                                             </div>
-                                                        </div>
-                                                        <div
-                                                            style={{
-                                                                fontSize: 9,
-                                                                color: "var(--text-muted)",
-                                                                fontWeight: 700,
-                                                                textTransform: "uppercase",
-                                                                whiteSpace: "nowrap",
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                width: "100%",
-                                                            }}
-                                                        >
-                                                            {p.name.split(" ")[0]}
-                                                        </div>
-                                                    </Link>
-                                                );
-                                            })}
+                                                        </Link>
+                                                    );
+                                                })}
                                         </div>
 
                                         {/* Legend Row inside Modal */}
@@ -6067,7 +6843,8 @@ export default function AvailabilityPage() {
                                                 gap: 8,
                                                 marginTop: 14,
                                                 paddingTop: 12,
-                                                borderTop: "1px solid rgba(255,255,255,0.05)",
+                                                borderTop:
+                                                    "1px solid rgba(255,255,255,0.05)",
                                                 justifyContent: "space-between",
                                                 fontSize: 10,
                                                 fontWeight: 700,
@@ -6077,146 +6854,212 @@ export default function AvailabilityPage() {
                                             }}
                                         >
                                             {hasPlayed && (
-                                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 4,
+                                                    }}
+                                                >
                                                     <span
                                                         style={{
                                                             width: 6,
                                                             height: 6,
                                                             borderRadius: "50%",
-                                                            background: "var(--val-purple)",
-                                                            boxShadow: "0 0 6px var(--val-purple)",
+                                                            background:
+                                                                "var(--val-purple)",
+                                                            boxShadow:
+                                                                "0 0 6px var(--val-purple)",
                                                         }}
                                                     />
-                                                    <span style={{ color: "var(--val-purple)" }}>
-                                                        {ea.filter((a) => a.status === "played").length} Jugaron
+                                                    <span
+                                                        style={{
+                                                            color: "var(--val-purple)",
+                                                        }}
+                                                    >
+                                                        {
+                                                            ea.filter(
+                                                                (a) =>
+                                                                    a.status ===
+                                                                    "played",
+                                                            ).length
+                                                        }{" "}
+                                                        Jugaron
                                                     </span>
                                                 </div>
                                             )}
-                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                }}
+                                            >
                                                 <span
                                                     style={{
                                                         width: 6,
                                                         height: 6,
                                                         borderRadius: "50%",
-                                                        background: "var(--val-cyan)",
-                                                        boxShadow: "0 0 6px var(--val-cyan)",
+                                                        background:
+                                                            "var(--val-cyan)",
+                                                        boxShadow:
+                                                            "0 0 6px var(--val-cyan)",
                                                     }}
                                                 />
                                                 <span>{confirmed} Sí</span>
                                             </div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                }}
+                                            >
                                                 <span
                                                     style={{
                                                         width: 6,
                                                         height: 6,
                                                         borderRadius: "50%",
-                                                        background: "var(--val-yellow)",
-                                                        boxShadow: "0 0 6px var(--val-yellow)",
+                                                        background:
+                                                            "var(--val-yellow)",
+                                                        boxShadow:
+                                                            "0 0 6px var(--val-yellow)",
                                                     }}
                                                 />
                                                 <span>{maybeCount} Duda</span>
                                             </div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                }}
+                                            >
                                                 <span
                                                     style={{
                                                         width: 6,
                                                         height: 6,
                                                         borderRadius: "50%",
-                                                        background: "var(--val-red)",
-                                                        boxShadow: "0 0 6px var(--val-red)",
+                                                        background:
+                                                            "var(--val-red)",
+                                                        boxShadow:
+                                                            "0 0 6px var(--val-red)",
                                                     }}
                                                 />
                                                 <span>{unavailable} No</span>
                                             </div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                }}
+                                            >
                                                 <span
                                                     style={{
                                                         width: 6,
                                                         height: 6,
                                                         borderRadius: "50%",
-                                                        background: "rgba(255,255,255,0.25)",
+                                                        background:
+                                                            "rgba(255,255,255,0.25)",
                                                     }}
                                                 />
                                                 <span>
-                                                    {players.length - confirmed - maybeCount - unavailable} Pendiente
+                                                    {players.length -
+                                                        confirmed -
+                                                        maybeCount -
+                                                        unavailable}{" "}
+                                                    Pendiente
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {myPlayerId && !isPast && ev.status !== "completed" && (
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: 10,
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 800,
-                                                    color: "var(--text-muted)",
-                                                    textTransform: "uppercase",
-                                                    letterSpacing: 1,
-                                                }}
-                                            >
-                                                Tu disponibilidad:
-                                            </div>
+                                    {myPlayerId &&
+                                        !isPast &&
+                                        ev.status !== "completed" && (
                                             <div
                                                 style={{
                                                     display: "flex",
-                                                    gap: 8,
+                                                    flexDirection: "column",
+                                                    gap: 10,
                                                 }}
                                             >
-                                                <button
-                                                    className={`btn btn-sm ${myStatus === "available" ? "btn-primary" : "btn-secondary"}`}
-                                                    onClick={() =>
-                                                        setAvailability(
-                                                            ev.id,
-                                                            myStatus === "available" ? "pending" : "available",
-                                                        )
-                                                    }
+                                                <div
                                                     style={{
-                                                        flex: 1,
-                                                        borderRadius: 10,
+                                                        fontSize: 11,
+                                                        fontWeight: 800,
+                                                        color: "var(--text-muted)",
+                                                        textTransform:
+                                                            "uppercase",
+                                                        letterSpacing: 1,
                                                     }}
                                                 >
-                                                    SÍ ✅
-                                                </button>
-                                                <button
-                                                    className={`btn btn-sm ${myStatus === "maybe" ? "btn-primary" : "btn-secondary"}`}
-                                                    onClick={() =>
-                                                        setAvailability(
-                                                            ev.id,
-                                                            myStatus === "maybe" ? "pending" : "maybe",
-                                                        )
-                                                    }
+                                                    Tu disponibilidad:
+                                                </div>
+                                                <div
                                                     style={{
-                                                        flex: 1,
-                                                        borderRadius: 10,
+                                                        display: "flex",
+                                                        gap: 8,
                                                     }}
                                                 >
-                                                    DUDA ⚠️
-                                                </button>
-                                                <button
-                                                    className={`btn btn-sm ${myStatus === "unavailable" ? "btn-primary" : "btn-secondary"}`}
-                                                    onClick={() =>
-                                                        setAvailability(
-                                                            ev.id,
-                                                            myStatus === "unavailable" ? "pending" : "unavailable",
-                                                        )
-                                                    }
-                                                    style={{
-                                                        flex: 1,
-                                                        borderRadius: 10,
-                                                    }}
-                                                >
-                                                    NO ❌
-                                                </button>
+                                                    <button
+                                                        className={`btn btn-sm ${myStatus === "available" ? "btn-primary" : "btn-secondary"}`}
+                                                        onClick={() =>
+                                                            setAvailability(
+                                                                ev.id,
+                                                                myStatus ===
+                                                                    "available"
+                                                                    ? "pending"
+                                                                    : "available",
+                                                            )
+                                                        }
+                                                        style={{
+                                                            flex: 1,
+                                                            borderRadius: 10,
+                                                        }}
+                                                    >
+                                                        SÍ ✅
+                                                    </button>
+                                                    <button
+                                                        className={`btn btn-sm ${myStatus === "maybe" ? "btn-primary" : "btn-secondary"}`}
+                                                        onClick={() =>
+                                                            setAvailability(
+                                                                ev.id,
+                                                                myStatus ===
+                                                                    "maybe"
+                                                                    ? "pending"
+                                                                    : "maybe",
+                                                            )
+                                                        }
+                                                        style={{
+                                                            flex: 1,
+                                                            borderRadius: 10,
+                                                        }}
+                                                    >
+                                                        DUDA ⚠️
+                                                    </button>
+                                                    <button
+                                                        className={`btn btn-sm ${myStatus === "unavailable" ? "btn-primary" : "btn-secondary"}`}
+                                                        onClick={() =>
+                                                            setAvailability(
+                                                                ev.id,
+                                                                myStatus ===
+                                                                    "unavailable"
+                                                                    ? "pending"
+                                                                    : "unavailable",
+                                                            )
+                                                        }
+                                                        style={{
+                                                            flex: 1,
+                                                            borderRadius: 10,
+                                                        }}
+                                                    >
+                                                        NO ❌
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
                                     {canManage && ev.type === "custom" && (
                                         <div
@@ -6257,4 +7100,3 @@ export default function AvailabilityPage() {
         </div>
     );
 }
-
