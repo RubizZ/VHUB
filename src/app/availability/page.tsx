@@ -207,6 +207,7 @@ export default function AvailabilityPage() {
     const [now, setNow] = useState(new Date());
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
     const [scrollToEventId, setScrollToEventId] = useState<number | null>(null);
+    const [typeFilter, setTypeFilter] = useState<string>("all");
     const [updatingEventId, setUpdatingEventId] = useState<number | null>(null);
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
     const [touchEndX, setTouchEndX] = useState<number | null>(null);
@@ -294,11 +295,13 @@ export default function AvailabilityPage() {
     }, [currentDate, viewMode]);
 
     const { data: calendarEventsData, isLoading: calendarEventsLoading, error: calendarError } = useQuery({
-        queryKey: ["events", "calendar", dateBoundaries.start, dateBoundaries.end],
+        queryKey: ["events", "calendar", dateBoundaries.start, dateBoundaries.end, typeFilter],
         queryFn: async () => {
-            const params = new URLSearchParams({ view: viewMode || "calendar" });
+            if (!dateBoundaries.start || !dateBoundaries.end) return null;
+            const params = new URLSearchParams({ view: "calendar" });
             if (dateBoundaries.start) params.set("startDate", dateBoundaries.start);
             if (dateBoundaries.end) params.set("endDate", dateBoundaries.end);
+            if (typeFilter !== "all") params.set("type", typeFilter);
             
             const res = await fetch(`/api/events?${params.toString()}`);
             if (res.status === 401) {
@@ -324,13 +327,14 @@ export default function AvailabilityPage() {
         isFetchingNextPage,
         isFetchingPreviousPage
     } = useInfiniteQuery({
-        queryKey: ["events", "list"],
+        queryKey: ["events", "list", typeFilter],
         queryFn: async ({ pageParam }) => {
             const params = new URLSearchParams({ view: "list", limit: "15" });
             if (pageParam) {
                 params.set("cursor", String(pageParam.cursor));
                 params.set("direction", pageParam.direction);
             }
+            if (typeFilter !== "all") params.set("type", typeFilter);
             const res = await fetch(`/api/events?${params.toString()}`);
             if (res.status === 401) {
                 window.location.href = "/login";
@@ -1045,7 +1049,8 @@ export default function AvailabilityPage() {
                         </p>
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", width: "100%" }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Vista:</span>
                             <div
                             className="glass-card"
                             style={{
@@ -1086,6 +1091,24 @@ export default function AvailabilityPage() {
                             >
                                 📅 Mes
                             </button>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Filtro:</span>
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => {
+                                    setTypeFilter(e.target.value);
+                                    setHasInitialScrolled(false);
+                                }}
+                                className="input"
+                                style={{ borderRadius: 8, padding: "4px 8px", height: "32px", fontSize: 14, minWidth: 120 }}
+                            >
+                                <option value="all">Todos los eventos</option>
+                                <option value="match">Partido</option>
+                                <option value="practice">Práctica</option>
+                                <option value="playoffs">Playoffs</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
                         </div>
                         <button
                             className="btn btn-ghost btn-sm"

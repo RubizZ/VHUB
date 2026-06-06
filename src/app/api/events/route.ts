@@ -621,13 +621,18 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "15", 10);
     const cursor = searchParams.get("cursor");
     const direction = searchParams.get("direction");
+    const typeFilter = searchParams.get("type");
 
     // Enriquecer eventos con partidos vinculados y objeto de mapa
-    const enrichedEvents = events.map(ev => ({
+    let enrichedEvents = events.map(ev => ({
       ...ev,
       linkedMatches: matchesByEvent[ev.id] || [],
       map_obj: ev.map ? mapsMap.get(ev.map) : null
     }));
+
+    if (typeFilter && typeFilter !== "all") {
+      enrichedEvents = enrichedEvents.filter(e => e.type === typeFilter);
+    }
 
     // PAGINACIÓN EN MEMORIA (Para no romper la lógica de autocompletado y auto-cancelación)
     let returnedEvents = enrichedEvents;
