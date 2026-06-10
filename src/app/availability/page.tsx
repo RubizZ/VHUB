@@ -574,12 +574,9 @@ export default function AvailabilityPage() {
             setUpdatingEventId(eventId);
 
             // Cancel any outgoing refetches so they don't overwrite our optimistic update
-            await queryClient.cancelQueries({ queryKey: ["events", "list"] });
-            await queryClient.cancelQueries({
-                queryKey: ["events", "calendar"],
-            });
+            await queryClient.cancelQueries({ queryKey: ["events"] });
 
-            // Snapshot previous values
+            // Snapshot previous values for all query variations
             const previousListData = queryClient.getQueryData([
                 "events",
                 "list",
@@ -589,6 +586,7 @@ export default function AvailabilityPage() {
                 "calendar",
                 dateBoundaries.start,
                 dateBoundaries.end,
+                typeFilter,
             ]);
 
             // Helper to patch availability in an event list
@@ -618,7 +616,7 @@ export default function AvailabilityPage() {
                 });
 
             // Optimistically update the infinite list query (pages structure)
-            queryClient.setQueryData(["events", "list"], (old: any) => {
+            queryClient.setQueryData(["events", "list", typeFilter], (old: any) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
@@ -629,6 +627,21 @@ export default function AvailabilityPage() {
                 };
             });
 
+            // Also update other typeFilter variations in list view
+            const listKeys = queryClient.getQueryCache().findAll({ queryKey: ["events", "list"] });
+            listKeys.forEach(query => {
+                queryClient.setQueryData(query.queryKey, (old: any) => {
+                    if (!old?.pages) return old;
+                    return {
+                        ...old,
+                        pages: old.pages.map((page: any) => ({
+                            ...page,
+                            events: patchAvailability(page.events || []),
+                        })),
+                    };
+                });
+            });
+
             // Optimistically update the calendar query too if it exists
             queryClient.setQueryData(
                 [
@@ -636,6 +649,7 @@ export default function AvailabilityPage() {
                     "calendar",
                     dateBoundaries.start,
                     dateBoundaries.end,
+                    typeFilter,
                 ],
                 (old: any) => {
                     if (!old?.events) return old;
@@ -643,9 +657,20 @@ export default function AvailabilityPage() {
                 },
             );
 
+            // Also update other calendar typeFilter variations
+            const calendarKeys = queryClient.getQueryCache().findAll({ queryKey: ["events", "calendar"] });
+            calendarKeys.forEach(query => {
+                queryClient.setQueryData(query.queryKey, (old: any) => {
+                    if (!old?.events) return old;
+                    return { ...old, events: patchAvailability(old.events) };
+                });
+            });
+
             return { previousListData, previousCalendarData };
         },
         onSuccess: () => {
+            // Invalidate all events queries to ensure fresh data
+            queryClient.invalidateQueries({ queryKey: ["events"] });
             setTimeout(() => setUpdatingEventId(null), 500);
         },
         onError: (err: any, variables, context: any) => {
