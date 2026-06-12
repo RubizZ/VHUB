@@ -254,6 +254,7 @@ export default function AvailabilityPage() {
     const [isEntryAnimationDone, setIsEntryAnimationDone] = useState(false);
     const [showExport, setShowExport] = useState(false);
     const [exportTab, setExportTab] = useState<"team" | "personal">("personal");
+    const [includeProvisionalEvents, setIncludeProvisionalEvents] = useState(true);
     const [origin, setOrigin] = useState("");
 
     const myPlayerId = session?.user?.playerId;
@@ -5517,6 +5518,22 @@ export default function AvailabilityPage() {
                                     : "Este calendario está personalizado para ti: solo se mostrarán los eventos en los que has jugado o en los que tienes disponibilidad 'Sí' (✅) o 'Duda' (⚠️)."}
                             </p>
 
+                            {exportTab === "personal" && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: -10 }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="include-provisional"
+                                        checked={includeProvisionalEvents}
+                                        onChange={(e) => setIncludeProvisionalEvents(e.target.checked)}
+                                    />
+                                    <label htmlFor="include-provisional" style={{ fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>
+                                        Incluir eventos provisionales (menos de 5 confirmados)
+                                    </label>
+                                </div>
+                            )}
+
+
+
                             {/* Botones de Suscripción en 1 Clic */}
                             {isMounted &&
                                 (exportTab === "team"
@@ -5551,7 +5568,7 @@ export default function AvailabilityPage() {
                                         >
                                             {/* Apple Calendar (Usa webcal:// para abrir la App de iOS/macOS) */}
                                             <a
-                                                href={`${origin.replace(/^https?:/, "webcal:")}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`}
+                                                href={`${origin.replace(/^https?:/, "webcal:")}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}${exportTab === "personal" ? `?includeProvisional=${includeProvisionalEvents}` : ""}`}
                                                 className="btn btn-sm btn-ghost hover-lift transition-smooth"
                                                 style={{
                                                     border: "1px solid rgba(255,255,255,0.08)",
@@ -5581,7 +5598,7 @@ export default function AvailabilityPage() {
                                             {/* Google Calendar (Web subscription link) */}
                                             <a
                                                 href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
-                                                    `${origin.replace(/^https?:/, "webcal:")}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`,
+                                                    `${origin.replace(/^https?:/, "webcal:")}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}${exportTab === "personal" ? `?includeProvisional=${includeProvisionalEvents}` : ""}`,
                                                 )}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -5628,7 +5645,7 @@ export default function AvailabilityPage() {
                                             {/* Outlook (Web subscription links) */}
                                             <a
                                                 href={`https://outlook.live.com/calendar/addcalendar?url=${encodeURIComponent(
-                                                    `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`,
+                                                    `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}${exportTab === "personal" ? `?includeProvisional=${includeProvisionalEvents}` : ""}`,
                                                 )}&name=${encodeURIComponent(exportTab === "team" ? "VHUB Equipo" : "VHUB Personal")}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -5787,7 +5804,7 @@ export default function AvailabilityPage() {
                                                 ? !calendarToken
                                                 : !userCalendarToken)
                                                 ? "Cargando enlace..."
-                                                : `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}`
+                                                : `${origin}/api/calendar/${exportTab === "team" ? "" : "user/"}${exportTab === "team" ? calendarToken : userCalendarToken}${exportTab === "personal" ? `?includeProvisional=${includeProvisionalEvents}` : ""}`
                                         }
                                         style={{
                                             flex: 1,
@@ -5820,7 +5837,7 @@ export default function AvailabilityPage() {
                                                     : "user/";
                                             if (token) {
                                                 navigator.clipboard.writeText(
-                                                    `${origin}/api/calendar/${path}${token}`,
+                                                    `${origin}/api/calendar/${path}${token}${exportTab === "personal" ? `?includeProvisional=${includeProvisionalEvents}` : ""}`,
                                                 );
                                                 alert("¡Enlace copiado!");
                                             }

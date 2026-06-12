@@ -10,6 +10,8 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
+  const includeProvisionalStr = req.nextUrl.searchParams.get("includeProvisional");
+  const includeProvisional = includeProvisionalStr !== "false";
 
   if (!token || token === "null") {
     return new NextResponse("Token required", { status: 400 });
@@ -75,6 +77,13 @@ export async function GET(
         user.team!.players.length - unavailableCount < 5;
 
       if (isImpossible) return false;
+
+      if (!includeProvisional) {
+        const confirmedCount = ev.availability.filter((a) => a.status === "available" || a.status === "played").length;
+        const playedCount = ev.availability.filter((a) => a.status === "played").length;
+        const isProvisional = confirmedCount < 5 && playedCount === 0;
+        if (isProvisional) return false;
+      }
 
       return true;
     })
