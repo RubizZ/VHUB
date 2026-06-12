@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+ 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { valorantApi } from '@/lib/valorant-api';

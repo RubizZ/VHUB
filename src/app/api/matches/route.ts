@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+ 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { MAPS } from "@/lib/maps";

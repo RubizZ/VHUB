@@ -1,5 +1,5 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
+ 
 "use client";
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";

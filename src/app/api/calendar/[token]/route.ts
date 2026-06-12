@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+ 
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import * as ics from "ics";

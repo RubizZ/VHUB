@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+ 
 import { NextRequest, NextResponse } from "next/server";
 import { getAccount, getMatches, getMMR, getStoredMatches, getMatchById } from "@/lib/henrik-api";
 import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
         // Obtener PUUID del jugador (desde DB o haciendo un getAccount de fallback)
         let playerPuuid = dbPlayer?.puuid;
-        let teamId = dbPlayer?.teamId || null;
+        const teamId = dbPlayer?.teamId || null;
 
         if (!playerPuuid) {
           try {

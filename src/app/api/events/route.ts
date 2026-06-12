@@ -171,7 +171,7 @@ async function ensureWeeklyEvents(teamId: string) {
       const dateStr = tempDate.toISOString().split('T')[0];
       const day = tempDate.getDay();
 
-      let matchingSchedule = conferenceSchedules.find((se: any) => {
+      const matchingSchedule = conferenceSchedules.find((se: any) => {
         if (!se.starts_at || !se.ends_at) return false;
         const sDate = se.starts_at.split('T')[0];
         const eDate = se.ends_at.split('T')[0];
