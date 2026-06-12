@@ -3572,7 +3572,11 @@ export default function StrategiesPage() {
 
                 if (skill.behavior?.flags?.agentDisplacement && agentObj) {
                     const sa = playerToMouseAngle;
-                    const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
+                    let { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
+                    if (skill.behavior?.spawn === "ground") {
+                        maxRange = skill.behavior.maxCastRange || 0;
+                        projIsFixed = false;
+                    }
                     let tX = pos.x;
                     let tY = pos.y;
 
@@ -4517,8 +4521,13 @@ export default function StrategiesPage() {
                     skill.targetY = skill.y + Math.sin(sa) * dist;
                 }
             } else {
-                const { maxRange, isFixed: projIsFixed } =
+                let { maxRange, isFixed: projIsFixed } =
                     getProjRangeAndFixed(skill);
+
+                if (skill.behavior?.flags?.agentDisplacement && skill.behavior?.spawn === "ground") {
+                    maxRange = skill.behavior.maxCastRange || 0;
+                    projIsFixed = false;
+                }
 
                 let tX = pos.x;
                 let tY = pos.y;
