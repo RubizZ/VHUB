@@ -597,7 +597,7 @@ export default function MatchesPage() {
                 </div>
                 
                 {/* Node: Playoffs Tournament */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: displayPremierPoints >= 600 ? 1 : 0.4 }}>
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: displayPremierPoints >= 600 ? 0.6 : 0.4 }}>
                   <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-cyan)", border: "4px solid rgba(15,15,20,1)", boxShadow: displayPremierPoints >= 600 ? "0 0 10px rgba(0,212,170,0.5)" : "none", zIndex: 10 }} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <div style={{ color: "var(--val-cyan)", fontWeight: 900, fontSize: 14, textTransform: "uppercase", letterSpacing: 1 }}>
