@@ -624,11 +624,52 @@ export default function MatchesPage() {
                   </div>
                 )}
 
-                {/* Node with current premier points */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "absolute", left: 20, width: 20, height: 20, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 10px rgba(212,175,55,0.5)", zIndex: 10 }} />
-                  <div style={{ background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)", padding: "8px 16px", borderRadius: 8, color: "var(--val-gold)", fontWeight: 800, fontSize: 14 }}>
-                    {displayPremierPoints} PTS PREMIER
+                {/* Premium Node with current premier points */}
+                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", zIndex: 5, margin: "12px 0" }}>
+                  <div style={{ position: "absolute", left: 16, width: 28, height: 28, borderRadius: "50%", background: "rgba(212,175,55,0.15)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", background: "var(--val-gold)", border: "4px solid rgba(15,15,20,1)", boxShadow: "0 0 15px rgba(212,175,55,0.8)" }} />
+                  </div>
+                  
+                  <div className="card glass-card hover-lift" style={{ width: "100%", padding: "20px 24px", border: "1px solid rgba(212,175,55,0.3)", background: "linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.02) 100%)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(212,175,55,0.15)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(212,175,55,0.3)", boxShadow: "inset 0 0 10px rgba(212,175,55,0.1)" }}>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--val-gold)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: 13, fontWeight: 800, color: "var(--val-gold)", textTransform: "uppercase", letterSpacing: 1 }}>Puntuación Actual</h3>
+                          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontWeight: 500 }}>{isActiveSeason ? "Temporada en curso" : "Temporada finalizada"}</div>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                        <span style={{ fontSize: 36, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-1px", textShadow: "0 2px 10px rgba(0,0,0,0.3)" }}>{displayPremierPoints}</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "var(--val-gold)" }}>PTS</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ color: "rgba(255,255,255,0.3)" }}>0</span>
+                        <span style={{ color: displayPremierPoints >= 600 ? "var(--val-cyan)" : "var(--text-muted)", fontWeight: 700 }}>
+                          {displayPremierPoints >= 600 ? "¡Clasificados para Playoffs!" : `Faltan ${600 - displayPremierPoints} PTS para Playoffs`}
+                        </span>
+                        <span style={{ color: "var(--val-gold)" }}>600</span>
+                      </div>
+                      <div style={{ height: 10, background: "rgba(0,0,0,0.4)", borderRadius: 5, overflow: "hidden", position: "relative", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)" }}>
+                        <div style={{ 
+                          position: "absolute", 
+                          left: 0, top: 0, bottom: 0, 
+                          width: `${Math.min(100, (displayPremierPoints / 600) * 100)}%`, 
+                          background: displayPremierPoints >= 600 ? "var(--val-cyan)" : "linear-gradient(90deg, rgba(212,175,55,0.4), var(--val-gold))", 
+                          borderRadius: 5,
+                          boxShadow: "0 0 10px rgba(212,175,55,0.5)",
+                          transition: "width 1s cubic-bezier(0.16, 1, 0.3, 1)"
+                        }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
