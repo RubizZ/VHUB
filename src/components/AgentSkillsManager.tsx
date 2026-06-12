@@ -417,7 +417,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
           debuffApplied: formData.behaviorDebuffApplied || undefined,
           spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
           spawnOffset: formData.behaviorSpawn === "player" ? (Number(formData.behaviorSpawnOffset) || undefined) : undefined,
-          maxCastRange: formData.behaviorSpawn === "ground" ? (formData.behaviorGroundRange === 0 || formData.behaviorGroundRange === "0" ? 0 : (Number(formData.behaviorGroundRange) || undefined)) : undefined,
+          maxCastRange: formData.behaviorSpawn === "ground" ? (formData.behaviorGroundRange === 0 ? 0 : (Number(formData.behaviorGroundRange) || undefined)) : undefined,
           consumesSkillKey: formData.consumesSkillKey || undefined,
           flags: {
             throughWall: formData.flagThroughWall || undefined,
