@@ -1382,7 +1382,7 @@ export default function StrategiesPage() {
                         if (
                             maxDisplacements === 1 || 
                             !skill.pathPoints || 
-                            (skill.instanceId === draggedSkillTargetRef.current?.instanceId && isPlacingSecondPointRef.current)
+                            (skill.instanceId === draggedSkillTargetRef.current?.instanceId && (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current))
                         ) {
                             pts.push({x: tx, y: ty});
                         }
@@ -3509,7 +3509,15 @@ export default function StrategiesPage() {
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let playerToMouseAngle = 0;
-            if (skill.behavior?.spawn === "player" && agentObj) {
+            if (skill.behavior?.flags?.agentDisplacement && agentObj) {
+                startX = agentObj.x;
+                startY = agentObj.y;
+                playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
+                if (skill.behavior?.spawn === "player" && skill.behavior?.spawnOffset) {
+                    startX += Math.cos(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
+                    startY += Math.sin(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
+                }
+            } else if (skill.behavior?.spawn === "player" && agentObj) {
                 startX = agentObj.x;
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
@@ -3562,7 +3570,26 @@ export default function StrategiesPage() {
                     (("length" in skill.geometry ? skill.geometry.length : 0) ||
                         0) * mToPx;
 
-                if (skill.behavior?.spawn === "player" && agentObj) {
+                if (skill.behavior?.flags?.agentDisplacement && agentObj) {
+                    const sa = playerToMouseAngle;
+                    const { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
+                    let tX = pos.x;
+                    let tY = pos.y;
+
+                    if (maxRange > 0) {
+                        const maxPx = maxRange * mToPx;
+                        const dx = tX - startX;
+                        const dy = tY - startY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (projIsFixed || dist > maxPx) {
+                            const angle = Math.atan2(dy, dx);
+                            tX = startX + Math.cos(angle) * maxPx;
+                            tY = startY + Math.sin(angle) * maxPx;
+                        }
+                    }
+                    initTargetX = tX;
+                    initTargetY = tY;
+                } else if (skill.behavior?.spawn === "player" && agentObj) {
                     const sa = playerToMouseAngle;
                     if (skill.behavior?.flags?.chargeable) {
                         const maxLen =
@@ -3685,16 +3712,18 @@ export default function StrategiesPage() {
             pendingSkillRef.current = null;
             if (
                 initTargetX !== undefined &&
-                skill.behavior?.spawn === "ground"
+                skill.behavior?.spawn === "ground" &&
+                !skill.behavior?.flags?.agentDisplacement
             ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
             } else if (skill.behavior?.flags?.agentDisplacement?.maxDisplacements && skill.behavior?.flags?.agentDisplacement?.maxDisplacements > 1) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingMultiDisplacementRef.current = true;
-                // Initialize pathPoints cleanly without polluting the standard 2-point logic
+                // Initialize pathPoints with the first committed dash target!
                 newSkill.pathPoints = [
-                    { x: startX, y: startY }
+                    { x: startX, y: startY },
+                    ...(initTargetX !== undefined && initTargetY !== undefined ? [{ x: initTargetX, y: initTargetY }] : [])
                 ];
             } else {
                 setTool("select");
