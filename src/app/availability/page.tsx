@@ -4438,13 +4438,13 @@ export default function AvailabilityPage() {
                                                                     style={{
                                                                         display:
                                                                             "flex",
-                                                                        gap: 8,
+                                                                        gap: 12,
                                                                         marginTop: 14,
                                                                         paddingTop: 12,
                                                                         borderTop:
                                                                             "1px solid rgba(255,255,255,0.05)",
                                                                         justifyContent:
-                                                                            "space-between",
+                                                                            "center",
                                                                         fontSize: 10,
                                                                         fontWeight: 700,
                                                                         color: "var(--text-muted)",
@@ -6865,12 +6865,12 @@ export default function AvailabilityPage() {
                                         <div
                                             style={{
                                                 display: "flex",
-                                                gap: 8,
+                                                gap: 12,
                                                 marginTop: 14,
                                                 paddingTop: 12,
                                                 borderTop:
                                                     "1px solid rgba(255,255,255,0.05)",
-                                                justifyContent: "space-between",
+                                                justifyContent: "center",
                                                 fontSize: 10,
                                                 fontWeight: 700,
                                                 color: "var(--text-muted)",
