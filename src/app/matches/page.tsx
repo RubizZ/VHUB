@@ -590,14 +590,10 @@ export default function MatchesPage() {
             ) : (
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 24 }}>
                 <div style={{ position: "absolute", left: 29, top: 20, bottom: 0, width: 2, zIndex: 0 }}>
-                  {displayPremierPoints < 600 ? (
-                    <>
-                      <div style={{ height: 100, borderLeft: "2px dashed rgba(255,255,255,0.2)" }} />
-                      <div style={{ height: "calc(100% - 100px)", background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
-                    </>
-                  ) : (
-                    <div style={{ height: "100%", background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
-                  )}
+                  <>
+                    <div style={{ height: displayPremierPoints < 600 ? 100 : 60, borderLeft: "2px dashed rgba(255,255,255,0.2)" }} />
+                    <div style={{ height: `calc(100% - ${displayPremierPoints < 600 ? 100 : 60}px)`, background: "linear-gradient(to bottom, var(--val-gold), rgba(212,175,55,0.2))", opacity: 0.5 }} />
+                  </>
                 </div>
                 
                 {/* Node: Playoffs Tournament */}
