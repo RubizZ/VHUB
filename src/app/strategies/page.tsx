@@ -3694,8 +3694,7 @@ export default function StrategiesPage() {
                 isPlacingMultiDisplacementRef.current = true;
                 // Initialize pathPoints cleanly without polluting the standard 2-point logic
                 newSkill.pathPoints = [
-                    { x: startX, y: startY },
-                    ...(skill.behavior?.spawn === "player" && initTargetX !== undefined && initTargetY !== undefined ? [{ x: initTargetX, y: initTargetY }] : [])
+                    { x: startX, y: startY }
                 ];
             } else {
                 setTool("select");
