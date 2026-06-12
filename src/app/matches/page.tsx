@@ -329,6 +329,20 @@ export default function MatchesPage() {
     return 0;
   }, [isActiveSeason, currentPremierPoints, matches, matchPoints]);
 
+  const qualificationMatchId = useMemo(() => {
+    let id: number | null = null;
+    if (!matches || matches.length === 0) return null;
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const m = matches[i];
+      const pts = matchPoints.get(m.id);
+      if (pts && pts.total >= 600) {
+        id = m.id;
+        break;
+      }
+    }
+    return id;
+  }, [matches, matchPoints]);
+
   const blueTeam = stats.filter(s => s.team_id === "Blue");
   const redTeam = stats.filter(s => s.team_id === "Red");
 
@@ -599,18 +613,20 @@ export default function MatchesPage() {
                   </div>
                 </div>
 
-                {/* Node: 600 PTS Qualification */}
-                <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: displayPremierPoints >= 600 ? 1 : 0.4 }}>
-                  <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)", zIndex: 10 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ color: "var(--val-gold)", fontWeight: 800, fontSize: 13 }}>
-                      600 PTS
-                    </div>
-                    <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 500 }}>
-                      Clasificación a Playoffs
+                {/* Node: 600 PTS Qualification (only if not yet reached) */}
+                {displayPremierPoints < 600 && (
+                  <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center", opacity: 0.4 }}>
+                    <div style={{ position: "absolute", left: 22, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)", zIndex: 10 }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ color: "var(--val-gold)", fontWeight: 800, fontSize: 13 }}>
+                        600 PTS
+                      </div>
+                      <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 500 }}>
+                        Clasificación a Playoffs
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Node with current premier points */}
                 <div style={{ position: "relative", paddingLeft: 80, display: "flex", alignItems: "center" }}>
@@ -626,6 +642,7 @@ export default function MatchesPage() {
                       group={group} 
                       onMatchClick={(m: Match) => loadMatch(m)} 
                       matchPoints={matchPoints}
+                      qualificationMatchId={qualificationMatchId}
                     />
                   </div>
                 ))}
@@ -719,7 +736,7 @@ interface EventGroup {
   matches: Match[];
 }
 
-function EventGroupCard({ group, onMatchClick, matchPoints }: { group: EventGroup, onMatchClick: (m: Match) => void, matchPoints: Map<number, { diff: number, total: number }> }) {
+function EventGroupCard({ group, onMatchClick, matchPoints, qualificationMatchId }: { group: EventGroup, onMatchClick: (m: Match) => void, matchPoints: Map<number, { diff: number, total: number }>, qualificationMatchId?: number | null }) {
   const getEventBadge = (type: string) => {
     switch (type.toLowerCase()) {
       case "match":
@@ -867,7 +884,20 @@ function EventGroupCard({ group, onMatchClick, matchPoints }: { group: EventGrou
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
         {group.matches.map(m => (
-          <MatchCard key={m.id} match={m} onClick={() => onMatchClick(m)} points={matchPoints?.get(m.id)} />
+          <React.Fragment key={m.id}>
+            {m.id === qualificationMatchId && (
+              <div style={{ position: "relative", margin: "8px 0" }}>
+                <div style={{ position: "absolute", left: -82, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 10 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: "var(--bg-primary, rgba(15,15,20,1))", border: "4px solid var(--val-gold)" }} />
+                </div>
+                <div className="card glass-card hover-lift" style={{ cursor: "default", padding: "12px 16px", borderLeft: "4px solid var(--val-gold)", background: "rgba(212,175,55,0.08)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ color: "var(--val-gold)", fontWeight: 900, fontSize: 14 }}>600 PTS</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 600 }}>¡Clasificación a Playoffs lograda!</div>
+                </div>
+              </div>
+            )}
+            <MatchCard match={m} onClick={() => onMatchClick(m)} points={matchPoints?.get(m.id)} />
+          </React.Fragment>
         ))}
       </div>
     </div>
