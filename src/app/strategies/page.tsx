@@ -1031,19 +1031,27 @@ export default function StrategiesPage() {
 
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
-            if (pSkill.skill.behavior?.spawn === "ground" && agentObj) {
-                const maxRange = pSkill.skill.behavior?.maxCastRange || 0;
-                if (maxRange > 0) {
-                    const maxPx = maxRange * mToPx;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(agentObj.x, agentObj.y, maxPx, 0, Math.PI * 2);
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                    ctx.lineWidth = 2 / scale;
-                    ctx.setLineDash([4 / scale, 4 / scale]);
-                    ctx.stroke();
-                    ctx.restore();
+            let maxPreviewRange = 0;
+            if (pSkill.skill.behavior?.flags?.agentDisplacement) {
+                const { maxRange } = getProjRangeAndFixed(pSkill.skill);
+                maxPreviewRange = maxRange;
+                if (pSkill.skill.behavior?.spawn === "ground") {
+                    maxPreviewRange = pSkill.skill.behavior?.maxCastRange || 0;
                 }
+            } else if (pSkill.skill.behavior?.spawn === "ground") {
+                maxPreviewRange = pSkill.skill.behavior?.maxCastRange || 0;
+            }
+
+            if (maxPreviewRange > 0 && agentObj) {
+                const maxPx = maxPreviewRange * mToPx;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(agentObj.x, agentObj.y, maxPx, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.lineWidth = 2 / scale;
+                ctx.setLineDash([4 / scale, 4 / scale]);
+                ctx.stroke();
+                ctx.restore();
             }
 
             let playerToMouseAngle = 0;
@@ -1384,6 +1392,26 @@ export default function StrategiesPage() {
                             !skill.pathPoints || 
                             (skill.instanceId === draggedSkillTargetRef.current?.instanceId && (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current))
                         ) {
+                            // Draw preview circle around the current origin before pushing the new target
+                            if (skill.instanceId === draggedSkillTargetRef.current?.instanceId && pts.length > 0) {
+                                const currentOrigin = pts[pts.length - 1];
+                                let { maxRange } = getProjRangeAndFixed(skill);
+                                if (skill.behavior?.spawn === "ground") {
+                                    maxRange = skill.behavior.maxCastRange || 0;
+                                }
+                                if (maxRange > 0) {
+                                    const mToPx = selectedMap?.pixelsPerMeter || 20;
+                                    const maxPx = maxRange * mToPx;
+                                    ctx.save();
+                                    ctx.beginPath();
+                                    ctx.arc(currentOrigin.x, currentOrigin.y, maxPx, 0, Math.PI * 2);
+                                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                                    ctx.lineWidth = 2 / scale;
+                                    ctx.setLineDash([4 / scale, 4 / scale]);
+                                    ctx.stroke();
+                                    ctx.restore();
+                                }
+                            }
                             pts.push({x: tx, y: ty});
                         }
 
