@@ -321,6 +321,7 @@ export default function StrategiesPage() {
         y: 0,
     });
     const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
+    const draggedSkillPathPointIndexRef = useRef<number | null>(null);
     const isPlacingSecondPointRef = useRef<boolean>(false);
     const isPlacingMultiDisplacementRef = useRef<boolean>(false);
     const draggedSkillRotationRef = useRef<CanvasSkill | null>(null);
@@ -1824,6 +1825,7 @@ export default function StrategiesPage() {
 
             let isBaseHovered = false;
             let isTargetHovered = false;
+            let hoveredPathPointIndex = -1;
 
             if (isHovered && mousePosRef.current && !isDragged) {
                 const mx = mousePosRef.current.canvasX;
@@ -1855,8 +1857,24 @@ export default function StrategiesPage() {
                         isTargetHovered = true;
                     }
                 }
+                
+                if (skill.pathPoints && skill.pathPoints.length > 2) {
+                    for (let i = 1; i < skill.pathPoints.length - 1; i++) {
+                        const ptScreen = getScreenPos(skill.pathPoints[i].x, skill.pathPoints[i].y);
+                        if (
+                            Math.sqrt(
+                                (ptScreen.x - mx) ** 2 +
+                                    (ptScreen.y - my) ** 2,
+                            ) <=
+                            12 * currentZoom
+                        ) {
+                            hoveredPathPointIndex = i;
+                        }
+                    }
+                }
+
                 // Fallback: if skill is hovered but neither anchor is distinctly hovered, hover the base
-                if (!isBaseHovered && !isTargetHovered) isBaseHovered = true;
+                if (!isBaseHovered && !isTargetHovered && hoveredPathPointIndex === -1) isBaseHovered = true;
             }
 
             const isTeleportFlag =
@@ -1997,6 +2015,70 @@ export default function StrategiesPage() {
                     ctx.stroke();
 
                     ctx.restore();
+                }
+
+                // Draw handles for intermediate path points
+                if (showHandles && skill.pathPoints && skill.pathPoints.length > 2) {
+                    for (let i = 1; i < skill.pathPoints.length - 1; i++) {
+                        const pt = skill.pathPoints[i];
+                        const prevPt = skill.pathPoints[i - 1];
+                        const tx = pt.x - skill.x;
+                        const ty = pt.y - skill.y;
+                        const angleFromPrev = Math.atan2(pt.y - prevPt.y, pt.x - prevPt.x);
+
+                        ctx.save();
+                        ctx.translate(tx, ty);
+                        ctx.rotate(angleFromPrev);
+
+                        const isPtHovered = hoveredPathPointIndex === i;
+
+                        if (isPtHovered) {
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 8 / scale + 4 / scale, 0, Math.PI * 2);
+                            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                            ctx.fill();
+                        }
+
+                        // Draw the base anchor circle
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+                        ctx.fill();
+                        ctx.strokeStyle = isPtHovered ? "#fff" : skill.color;
+                        ctx.lineWidth = (isPtHovered ? 3 : 2) / scale;
+                        ctx.stroke();
+
+                        // Draw rotation indicator
+                        const r = 14 / scale;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
+                        ctx.strokeStyle = isPtHovered ? "#fff" : "rgba(255,255,255,0.7)";
+                        ctx.lineWidth = 2 / scale;
+                        ctx.lineCap = "round";
+                        ctx.stroke();
+
+                        const arrowSize = 4 / scale;
+
+                        // Top arrow tip
+                        const topX = Math.cos(-Math.PI / 5) * r;
+                        const topY = Math.sin(-Math.PI / 5) * r;
+                        ctx.beginPath();
+                        ctx.moveTo(topX - arrowSize * 0.5, topY + arrowSize);
+                        ctx.lineTo(topX, topY);
+                        ctx.lineTo(topX + arrowSize, topY + arrowSize * 0.5);
+                        ctx.stroke();
+
+                        // Bottom arrow tip
+                        const botX = Math.cos(Math.PI / 5) * r;
+                        const botY = Math.sin(Math.PI / 5) * r;
+                        ctx.beginPath();
+                        ctx.moveTo(botX - arrowSize * 0.5, botY - arrowSize);
+                        ctx.lineTo(botX, botY);
+                        ctx.lineTo(botX + arrowSize, botY - arrowSize * 0.5);
+                        ctx.stroke();
+
+                        ctx.restore();
+                    }
                 }
             }
             // Draw out-of-range warning for ground skills
@@ -3203,6 +3285,7 @@ export default function StrategiesPage() {
                 }
 
                 let foundSkillRot: CanvasSkill | null = null;
+                let foundSkillPathPointIndex: number | null = null;
                 const foundSkillTarget = [...skillsRef.current]
                     .reverse()
                     .find((s) => {
@@ -3261,6 +3344,18 @@ export default function StrategiesPage() {
                             }
                         }
 
+                        if (s.pathPoints && s.pathPoints.length > 2) {
+                            for (let i = 1; i < s.pathPoints.length - 1; i++) {
+                                const ptScreen = getScreenPos(s.pathPoints[i].x, s.pathPoints[i].y);
+                                const pdx = ptScreen.x - mouseX;
+                                const pdy = ptScreen.y - mouseY;
+                                if (Math.sqrt(pdx * pdx + pdy * pdy) <= 12 * zoomRef.current) {
+                                    foundSkillPathPointIndex = i;
+                                    return true;
+                                }
+                            }
+                        }
+
                         const screenPos = getScreenPos(s.targetX, s.targetY);
                         const dx = screenPos.x - mouseX;
                         const dy = screenPos.y - mouseY;
@@ -3275,6 +3370,7 @@ export default function StrategiesPage() {
                 }
                 if (foundSkillTarget) {
                     draggedSkillTargetRef.current = foundSkillTarget;
+                    draggedSkillPathPointIndexRef.current = foundSkillPathPointIndex;
                     return;
                 }
 
@@ -4445,9 +4541,21 @@ export default function StrategiesPage() {
             }
 
             const maxDisplacements = skill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
+            const draggedPtIdx = draggedSkillPathPointIndexRef.current;
+            
             if (maxDisplacements > 1 && skill.pathPoints && skill.pathPoints.length > 0) {
-                originX = skill.pathPoints[skill.pathPoints.length - 1].x;
-                originY = skill.pathPoints[skill.pathPoints.length - 1].y;
+                if (isPlacingMultiDisplacementRef.current) {
+                    originX = skill.pathPoints[skill.pathPoints.length - 1].x;
+                    originY = skill.pathPoints[skill.pathPoints.length - 1].y;
+                } else {
+                    if (draggedPtIdx !== null) {
+                        originX = skill.pathPoints[draggedPtIdx - 1].x;
+                        originY = skill.pathPoints[draggedPtIdx - 1].y;
+                    } else if (skill.pathPoints.length >= 2) {
+                        originX = skill.pathPoints[skill.pathPoints.length - 2].x;
+                        originY = skill.pathPoints[skill.pathPoints.length - 2].y;
+                    }
+                }
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
             }
 
@@ -4581,8 +4689,23 @@ export default function StrategiesPage() {
                     }
                 }
 
-                skill.targetX = tX;
-                skill.targetY = tY;
+                const draggedPtIdx = draggedSkillPathPointIndexRef.current;
+                if (draggedPtIdx !== null && skill.pathPoints) {
+                    const dx = tX - skill.pathPoints[draggedPtIdx].x;
+                    const dy = tY - skill.pathPoints[draggedPtIdx].y;
+                    for (let j = draggedPtIdx; j < skill.pathPoints.length; j++) {
+                        skill.pathPoints[j].x += dx;
+                        skill.pathPoints[j].y += dy;
+                    }
+                    skill.targetX = skill.pathPoints[skill.pathPoints.length - 1].x;
+                    skill.targetY = skill.pathPoints[skill.pathPoints.length - 1].y;
+                } else {
+                    skill.targetX = tX;
+                    skill.targetY = tY;
+                    if (skill.pathPoints && !isPlacingMultiDisplacementRef.current) {
+                        skill.pathPoints[skill.pathPoints.length - 1] = { x: tX, y: tY };
+                    }
+                }
             }
 
             if (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable) {
@@ -4997,6 +5120,7 @@ export default function StrategiesPage() {
             if (!isPlacingSecondPointRef.current && !isPlacingMultiDisplacementRef.current) {
                 broadcastSkillUpdate(draggedSkillTargetRef.current, false);
                 draggedSkillTargetRef.current = null;
+                draggedSkillPathPointIndexRef.current = null;
                 redrawImmediate();
                 updateUndoRedo();
                 scheduleAutoSave();
