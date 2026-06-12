@@ -13,6 +13,17 @@ export type SkillGeometry =
   | { type: "cross"; width?: number; length?: number }
   | { type: "line"; width: number; length: number };
 
+export interface AgentDisplacementFlag {
+  teleportsToSkillPosition?: boolean;
+  maxDisplacements?: number;
+  speed?: number;
+  maxDistance?: number;
+  duration?: number;
+  alwaysMaxDistance?: boolean;
+  controllable?: boolean;
+  stoppable?: boolean;
+}
+
 // Flags con sub-parámetros propios (su presencia implica activación)
 export interface ProjectileFlag {
   speed?: number;
@@ -70,7 +81,7 @@ export interface SkillBehaviorFlags {
   recallable?: boolean;              // La habilidad debe ser recogida manualmente antes de que empiece el cooldown (ej. C de Chamber)
   grantsWeapon?: boolean;            // Actúa como arma (ej. Q/X de Chamber)
   teleportsToDeployed?: boolean;     // Permite tepearse a esta habilidad si ya está desplegada
-  teleportsAgentInstantly?: boolean; // Teletransporte instantáneo sin desplegar ancla (ej. Omen C)
+  agentDisplacement?: AgentDisplacementFlag; // Desplazamiento del agente (ej. Dash de Jett, TP de Omen)
   selfRevive?: boolean;              // Auto-resurrección (ej. Clove X)
   targetRevive?: boolean;            // Resurrección a aliado (ej. Sage X)
   activatableDeployable?: boolean;   // Se puede activar una vez desplegada (ej. Cypher Q)

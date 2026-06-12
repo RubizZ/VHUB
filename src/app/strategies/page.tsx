@@ -125,7 +125,8 @@ function getProjRangeAndFixed(skill: {
 }) {
     const pFlag =
         skill?.behavior?.flags?.projectile ||
-        skill?.behavior?.flags?.groundPath;
+        skill?.behavior?.flags?.groundPath ||
+        skill?.behavior?.flags?.agentDisplacement;
     let maxRange = 0;
     if (skill?.behavior?.spawn === "ground") {
         maxRange = skill?.behavior?.maxCastRange || 0;
@@ -321,6 +322,7 @@ export default function StrategiesPage() {
     });
     const draggedSkillTargetRef = useRef<CanvasSkill | null>(null);
     const isPlacingSecondPointRef = useRef<boolean>(false);
+    const isPlacingMultiDisplacementRef = useRef<boolean>(false);
     const draggedSkillRotationRef = useRef<CanvasSkill | null>(null);
     const dragHoveredLinkAgentRef = useRef<CanvasAgent | null>(null);
     const agentClickStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -1086,7 +1088,7 @@ export default function StrategiesPage() {
             let initTargetY: number | undefined = undefined;
             const isProj =
                 pSkill.skill.behavior?.flags?.projectile ||
-                pSkill.skill.behavior?.flags?.teleportsAgentInstantly ||
+                pSkill.skill.behavior?.flags?.agentDisplacement ||
                 !!pSkill.skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
                 !isProj &&
@@ -1298,7 +1300,7 @@ export default function StrategiesPage() {
             const hasGroundPath = !!skill.behavior?.flags?.groundPath;
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly ||
+                skill.behavior?.flags?.agentDisplacement ||
                 hasGroundPath;
 
             if (
@@ -1364,6 +1366,78 @@ export default function StrategiesPage() {
                         }
 
                         ctx.restore();
+                    } else if (skill.behavior?.flags?.agentDisplacement) {
+                        const isTeleportToPos = skill.behavior?.flags?.agentDisplacement?.teleportsToSkillPosition;
+                        const maxDisplacements = skill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
+                        
+                        const pts = [{x: 0, y: 0}];
+                        if (maxDisplacements > 1 && skill.pathPoints && skill.pathPoints.length > 0) {
+                            for (let i = 1; i < skill.pathPoints.length; i++) {
+                                pts.push({
+                                    x: skill.pathPoints[i].x - skill.x,
+                                    y: skill.pathPoints[i].y - skill.y
+                                });
+                            }
+                        }
+                        if (
+                            maxDisplacements === 1 || 
+                            !skill.pathPoints || 
+                            (skill.instanceId === draggedSkillTargetRef.current?.instanceId && isPlacingSecondPointRef.current)
+                        ) {
+                            pts.push({x: tx, y: ty});
+                        }
+
+                        for (let j = 0; j < pts.length - 1; j++) {
+                            const p1 = pts[j];
+                            const p2 = pts[j + 1];
+                            const segmentDist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = skill.color;
+                            
+                            if (isTeleportToPos) {
+                                ctx.lineWidth = 1 / scale;
+                                ctx.globalAlpha = 0.4;
+                                ctx.setLineDash([4 / scale, 8 / scale]);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                ctx.beginPath();
+                                ctx.arc(p2.x, p2.y, 6 / scale, 0, Math.PI * 2);
+                                ctx.fillStyle = skill.color;
+                                ctx.globalAlpha = 0.6;
+                                ctx.fill();
+                            } else {
+                                ctx.lineWidth = 3 / scale;
+                                ctx.globalAlpha = 0.8;
+                                ctx.setLineDash([8 / scale, 8 / scale]);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+        
+                                ctx.save();
+                                ctx.translate(p1.x, p1.y);
+                                ctx.rotate(Math.atan2(p2.y - p1.y, p2.x - p1.x));
+                                ctx.strokeStyle = skill.color;
+                                ctx.lineWidth = 3 / scale;
+                                ctx.lineCap = "round";
+                                ctx.lineJoin = "round";
+                                const spacingPx = 30 / scale;
+                                const numArrows = Math.max(1, Math.floor(segmentDist / spacingPx));
+                                const spacing = segmentDist / (numArrows + 1);
+                                const arrowSize = 8 / scale;
+                                ctx.beginPath();
+                                for (let i = 1; i <= numArrows; i++) {
+                                    const acx = i * spacing;
+                                    ctx.moveTo(acx - arrowSize, -arrowSize);
+                                    ctx.lineTo(acx, 0);
+                                    ctx.lineTo(acx - arrowSize, arrowSize);
+                                }
+                                ctx.stroke();
+                                ctx.restore();
+                            }
+                        }
                     } else {
                         // Dashed line for projectiles and narrow ground paths
                         ctx.beginPath();
@@ -1664,7 +1738,7 @@ export default function StrategiesPage() {
                     skill.behavior?.flags?.projectile ||
                     skill.behavior?.flags?.groundPath;
                 const isTeleport =
-                    skill.behavior?.flags?.teleportsAgentInstantly ||
+                    skill.behavior?.flags?.agentDisplacement ||
                     skill.behavior?.flags?.teleportsToDeployed;
                 if (
                     (isProj || isTeleport) &&
@@ -1758,7 +1832,7 @@ export default function StrategiesPage() {
             }
 
             const isTeleportFlag =
-                skill.behavior?.flags?.teleportsAgentInstantly ||
+                skill.behavior?.flags?.agentDisplacement ||
                 skill.behavior?.flags?.teleportsToDeployed;
             const isProjFlag =
                 skill.behavior?.flags?.projectile ||
@@ -2669,7 +2743,7 @@ export default function StrategiesPage() {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
                 if (
-                    isPlacingSecondPointRef.current &&
+                    (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current) &&
                     draggedSkillTargetRef.current
                 ) {
                     const sId = draggedSkillTargetRef.current.instanceId;
@@ -2678,6 +2752,7 @@ export default function StrategiesPage() {
                     );
                     undoStackRef.current.pop();
                     isPlacingSecondPointRef.current = false;
+                    isPlacingMultiDisplacementRef.current = false;
                     draggedSkillTargetRef.current = null;
                     setTool("select");
                     redrawImmediate();
@@ -2874,7 +2949,7 @@ export default function StrategiesPage() {
 
         const isProj =
             s.behavior?.flags?.projectile ||
-            s.behavior?.flags?.teleportsAgentInstantly ||
+            s.behavior?.flags?.agentDisplacement ||
             !!s.behavior?.flags?.groundPath;
         let drawOriginX = s.x;
         let drawOriginY = s.y;
@@ -3015,6 +3090,30 @@ export default function StrategiesPage() {
     const startDraw = (
         e: React.MouseEvent | React.TouchEvent | React.DragEvent,
     ) => {
+        if (isPlacingMultiDisplacementRef.current && draggedSkillTargetRef.current) {
+            const confirmedSkill = draggedSkillTargetRef.current;
+            const maxDisplacements = confirmedSkill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
+            
+            if (confirmedSkill.targetX !== undefined && confirmedSkill.targetY !== undefined) {
+                confirmedSkill.pathPoints!.push({ x: confirmedSkill.targetX, y: confirmedSkill.targetY });
+            }
+            
+            if (confirmedSkill.pathPoints!.length <= maxDisplacements) {
+                // Keep the mode active for the next dash target
+                redrawImmediate();
+                return;
+            }
+
+            // Finished multi-displacement
+            isPlacingMultiDisplacementRef.current = false;
+            draggedSkillTargetRef.current = null;
+            broadcastSkillUpdate(confirmedSkill, false);
+            redrawImmediate();
+            updateUndoRedo();
+            scheduleAutoSave();
+            return;
+        }
+
         if (isPlacingSecondPointRef.current && draggedSkillTargetRef.current) {
             // Confirm second point placement
             const confirmedSkill = draggedSkillTargetRef.current;
@@ -3447,7 +3546,7 @@ export default function StrategiesPage() {
             let initTargetY: number | undefined = undefined;
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly ||
+                skill.behavior?.flags?.agentDisplacement ||
                 !!skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
                 !isProj &&
@@ -3590,6 +3689,14 @@ export default function StrategiesPage() {
             ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
+            } else if (skill.behavior?.flags?.agentDisplacement?.maxDisplacements && skill.behavior?.flags?.agentDisplacement?.maxDisplacements > 1) {
+                draggedSkillTargetRef.current = newSkill;
+                isPlacingMultiDisplacementRef.current = true;
+                // Initialize pathPoints cleanly without polluting the standard 2-point logic
+                newSkill.pathPoints = [
+                    { x: startX, y: startY },
+                    ...(skill.behavior?.spawn === "player" && initTargetX !== undefined && initTargetY !== undefined ? [{ x: initTargetX, y: initTargetY }] : [])
+                ];
             } else {
                 setTool("select");
             }
@@ -4277,10 +4384,17 @@ export default function StrategiesPage() {
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
             }
 
+            const maxDisplacements = skill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
+            if (maxDisplacements > 1 && skill.pathPoints && skill.pathPoints.length > 0) {
+                originX = skill.pathPoints[skill.pathPoints.length - 1].x;
+                originY = skill.pathPoints[skill.pathPoints.length - 1].y;
+                sa = Math.atan2(pos.y - originY, pos.x - originX);
+            }
+
             const isProj =
                 skill.behavior?.flags?.projectile ||
                 skill.behavior?.flags?.groundPath ||
-                skill.behavior?.flags?.teleportsAgentInstantly;
+                skill.behavior?.flags?.agentDisplacement;
 
             if (
                 geom &&
@@ -4815,7 +4929,7 @@ export default function StrategiesPage() {
         if (draggedSkillTargetRef.current) {
             // If we're in the middle of placing a second point, don't clear the ref
             // The second click (mousedown) will confirm and clear it
-            if (!isPlacingSecondPointRef.current) {
+            if (!isPlacingSecondPointRef.current && !isPlacingMultiDisplacementRef.current) {
                 broadcastSkillUpdate(draggedSkillTargetRef.current, false);
                 draggedSkillTargetRef.current = null;
                 redrawImmediate();
@@ -4951,7 +5065,7 @@ export default function StrategiesPage() {
             let initTargetY: number | undefined = undefined;
             const isProj =
                 skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.teleportsAgentInstantly ||
+                skill.behavior?.flags?.agentDisplacement ||
                 !!skill.behavior?.flags?.groundPath;
             const isGeomWithTarget =
                 !isProj &&
@@ -8720,7 +8834,7 @@ export default function StrategiesPage() {
                                                     visible: false,
                                                 }));
                                             if (
-                                                isPlacingSecondPointRef.current &&
+                                                (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current) &&
                                                 draggedSkillTargetRef.current
                                             ) {
                                                 const sId =
@@ -8734,6 +8848,7 @@ export default function StrategiesPage() {
                                                     );
                                                 undoStackRef.current.pop();
                                                 isPlacingSecondPointRef.current = false;
+                                                isPlacingMultiDisplacementRef.current = false;
                                                 draggedSkillTargetRef.current =
                                                     null;
                                                 setTool("select");

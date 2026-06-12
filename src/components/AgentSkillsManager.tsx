@@ -36,7 +36,6 @@ interface SkillFormData {
   flagRecallable: boolean;
   flagGrantsWeapon: boolean;
   flagTeleportsToDeployed: boolean;
-  flagTeleportsAgentInstantly: boolean;
   flagSelfRevive: boolean;
   flagTargetRevive: boolean;
   flagActivatableDeployable: boolean;
@@ -56,6 +55,16 @@ interface SkillFormData {
   projectileAlwaysMaxDistance: boolean;
   projectileControllable: boolean;
   projectileStoppable: boolean;
+
+  flagAgentDisplacement: boolean;
+  agentDisplacementTeleportsToSkillPosition: boolean;
+  agentDisplacementMaxDisplacements: number;
+  agentDisplacementSpeed: number;
+  agentDisplacementDuration: number;
+  agentDisplacementMaxDistance: number;
+  agentDisplacementAlwaysMaxDistance: boolean;
+  agentDisplacementControllable: boolean;
+  agentDisplacementStoppable: boolean;
 
   flagGroundPath: boolean;
   groundPathSpeed: number;
@@ -119,7 +128,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     flagRecallable: false,
     flagGrantsWeapon: false,
     flagTeleportsToDeployed: false,
-    flagTeleportsAgentInstantly: false,
     flagSelfRevive: false,
     flagTargetRevive: false,
     flagActivatableDeployable: false,
@@ -138,6 +146,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     projectileAlwaysMaxDistance: false,
     projectileControllable: false,
     projectileStoppable: false,
+    flagAgentDisplacement: false,
+    agentDisplacementTeleportsToSkillPosition: false,
+    agentDisplacementMaxDisplacements: 1,
+    agentDisplacementSpeed: 0,
+    agentDisplacementDuration: 0,
+    agentDisplacementMaxDistance: 0,
+    agentDisplacementAlwaysMaxDistance: false,
+    agentDisplacementControllable: false,
+    agentDisplacementStoppable: false,
     flagGroundPath: false,
     groundPathSpeed: 0,
     groundPathDuration: 0,
@@ -226,7 +243,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRecallable: skill.behavior?.flags?.recallable || false,
         flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
         flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
-        flagTeleportsAgentInstantly: skill.behavior?.flags?.teleportsAgentInstantly || false,
         flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
         flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
         flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
@@ -245,6 +261,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileAlwaysMaxDistance: skill.behavior?.flags?.projectile?.alwaysMaxDistance ?? false,
         projectileControllable: skill.behavior?.flags?.projectile?.controllable ?? false,
         projectileStoppable: skill.behavior?.flags?.projectile?.stoppable ?? false,
+        flagAgentDisplacement: !!skill.behavior?.flags?.agentDisplacement,
+        agentDisplacementTeleportsToSkillPosition: skill.behavior?.flags?.agentDisplacement?.teleportsToSkillPosition ?? false,
+        agentDisplacementMaxDisplacements: skill.behavior?.flags?.agentDisplacement?.maxDisplacements ?? 1,
+        agentDisplacementSpeed: skill.behavior?.flags?.agentDisplacement?.speed ?? 0,
+        agentDisplacementDuration: skill.behavior?.flags?.agentDisplacement?.duration ?? 0,
+        agentDisplacementMaxDistance: skill.behavior?.flags?.agentDisplacement?.maxDistance ?? 0,
+        agentDisplacementAlwaysMaxDistance: skill.behavior?.flags?.agentDisplacement?.alwaysMaxDistance ?? false,
+        agentDisplacementControllable: skill.behavior?.flags?.agentDisplacement?.controllable ?? false,
+        agentDisplacementStoppable: skill.behavior?.flags?.agentDisplacement?.stoppable ?? false,
         flagGroundPath: !!skill.behavior?.flags?.groundPath,
         groundPathSpeed: skill.behavior?.flags?.groundPath?.speed ?? 0,
         groundPathDuration: skill.behavior?.flags?.groundPath?.duration ?? 0,
@@ -301,7 +326,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         flagRecallable: false,
         flagGrantsWeapon: false,
         flagTeleportsToDeployed: false,
-        flagTeleportsAgentInstantly: false,
         flagSelfRevive: false,
         flagTargetRevive: false,
         flagActivatableDeployable: false,
@@ -320,6 +344,15 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
         projectileAlwaysMaxDistance: false,
         projectileControllable: false,
         projectileStoppable: false,
+        flagAgentDisplacement: false,
+        agentDisplacementTeleportsToSkillPosition: false,
+        agentDisplacementMaxDisplacements: 1,
+        agentDisplacementSpeed: 0,
+        agentDisplacementDuration: 0,
+        agentDisplacementMaxDistance: 0,
+        agentDisplacementAlwaysMaxDistance: false,
+        agentDisplacementControllable: false,
+        agentDisplacementStoppable: false,
         flagGroundPath: false,
         groundPathSpeed: 0,
         groundPathDuration: 0,
@@ -391,7 +424,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             recallable: formData.flagRecallable || undefined,
             grantsWeapon: formData.flagGrantsWeapon || undefined,
             teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
-            teleportsAgentInstantly: formData.flagTeleportsAgentInstantly || undefined,
             selfRevive: formData.flagSelfRevive || undefined,
             targetRevive: formData.flagTargetRevive || undefined,
             activatableDeployable: formData.flagActivatableDeployable || undefined,
@@ -411,6 +443,19 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   maxDistance: Number(formData.projectileMaxDistance) || undefined,
                   alwaysMaxDistance: formData.projectileAlwaysMaxDistance || undefined,
                   controllable: formData.projectileControllable || undefined,
+                  stoppable: formData.projectileStoppable || undefined,
+                }
+              : undefined,
+            agentDisplacement: formData.flagAgentDisplacement
+              ? {
+                  teleportsToSkillPosition: formData.agentDisplacementTeleportsToSkillPosition || undefined,
+                  maxDisplacements: Number(formData.agentDisplacementMaxDisplacements) || undefined,
+                  speed: Number(formData.agentDisplacementSpeed) || undefined,
+                  duration: Number(formData.agentDisplacementDuration) || undefined,
+                  maxDistance: Number(formData.agentDisplacementMaxDistance) || undefined,
+                  alwaysMaxDistance: formData.agentDisplacementAlwaysMaxDistance || undefined,
+                  controllable: formData.agentDisplacementControllable || undefined,
+                  stoppable: formData.agentDisplacementStoppable || undefined,
                 }
               : undefined,
             groundPath: formData.flagGroundPath
@@ -805,11 +850,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           <span>Teletransporte en Ancla (Chamber, Yoru)</span>
                         </label>
                         <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagTeleportsAgentInstantly} onChange={e => setFormData({...formData, flagTeleportsAgentInstantly: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Teletransporte Directo (Omen C/X)</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
                           <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
                           <span className="checkbox-custom"></span>
                           <span>Auto-Buff Instantáneo</span>
@@ -927,6 +967,67 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                               <input type="checkbox" checked={formData.projectileStoppable} onChange={e => setFormData({...formData, projectileStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
                               <span>Se puede detener manualmente en vuelo (ej. Harbor C)</span>
                             </label>
+                          </div>
+                        )}
+
+                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                          <input type="checkbox" checked={formData.flagAgentDisplacement} onChange={e => setFormData({...formData, flagAgentDisplacement: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                          <span>Desplazamiento de Agente / Teletransporte (Dash Jett, TP Omen)</span>
+                        </label>
+                        {formData.flagAgentDisplacement && (
+                          <div className="form-col" style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8, paddingLeft: 24 }}>
+                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                              <input type="checkbox" checked={formData.agentDisplacementTeleportsToSkillPosition} onChange={e => setFormData({...formData, agentDisplacementTeleportsToSkillPosition: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                              <span>Teletransporte a la posición de la habilidad (Instantáneo, ignora distancias del dash)</span>
+                            </label>
+
+                            <div className="form-group" style={{ maxWidth: 300 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Número de desplazamientos encadenados</label>
+                              <input type="number" min="1" className="input-field" value={formData.agentDisplacementMaxDisplacements} onChange={e => setFormData({...formData, agentDisplacementMaxDisplacements: parseInt(e.target.value) || 1})} />
+                            </div>
+
+                            {!formData.agentDisplacementTeleportsToSkillPosition && (
+                              <>
+                                <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                                  <div className="form-group" style={{ flex: 1 }}>
+                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
+                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementMaxDistance} onChange={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const speed = formData.agentDisplacementDuration > 0 ? parseFloat((val / formData.agentDisplacementDuration).toFixed(2)) : formData.agentDisplacementSpeed;
+                                      setFormData({...formData, agentDisplacementMaxDistance: val, agentDisplacementSpeed: speed});
+                                    }} />
+                                  </div>
+                                  <div className="form-group" style={{ flex: 1 }}>
+                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
+                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementDuration} onChange={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const speed = val > 0 ? parseFloat((formData.agentDisplacementMaxDistance / val).toFixed(2)) : formData.agentDisplacementSpeed;
+                                      setFormData({...formData, agentDisplacementDuration: val, agentDisplacementSpeed: speed});
+                                    }} />
+                                  </div>
+                                  <div className="form-group" style={{ flex: 1 }}>
+                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
+                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementSpeed} onChange={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const duration = (val > 0 && formData.agentDisplacementMaxDistance > 0) ? parseFloat((formData.agentDisplacementMaxDistance / val).toFixed(2)) : formData.agentDisplacementDuration;
+                                      setFormData({...formData, agentDisplacementSpeed: val, agentDisplacementDuration: duration});
+                                    }} />
+                                  </div>
+                                </div>
+                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
+                                  <input type="checkbox" checked={formData.agentDisplacementAlwaysMaxDistance} onChange={e => setFormData({...formData, agentDisplacementAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                                  <span>Forzar recorrido máximo (no se puede acortar)</span>
+                                </label>
+                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                                  <input type="checkbox" checked={formData.agentDisplacementControllable} onChange={e => setFormData({...formData, agentDisplacementControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                                  <span>Ruta controlable (se dirige con el ratón)</span>
+                                </label>
+                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
+                                  <input type="checkbox" checked={formData.agentDisplacementStoppable} onChange={e => setFormData({...formData, agentDisplacementStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
+                                  <span>Se puede detener manualmente</span>
+                                </label>
+                              </>
+                            )}
                           </div>
                         )}
 
