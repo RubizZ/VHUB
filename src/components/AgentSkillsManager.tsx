@@ -450,12 +450,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
               ? {
                   teleportsToSkillPosition: formData.agentDisplacementTeleportsToSkillPosition || undefined,
                   maxDisplacements: Number(formData.agentDisplacementMaxDisplacements) || undefined,
-                  speed: Number(formData.agentDisplacementSpeed) || undefined,
-                  duration: Number(formData.agentDisplacementDuration) || undefined,
-                  maxDistance: Number(formData.agentDisplacementMaxDistance) || undefined,
-                  alwaysMaxDistance: formData.agentDisplacementAlwaysMaxDistance || undefined,
-                  controllable: formData.agentDisplacementControllable || undefined,
-                  stoppable: formData.agentDisplacementStoppable || undefined,
+                  speed: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementSpeed) || undefined) : undefined,
+                  duration: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementDuration) || undefined) : undefined,
+                  maxDistance: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementMaxDistance) || undefined) : undefined,
+                  alwaysMaxDistance: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementAlwaysMaxDistance || undefined) : undefined,
+                  controllable: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementControllable || undefined) : undefined,
+                  stoppable: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementStoppable || undefined) : undefined,
                 }
               : undefined,
             groundPath: formData.flagGroundPath
