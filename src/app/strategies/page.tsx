@@ -3053,6 +3053,17 @@ export default function StrategiesPage() {
                 return true;
         }
 
+        if (s.pathPoints && s.pathPoints.length > 2) {
+            for (let i = 1; i < s.pathPoints.length - 1; i++) {
+                const ptScreen = getScreenPos(s.pathPoints[i].x, s.pathPoints[i].y);
+                const pdx = ptScreen.x - mouseX;
+                const pdy = ptScreen.y - mouseY;
+                if (Math.sqrt(pdx * pdx + pdy * pdy) <= 12 * zoomRef.current) {
+                    return true;
+                }
+            }
+        }
+
         if (!s.geometry) return false;
         const mToPx = selectedMap?.pixelsPerMeter || 20;
         const geom = s.geometry;
