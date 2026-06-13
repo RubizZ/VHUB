@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
+import { PREMIER_DIVISIONS } from "@/lib/domain/premier-divisions";
 
 interface Team {
   id: string;

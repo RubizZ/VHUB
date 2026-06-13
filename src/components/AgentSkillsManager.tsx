@@ -4,180 +4,184 @@ import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { AgentSkill, ValorantAgent, SkillGeometry, SkillBehavior } from "@/lib/agents";
-import { type ValorantWeapon } from "@/lib/weapons";
+import { AgentSkill, ValorantAgent, DeploymentType, MechanicsData, EffectsData, DamageData, HealData, VisionData } from "@/lib/domain/agents";
 
 interface SkillFormData {
   name: string;
   description: string;
   color: string;
-  charges: number;
-  castTime: number;
-  geometryType: "none" | "circle" | "rectangle" | "cone" | "infinite-wall" | "trapezoid" | "curve" | "cross" | "line";
-  geometryRadius: number;
-  geometryWidth: number;
-  geometryEndWidth: number;
-  geometryHideBase: boolean;
-  geometryLength: number;
-  geometryAngle: number;
-  behaviorCharges: number;
-  behaviorCastTime: number;
-  behaviorDuration: number;
-  behaviorHp: number;
-  behaviorRechargeTime: number;
-  behaviorRechargeKills: number;
-  behaviorDebuffApplied: string;
-  behaviorSpawn: "player" | "ground" | "wall" | "projectile";
-  behaviorSpawnOffset: number;
-  behaviorGroundRange: number;
-  consumesSkillKey: string;
-  // flags simples
-  flagThroughWall: boolean;
-  flagRecallable: boolean;
-  flagGrantsWeapon: boolean;
-  flagTeleportsToDeployed: boolean;
-  flagSelfRevive: boolean;
-  flagTargetRevive: boolean;
-  flagActivatableDeployable: boolean;
-  flagTwoPointDeployment: boolean;
-  flagTwoPointDirectional: boolean;
-  flagDeployablePreRound: boolean;
-  flagTriggerOnSight: boolean;
-  flagGeneratesSoulOrbs: boolean;
-  flagIsolatesTarget: boolean;
-  flagOpaque: boolean;
-  flagHasHitbox: boolean;
-  // flags con sub-config
-  flagProjectile: boolean;
-  projectileSpeed: number;
-  projectileDuration: number;
-  projectileMaxDistance: number;
-  projectileAlwaysMaxDistance: boolean;
-  projectileControllable: boolean;
-  projectileStoppable: boolean;
-
-  flagAgentDisplacement: boolean;
-  agentDisplacementTeleportsToSkillPosition: boolean;
-  agentDisplacementMaxDisplacements: number;
-  agentDisplacementSpeed: number;
-  agentDisplacementDuration: number;
-  agentDisplacementMaxDistance: number;
-  agentDisplacementAlwaysMaxDistance: boolean;
-  agentDisplacementControllable: boolean;
-  agentDisplacementStoppable: boolean;
-
-  flagGroundPath: boolean;
-  groundPathSpeed: number;
-  groundPathDuration: number;
-  groundPathMaxDistance: number;
-  groundPathAlwaysMaxDistance: boolean;
-  groundPathWidth: number;
-  groundPathControllable: boolean;
-  groundPathStoppable: boolean;
-
-  flagBouncing: boolean;
-  bouncingCount: number;
-  flagChargeable: boolean;
-  chargeMinLength: number;
-  chargeMaxLength: number;
-  chargeTimePerMeter: number;
-  flagRolling: boolean;
-  rollWaveCount: number;
-  rollTimeBetweenWaves: number;
-  flagInstantSelfBuff: boolean;
-  instantSelfBuffDuration: number;
-  instantSelfBuffApplied: string;
+  type: "Basic" | "Signature" | "Ultimate" | "Passive";
   displayIcon: string;
   enabled: boolean;
+
+  // Economy
+  costCredits: number;
+  costUltPoints: number;
+  costNote: string;
+  usesPerRound: number;
+  rechargeCondition: string;
+
+  // Mechanics Base
+  deploymentType: DeploymentType;
+  windup: number;
+  duration: number;
+  castRange: number;
+  traversesWalls: boolean;
+
+  // Mechanics Specifics
+  geometryType: "none" | "circle" | "rectangle" | "cone" | "line" | "curve" | "sector" | "trapezoid" | "cross";
+  projectileSpeed: number;
+  projectileMaxDistance: number;
+  bounces: number;
+  steerable: boolean;
+  aoeRadius: number;
+  aoeWidth: number;
+  aoeLength: number;
+  mapRadiusUnits: number;
+  directionalOnly: boolean;
+  pulses: number;
+  maxAmmo: number;
+  activationRadius: number;
+  visionConeAngle: number;
+  movementSpeed: number;
+
+  // Effects Toggles
+  hasDamage: boolean;
+  hasHeal: boolean;
+  hasVision: boolean;
+  hasDestructible: boolean;
+
+  // Damage
+  damageType: "burst" | "dot" | "weapon" | "instant" | "decay";
+  baseDamage: number;
+  damagePerSecond: number;
+  damagePerPulse: number;
+  damagePulses: number;
+  ticksPerSecond: number;
+  damageMin: number;
+  damageMax: number;
+  headshotDamage: number;
+  bodyDamage: number;
+  legDamage: number;
+  oneShotBody: boolean;
+
+  // Heal
+  healAmount: number;
+  healDuration: number;
+  selfHealAmount: number;
+  selfHealDuration: number;
+  requiresSoulOrb: boolean;
+
+  // Vision
+  blocksVision: boolean;
+  nearsight: boolean;
+  flash: boolean;
+  flashDuration: number;
+  reveal: boolean;
+  revealPulses: number;
+
+  // Destructible
+  hp: number;
+
+  // General Effects
+  cc: string; // comma separated
+  buffs: string; // comma separated
+  notes: string;
+  isolatesTarget: boolean;
+  revives: boolean;
+  recollectable: boolean;
+  fuelBased: boolean;
+  audioCueRadius: number;
 }
+
+const getDefaultFormData = (): SkillFormData => ({
+  name: "",
+  description: "",
+  color: "",
+  type: "Basic",
+  displayIcon: "",
+  enabled: true,
+
+  costCredits: 0,
+  costUltPoints: 0,
+  costNote: "",
+  usesPerRound: 1,
+  rechargeCondition: "",
+
+  deploymentType: "self_instant",
+  windup: 0,
+  duration: 0,
+  castRange: 0,
+  traversesWalls: false,
+
+  geometryType: "none",
+  projectileSpeed: 0,
+  projectileMaxDistance: 0,
+  bounces: 0,
+  steerable: false,
+  aoeRadius: 0,
+  aoeWidth: 0,
+  aoeLength: 0,
+  mapRadiusUnits: 0,
+  directionalOnly: false,
+  pulses: 0,
+  maxAmmo: 0,
+  activationRadius: 0,
+  visionConeAngle: 0,
+  movementSpeed: 0,
+
+  hasDamage: false,
+  hasHeal: false,
+  hasVision: false,
+  hasDestructible: false,
+
+  damageType: "burst",
+  baseDamage: 0,
+  damagePerSecond: 0,
+  damagePerPulse: 0,
+  damagePulses: 0,
+  ticksPerSecond: 0,
+  damageMin: 0,
+  damageMax: 0,
+  headshotDamage: 0,
+  bodyDamage: 0,
+  legDamage: 0,
+  oneShotBody: false,
+
+  healAmount: 0,
+  healDuration: 0,
+  selfHealAmount: 0,
+  selfHealDuration: 0,
+  requiresSoulOrb: false,
+
+  blocksVision: false,
+  nearsight: false,
+  flash: false,
+  flashDuration: 0,
+  reveal: false,
+  revealPulses: 0,
+
+  hp: 0,
+
+  cc: "",
+  buffs: "",
+  notes: "",
+  isolatesTarget: false,
+  revives: false,
+  recollectable: false,
+  fuelBased: false,
+  audioCueRadius: 0
+});
 
 export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMode, onClose }: { defaultAgentId?: string, defaultSkillKey?: string, isModalMode?: boolean, onClose?: () => void }) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
 
-
   const [search, setSearch] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<ValorantAgent | null>(null);
   const [editingSkillKey, setEditingSkillKey] = useState<string>("q");
-  const [activeTab, setActiveTab] = useState<"general" | "geometry" | "mechanics" | "times">("general");
-  const [formData, setFormData] = useState<SkillFormData>({
-    name: "",
-    description: "",
-    color: "",
-    charges: 1,
-    castTime: 0,
-    geometryType: "circle",
-    geometryRadius: 5,
-    geometryWidth: 5,
-    geometryEndWidth: 2,
-    geometryHideBase: false,
-    geometryLength: 5,
-    geometryAngle: 90,
-    behaviorCharges: 1,
-    behaviorCastTime: 0,
-    behaviorDuration: 0,
-    behaviorHp: 0,
-    behaviorRechargeTime: 0,
-    behaviorRechargeKills: 0,
-    behaviorDebuffApplied: "",
-    behaviorSpawn: "player",
-    behaviorSpawnOffset: 0,
-    behaviorGroundRange: 10,
-    consumesSkillKey: "",
-    flagThroughWall: false,
-    flagRecallable: false,
-    flagGrantsWeapon: false,
-    flagTeleportsToDeployed: false,
-    flagSelfRevive: false,
-    flagTargetRevive: false,
-    flagActivatableDeployable: false,
-    flagTwoPointDeployment: false,
-    flagTwoPointDirectional: false,
-    flagDeployablePreRound: false,
-    flagTriggerOnSight: false,
-    flagGeneratesSoulOrbs: false,
-    flagIsolatesTarget: false,
-    flagOpaque: false,
-    flagHasHitbox: false,
-    flagProjectile: false,
-    projectileSpeed: 0,
-    projectileDuration: 0,
-    projectileMaxDistance: 0,
-    projectileAlwaysMaxDistance: false,
-    projectileControllable: false,
-    projectileStoppable: false,
-    flagAgentDisplacement: false,
-    agentDisplacementTeleportsToSkillPosition: false,
-    agentDisplacementMaxDisplacements: 1,
-    agentDisplacementSpeed: 0,
-    agentDisplacementDuration: 0,
-    agentDisplacementMaxDistance: 0,
-    agentDisplacementAlwaysMaxDistance: false,
-    agentDisplacementControllable: false,
-    agentDisplacementStoppable: false,
-    flagGroundPath: false,
-    groundPathSpeed: 0,
-    groundPathDuration: 0,
-    groundPathMaxDistance: 0,
-    groundPathAlwaysMaxDistance: false,
-    groundPathWidth: 1,
-    groundPathControllable: false,
-    groundPathStoppable: false,
-    flagBouncing: false,
-    bouncingCount: 1,
-    flagChargeable: false,
-    chargeMinLength: 10,
-    chargeMaxLength: 35,
-    chargeTimePerMeter: 0.1,
-    flagRolling: false,
-    rollWaveCount: 5,
-    rollTimeBetweenWaves: 0.2,
-    flagInstantSelfBuff: false,
-    instantSelfBuffDuration: 0,
-    instantSelfBuffApplied: "",
-    displayIcon: "",
-    enabled: true,
-  });
+  const [activeTab, setActiveTab] = useState<"general" | "mechanics" | "effects">("general");
+  const [formData, setFormData] = useState<SkillFormData>(getDefaultFormData());
 
   const {
     data: agentsData,
@@ -192,16 +196,6 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     enabled: session?.user?.role === "super_admin",
   });
 
-  const { data: weaponsData } = useQuery<{ weapons: ValorantWeapon[] }>({
-    queryKey: ["weapons"],
-    queryFn: async () => {
-      const res = await fetch("/api/weapons");
-      if (!res.ok) throw new Error("Error loading weapons");
-      return res.json();
-    },
-    staleTime: 3600 * 1000,
-  });
-
   const agents = agentsData?.agents || [];
   const filteredAgents = agents.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -214,168 +208,105 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
     setEditingSkillKey(key);
     const skill = agent.skills?.find(s => s.key === key);
     if (skill) {
-      setFormData({
-        name: skill.name,
-        description: skill.description || "",
-        color: skill.color || "",
-        charges: skill.behavior?.charges || 1,
-        castTime: skill.behavior?.castTime || 0,
-        geometryType: ((skill.geometry as any)?.type as SkillFormData["geometryType"]) || "circle",
-        geometryRadius: (skill.geometry as any)?.radius ?? 5,
-        geometryWidth: (skill.geometry as any)?.width ?? 5,
-        geometryEndWidth: (skill.geometry as any)?.endWidth ?? 2,
-        geometryHideBase: (skill.geometry as any)?.hideBase ?? false,
-        geometryLength: (skill.geometry as any)?.length ?? 5,
-        geometryAngle: (skill.geometry as any)?.angle ?? 90,
-        behaviorCharges: skill.behavior?.charges ?? 1,
-        behaviorCastTime: skill.behavior?.castTime ?? 0,
-        behaviorDuration: skill.behavior?.duration ?? 0,
-        behaviorHp: skill.behavior?.hp ?? 0,
-        behaviorRechargeTime: skill.behavior?.rechargeTime ?? 0,
-        behaviorRechargeKills: skill.behavior?.rechargeKills ?? 0,
-        behaviorDebuffApplied: skill.behavior?.debuffApplied || "",
-        behaviorSpawn: skill.behavior?.spawn || "player",
-        behaviorSpawnOffset: skill.behavior?.spawn === "player" ? (skill.behavior.spawnOffset ?? 0) : 0,
-        behaviorGroundRange: skill.behavior?.spawn === "ground" ? (skill.behavior.maxCastRange ?? 10) : 10,
-        consumesSkillKey: skill.behavior?.consumesSkillKey || "",
-        // flags simples
-        flagThroughWall: skill.behavior?.flags?.throughWall || false,
-        flagRecallable: skill.behavior?.flags?.recallable || false,
-        flagGrantsWeapon: skill.behavior?.flags?.grantsWeapon || false,
-        flagTeleportsToDeployed: skill.behavior?.flags?.teleportsToDeployed || false,
-        flagSelfRevive: skill.behavior?.flags?.selfRevive || false,
-        flagTargetRevive: skill.behavior?.flags?.targetRevive || false,
-        flagActivatableDeployable: skill.behavior?.flags?.activatableDeployable || false,
-        flagTwoPointDeployment: skill.behavior?.flags?.twoPointDeployment || false,
-        flagTwoPointDirectional: skill.behavior?.flags?.twoPointDirectional || false,
-        flagDeployablePreRound: skill.behavior?.flags?.deployablePreRound || false,
-        flagTriggerOnSight: skill.behavior?.flags?.triggerOnSight || false,
-        flagGeneratesSoulOrbs: skill.behavior?.flags?.generatesSoulOrbs || false,
-        flagIsolatesTarget: skill.behavior?.flags?.isolatesTarget || false,
-        flagOpaque: skill.behavior?.flags?.opaque || false,
-        flagHasHitbox: skill.behavior?.flags?.hasHitbox || false,
-        flagProjectile: !!skill.behavior?.flags?.projectile,
-        projectileSpeed: skill.behavior?.flags?.projectile?.speed ?? 0,
-        projectileDuration: skill.behavior?.flags?.projectile?.duration ?? 0,
-        projectileMaxDistance: skill.behavior?.flags?.projectile?.maxDistance ?? 0,
-        projectileAlwaysMaxDistance: skill.behavior?.flags?.projectile?.alwaysMaxDistance ?? false,
-        projectileControllable: skill.behavior?.flags?.projectile?.controllable ?? false,
-        projectileStoppable: skill.behavior?.flags?.projectile?.stoppable ?? false,
-        flagAgentDisplacement: !!skill.behavior?.flags?.agentDisplacement,
-        agentDisplacementTeleportsToSkillPosition: skill.behavior?.flags?.agentDisplacement?.teleportsToSkillPosition ?? false,
-        agentDisplacementMaxDisplacements: skill.behavior?.flags?.agentDisplacement?.maxDisplacements ?? 1,
-        agentDisplacementSpeed: skill.behavior?.flags?.agentDisplacement?.speed ?? 0,
-        agentDisplacementDuration: skill.behavior?.flags?.agentDisplacement?.duration ?? 0,
-        agentDisplacementMaxDistance: skill.behavior?.flags?.agentDisplacement?.maxDistance ?? 0,
-        agentDisplacementAlwaysMaxDistance: skill.behavior?.flags?.agentDisplacement?.alwaysMaxDistance ?? false,
-        agentDisplacementControllable: skill.behavior?.flags?.agentDisplacement?.controllable ?? false,
-        agentDisplacementStoppable: skill.behavior?.flags?.agentDisplacement?.stoppable ?? false,
-        flagGroundPath: !!skill.behavior?.flags?.groundPath,
-        groundPathSpeed: skill.behavior?.flags?.groundPath?.speed ?? 0,
-        groundPathDuration: skill.behavior?.flags?.groundPath?.duration ?? 0,
-        groundPathMaxDistance: skill.behavior?.flags?.groundPath?.maxDistance ?? 0,
-        groundPathAlwaysMaxDistance: skill.behavior?.flags?.groundPath?.alwaysMaxDistance ?? false,
-        groundPathWidth: skill.behavior?.flags?.groundPath?.width ?? 1,
-        groundPathControllable: skill.behavior?.flags?.groundPath?.controllable ?? false,
-        groundPathStoppable: skill.behavior?.flags?.groundPath?.stoppable ?? false,
-        flagBouncing: !!skill.behavior?.flags?.bouncing || (skill.behavior?.flags?.projectile as any)?.bounces !== undefined,
-        bouncingCount: skill.behavior?.flags?.bouncing?.bounces ?? (skill.behavior?.flags?.projectile as any)?.bounces ?? 1,
-        // flag chargeable (objeto anidado)
-        flagChargeable: !!skill.behavior?.flags?.chargeable,
-        chargeMinLength: skill.behavior?.flags?.chargeable?.minLength ?? 10,
-        chargeMaxLength: skill.behavior?.flags?.chargeable?.maxLength ?? 35,
-        chargeTimePerMeter: skill.behavior?.flags?.chargeable?.timePerMeter ?? 0.1,
-        // flag rolling (objeto anidado)
-        flagRolling: !!skill.behavior?.flags?.rolling,
-        rollWaveCount: skill.behavior?.flags?.rolling?.waveCount ?? 5,
-        rollTimeBetweenWaves: skill.behavior?.flags?.rolling?.timeBetweenWaves ?? 0.2,
-        // flag controllablePath (objeto anidado)
-        // flag instantSelfBuff (objeto anidado)
-        flagInstantSelfBuff: !!skill.behavior?.flags?.instantSelfBuff,
-        instantSelfBuffDuration: skill.behavior?.flags?.instantSelfBuff?.duration ?? 0,
-        instantSelfBuffApplied: skill.behavior?.flags?.instantSelfBuff?.applied ?? "",
-        displayIcon: skill.displayIcon || "",
-        enabled: skill.enabled ?? false,
-      });
+      const data = getDefaultFormData();
+      data.name = skill.name;
+      data.description = skill.description || "";
+      data.color = skill.color || "";
+      data.type = skill.type || "Basic";
+      data.displayIcon = skill.displayIcon || "";
+      data.enabled = skill.enabled ?? true;
+
+      // Economy
+      if (skill.economy) {
+        data.costCredits = skill.economy.costCredits || 0;
+        data.costUltPoints = skill.economy.costUltPoints || 0;
+        data.costNote = skill.economy.costNote || "";
+        data.usesPerRound = skill.economy.usesPerRound || 1;
+        data.rechargeCondition = skill.economy.rechargeCondition || "";
+      }
+
+      // Mechanics
+      if (skill.mechanics) {
+        data.deploymentType = skill.mechanics.deploymentType;
+        data.windup = skill.mechanics.windup || 0;
+        data.duration = skill.mechanics.duration || 0;
+        data.castRange = "castRange" in skill.mechanics ? (skill.mechanics.castRange || 0) : 0;
+        data.traversesWalls = "traversesWalls" in skill.mechanics ? (skill.mechanics.traversesWalls || false) : false;
+
+        const m = skill.mechanics;
+        data.geometryType = m.geometry?.type || "none";
+        data.projectileSpeed = "projectileSpeed" in m ? (m.projectileSpeed || 0) : 0;
+        data.projectileMaxDistance = "projectileMaxDistance" in m ? (m.projectileMaxDistance || 0) : 0;
+        data.bounces = "bounces" in m ? (m.bounces || 0) : 0;
+        data.steerable = "steerable" in m ? (m.steerable || false) : false;
+        data.aoeRadius = m.geometry && "radius" in m.geometry ? (m.geometry.radius || 0) : 0;
+        data.aoeWidth = m.geometry && "width" in m.geometry ? (m.geometry.width || 0) : 0;
+        data.aoeLength = m.geometry && "length" in m.geometry ? (m.geometry.length || 0) : 0;
+        data.mapRadiusUnits = "mapRadiusUnits" in m ? (m.mapRadiusUnits || 0) : 0;
+        data.directionalOnly = "directionalOnly" in m ? (m.directionalOnly || false) : false;
+        data.pulses = "pulses" in m ? (m.pulses || 0) : 0;
+        data.maxAmmo = "maxAmmo" in m ? (m.maxAmmo || 0) : 0;
+        data.activationRadius = "activationRadius" in m ? (m.activationRadius || 0) : 0;
+        data.visionConeAngle = m.geometry && "angle" in m.geometry ? (m.geometry.angle || 0) : 0;
+        data.movementSpeed = "movementSpeed" in m ? (m.movementSpeed || 0) : 0;
+      }
+
+      // Effects
+      if (skill.effects) {
+        const e = skill.effects;
+        data.hasDamage = !!e.damage;
+        if (e.damage) {
+          data.damageType = e.damage.type || "burst";
+          data.baseDamage = e.damage.baseDamage || 0;
+          data.damagePerSecond = e.damage.damagePerSecond || 0;
+          data.damagePerPulse = e.damage.damagePerPulse || 0;
+          data.damagePulses = e.damage.pulses || 0;
+          data.ticksPerSecond = e.damage.ticksPerSecond || 0;
+          data.damageMin = e.damage.damageMin || 0;
+          data.damageMax = e.damage.damageMax || 0;
+          data.headshotDamage = e.damage.headshotDamage || 0;
+          data.bodyDamage = e.damage.bodyDamage || 0;
+          data.legDamage = e.damage.legDamage || 0;
+          data.oneShotBody = e.damage.oneShotBody || false;
+        }
+
+        data.hasHeal = !!e.heal;
+        if (e.heal) {
+          data.healAmount = e.heal.amount || 0;
+          data.healDuration = e.heal.duration || 0;
+          data.selfHealAmount = e.heal.selfAmount || 0;
+          data.selfHealDuration = e.heal.selfDuration || 0;
+          data.requiresSoulOrb = e.heal.requiresSoulOrb || false;
+        }
+
+        data.hasVision = !!e.vision;
+        if (e.vision) {
+          data.blocksVision = e.vision.blocksVision || false;
+          data.nearsight = e.vision.nearsight || false;
+          data.flash = e.vision.flash || false;
+          data.flashDuration = e.vision.flashDuration || 0;
+          data.reveal = e.vision.reveal || false;
+          data.revealPulses = e.vision.revealPulses || 0;
+        }
+
+        data.hasDestructible = !!e.destructible;
+        if (e.destructible) {
+          data.hp = e.destructible.hp || 0;
+        }
+
+        data.cc = e.cc?.join(", ") || "";
+        data.buffs = e.buffs?.join(", ") || "";
+        data.notes = e.notes || "";
+        data.isolatesTarget = e.isolatesTarget || false;
+        data.revives = e.revives || false;
+        data.recollectable = e.recollectable || false;
+        data.fuelBased = e.fuelBased || false;
+        data.audioCueRadius = e.audioCueRadius || 0;
+      }
+
+      setFormData(data);
     } else {
-      setFormData({
-        name: "",
-        description: "",
-        color: "",
-        charges: 1,
-        castTime: 0,
-        geometryType: "circle",
-        geometryRadius: 5,
-        geometryWidth: 5,
-        geometryEndWidth: 2,
-        geometryHideBase: false,
-        geometryLength: 5,
-        geometryAngle: 90,
-        behaviorCharges: 1,
-        behaviorCastTime: 0,
-        behaviorDuration: 0,
-        behaviorHp: 0,
-        behaviorRechargeTime: 0,
-        behaviorRechargeKills: 0,
-        behaviorDebuffApplied: "",
-        behaviorSpawn: "player",
-        behaviorSpawnOffset: 0,
-        behaviorGroundRange: 10,
-        consumesSkillKey: "",
-        flagThroughWall: false,
-        flagRecallable: false,
-        flagGrantsWeapon: false,
-        flagTeleportsToDeployed: false,
-        flagSelfRevive: false,
-        flagTargetRevive: false,
-        flagActivatableDeployable: false,
-        flagTwoPointDeployment: false,
-        flagTwoPointDirectional: false,
-        flagDeployablePreRound: false,
-        flagTriggerOnSight: false,
-        flagGeneratesSoulOrbs: false,
-        flagIsolatesTarget: false,
-        flagOpaque: false,
-        flagHasHitbox: false,
-        flagProjectile: false,
-        projectileSpeed: 0,
-        projectileDuration: 0,
-        projectileMaxDistance: 0,
-        projectileAlwaysMaxDistance: false,
-        projectileControllable: false,
-        projectileStoppable: false,
-        flagAgentDisplacement: false,
-        agentDisplacementTeleportsToSkillPosition: false,
-        agentDisplacementMaxDisplacements: 1,
-        agentDisplacementSpeed: 0,
-        agentDisplacementDuration: 0,
-        agentDisplacementMaxDistance: 0,
-        agentDisplacementAlwaysMaxDistance: false,
-        agentDisplacementControllable: false,
-        agentDisplacementStoppable: false,
-        flagGroundPath: false,
-        groundPathSpeed: 0,
-        groundPathDuration: 0,
-        groundPathMaxDistance: 0,
-        groundPathAlwaysMaxDistance: false,
-        groundPathWidth: 1,
-        groundPathControllable: false,
-        groundPathStoppable: false,
-        flagBouncing: false,
-        bouncingCount: 1,
-        flagChargeable: false,
-        chargeMinLength: 10,
-        chargeMaxLength: 35,
-        chargeTimePerMeter: 0.1,
-        flagRolling: false,
-        rollWaveCount: 5,
-        rollTimeBetweenWaves: 0.2,
-        flagInstantSelfBuff: false,
-        instantSelfBuffDuration: 0,
-        instantSelfBuffApplied: "",
-        displayIcon: "",
-        enabled: true,
-      });
+      setFormData(getDefaultFormData());
     }
   };
 
@@ -392,110 +323,101 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
   const saveSkillMutation = useMutation({
     mutationFn: async () => {
       if (!selectedAgent) return;
+      
       const payload: Omit<AgentSkill, "id"> = {
         agentId: selectedAgent.id,
         key: editingSkillKey,
         name: formData.name,
         description: formData.description,
         color: formData.color,
-        geometry: {
-          type: formData.geometryType,
-          radius: formData.geometryType === "circle" ? Number(formData.geometryRadius) : undefined,
-          width: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryWidth) : undefined,
-          endWidth: formData.geometryType === "trapezoid" ? Number(formData.geometryEndWidth) : undefined,
-          hideBase: formData.geometryType === "trapezoid" ? formData.geometryHideBase : undefined,
-          length: (formData.geometryType !== "circle" && formData.geometryType !== "none") ? Number(formData.geometryLength) : undefined,
-          angle: (formData.geometryType === "cone" || formData.geometryType === "curve") ? Number(formData.geometryAngle) : undefined,
-        } as unknown as SkillGeometry,
-        behavior: {
-          charges: formData.behaviorCharges,
-          castTime: formData.behaviorCastTime,
-          duration: Number(formData.behaviorDuration) || undefined,
-          hp: Number(formData.behaviorHp) || undefined,
-          rechargeTime: formData.behaviorRechargeTime,
-          rechargeKills: formData.behaviorRechargeKills,
-          debuffApplied: formData.behaviorDebuffApplied || undefined,
-          spawn: formData.behaviorSpawn as "player" | "ground" | "wall" | "projectile",
-          spawnOffset: formData.behaviorSpawn === "player" ? (Number(formData.behaviorSpawnOffset) || undefined) : undefined,
-          maxCastRange: formData.behaviorSpawn === "ground" ? (formData.behaviorGroundRange === 0 ? 0 : (Number(formData.behaviorGroundRange) || undefined)) : undefined,
-          consumesSkillKey: formData.consumesSkillKey || undefined,
-          flags: {
-            throughWall: formData.flagThroughWall || undefined,
-            recallable: formData.flagRecallable || undefined,
-            grantsWeapon: formData.flagGrantsWeapon || undefined,
-            teleportsToDeployed: formData.flagTeleportsToDeployed || undefined,
-            selfRevive: formData.flagSelfRevive || undefined,
-            targetRevive: formData.flagTargetRevive || undefined,
-            activatableDeployable: formData.flagActivatableDeployable || undefined,
-            twoPointDeployment: formData.flagTwoPointDeployment || undefined,
-            twoPointDirectional: formData.flagTwoPointDirectional || undefined,
-            deployablePreRound: formData.flagDeployablePreRound || undefined,
-            triggerOnSight: formData.flagTriggerOnSight || undefined,
-            generatesSoulOrbs: formData.flagGeneratesSoulOrbs || undefined,
-            isolatesTarget: formData.flagIsolatesTarget || undefined,
-            opaque: formData.flagOpaque || undefined,
-            hasHitbox: formData.flagHasHitbox || undefined,
-            // flags con sub-config (presencia = activo)
-            projectile: formData.flagProjectile
-              ? { 
-                  speed: Number(formData.projectileSpeed) || undefined,
-                  duration: Number(formData.projectileDuration) || undefined,
-                  maxDistance: Number(formData.projectileMaxDistance) || undefined,
-                  alwaysMaxDistance: formData.projectileAlwaysMaxDistance || undefined,
-                  controllable: formData.projectileControllable || undefined,
-                  stoppable: formData.projectileStoppable || undefined,
-                }
-              : undefined,
-            agentDisplacement: formData.flagAgentDisplacement
-              ? {
-                  teleportsToSkillPosition: formData.agentDisplacementTeleportsToSkillPosition || undefined,
-                  maxDisplacements: Number(formData.agentDisplacementMaxDisplacements) || undefined,
-                  speed: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementSpeed) || undefined) : undefined,
-                  duration: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementDuration) || undefined) : undefined,
-                  maxDistance: !formData.agentDisplacementTeleportsToSkillPosition ? (Number(formData.agentDisplacementMaxDistance) || undefined) : undefined,
-                  alwaysMaxDistance: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementAlwaysMaxDistance || undefined) : undefined,
-                  controllable: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementControllable || undefined) : undefined,
-                  stoppable: !formData.agentDisplacementTeleportsToSkillPosition ? (formData.agentDisplacementStoppable || undefined) : undefined,
-                }
-              : undefined,
-            groundPath: formData.flagGroundPath
-              ? {
-                  speed: Number(formData.groundPathSpeed) || undefined,
-                  duration: Number(formData.groundPathDuration) || undefined,
-                  maxDistance: Number(formData.groundPathMaxDistance) || undefined,
-                  alwaysMaxDistance: formData.groundPathAlwaysMaxDistance || undefined,
-                  width: Number(formData.groundPathWidth) || 1,
-                  controllable: formData.groundPathControllable || undefined,
-                  stoppable: formData.groundPathStoppable || undefined,
-                }
-              : undefined,
-            bouncing: formData.flagBouncing
-              ? { bounces: Number(formData.bouncingCount) || 1 }
-              : undefined,
-            chargeable: formData.flagChargeable
-              ? {
-                  minLength: Number(formData.chargeMinLength) || undefined,
-                  maxLength: Number(formData.chargeMaxLength) || undefined,
-                  timePerMeter: Number(formData.chargeTimePerMeter) || undefined,
-                }
-              : undefined,
-            rolling: formData.flagRolling
-              ? {
-                  waveCount: Number(formData.rollWaveCount) || undefined,
-                  timeBetweenWaves: Number(formData.rollTimeBetweenWaves) || undefined,
-                }
-              : undefined,
-            instantSelfBuff: formData.flagInstantSelfBuff
-              ? {
-                  duration: Number(formData.instantSelfBuffDuration) || undefined,
-                  applied: formData.instantSelfBuffApplied || undefined,
-                }
-              : undefined,
-          }
-        } as unknown as SkillBehavior,
+        type: formData.type,
         displayIcon: formData.displayIcon || undefined,
-        enabled: formData.enabled
+        enabled: formData.enabled,
+        economy: {
+          costCredits: Number(formData.costCredits) || undefined,
+          costUltPoints: Number(formData.costUltPoints) || undefined,
+          costNote: formData.costNote || undefined,
+          usesPerRound: Number(formData.usesPerRound) || undefined,
+          rechargeCondition: formData.rechargeCondition || undefined,
+        },
+        mechanics: (() => {
+          const base = {
+            windup: Number(formData.windup) || undefined,
+            duration: Number(formData.duration) || undefined,
+          };
+          const castRange = Number(formData.castRange) || undefined;
+          const traversesWalls = formData.traversesWalls || undefined;
+          
+          const geometry = (() => {
+             if (formData.deploymentType === "self_instant" || formData.deploymentType === "equip_weapon") return undefined;
+             if (formData.geometryType === "none") return undefined;
+             const gType = formData.geometryType;
+             if (gType === "circle") return { type: "circle" as const, radius: Number(formData.aoeRadius) || undefined };
+             if (gType === "cone") return { type: "cone" as const, radius: Number(formData.aoeRadius) || undefined, angle: Number(formData.visionConeAngle) || undefined };
+             if (gType === "sector") return { type: "sector" as const, radius: Number(formData.aoeRadius) || undefined, angle: Number(formData.visionConeAngle) || undefined };
+             if (gType === "rectangle") return { type: "rectangle" as const, length: Number(formData.aoeLength) || undefined, width: Number(formData.aoeWidth) || undefined };
+             if (gType === "line") return { type: "line" as const, length: Number(formData.aoeLength) || undefined, width: Number(formData.aoeWidth) || undefined };
+             if (gType === "curve") return { type: "curve" as const, length: Number(formData.aoeLength) || undefined, width: Number(formData.aoeWidth) || undefined };
+             return undefined;
+          })();
+
+          switch (formData.deploymentType) {
+            case "self_instant": return { ...base, deploymentType: "self_instant" as const };
+            case "equip_weapon": return { ...base, deploymentType: "equip_weapon" as const, maxAmmo: Number(formData.maxAmmo) || undefined };
+            case "self_mobile_aura": return { ...base, deploymentType: "self_mobile_aura" as const, geometry, pulses: Number(formData.pulses) || undefined, traversesWalls };
+            case "projectile_terminal_aoe": return { ...base, deploymentType: "projectile_terminal_aoe" as const, geometry, projectileSpeed: Number(formData.projectileSpeed) || undefined, projectileMaxDistance: Number(formData.projectileMaxDistance) || undefined, bounces: Number(formData.bounces) || undefined, steerable: formData.steerable || undefined, traversesWalls };
+            case "projectile_sweeping": return { ...base, deploymentType: "projectile_sweeping" as const, geometry, projectileSpeed: Number(formData.projectileSpeed) || undefined, projectileMaxDistance: Number(formData.projectileMaxDistance) || undefined, traversesWalls };
+            case "map_target_aoe": return { ...base, deploymentType: "map_target_aoe" as const, geometry, mapRadiusUnits: Number(formData.mapRadiusUnits) || undefined, castRange };
+            case "static_deployable": return { ...base, deploymentType: "static_deployable" as const, geometry, castRange };
+            case "linear_wall": return { ...base, deploymentType: "linear_wall" as const, geometry, steerable: formData.steerable || undefined, castRange, traversesWalls };
+            case "two_point_barrier": return { ...base, deploymentType: "two_point_barrier" as const, geometry, directionalOnly: formData.directionalOnly || undefined, castRange };
+            case "autonomous_entity": return { ...base, deploymentType: "autonomous_entity" as const, geometry, activationRadius: Number(formData.activationRadius) || undefined, movementSpeed: Number(formData.movementSpeed) || undefined };
+          }
+        })(),
+        effects: {
+          damage: formData.hasDamage ? {
+            type: formData.damageType,
+            baseDamage: Number(formData.baseDamage) || undefined,
+            damagePerSecond: Number(formData.damagePerSecond) || undefined,
+            damagePerPulse: Number(formData.damagePerPulse) || undefined,
+            pulses: Number(formData.damagePulses) || undefined,
+            ticksPerSecond: Number(formData.ticksPerSecond) || undefined,
+            damageMin: Number(formData.damageMin) || undefined,
+            damageMax: Number(formData.damageMax) || undefined,
+            headshotDamage: Number(formData.headshotDamage) || undefined,
+            bodyDamage: Number(formData.bodyDamage) || undefined,
+            legDamage: Number(formData.legDamage) || undefined,
+            oneShotBody: formData.oneShotBody || undefined,
+          } : undefined,
+          heal: formData.hasHeal ? {
+            amount: Number(formData.healAmount) || undefined,
+            duration: Number(formData.healDuration) || undefined,
+            selfAmount: Number(formData.selfHealAmount) || undefined,
+            selfDuration: Number(formData.selfHealDuration) || undefined,
+            requiresSoulOrb: formData.requiresSoulOrb || undefined,
+          } : undefined,
+          vision: formData.hasVision ? {
+            blocksVision: formData.blocksVision || undefined,
+            nearsight: formData.nearsight || undefined,
+            flash: formData.flash || undefined,
+            flashDuration: Number(formData.flashDuration) || undefined,
+            reveal: formData.reveal || undefined,
+            revealPulses: Number(formData.revealPulses) || undefined,
+          } : undefined,
+          destructible: formData.hasDestructible ? {
+            hp: Number(formData.hp) || 0
+          } : undefined,
+          cc: formData.cc ? formData.cc.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+          buffs: formData.buffs ? formData.buffs.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+          notes: formData.notes || undefined,
+          isolatesTarget: formData.isolatesTarget || undefined,
+          revives: formData.revives || undefined,
+          recollectable: formData.recollectable || undefined,
+          fuelBased: formData.fuelBased || undefined,
+          audioCueRadius: Number(formData.audioCueRadius) || undefined,
+        }
       };
+      
       const res = await fetch("/api/admin/skills", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -535,7 +457,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
       const baseKey = editingSkillKey.replace("_alt", "").toLowerCase();
       const slot = keyMap[baseKey];
       if (slot) {
-        const ability = abilities.find((a: any) => a.slot === slot);
+        const ability = abilities.find((a: { slot: string; displayIcon: string }) => a.slot === slot);
         if (ability?.displayIcon) {
           setFormData(prev => ({ ...prev, displayIcon: ability.displayIcon }));
         }
@@ -557,7 +479,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
             <div>
               <span className="badge" style={{ background: "rgba(0, 212, 170, 0.1)", color: "var(--val-cyan)", marginBottom: 8 }}>PLATFORM MANAGEMENT</span>
               <h1 className="gradient-text" style={{ fontSize: 42, fontWeight: 900, letterSpacing: "-1px" }}>Agentes y Habilidades</h1>
-              <p style={{ fontSize: 16, color: "var(--text-secondary)", marginTop: 4 }}>Configuración de geometría e interacción para el editor de estrategias</p>
+              <p style={{ fontSize: 16, color: "var(--text-secondary)", marginTop: 4 }}>Configuración remodelada basada en Mecánicas y Efectos</p>
             </div>
             <div>
                <div style={{ position: "relative" }}>
@@ -614,12 +536,12 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
 
       {selectedAgent && (
         <div className={isModalMode ? "" : "modal-overlay"} style={isModalMode ? { padding: 20 } : {}}>
-          <div className={isModalMode ? "" : "modal-content card glass-card premium-modal"} style={isModalMode ? { maxWidth: 700, width: "100%", margin: "0 auto", padding: 0, background: "transparent", border: "none", boxShadow: "none" } : { maxWidth: 700, width: "95%" }}>
+          <div className={isModalMode ? "" : "modal-content card glass-card premium-modal"} style={isModalMode ? { maxWidth: 700, width: "100%", margin: "0 auto", padding: 0, background: "transparent", border: "none", boxShadow: "none" } : { maxWidth: 850, width: "95%" }}>
             {!isModalMode && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
                  <div>
                    <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>Habilidades de {selectedAgent.name}</h2>
-                   <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>Configura cómo interactúan en el editor 2D</p>
+                   <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>Editor de Árbol de Mecánicas</p>
                  </div>
                  <button className="icon-action-btn" onClick={() => {
                    setSelectedAgent(null);
@@ -633,6 +555,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                 {["c", "q", "e", "x", "passive"].map(key => (
                   <React.Fragment key={key}>
                     <button 
+                      type="button"
                       className={`btn ${editingSkillKey === key ? "btn-primary" : "btn-secondary"}`}
                       style={{ textTransform: "uppercase", fontWeight: 900, height: 48, flex: "0 0 auto", padding: "0 24px" }}
                       onClick={() => loadSkillForm(selectedAgent, key)}
@@ -641,6 +564,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                     </button>
                     {selectedAgent.skills?.some(s => s.key === `${key}_alt`) ? (
                       <button 
+                        type="button"
                         className={`btn ${editingSkillKey === `${key}_alt` ? "btn-primary" : "btn-secondary"}`}
                         style={{ textTransform: "uppercase", fontWeight: 800, height: 36, marginLeft: 16, marginTop: -8, fontSize: 12 }}
                         onClick={() => loadSkillForm(selectedAgent, `${key}_alt`)}
@@ -649,6 +573,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                       </button>
                     ) : (
                       <button 
+                        type="button"
                         className="btn btn-secondary"
                         style={{ textTransform: "uppercase", fontWeight: 800, height: 32, marginLeft: 16, marginTop: -8, fontSize: 10, opacity: 0.5, border: "1px dashed rgba(255,255,255,0.2)" }}
                         onClick={() => loadSkillForm(selectedAgent, `${key}_alt`)}
@@ -660,10 +585,10 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                 ))}
               </div>
 
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, maxHeight: isModalMode ? "none" : "70vh", overflowY: "auto", paddingRight: 8 }}>
                 <form onSubmit={handleSubmit} style={{ background: "rgba(0,0,0,0.2)", padding: 24, borderRadius: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                    <h3 style={{ margin: 0, textTransform: "uppercase", color: "var(--val-yellow)" }}>Configurando {editingSkillKey}</h3>
+                    <h3 style={{ margin: 0, textTransform: "uppercase", color: "var(--val-yellow)" }}>Editando {editingSkillKey}</h3>
                     <label className="checkbox-label" style={{ padding: "8px 16px", background: formData.enabled ? "rgba(0, 212, 170, 0.1)" : "rgba(255, 70, 85, 0.1)", borderRadius: 8, border: `1px solid ${formData.enabled ? "rgba(0, 212, 170, 0.3)" : "rgba(255, 70, 85, 0.3)"}` }}>
                       <input type="checkbox" checked={formData.enabled} onChange={e => setFormData({...formData, enabled: e.target.checked})} />
                       <span className="checkbox-custom"></span>
@@ -672,7 +597,7 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                   </div>
 
                   <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 16 }}>
-                    {(["general", "geometry", "mechanics", "times"] as const).map(tab => (
+                    {(["general", "mechanics", "effects"] as const).map(tab => (
                       <button
                         key={tab}
                         type="button"
@@ -690,549 +615,328 @@ export function AgentSkillsManager({ defaultAgentId, defaultSkillKey, isModalMod
                           transition: "all 0.2s"
                         }}
                       >
-                        {tab === "general" ? "General" : tab === "geometry" ? "Forma & Geo" : tab === "mechanics" ? "Mecánicas" : "Tiempos & Stats"}
+                        {tab === "general" ? "General & Economía" : tab === "mechanics" ? "Mecánica (Árbol)" : "Efectos & Pasivas"}
                       </button>
                     ))}
                   </div>
 
                   {activeTab === "general" && (
                     <div className="tab-content fade-in">
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
-                        <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-                      </div>
-                      
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label className="form-label">Key ID</label>
-                        <input className="input-field" value={editingSkillKey} disabled style={{ opacity: 0.5 }} />
-                      </div>
-                      
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label className="form-label">Icono de la habilidad (URL valorant-api)</label>
-                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                          <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} placeholder="https://..." style={{ flex: 1 }} />
-                          <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Extraer de Valorant API</button>
-                          {formData.displayIcon && (
-                            <div style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(10, 14, 20, 0.9)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
-                              <img src={formData.displayIcon} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Color Base (Hex) - opcional</label>
-                        <input className="input-field" placeholder="#FF4655" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "geometry" && (
-                    <div className="tab-content fade-in">
-                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
                         <div className="form-group" style={{ flex: 2 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Comportamiento de Spawn base</label>
-                          <select className="input-field" value={formData.behaviorSpawn} onChange={e => {
-                            const val = e.target.value as SkillFormData["behaviorSpawn"];
-                            if (val === "player") {
-                               setFormData({...formData, behaviorSpawn: val, flagTwoPointDeployment: false, flagTwoPointDirectional: false});
-                            } else {
-                               setFormData({...formData, behaviorSpawn: val});
-                            }
-                          }}>
-                            <option value="player">Sale de la posición del jugador</option>
-                            <option value="ground">Se coloca en el suelo libremente (ej. Humos)</option>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
+                          <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tipo</label>
+                          <select className="input-field" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as "Basic" | "Signature" | "Ultimate" | "Passive"})}>
+                            <option value="Basic">Básica</option>
+                            <option value="Signature">Firma (Signature)</option>
+                            <option value="Ultimate">Ultimate</option>
+                            <option value="Passive">Pasiva</option>
                           </select>
                         </div>
-                        {formData.behaviorSpawn === "player" && (
-                          <div className="form-group" style={{ flex: 1 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Offset frontal (m)</label>
-                            <input type="number" step="0.1" className="input-field" value={formData.behaviorSpawnOffset} onChange={e => setFormData({...formData, behaviorSpawnOffset: Number(e.target.value)})} />
-                          </div>
-                        )}
-                        {formData.behaviorSpawn !== "player" && (
-                          <div className="form-group" style={{ flex: 1 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango Máx. (m, 0=inf)</label>
-                            <input type="number" step="0.1" className="input-field" value={formData.behaviorGroundRange} onChange={e => setFormData({...formData, behaviorGroundRange: Number(e.target.value)})} />
-                          </div>
-                        )}
                       </div>
 
-                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap", background: "rgba(255,255,255,0.02)", padding: 16, borderRadius: 12 }}>
-                        <div className="form-group" style={{ flex: "1 1 100%" }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Modo de Despliegue</label>
-                          <select className="input-field" disabled={formData.behaviorSpawn === "player"} value={!formData.flagTwoPointDeployment ? "1pt" : (formData.flagTwoPointDirectional ? "2pt-dir" : "2pt-conn")} onChange={e => {
-                            const val = e.target.value;
-                            if (val === "1pt") {
-                              setFormData({...formData, flagTwoPointDeployment: false, flagTwoPointDirectional: false});
-                            } else if (val === "2pt-conn") {
-                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: false, geometryType: "line"});
-                            } else if (val === "2pt-dir") {
-                              setFormData({...formData, flagTwoPointDeployment: true, flagTwoPointDirectional: true, geometryType: "rectangle"});
-                            }
-                          }}>
-                            <option value="1pt">1 Punto (Normal)</option>
-                            <option value="2pt-conn">2 Puntos (Conexión / Cable)</option>
-                            <option value="2pt-dir">2 Puntos (Direccional / Área)</option>
-                          </select>
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label className="form-label">Icono de la habilidad (URL)</label>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                          <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} style={{ flex: 1 }} />
+                          <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Valorant API</button>
                         </div>
-                        <div className="form-group" style={{ flex: "1 1 100%" }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Forma Geométrica Visual</label>
-                          <select className="input-field" value={formData.geometryType} disabled={formData.flagTwoPointDeployment} onChange={e => setFormData({...formData, geometryType: e.target.value as SkillFormData["geometryType"]})}>
-                            <option value="none">Ninguna (Solo Icono)</option>
-                            <option value="circle">Círculo / Área</option>
-                            <option value="rectangle">Rectángulo</option>
-                            <option value="cone">Cono (Área frontal)</option>
-                            <option value="infinite-wall">Muro Infinito</option>
-                            <option value="trapezoid">Trapecio (Muro Iso)</option>
-                            <option value="curve">Curva (Bola de efecto)</option>
-                            <option value="cross">Cruz (Granada Raze)</option>
-                            <option value="line">Línea (Solo conexión)</option>
-                          </select>
+                      </div>
+
+                      <h4 style={{ marginTop: 32, marginBottom: 16, color: "var(--text-muted)", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 8 }}>Economía y Usos</h4>
+                      
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Coste Créditos</label>
+                          <input type="number" className="input-field" value={formData.costCredits} onChange={e => setFormData({...formData, costCredits: Number(e.target.value)})} />
                         </div>
-                        {formData.geometryType === "circle" && (
-                          <div className="form-group" style={{ flex: 1 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Radio (m)</label>
-                            <input type="number" className="input-field" value={formData.geometryRadius} onChange={e => setFormData({...formData, geometryRadius: Number(e.target.value)})} />
-                          </div>
-                        )}
-                        {(formData.geometryType === "rectangle" || formData.geometryType === "cone" || formData.geometryType === "curve" || formData.geometryType === "line" || formData.geometryType === "trapezoid") && (
-                          <>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "trapezoid" ? "Anchura Inicial (m)" : "Ancho/Grosor (m)"}</label>
-                              <input type="number" step="0.1" className="input-field" value={formData.geometryWidth} onChange={e => setFormData({...formData, geometryWidth: Number(e.target.value)})} />
-                            </div>
-                            {formData.geometryType === "trapezoid" && (
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Anchura Final (m)</label>
-                                <input type="number" step="0.1" className="input-field" value={formData.geometryEndWidth} onChange={e => setFormData({...formData, geometryEndWidth: Number(e.target.value)})} />
-                              </div>
-                            )}
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>{formData.geometryType === "line" ? "Largo Máx. del Cable (m)" : "Largo/Alcance (m)"}</label>
-                              <input type="number" step="0.1" className="input-field" value={formData.geometryLength} onChange={e => setFormData({...formData, geometryLength: Number(e.target.value)})} />
-                            </div>
-                          </>
-                        )}
-                        {formData.geometryType === "trapezoid" && (
-                          <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: -8, marginBottom: 12 }}>
-                            <input type="checkbox" checked={formData.geometryHideBase} onChange={e => setFormData({...formData, geometryHideBase: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                            <span>Ocultar la base más ancha (dejarla abierta)</span>
-                          </label>
-                        )}
-                        {(formData.geometryType === "cone" || formData.geometryType === "curve") && (
-                          <div className="form-group" style={{ flex: 1 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ángulo (grados)</label>
-                            <input type="number" className="input-field" value={formData.geometryAngle} onChange={e => setFormData({...formData, geometryAngle: Number(e.target.value)})} />
-                          </div>
-                        )}
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Puntos Ultimate</label>
+                          <input type="number" className="input-field" value={formData.costUltPoints} onChange={e => setFormData({...formData, costUltPoints: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Usos por Ronda</label>
+                          <input type="number" className="input-field" value={formData.usesPerRound} onChange={e => setFormData({...formData, usesPerRound: Number(e.target.value)})} />
+                        </div>
+                      </div>
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Condición de Recarga</label>
+                          <input className="input-field" placeholder="ej. 2 kills, 40s cooldown..." value={formData.rechargeCondition} onChange={e => setFormData({...formData, rechargeCondition: e.target.value})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nota de Coste</label>
+                          <input className="input-field" placeholder="ej. Usa estrellas compartidas" value={formData.costNote} onChange={e => setFormData({...formData, costNote: e.target.value})} />
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {activeTab === "mechanics" && (
                     <div className="tab-content fade-in">
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagDeployablePreRound} onChange={e => setFormData({...formData, flagDeployablePreRound: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Pre-ronda (Timeline mode)</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagActivatableDeployable} onChange={e => setFormData({...formData, flagActivatableDeployable: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Activable (Cárcel Cypher)</span>
-                        </label>
-
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagTeleportsToDeployed} onChange={e => setFormData({...formData, flagTeleportsToDeployed: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Teletransporte en Ancla (Chamber, Yoru)</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagInstantSelfBuff} onChange={e => setFormData({...formData, flagInstantSelfBuff: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Auto-Buff Instantáneo</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagSelfRevive} onChange={e => setFormData({...formData, flagSelfRevive: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Auto-Revivir (Clove X)</span>
-                        </label>
-                        <label className="checkbox-label" style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <input type="checkbox" checked={formData.flagTargetRevive} onChange={e => setFormData({...formData, flagTargetRevive: e.target.checked})} />
-                          <span className="checkbox-custom"></span>
-                          <span>Revivir Objetivo (Sage X)</span>
-                        </label>
-                      </div>
-
-                      <h4 style={{ color: "var(--val-cyan)", textTransform: "uppercase", fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Comportamientos Avanzados</h4>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Debuff Aplicado (a ellos)</span>
-                          <input type="text" value={formData.behaviorDebuffApplied} onChange={e => setFormData({ ...formData, behaviorDebuffApplied: e.target.value })} style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#fff", fontSize: 14 }} placeholder="Ej: Vulnerable, Decay..." />
-                        </label>
-                      </div>
-
-
-                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
-
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24, background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 12 }}>
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagThroughWall} onChange={e => setFormData({...formData, flagThroughWall: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Atraviesa paredes (se tira contra un muro y sale por el otro)</span>
-                        </label>
+                      <div className="form-group" style={{ marginBottom: 24, padding: 16, background: "rgba(0, 212, 170, 0.05)", border: "1px solid rgba(0, 212, 170, 0.2)", borderRadius: 12 }}>
+                        <label style={{ fontSize: 14, fontWeight: 900, color: "var(--val-cyan)", marginBottom: 8, display: "block" }}>Mecánica Central de Despliegue</label>
+                        <select className="input-field" value={formData.deploymentType} onChange={e => {
+                          const val = e.target.value as DeploymentType;
+                          if (val === "self_instant" || val === "equip_weapon") {
+                            setFormData({...formData, deploymentType: val, geometryType: "none"});
+                          } else {
+                            setFormData({...formData, deploymentType: val});
+                          }
+                        }} style={{ background: "rgba(0,0,0,0.5)", fontSize: 16, height: 56 }}>
+                          <option value="self_instant">Self / Instantáneo (Ej: Dash, Curación Reyna)</option>
+                          <option value="projectile_terminal_aoe">Proyectil -&gt; Área Terminal (Detonación)</option>
+                          <option value="projectile_sweeping">Proyectil -&gt; Barrido en Vuelo (Sweeping)</option>
+                          <option value="map_target_aoe">Target en Mapa Táctico -&gt; Área (Ej: Humo Brim, Asteroides Astra)</option>
+                          <option value="linear_wall">Muro Lineal (Ej: Muro Viper, Muro Phoenix)</option>
+                          <option value="two_point_barrier">Barrera de 2 Puntos (Ej: Cable Cypher, Muro Sage)</option>
+                          <option value="self_mobile_aura">Aura Móvil Personal (Ej: Ulti KAY/O, Reyna Empress)</option>
+                          <option value="static_deployable">Desplegable Estático (Ej: Ulti KJ, Trampa Cypher, Muro Sage)</option>
+                          <option value="equip_weapon">Equipar Arma (Ej: Ulti Jett, Armas Chamber)</option>
+                          <option value="autonomous_entity">Entidad Autónoma (Ej: Boombot Raze, Torreta KJ)</option>
+                        </select>
+                        <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>Al seleccionar la mecánica central, se infiere el comportamiento del motor.</p>
                         
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagRecallable} onChange={e => setFormData({...formData, flagRecallable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Se puede recoger manualmente (CD empieza al recoger)</span>
-                        </label>
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagGrantsWeapon} onChange={e => setFormData({...formData, flagGrantsWeapon: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Actúa como arma equipable (ej. Q/X de Chamber)</span>
-                        </label>
-                        
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagTriggerOnSight} onChange={e => setFormData({...formData, flagTriggerOnSight: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Se detona/activa automáticamente al ver enemigo (Ej: Wingman de Gekko, Prowler de Fade)</span>
-                        </label>
-                        
-
-                        
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagGeneratesSoulOrbs} onChange={e => setFormData({...formData, flagGeneratesSoulOrbs: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Enemigos sueltan orbes al morir/asistir (ej. Reyna/Iso)</span>
-                        </label>
-                        
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagIsolatesTarget} onChange={e => setFormData({...formData, flagIsolatesTarget: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Aísla al objetivo a un "mundo aparte" (ej. Ulti de Iso)</span>
-                        </label>
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagOpaque} onChange={e => setFormData({...formData, flagOpaque: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Es opaco (bloquea la visión visualmente)</span>
-                        </label>
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagHasHitbox} onChange={e => setFormData({...formData, flagHasHitbox: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Tiene hitbox física (rebota proyectiles como el muro de Sage)</span>
-                        </label>
-
-
-                        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }}></div>
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagProjectile} onChange={e => setFormData({...formData, flagProjectile: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Es un proyectil (parábola o trayectoria recta)</span>
-                        </label>
-                        {formData.flagProjectile && (
-                          <div className="form-col" style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                            <div className="form-row" style={{ display: "flex", gap: 16 }}>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileMaxDistance} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const speed = formData.projectileDuration > 0 ? parseFloat((val / formData.projectileDuration).toFixed(2)) : formData.projectileSpeed;
-                                  setFormData({...formData, projectileMaxDistance: val, projectileSpeed: speed});
-                                }} />
-                              </div>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileDuration} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const speed = val > 0 ? parseFloat((formData.projectileMaxDistance / val).toFixed(2)) : formData.projectileSpeed;
-                                  setFormData({...formData, projectileDuration: val, projectileSpeed: speed});
-                                }} />
-                              </div>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.projectileSpeed} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const duration = (val > 0 && formData.projectileMaxDistance > 0) ? parseFloat((formData.projectileMaxDistance / val).toFixed(2)) : formData.projectileDuration;
-                                  setFormData({...formData, projectileSpeed: val, projectileDuration: duration});
-                                }} />
-                              </div>
-                            </div>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
-                              <input type="checkbox" checked={formData.projectileAlwaysMaxDistance} onChange={e => setFormData({...formData, projectileAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Forzar recorrido máximo (no se puede acortar)</span>
-                            </label>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.projectileControllable} onChange={e => setFormData({...formData, projectileControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Ruta controlable (se dirige con el ratón)</span>
-                            </label>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.projectileStoppable} onChange={e => setFormData({...formData, projectileStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Se puede detener manualmente en vuelo (ej. Harbor C)</span>
+                        {(formData.deploymentType === "projectile_terminal_aoe" || formData.deploymentType === "projectile_sweeping" || formData.deploymentType === "linear_wall" || formData.deploymentType === "self_mobile_aura") && (
+                          <div style={{ marginTop: 12 }}>
+                            <label className="checkbox-label">
+                              <input type="checkbox" checked={formData.traversesWalls} onChange={e => setFormData({...formData, traversesWalls: e.target.checked})} />
+                              <span className="checkbox-custom"></span>
+                              <span style={{ fontSize: 12, fontWeight: 800 }}>Atraviesa Paredes (Geometría del Mundo)</span>
                             </label>
                           </div>
                         )}
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagAgentDisplacement} onChange={e => setFormData({...formData, flagAgentDisplacement: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Desplazamiento de Agente / Teletransporte (Dash Jett, TP Omen)</span>
-                        </label>
-                        {formData.flagAgentDisplacement && (
-                          <div className="form-col" style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.agentDisplacementTeleportsToSkillPosition} onChange={e => setFormData({...formData, agentDisplacementTeleportsToSkillPosition: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Teletransporte a la posición de la habilidad (Instantáneo, ignora distancias del dash)</span>
-                            </label>
-
-                            <div className="form-group" style={{ maxWidth: 300 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Número de desplazamientos encadenados</label>
-                              <input type="number" min="1" className="input-field" value={formData.agentDisplacementMaxDisplacements} onChange={e => setFormData({...formData, agentDisplacementMaxDisplacements: parseInt(e.target.value) || 1})} />
-                            </div>
-
-                            {!formData.agentDisplacementTeleportsToSkillPosition && (
-                              <>
-                                <div className="form-row" style={{ display: "flex", gap: 16 }}>
-                                  <div className="form-group" style={{ flex: 1 }}>
-                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
-                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementMaxDistance} onChange={e => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const speed = formData.agentDisplacementDuration > 0 ? parseFloat((val / formData.agentDisplacementDuration).toFixed(2)) : formData.agentDisplacementSpeed;
-                                      setFormData({...formData, agentDisplacementMaxDistance: val, agentDisplacementSpeed: speed});
-                                    }} />
-                                  </div>
-                                  <div className="form-group" style={{ flex: 1 }}>
-                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
-                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementDuration} onChange={e => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const speed = val > 0 ? parseFloat((formData.agentDisplacementMaxDistance / val).toFixed(2)) : formData.agentDisplacementSpeed;
-                                      setFormData({...formData, agentDisplacementDuration: val, agentDisplacementSpeed: speed});
-                                    }} />
-                                  </div>
-                                  <div className="form-group" style={{ flex: 1 }}>
-                                    <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
-                                    <input type="number" step="0.1" min="0" className="input-field" value={formData.agentDisplacementSpeed} onChange={e => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const duration = (val > 0 && formData.agentDisplacementMaxDistance > 0) ? parseFloat((formData.agentDisplacementMaxDistance / val).toFixed(2)) : formData.agentDisplacementDuration;
-                                      setFormData({...formData, agentDisplacementSpeed: val, agentDisplacementDuration: duration});
-                                    }} />
-                                  </div>
-                                </div>
-                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
-                                  <input type="checkbox" checked={formData.agentDisplacementAlwaysMaxDistance} onChange={e => setFormData({...formData, agentDisplacementAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                                  <span>Forzar recorrido máximo (no se puede acortar)</span>
-                                </label>
-                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                                  <input type="checkbox" checked={formData.agentDisplacementControllable} onChange={e => setFormData({...formData, agentDisplacementControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                                  <span>Ruta controlable (se dirige con el ratón)</span>
-                                </label>
-                                <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                                  <input type="checkbox" checked={formData.agentDisplacementStoppable} onChange={e => setFormData({...formData, agentDisplacementStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                                  <span>Se puede detener manualmente</span>
-                                </label>
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagGroundPath} onChange={e => setFormData({...formData, flagGroundPath: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Recorre un camino (desplazamiento por el suelo que genera un área)</span>
-                        </label>
-                        {formData.flagGroundPath && (
-                          <div className="form-col" style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                            <div className="form-row" style={{ display: "flex", gap: 16 }}>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dist. Máx (m)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathMaxDistance} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const speed = formData.groundPathDuration > 0 ? parseFloat((val / formData.groundPathDuration).toFixed(2)) : formData.groundPathSpeed;
-                                  setFormData({...formData, groundPathMaxDistance: val, groundPathSpeed: speed});
-                                }} />
-                              </div>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Dur. Máx (s)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathDuration} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const speed = val > 0 ? parseFloat((formData.groundPathMaxDistance / val).toFixed(2)) : formData.groundPathSpeed;
-                                  setFormData({...formData, groundPathDuration: val, groundPathSpeed: speed});
-                                }} />
-                              </div>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad (m/s)</label>
-                                <input type="number" step="0.1" min="0" className="input-field" value={formData.groundPathSpeed} onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const duration = (val > 0 && formData.groundPathMaxDistance > 0) ? parseFloat((formData.groundPathMaxDistance / val).toFixed(2)) : formData.groundPathDuration;
-                                  setFormData({...formData, groundPathSpeed: val, groundPathDuration: duration});
-                                }} />
-                              </div>
-                              <div className="form-group" style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Anchura (m)</label>
-                                <input type="number" step="0.1" min="0.1" className="input-field" value={formData.groundPathWidth} onChange={e => {
-                                  setFormData({...formData, groundPathWidth: Math.max(0.1, parseFloat(e.target.value) || 0.1)});
-                                }} />
-                              </div>
-                            </div>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0, marginTop: 12 }}>
-                              <input type="checkbox" checked={formData.groundPathAlwaysMaxDistance} onChange={e => setFormData({...formData, groundPathAlwaysMaxDistance: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Forzar recorrido máximo (no se puede acortar)</span>
-                            </label>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.groundPathControllable} onChange={e => setFormData({...formData, groundPathControllable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Ruta controlable (se dirige con el ratón)</span>
-                            </label>
-                            <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                              <input type="checkbox" checked={formData.groundPathStoppable} onChange={e => setFormData({...formData, groundPathStoppable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                              <span>Se puede detener manualmente en vuelo (ej. Harbor C)</span>
-                            </label>
-                          </div>
-                        )}
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagBouncing} onChange={e => setFormData({...formData, flagBouncing: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Rebota (físicas de rebote en paredes)</span>
-                        </label>
-                        {formData.flagBouncing && (
-                          <div className="form-group" style={{ marginTop: 8, paddingLeft: 24 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx. (0=inf)</label>
-                            <input type="number" min="0" className="input-field" value={formData.bouncingCount} onChange={e => setFormData({...formData, bouncingCount: Number(e.target.value)})} style={{ width: 120 }} />
-                          </div>
-                        )}
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagChargeable} onChange={e => setFormData({...formData, flagChargeable: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Se puede cargar (ej. Stun de Breach)</span>
-                        </label>
-                        {formData.flagChargeable && (
-                          <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Mín (m)</label>
-                              <input type="number" className="input-field" value={formData.chargeMinLength} onChange={e => setFormData({...formData, chargeMinLength: Number(e.target.value)})} />
-                            </div>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo Máx (m)</label>
-                              <input type="number" className="input-field" value={formData.chargeMaxLength} onChange={e => setFormData({...formData, chargeMaxLength: Number(e.target.value)})} />
-                            </div>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo/m (s)</label>
-                              <input type="number" step="0.1" className="input-field" value={formData.chargeTimePerMeter} onChange={e => setFormData({...formData, chargeTimePerMeter: Number(e.target.value)})} />
-                            </div>
-                          </div>
-                        )}
-
-                        <label style={{ display: "inline-flex", width: "100%", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 13, margin: 0 }}>
-                          <input type="checkbox" checked={formData.flagRolling} onChange={e => setFormData({...formData, flagRolling: e.target.checked})} style={{ margin: 0, marginTop: 3 }} />
-                          <span>Se expande en oleadas (ej. Ulti Breach)</span>
-                        </label>
-                        {formData.flagRolling && (
-                          <div className="form-row" style={{ display: "flex", gap: 16, marginTop: 8, paddingLeft: 24 }}>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Oleadas</label>
-                              <input type="number" className="input-field" value={formData.rollWaveCount} onChange={e => setFormData({...formData, rollWaveCount: Number(e.target.value)})} />
-                            </div>
-                            <div className="form-group" style={{ flex: 1 }}>
-                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Segundos/oleada</label>
-                              <input type="number" step="0.1" className="input-field" value={formData.rollTimeBetweenWaves} onChange={e => setFormData({...formData, rollTimeBetweenWaves: Number(e.target.value)})} />
-                            </div>
+                        
+                        {formData.deploymentType !== "self_instant" && formData.deploymentType !== "equip_weapon" && (
+                          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(0, 212, 170, 0.2)" }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)", marginBottom: 8, display: "block" }}>Forma Geométrica Visual (Motor 2D)</label>
+                            <select className="input-field" value={formData.geometryType} onChange={e => setFormData({...formData, geometryType: e.target.value as "none" | "circle" | "rectangle" | "cone" | "line" | "curve" | "sector" | "trapezoid" | "cross"})} style={{ background: "rgba(0,0,0,0.5)" }}>
+                              <option value="none">Ninguna (Solo Icono)</option>
+                              <option value="circle">Círculo / Área Radial</option>
+                              <option value="rectangle">Rectángulo</option>
+                              <option value="line">Línea (Conexión directa)</option>
+                              <option value="cone">Cono (Visión frontal)</option>
+                              <option value="curve">Curva (Muro moldeable)</option>
+                              <option value="sector">Sector (Área direccional)</option>
+                            </select>
                           </div>
                         )}
                       </div>
+
+                      <h4 style={{ marginTop: 32, marginBottom: 16, color: "var(--text-muted)", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 8 }}>Tiempos Base y Casteo</h4>
+                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Windup (s)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.windup} onChange={e => setFormData({...formData, windup: Number(e.target.value)})} />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Duración (s)</label>
+                          <input type="number" step="0.1" className="input-field" value={formData.duration} onChange={e => setFormData({...formData, duration: Number(e.target.value)})} />
+                        </div>
+                        {(formData.deploymentType === "map_target_aoe" || formData.deploymentType === "static_deployable" || formData.deploymentType === "two_point_barrier" || formData.deploymentType === "linear_wall") && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango de Cast (m)</label>
+                            <input type="number" step="0.1" className="input-field" placeholder="0 = Infinito" value={formData.castRange} onChange={e => setFormData({...formData, castRange: Number(e.target.value)})} />
+                          </div>
+                        )}
+                      </div>
+
+                      <h4 style={{ marginTop: 32, marginBottom: 16, color: "var(--val-yellow)", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 8 }}>Propiedades Específicas: {formData.deploymentType}</h4>
                       
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Requiere consumir (Key de otra habilidad, ej. x_alt)</label>
-                        <input className="input-field" placeholder="Vacío = no depende de otra habilidad" value={formData.consumesSkillKey} onChange={e => setFormData({...formData, consumesSkillKey: e.target.value})} />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "times" && (
-                    <div className="tab-content fade-in">
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cargas Totales</label>
-                          <input type="number" min="1" max="10" className="input-field" value={formData.behaviorCharges} onChange={e => setFormData({...formData, behaviorCharges: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo Casteo (s)</label>
-                          <input type="number" step="0.1" className="input-field" value={formData.behaviorCastTime} onChange={e => setFormData({...formData, behaviorCastTime: parseFloat(e.target.value)})} />
-                        </div>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Duración Vida Útil (s, 0=inf)</label>
-                          <input type="number" step="0.1" className="input-field" value={formData.behaviorDuration} onChange={e => setFormData({...formData, behaviorDuration: parseFloat(e.target.value)})} />
-                        </div>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Puntos de Vida (HP)</label>
-                          <input type="number" className="input-field" value={formData.behaviorHp} onChange={e => setFormData({...formData, behaviorHp: Number(e.target.value)})} />
-                        </div>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tiempo de Recarga (s, 0=nunca)</label>
-                          <input type="number" step="0.1" className="input-field" value={formData.behaviorRechargeTime} onChange={e => setFormData({...formData, behaviorRechargeTime: parseFloat(e.target.value)})} />
-                        </div>
-                        <div className="form-group">
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Kills para Recargar (0=nunca)</label>
-                          <input type="number" className="input-field" value={formData.behaviorRechargeKills} onChange={e => setFormData({...formData, behaviorRechargeKills: Number(e.target.value)})} />
-                        </div>
-                      </div>
-
-                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "24px 0" }}></div>
-
-                      {(formData.flagInstantSelfBuff || formData.flagActivatableDeployable) && (
+                      {/* Específicos de Proyectiles */}
+                      {(formData.deploymentType === "projectile_terminal_aoe" || formData.deploymentType === "projectile_sweeping") && (
                         <>
-                          <div className="form-group" style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Duración del Efecto/Buff (s)</label>
-                            <input type="number" step="0.1" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.instantSelfBuffDuration} onChange={e => setFormData({...formData, instantSelfBuffDuration: parseFloat(e.target.value)})} />
+                          <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Velocidad Proyectil</label>
+                              <input type="number" className="input-field" value={formData.projectileSpeed} onChange={e => setFormData({...formData, projectileSpeed: Number(e.target.value)})} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Alcance Máx. (m)</label>
+                              <input type="number" className="input-field" value={formData.projectileMaxDistance} onChange={e => setFormData({...formData, projectileMaxDistance: Number(e.target.value)})} placeholder="Ej: 35" />
+                            </div>
                           </div>
-                          <div className="form-group" style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--val-cyan)" }}>Buff Aplicado (nombre del efecto)</label>
-                            <input type="text" className="input-field" style={{ border: "1px solid rgba(0, 212, 170, 0.3)" }} value={formData.instantSelfBuffApplied} onChange={e => setFormData({...formData, instantSelfBuffApplied: e.target.value})} placeholder="Ej: Doble Tap, Curación..." />
-                          </div>
+                          {formData.deploymentType === "projectile_terminal_aoe" && (
+                            <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                              <div className="form-group" style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rebotes Máx.</label>
+                                <input type="number" className="input-field" value={formData.bounces} onChange={e => setFormData({...formData, bounces: Number(e.target.value)})} />
+                              </div>
+                              <div className="form-group" style={{ flex: 1, display: "flex", alignItems: "flex-end", paddingBottom: 12 }}>
+                                <label className="checkbox-label">
+                                  <input type="checkbox" checked={formData.steerable} onChange={e => setFormData({...formData, steerable: e.target.checked})} />
+                                  <span className="checkbox-custom"></span>
+                                  <span style={{ fontSize: 12, fontWeight: 800 }}>Controlable / Curvable</span>
+                                </label>
+                              </div>
+                            </div>
+                          )}
                         </>
+                      )}
+
+                      {/* Específicos de Geometría Radial */}
+                      {(formData.geometryType === "circle" || formData.geometryType === "cone" || formData.geometryType === "sector") && (
+                        <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Radio del Área (m)</label>
+                            <input type="number" step="0.1" className="input-field" value={formData.aoeRadius} onChange={e => setFormData({...formData, aoeRadius: Number(e.target.value)})} />
+                          </div>
+                          {(formData.geometryType === "cone" || formData.geometryType === "sector") && (
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ángulo (grados)</label>
+                              <input type="number" className="input-field" value={formData.visionConeAngle} onChange={e => setFormData({...formData, visionConeAngle: Number(e.target.value)})} />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Específicos de Geometría Lineal */}
+                      {(formData.geometryType === "rectangle" || formData.geometryType === "line" || formData.geometryType === "curve") && (
+                        <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Ancho/Grosor (m)</label>
+                            <input type="number" step="0.1" className="input-field" value={formData.aoeWidth} onChange={e => setFormData({...formData, aoeWidth: Number(e.target.value)})} />
+                          </div>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Largo/Alcance Máx (m)</label>
+                            <input type="number" step="0.1" className="input-field" value={formData.aoeLength} onChange={e => setFormData({...formData, aoeLength: Number(e.target.value)})} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Otros específicos combinados */}
+                      {formData.deploymentType === "autonomous_entity" && (
+                        <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Radio Activación (m)</label>
+                            <input type="number" step="0.1" className="input-field" value={formData.activationRadius} onChange={e => setFormData({...formData, activationRadius: Number(e.target.value)})} />
+                          </div>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Cono Visión (grados)</label>
+                            <input type="number" className="input-field" value={formData.visionConeAngle} onChange={e => setFormData({...formData, visionConeAngle: Number(e.target.value)})} />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {formData.deploymentType === "equip_weapon" && (
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Munición Máxima (0 = Inf)</label>
+                          <input type="number" className="input-field" value={formData.maxAmmo} onChange={e => setFormData({...formData, maxAmmo: Number(e.target.value)})} />
+                        </div>
                       )}
 
                     </div>
                   )}
 
-                  <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 900, textTransform: "uppercase", marginTop: 16 }} disabled={saveSkillMutation.isPending}>
-                    {saveSkillMutation.isPending ? "Guardando..." : "Guardar Habilidad"}
-                  </button>
+                  {activeTab === "effects" && (
+                    <div className="tab-content fade-in">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+                        <label className="checkbox-label" style={{ padding: 12, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+                          <input type="checkbox" checked={formData.hasDamage} onChange={e => setFormData({...formData, hasDamage: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span style={{ fontWeight: 800 }}>Inflige Daño</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: 12, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+                          <input type="checkbox" checked={formData.hasHeal} onChange={e => setFormData({...formData, hasHeal: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span style={{ fontWeight: 800 }}>Provee Curación</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: 12, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+                          <input type="checkbox" checked={formData.hasVision} onChange={e => setFormData({...formData, hasVision: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span style={{ fontWeight: 800 }}>Efectos de Visión</span>
+                        </label>
+                        <label className="checkbox-label" style={{ padding: 12, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+                          <input type="checkbox" checked={formData.hasDestructible} onChange={e => setFormData({...formData, hasDestructible: e.target.checked})} />
+                          <span className="checkbox-custom"></span>
+                          <span style={{ fontWeight: 800 }}>Destruible (HP)</span>
+                        </label>
+                      </div>
+
+                      {formData.hasDamage && (
+                        <div style={{ marginBottom: 24, padding: 16, background: "rgba(255, 70, 85, 0.05)", borderRadius: 12, border: "1px solid rgba(255, 70, 85, 0.2)" }}>
+                           <h4 style={{ color: "var(--val-red)", marginBottom: 12 }}>Daño</h4>
+                           <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Tipo Daño</label>
+                               <select className="input-field" value={formData.damageType} onChange={e => setFormData({...formData, damageType: e.target.value as "burst" | "dot" | "weapon" | "instant" | "decay"})}>
+                                 <option value="burst">Burst</option>
+                                 <option value="dot">DoT</option>
+                                 <option value="weapon">Weapon</option>
+                               </select>
+                             </div>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Daño Base</label>
+                               <input type="number" className="input-field" value={formData.baseDamage} onChange={e => setFormData({...formData, baseDamage: Number(e.target.value)})} />
+                             </div>
+                           </div>
+                           <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Daño/s (DoT)</label>
+                               <input type="number" className="input-field" value={formData.damagePerSecond} onChange={e => setFormData({...formData, damagePerSecond: Number(e.target.value)})} />
+                             </div>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Pulso Daño</label>
+                               <input type="number" className="input-field" value={formData.damagePerPulse} onChange={e => setFormData({...formData, damagePerPulse: Number(e.target.value)})} />
+                             </div>
+                           </div>
+                        </div>
+                      )}
+
+                      {formData.hasHeal && (
+                        <div style={{ marginBottom: 24, padding: 16, background: "rgba(0, 212, 170, 0.05)", borderRadius: 12, border: "1px solid rgba(0, 212, 170, 0.2)" }}>
+                           <h4 style={{ color: "var(--val-cyan)", marginBottom: 12 }}>Curación</h4>
+                           <div className="form-row" style={{ display: "flex", gap: 16 }}>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Cura (Aliados)</label>
+                               <input type="number" className="input-field" value={formData.healAmount} onChange={e => setFormData({...formData, healAmount: Number(e.target.value)})} />
+                             </div>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Duración Cura</label>
+                               <input type="number" className="input-field" value={formData.healDuration} onChange={e => setFormData({...formData, healDuration: Number(e.target.value)})} />
+                             </div>
+                             <div className="form-group" style={{ flex: 1 }}>
+                               <label style={{ fontSize: 12 }}>Auto-cura</label>
+                               <input type="number" className="input-field" value={formData.selfHealAmount} onChange={e => setFormData({...formData, selfHealAmount: Number(e.target.value)})} />
+                             </div>
+                           </div>
+                        </div>
+                      )}
+
+                      {formData.hasVision && (
+                         <div style={{ marginBottom: 24, padding: 16, background: "rgba(255, 255, 255, 0.05)", borderRadius: 12, border: "1px solid rgba(255, 255, 255, 0.2)" }}>
+                           <h4 style={{ color: "#fff", marginBottom: 12 }}>Visión</h4>
+                           <label className="checkbox-label"><input type="checkbox" checked={formData.blocksVision} onChange={e => setFormData({...formData, blocksVision: e.target.checked})} /><span className="checkbox-custom"></span><span style={{fontSize: 12}}>Bloquea Visión (Humos/Muros)</span></label>
+                           <label className="checkbox-label"><input type="checkbox" checked={formData.flash} onChange={e => setFormData({...formData, flash: e.target.checked})} /><span className="checkbox-custom"></span><span style={{fontSize: 12}}>Flashea (Ciega)</span></label>
+                           <label className="checkbox-label"><input type="checkbox" checked={formData.nearsight} onChange={e => setFormData({...formData, nearsight: e.target.checked})} /><span className="checkbox-custom"></span><span style={{fontSize: 12}}>Nearsight (Miope)</span></label>
+                           <label className="checkbox-label"><input type="checkbox" checked={formData.reveal} onChange={e => setFormData({...formData, reveal: e.target.checked})} /><span className="checkbox-custom"></span><span style={{fontSize: 12}}>Revela Posición</span></label>
+                         </div>
+                      )}
+
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12 }}>CC (Separado por comas)</label>
+                        <input className="input-field" value={formData.cc} onChange={e => setFormData({...formData, cc: e.target.value})} />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12 }}>Buffs (Separados por comas)</label>
+                        <input className="input-field" value={formData.buffs} onChange={e => setFormData({...formData, buffs: e.target.value})} />
+                      </div>
+
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end" }}>
+                    <button type="submit" className="btn btn-primary" style={{ padding: "12px 32px", fontSize: 16, fontWeight: 900 }}>Guardar Habilidad</button>
+                  </div>
                 </form>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .admin-wrapper { max-width: 1400px; margin: 0 auto; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); }
-        .agent-card {
-          padding: 24px;
-          border-radius: 20px;
-          border: 1px solid rgba(255,255,255,0.05);
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-        .agent-card:hover {
-          transform: translateY(-5px);
-          border-color: var(--val-cyan);
-          background: rgba(0, 212, 170, 0.05);
-        }
-        .modal-overlay {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
-          display: flex; alignItems: center; justifyContent: center; z-index: 1000;
-        }
-        .premium-modal {
-          padding: 40px; border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-        }
-        .tab-content {
-          animation: fade-in 0.2s ease-out forwards;
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .icon-action-btn {
-          width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color: white; cursor: pointer;
-        }
-        .icon-action-btn:hover { background: rgba(255,255,255,0.1); }
-      `}</style>
     </div>
   );
 }

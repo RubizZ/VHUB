@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWeapons } from "@/lib/weapons";
+import { getWeapons } from "@/lib/domain/weapons";
 
 export const revalidate = 3600; // revalidar cada hora
 

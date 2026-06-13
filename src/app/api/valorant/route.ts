@@ -1,10 +1,10 @@
  
 import { NextRequest, NextResponse } from "next/server";
-import { getAccount, getMatches, getMMR, getStoredMatches, getMatchById } from "@/lib/henrik-api";
-import { analyzeHenrikPlayerStats } from "@/lib/henrik-stats-analyzer";
+import { getAccount, getMatches, getMMR, getStoredMatches, getMatchById } from "@/lib/external/henrik/henrik-api";
+import { analyzeHenrikPlayerStats } from "@/lib/services/henrik-stats-analyzer";
 import { db } from "@/lib/db";
-import { MAPS } from "@/lib/maps";
-import { HenrikMatch } from "@/lib/henrik-types";
+import { MAPS } from "@/lib/domain/maps";
+import { HenrikMatch } from "@/lib/external/henrik/henrik-types";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

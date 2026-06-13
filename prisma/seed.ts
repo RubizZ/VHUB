@@ -137,8 +137,6 @@ async function main() {
                                 name: ability.displayName,
                                 description: ability.description,
                                 displayIcon: ability.displayIcon,
-                                geometry: { type: "circle", radius: 5 },
-                                behavior: { spawn: "player" },
                                 color: bgColors[0] || "#ffffff",
                                 enabled: false
                             }

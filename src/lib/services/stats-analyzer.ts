@@ -1,4 +1,4 @@
-import { ValMatch, ValPlayer, ValTeam } from './riot/types';
+import { ValMatch, ValPlayer, ValTeam } from '@/lib/external/riot/types';
 
 export interface PlayerStats {
   name: string;

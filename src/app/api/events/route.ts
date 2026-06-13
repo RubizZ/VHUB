@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { getPremierSeasons } from "@/lib/henrik-api";
-import { getGameSeasons } from "@/lib/valorant-api";
+import { getPremierSeasons } from "@/lib/external/henrik/henrik-api";
+import { getGameSeasons } from "@/lib/external/valorant-api";
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 const SYNC_CACHE = new Map<string, number>();

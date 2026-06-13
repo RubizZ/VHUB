@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getAccount } from "@/lib/henrik-api";
+import { getAccount } from "@/lib/external/henrik/henrik-api";
 
 export async function POST(req: NextRequest) {
     const session = await auth();

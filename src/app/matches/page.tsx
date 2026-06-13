@@ -3,7 +3,7 @@
 "use client";
 import React, { useEffect, useState, useMemo, CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { ROLE_COLORS, type AgentRole } from "@/lib/agents";
+import { ROLE_COLORS, type AgentRole } from "@/lib/domain/agents";
 import Link from "next/link";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

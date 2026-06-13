@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getPremierHistory } from "@/lib/henrik-api";
+import { getPremierHistory } from "@/lib/external/henrik/henrik-api";
 import { NextResponse } from "next/server";
 
 export async function GET() {

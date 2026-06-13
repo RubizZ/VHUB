@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { PREMIER_DIVISIONS } from "@/lib/premier-divisions";
+import { PREMIER_DIVISIONS } from "@/lib/domain/premier-divisions";
 import { Skeleton } from "@/components/Skeleton";
 import { LandingPage } from "@/components/LandingPage";
 

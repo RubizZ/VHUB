@@ -1,10 +1,10 @@
  
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { MAPS } from "@/lib/maps";
+import { MAPS } from "@/lib/domain/maps";
 import { auth } from "@/auth";
-import { getMatches, getPremierSeasons } from "@/lib/henrik-api";
-import { getGameSeasons } from "@/lib/valorant-api";
+import { getMatches, getPremierSeasons } from "@/lib/external/henrik/henrik-api";
+import { getGameSeasons } from "@/lib/external/valorant-api";
 import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {

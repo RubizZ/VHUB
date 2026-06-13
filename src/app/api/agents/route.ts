@@ -1,7 +1,7 @@
  
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { valorantApi } from '@/lib/valorant-api';
+import { valorantApi } from '@/lib/external/valorant-api';
 
 let lastSync = 0;
 const SYNC_COOLDOWN = 12 * 60 * 60 * 1000; // 12 horas
@@ -84,8 +84,6 @@ export async function GET() {
                             name: ability.displayName,
                             description: ability.description,
                             displayIcon: ability.displayIcon,
-                            geometry: { type: "circle", radius: 5 },
-                            behavior: { spawn: "player" },
                             color: bgColors[0] || "#ffffff",
                             enabled: false
                         }

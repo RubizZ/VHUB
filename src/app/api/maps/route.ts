@@ -1,8 +1,8 @@
  
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { valorantApi } from '@/lib/valorant-api';
-import { getPremierSeasons } from '@/lib/henrik-api';
+import { valorantApi } from '@/lib/external/valorant-api';
+import { getPremierSeasons } from '@/lib/external/henrik/henrik-api';
 
 let lastSync = 0;
 const SYNC_COOLDOWN = 12 * 60 * 60 * 1000; // 12 horas

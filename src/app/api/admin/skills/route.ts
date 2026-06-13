@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { AgentSkillUpdateSchema } from "@/lib/domain/agents";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -31,11 +32,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { agentId, key, name, description, geometry, behavior, color, displayIcon, enabled } = body;
+  const parsed = AgentSkillUpdateSchema.safeParse(body);
 
-  if (!agentId || !key || !name || !geometry || !behavior) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
+
+  const { agentId, key, name, description, economy, mechanics, effects, color, displayIcon, enabled, type } = parsed.data;
 
   try {
     const skill = await db.agentSkill.upsert({
@@ -48,10 +51,12 @@ export async function POST(req: NextRequest) {
       update: {
         name,
         description,
-        geometry,
-        behavior,
+        economy: economy as any,
+        mechanics: mechanics as any,
+        effects: effects as any,
         color,
         displayIcon,
+        type,
         enabled
       },
       create: {
@@ -59,10 +64,12 @@ export async function POST(req: NextRequest) {
         key,
         name,
         description,
-        geometry,
-        behavior,
+        economy: economy as any,
+        mechanics: mechanics as any,
+        effects: effects as any,
         color,
         displayIcon,
+        type,
         enabled
       }
     });

@@ -1,4 +1,4 @@
-import { HenrikMatch } from './henrik-types';
+import { HenrikMatch } from '@/lib/external/henrik/henrik-types';
 
 export interface ModeStats {
   gamesPlayed: number;

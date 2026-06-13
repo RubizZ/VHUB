@@ -4,16 +4,17 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AgentSkillsManager } from "@/components/AgentSkillsManager";
 import { useSession } from "next-auth/react";
-import { type ValorantMap } from "@/lib/maps";
+import { type ValorantMap } from "@/lib/domain/maps";
 import {
     ROLE_COLORS,
     type ValorantAgent,
     type AgentRole,
-    type SkillGeometry,
-    type SkillBehavior,
     type AgentSkill,
-} from "@/lib/agents";
-import { type ValorantWeapon, WEAPON_CATEGORY_LABELS } from "@/lib/weapons";
+    MechanicsData,
+    EffectsData,
+    DeploymentType,
+} from "@/lib/domain/agents";
+import { type ValorantWeapon, WEAPON_CATEGORY_LABELS } from "@/lib/domain/weapons";
 import { Skeleton } from "@/components/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -74,8 +75,6 @@ interface CanvasSkill {
     y: number;
     targetX?: number;
     targetY?: number;
-    geometry: SkillGeometry;
-    behavior: SkillBehavior;
     projectileMode?: "bounce" | "parabola";
     isActive?: boolean;
     pathPoints?: { x: number; y: number }[]; // Para habilidades tipo "groundPath" con controllable
@@ -84,6 +83,8 @@ interface CanvasSkill {
     unlinked?: boolean;
     customRotation?: number;
     draggedBy?: string;
+    mechanics?: any;
+    effects?: any;
 }
 
 type UndoAction =
@@ -119,36 +120,56 @@ type View = "maps" | "strategies" | "editor";
 // RAF-based redraw scheduler to avoid calling redraw multiple times per frame
 let pendingRedrawRef: number | null = null;
 
-function getProjRangeAndFixed(skill: {
-    behavior?: SkillBehavior;
-    unlinked?: boolean;
-}) {
-    const pFlag =
-        skill?.behavior?.flags?.projectile ||
-        skill?.behavior?.flags?.groundPath ||
-        skill?.behavior?.flags?.agentDisplacement;
+
+function getProjRangeAndFixed(skill: { mechanics?: any; unlinked?: boolean }) {
+    const isProjectileOrLine = [
+        "projectile_aoe",
+        "projectile_line",
+        "linear_wall",
+        "autonomous_entity",
+    ].includes(skill?.mechanics?.deploymentType);
+
     let maxRange = 0;
-    if (skill?.behavior?.spawn === "ground") {
-        maxRange = skill?.behavior?.maxCastRange || 0;
+    if (
+        ["map_target_aoe", "two_point_barrier"].includes(
+            skill?.mechanics?.deploymentType,
+        )
+    ) {
+        maxRange = skill?.mechanics?.castRange || 0;
     }
+
     let isFixed = false;
-    if (pFlag) {
-        if (pFlag.maxDistance === 0 || pFlag.maxDistance === undefined) {
-            maxRange = (pFlag.speed || 0) * (pFlag.duration || 0);
+    if (isProjectileOrLine) {
+        if (
+            skill?.mechanics?.projectileMaxDistance === 0 ||
+            skill?.mechanics?.projectileMaxDistance === undefined
+        ) {
+            maxRange =
+                (skill?.mechanics?.projectileSpeed || 0) *
+                (skill?.mechanics?.duration || 0);
         } else {
-            maxRange = pFlag.maxDistance;
+            maxRange = skill?.mechanics?.projectileMaxDistance;
         }
-        if (pFlag.alwaysMaxDistance) {
+
+        if (skill?.mechanics?.deploymentType === "projectile_line") {
             isFixed = true;
         }
     }
 
     if (
-        skill?.behavior?.spawn === "player" &&
-        skill.behavior.spawnOffset &&
+        [
+            "projectile_aoe",
+            "projectile_line",
+            "linear_wall",
+            "self_mobile_aura", "static_deployable",
+            "autonomous_entity",
+            "equip_weapon",
+            "self_instant",
+        ].includes(skill?.mechanics?.deploymentType) &&
+        skill.mechanics?.windup &&
         !skill.unlinked
     ) {
-        maxRange += skill.behavior.spawnOffset;
+        maxRange += skill.mechanics?.windup;
     }
 
     return { maxRange, isFixed };
@@ -661,15 +682,15 @@ export default function StrategiesPage() {
                 if (!globalSkill) return;
 
                 if (
-                    !s.geometry ||
-                    !s.behavior ||
-                    JSON.stringify(s.geometry) !==
-                        JSON.stringify(globalSkill.geometry) ||
-                    JSON.stringify(s.behavior) !==
-                        JSON.stringify(globalSkill.behavior)
+                    !s.mechanics ||
+                    !s.effects ||
+                    JSON.stringify(s.mechanics) !==
+                        JSON.stringify(globalSkill.mechanics) ||
+                    JSON.stringify(s.effects) !==
+                        JSON.stringify(globalSkill.effects)
                 ) {
-                    s.geometry = globalSkill.geometry;
-                    s.behavior = globalSkill.behavior;
+                    s.mechanics = globalSkill.mechanics;
+                    s.effects = globalSkill.effects;
                     modified = true;
                 }
             });
@@ -843,12 +864,16 @@ export default function StrategiesPage() {
     const redrawImmediate = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        
+
         // Ensure canvas resolution matches its display size before drawing
         if (canvas.parentElement) {
             const pw = canvas.parentElement.clientWidth;
             const ph = canvas.parentElement.clientHeight;
-            if (pw > 0 && ph > 0 && (canvas.width !== pw || canvas.height !== ph)) {
+            if (
+                pw > 0 &&
+                ph > 0 &&
+                (canvas.width !== pw || canvas.height !== ph)
+            ) {
                 canvas.width = pw;
                 canvas.height = ph;
             }
@@ -1033,14 +1058,26 @@ export default function StrategiesPage() {
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let maxPreviewRange = 0;
-            if (pSkill.skill.behavior?.flags?.agentDisplacement) {
+            if (
+                ["self_instant"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                )
+            ) {
                 const { maxRange } = getProjRangeAndFixed(pSkill.skill);
                 maxPreviewRange = maxRange;
-                if (pSkill.skill.behavior?.spawn === "ground") {
-                    maxPreviewRange = pSkill.skill.behavior?.maxCastRange || 0;
+                if (
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        pSkill.skill.mechanics?.deploymentType,
+                    )
+                ) {
+                    maxPreviewRange = ("castRange" in (pSkill.skill.mechanics || {}) ? (pSkill.skill.mechanics as any).castRange : 0) || 0;
                 }
-            } else if (pSkill.skill.behavior?.spawn === "ground") {
-                maxPreviewRange = pSkill.skill.behavior?.maxCastRange || 0;
+            } else if (
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                )
+            ) {
+                maxPreviewRange = ("castRange" in (pSkill.skill.mechanics || {}) ? (pSkill.skill.mechanics as any).castRange : 0) || 0;
             }
 
             if (maxPreviewRange > 0 && agentObj) {
@@ -1056,7 +1093,18 @@ export default function StrategiesPage() {
             }
 
             let playerToMouseAngle = 0;
-            if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
+            if (
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(pSkill.skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 startX = agentObj.x;
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(
@@ -1064,18 +1112,23 @@ export default function StrategiesPage() {
                     worldMousePosRef.current.x - startX,
                 );
 
-                if (pSkill.skill.behavior?.spawnOffset) {
+                if (pSkill.skill.mechanics?.windup) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        pSkill.skill.behavior.spawnOffset *
+                        pSkill.skill.mechanics?.windup *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        pSkill.skill.behavior.spawnOffset *
+                        pSkill.skill.mechanics?.windup *
                         mToPx;
                 }
-            } else if (pSkill.skill.behavior?.spawn === "ground" && agentObj) {
-                const maxRange = pSkill.skill.behavior?.maxCastRange || 0;
+            } else if (
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                ) &&
+                agentObj
+            ) {
+                const maxRange = ("castRange" in (pSkill.skill.mechanics || {}) ? (pSkill.skill.mechanics as any).castRange : 0) || 0;
                 if (maxRange > 0) {
                     const maxPx = maxRange * mToPx;
                     const dist = Math.sqrt(
@@ -1096,31 +1149,50 @@ export default function StrategiesPage() {
             let initTargetX: number | undefined = undefined;
             let initTargetY: number | undefined = undefined;
             const isProj =
-                pSkill.skill.behavior?.flags?.projectile ||
-                pSkill.skill.behavior?.flags?.agentDisplacement ||
-                !!pSkill.skill.behavior?.flags?.groundPath;
+                ["projectile_aoe", "projectile_line"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                ) ||
+                ["self_instant"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                ) ||
+                !!["linear_wall"].includes(
+                    pSkill.skill.mechanics?.deploymentType,
+                );
             const isGeomWithTarget =
                 !isProj &&
-                pSkill.skill.geometry &&
-                (pSkill.skill.geometry.type === "rectangle" ||
-                    pSkill.skill.geometry.type === "cone" ||
-                    pSkill.skill.geometry.type === "trapezoid" ||
-                    pSkill.skill.geometry.type === "curve");
+                pSkill.skill.mechanics &&
+                ([
+                    "linear_wall",
+                    "projectile_line",
+                    "two_point_barrier",
+                ].includes(pSkill.skill.mechanics?.deploymentType) ||
+                    pSkill.skill.mechanics?.deploymentType ===
+                        "autonomous_entity");
 
             if (isGeomWithTarget || isProj) {
                 const length =
-                    ((pSkill.skill.geometry as any)?.length || 0) * mToPx;
+                    ((pSkill.skill.mechanics as any)?.length || 0) * mToPx;
 
-                if (pSkill.skill.behavior?.spawn === "player" && agentObj) {
+                if (
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(pSkill.skill.mechanics?.deploymentType) &&
+                    agentObj
+                ) {
                     const sa = playerToMouseAngle;
-                    if (pSkill.skill.behavior?.flags?.chargeable) {
+                    if (false) {
                         const maxLen =
-                            (pSkill.skill.behavior?.flags?.chargeable
-                                ?.maxLength ||
-                                (pSkill.skill.geometry as any)?.length ||
+                            (0 /* no max length */ ||
+                                (pSkill.skill.mechanics as any)?.length ||
                                 0) * mToPx;
-                        const dx = worldMousePosRef.current.x - startX;
-                        const dy = worldMousePosRef.current.y - startY;
+                        const dx = (worldMousePosRef.current?.x || 0) - startX;
+                        const dy = (worldMousePosRef.current?.y || 0) - startY;
                         let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
                         dist = Math.max(0, Math.min(dist, maxLen));
                         initTargetX = startX + Math.cos(sa) * dist;
@@ -1178,12 +1250,11 @@ export default function StrategiesPage() {
                             initTargetX = worldMousePosRef.current.x;
                             initTargetY = worldMousePosRef.current.y;
                         }
-                    } else if (pSkill.skill.behavior?.flags?.chargeable) {
+                    } else if (false) {
                         initTargetX =
                             startX +
-                            (pSkill.skill.behavior?.flags?.chargeable
-                                ?.minLength ||
-                                (pSkill.skill.geometry as any)?.length ||
+                            (0 /* no min length */ ||
+                                (pSkill.skill.mechanics as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = startY;
@@ -1203,8 +1274,8 @@ export default function StrategiesPage() {
                 targetX: initTargetX,
                 targetY: initTargetY,
                 color: pSkill.color,
-                geometry: pSkill.skill.geometry,
-                behavior: pSkill.skill.behavior,
+                mechanics: pSkill.skill.mechanics,
+                effects: pSkill.skill.effects,
             } as CanvasSkill);
         }
 
@@ -1213,9 +1284,11 @@ export default function StrategiesPage() {
             ctx.translate(skill.x, skill.y);
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const isTwoPoint = skill.behavior?.flags?.twoPointDeployment;
+            const isTwoPoint = ["two_point_barrier"].includes(
+                skill.mechanics?.deploymentType,
+            );
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const isActivatable = skill.behavior?.flags?.activatableDeployable;
+            const isActivatable = skill.effects?.flags?.activatableDeployable;
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isActive = skill.isActive;
 
@@ -1246,8 +1319,8 @@ export default function StrategiesPage() {
             }
 
             const isControllablePath =
-                skill.behavior?.flags?.groundPath?.controllable ||
-                skill.behavior?.flags?.projectile?.controllable;
+                ["linear_wall"].includes(skill.mechanics?.deploymentType) ||
+                false; /* no controllable flag yet */
             if (
                 isControllablePath &&
                 skill.pathPoints &&
@@ -1281,7 +1354,7 @@ export default function StrategiesPage() {
                 continue;
             }
 
-            const geom = skill.geometry;
+            const geom = skill.mechanics.geometry || { type: "none" };
             if (!geom) {
                 ctx.restore();
                 continue;
@@ -1293,7 +1366,7 @@ export default function StrategiesPage() {
             let baseAlpha = skill.instanceId === "preview" ? 0.25 : 0.5;
             let strokeAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
             if (
-                skill.behavior?.flags?.opaque &&
+                skill.effects?.flags?.opaque &&
                 skill.instanceId !== "preview"
             ) {
                 baseAlpha = 1;
@@ -1306,10 +1379,14 @@ export default function StrategiesPage() {
 
             ctx.save();
 
-            const hasGroundPath = !!skill.behavior?.flags?.groundPath;
+            const hasGroundPath = !!["linear_wall"].includes(
+                skill.mechanics?.deploymentType,
+            );
             const isProj =
-                skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.agentDisplacement ||
+                ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                ) ||
+                ["self_instant"].includes(skill.mechanics?.deploymentType) ||
                 hasGroundPath;
 
             if (
@@ -1326,8 +1403,7 @@ export default function StrategiesPage() {
 
                     if (isGroundPathWithArea) {
                         const gpWidth =
-                            (skill.behavior?.flags?.groundPath?.width || 1) *
-                            mToPx;
+                            (0 /* no width on boolean */ || 1) * mToPx;
                         ctx.save();
                         ctx.rotate(Math.atan2(ty, tx));
                         ctx.beginPath();
@@ -1375,64 +1451,94 @@ export default function StrategiesPage() {
                         }
 
                         ctx.restore();
-                    } else if (skill.behavior?.flags?.agentDisplacement) {
-                        const isTeleportToPos = skill.behavior?.flags?.agentDisplacement?.teleportsToSkillPosition;
-                        const maxDisplacements = skill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
-                        
-                        const pts = [{x: 0, y: 0}];
-                        if (maxDisplacements > 1 && skill.pathPoints && skill.pathPoints.length > 0) {
+                    } else if (
+                        ["self_instant"].includes(
+                            skill.mechanics?.deploymentType,
+                        )
+                    ) {
+                        const isTeleportToPos = false;
+                        const maxDisplacements = 0 || 1;
+
+                        const pts = [{ x: 0, y: 0 }];
+                        if (
+                            maxDisplacements > 1 &&
+                            skill.pathPoints &&
+                            skill.pathPoints.length > 0
+                        ) {
                             for (let i = 1; i < skill.pathPoints.length; i++) {
                                 pts.push({
                                     x: skill.pathPoints[i].x - skill.x,
-                                    y: skill.pathPoints[i].y - skill.y
+                                    y: skill.pathPoints[i].y - skill.y,
                                 });
                             }
                         }
                         if (
-                            maxDisplacements === 1 || 
-                            !skill.pathPoints || 
-                            (skill.instanceId === draggedSkillTargetRef.current?.instanceId && (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current))
+                            maxDisplacements === 1 ||
+                            !skill.pathPoints ||
+                            (skill.instanceId ===
+                                draggedSkillTargetRef.current?.instanceId &&
+                                (isPlacingSecondPointRef.current ||
+                                    isPlacingMultiDisplacementRef.current))
                         ) {
                             // Draw preview circle around the current origin before pushing the new target
-                            if (skill.instanceId === draggedSkillTargetRef.current?.instanceId && pts.length > 0) {
+                            if (
+                                skill.instanceId ===
+                                    draggedSkillTargetRef.current?.instanceId &&
+                                pts.length > 0
+                            ) {
                                 const currentOrigin = pts[pts.length - 1];
                                 let { maxRange } = getProjRangeAndFixed(skill);
-                                if (skill.behavior?.spawn === "ground") {
-                                    maxRange = skill.behavior.maxCastRange || 0;
+                                if (
+                                    [
+                                        "map_target_aoe",
+                                        "two_point_barrier",
+                                    ].includes(skill.mechanics?.deploymentType)
+                                ) {
+                                    maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                                 }
                                 if (maxRange > 0) {
-                                    const mToPx = selectedMap?.pixelsPerMeter || 20;
+                                    const mToPx =
+                                        selectedMap?.pixelsPerMeter || 20;
                                     const maxPx = maxRange * mToPx;
                                     ctx.save();
                                     ctx.beginPath();
-                                    ctx.arc(currentOrigin.x, currentOrigin.y, maxPx, 0, Math.PI * 2);
-                                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                                    ctx.arc(
+                                        currentOrigin.x,
+                                        currentOrigin.y,
+                                        maxPx,
+                                        0,
+                                        Math.PI * 2,
+                                    );
+                                    ctx.strokeStyle =
+                                        "rgba(255, 255, 255, 0.3)";
                                     ctx.lineWidth = 2 / scale;
                                     ctx.setLineDash([4 / scale, 4 / scale]);
                                     ctx.stroke();
                                     ctx.restore();
                                 }
                             }
-                            pts.push({x: tx, y: ty});
+                            pts.push({ x: tx, y: ty });
                         }
 
                         for (let j = 0; j < pts.length - 1; j++) {
                             const p1 = pts[j];
                             const p2 = pts[j + 1];
-                            const segmentDist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+                            const segmentDist = Math.sqrt(
+                                (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2,
+                            );
 
                             ctx.beginPath();
                             ctx.moveTo(p1.x, p1.y);
                             ctx.lineTo(p2.x, p2.y);
                             ctx.strokeStyle = skill.color;
-                            
+
                             if (isTeleportToPos) {
                                 ctx.lineWidth = 1 / scale;
                                 ctx.globalAlpha = 0.4;
                                 ctx.setLineDash([4 / scale, 8 / scale]);
                                 ctx.stroke();
                                 ctx.setLineDash([]);
-                                
+
                                 ctx.beginPath();
                                 ctx.arc(p2.x, p2.y, 6 / scale, 0, Math.PI * 2);
                                 ctx.fillStyle = skill.color;
@@ -1444,16 +1550,21 @@ export default function StrategiesPage() {
                                 ctx.setLineDash([8 / scale, 8 / scale]);
                                 ctx.stroke();
                                 ctx.setLineDash([]);
-        
+
                                 ctx.save();
                                 ctx.translate(p1.x, p1.y);
-                                ctx.rotate(Math.atan2(p2.y - p1.y, p2.x - p1.x));
+                                ctx.rotate(
+                                    Math.atan2(p2.y - p1.y, p2.x - p1.x),
+                                );
                                 ctx.strokeStyle = skill.color;
                                 ctx.lineWidth = 3 / scale;
                                 ctx.lineCap = "round";
                                 ctx.lineJoin = "round";
                                 const spacingPx = 30 / scale;
-                                const numArrows = Math.max(1, Math.floor(segmentDist / spacingPx));
+                                const numArrows = Math.max(
+                                    1,
+                                    Math.floor(segmentDist / spacingPx),
+                                );
                                 const spacing = segmentDist / (numArrows + 1);
                                 const arrowSize = 8 / scale;
                                 ctx.beginPath();
@@ -1531,7 +1642,17 @@ export default function StrategiesPage() {
                     ctx.rotate(skill.customRotation);
                 }
 
-                let length = (geom.length || 0) * mToPx;
+                let baseLength = 0;
+                if (skill.mechanics) {
+                    if (skill.mechanics.deploymentType === "projectile_sweeping") {
+                        baseLength = skill.mechanics.projectileMaxDistance || 0;
+                    } else if (geom.type === "rectangle" || geom.type === "cone" || geom.type === "trapezoid" || geom.type === "line") {
+                        baseLength = geom.length || 0;
+                    }
+                }
+                
+                let length = baseLength * mToPx;
+                
                 if (
                     skill.targetX !== undefined &&
                     skill.targetY !== undefined
@@ -1540,25 +1661,19 @@ export default function StrategiesPage() {
                         (skill.targetX - skill.x) ** 2 +
                             (skill.targetY - skill.y) ** 2,
                     );
-                    if (skill.behavior?.flags?.chargeable) {
-                        const minLen =
-                            (skill.behavior?.flags?.chargeable?.minLength ||
-                                geom.length ||
-                                0) * mToPx;
-                        const maxLen =
-                            (skill.behavior?.flags?.chargeable?.maxLength ||
-                                geom.length ||
-                                0) * mToPx;
-                        length = Math.max(minLen, Math.min(maxLen, dist));
-                    } else if (
-                        skill.behavior?.flags?.twoPointDeployment &&
-                        !skill.behavior?.flags?.twoPointDirectional
-                    ) {
+                    
+                    if (skill.mechanics && skill.mechanics.deploymentType === "projectile_sweeping") {
+                        const maxLen = (skill.mechanics.projectileMaxDistance || 0) * mToPx;
+                        length = maxLen > 0 ? Math.min(maxLen, dist) : dist;
+                    } else if (skill.mechanics && (skill.mechanics.deploymentType === "two_point_barrier" || skill.mechanics.deploymentType === "linear_wall")) {
                         length = dist;
                     }
                 }
 
-                const width = ((geom as any).width || 0) * mToPx;
+                let width = 0;
+                if (geom.type === "rectangle" || geom.type === "line" || geom.type === "curve" || geom.type === "trapezoid") {
+                    width = (geom.width || 0) * mToPx;
+                }
 
                 ctx.beginPath();
                 if (geom.type === "cone") {
@@ -1628,8 +1743,19 @@ export default function StrategiesPage() {
                 }
 
                 const isFreePlaced =
-                    skill.behavior?.spawn === "ground" ||
-                    (skill.unlinked && skill.behavior?.spawn === "player");
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    (skill.unlinked &&
+                        [
+                            "projectile_aoe",
+                            "projectile_line",
+                            "linear_wall",
+                            "self_mobile_aura", "static_deployable",
+                            "autonomous_entity",
+                            "equip_weapon",
+                            "self_instant",
+                        ].includes(skill.mechanics?.deploymentType));
                 const hasDirection =
                     (skill.targetX !== undefined &&
                         skill.targetY !== undefined) ||
@@ -1727,7 +1853,7 @@ export default function StrategiesPage() {
                 ctx.beginPath();
                 ctx.moveTo(-dx, -dy);
                 ctx.lineTo(dx, dy);
-                ctx.globalAlpha = skill.behavior?.flags?.opaque ? 1 : 0.7;
+                ctx.globalAlpha = skill.effects?.flags?.opaque ? 1 : 0.7;
                 ctx.lineWidth = 6 / scale;
                 ctx.lineCap = "round";
                 ctx.stroke();
@@ -1757,18 +1883,21 @@ export default function StrategiesPage() {
             if (
                 sImg &&
                 sImg.complete &&
-                !skill.behavior?.flags?.groundPath?.controllable &&
-                !skill.behavior?.flags?.projectile?.controllable &&
+                !["linear_wall"].includes(skill.mechanics?.deploymentType) &&
+                !false /* no controllable flag yet */ &&
                 !showHandles
             ) {
                 let cxImg = 0;
                 let cyImg = 0;
                 const isProj =
-                    skill.behavior?.flags?.projectile ||
-                    skill.behavior?.flags?.groundPath;
+                    ["projectile_aoe", "projectile_line"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    ["linear_wall"].includes(skill.mechanics?.deploymentType);
                 const isTeleport =
-                    skill.behavior?.flags?.agentDisplacement ||
-                    skill.behavior?.flags?.teleportsToDeployed;
+                    ["self_instant"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) || skill.effects?.recollectable;
                 if (
                     (isProj || isTeleport) &&
                     skill.targetX !== undefined &&
@@ -1777,7 +1906,7 @@ export default function StrategiesPage() {
                     cxImg = skill.targetX - skill.x;
                     cyImg = skill.targetY - skill.y;
                 } else {
-                    const geom = skill.geometry;
+                    const geom = skill.mechanics.geometry || { type: "none" };
                     if (
                         geom &&
                         (geom.type === "rectangle" ||
@@ -1795,7 +1924,11 @@ export default function StrategiesPage() {
                                 ? skill.targetY - skill.y
                                 : 0;
 
-                        if (skill.behavior?.flags?.twoPointDirectional) {
+                        if (
+                            ["two_point_barrier"].includes(
+                                skill.mechanics?.deploymentType,
+                            )
+                        ) {
                             const mToPx = selectedMap?.pixelsPerMeter || 20;
                             const length = (geom.length || 0) * mToPx;
                             const angleToTarget = Math.atan2(tY, tX);
@@ -1857,14 +1990,16 @@ export default function StrategiesPage() {
                         isTargetHovered = true;
                     }
                 }
-                
+
                 if (skill.pathPoints && skill.pathPoints.length > 2) {
                     for (let i = 1; i < skill.pathPoints.length - 1; i++) {
-                        const ptScreen = getScreenPos(skill.pathPoints[i].x, skill.pathPoints[i].y);
+                        const ptScreen = getScreenPos(
+                            skill.pathPoints[i].x,
+                            skill.pathPoints[i].y,
+                        );
                         if (
                             Math.sqrt(
-                                (ptScreen.x - mx) ** 2 +
-                                    (ptScreen.y - my) ** 2,
+                                (ptScreen.x - mx) ** 2 + (ptScreen.y - my) ** 2,
                             ) <=
                             12 * currentZoom
                         ) {
@@ -1874,18 +2009,32 @@ export default function StrategiesPage() {
                 }
 
                 // Fallback: if skill is hovered but neither anchor is distinctly hovered, hover the base
-                if (!isBaseHovered && !isTargetHovered && hoveredPathPointIndex === -1) isBaseHovered = true;
+                if (
+                    !isBaseHovered &&
+                    !isTargetHovered &&
+                    hoveredPathPointIndex === -1
+                )
+                    isBaseHovered = true;
             }
 
             const isTeleportFlag =
-                skill.behavior?.flags?.agentDisplacement ||
-                skill.behavior?.flags?.teleportsToDeployed;
+                ["self_instant"].includes(skill.mechanics?.deploymentType) ||
+                skill.effects?.recollectable;
             const isProjFlag =
-                skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.groundPath;
+                ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                ) || ["linear_wall"].includes(skill.mechanics?.deploymentType);
             const isOriginDestSkill =
                 (isProjFlag || isTeleportFlag) &&
-                skill.behavior?.spawn === "player" &&
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(skill.mechanics?.deploymentType) &&
                 skill.targetX !== undefined &&
                 skill.targetY !== undefined;
 
@@ -1897,7 +2046,16 @@ export default function StrategiesPage() {
                 const anchorR = 10 / scale;
 
                 const isLinkedSkill =
-                    !skill.unlinked && skill.behavior?.spawn === "player";
+                    !skill.unlinked &&
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType);
 
                 // Add a subtle hover glow for base anchor
                 if (isBaseHovered && !isLinkedSkill) {
@@ -2018,13 +2176,20 @@ export default function StrategiesPage() {
                 }
 
                 // Draw handles for intermediate path points
-                if (showHandles && skill.pathPoints && skill.pathPoints.length > 2) {
+                if (
+                    showHandles &&
+                    skill.pathPoints &&
+                    skill.pathPoints.length > 2
+                ) {
                     for (let i = 1; i < skill.pathPoints.length - 1; i++) {
                         const pt = skill.pathPoints[i];
                         const prevPt = skill.pathPoints[i - 1];
                         const tx = pt.x - skill.x;
                         const ty = pt.y - skill.y;
-                        const angleFromPrev = Math.atan2(pt.y - prevPt.y, pt.x - prevPt.x);
+                        const angleFromPrev = Math.atan2(
+                            pt.y - prevPt.y,
+                            pt.x - prevPt.x,
+                        );
 
                         ctx.save();
                         ctx.translate(tx, ty);
@@ -2034,7 +2199,13 @@ export default function StrategiesPage() {
 
                         if (isPtHovered) {
                             ctx.beginPath();
-                            ctx.arc(0, 0, 8 / scale + 4 / scale, 0, Math.PI * 2);
+                            ctx.arc(
+                                0,
+                                0,
+                                8 / scale + 4 / scale,
+                                0,
+                                Math.PI * 2,
+                            );
                             ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
                             ctx.fill();
                         }
@@ -2052,7 +2223,9 @@ export default function StrategiesPage() {
                         const r = 14 / scale;
                         ctx.beginPath();
                         ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
-                        ctx.strokeStyle = isPtHovered ? "#fff" : "rgba(255,255,255,0.7)";
+                        ctx.strokeStyle = isPtHovered
+                            ? "#fff"
+                            : "rgba(255,255,255,0.7)";
                         ctx.lineWidth = 2 / scale;
                         ctx.lineCap = "round";
                         ctx.stroke();
@@ -2083,8 +2256,10 @@ export default function StrategiesPage() {
             }
             // Draw out-of-range warning for ground skills
             if (
-                skill.behavior?.spawn === "ground" &&
-                skill.behavior?.maxCastRange &&
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    skill.mechanics?.deploymentType,
+                ) &&
+                ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) &&
                 !skill.unlinked &&
                 skill.instanceId !== "preview"
             ) {
@@ -2093,7 +2268,7 @@ export default function StrategiesPage() {
                 );
                 if (agentObj) {
                     const mToPx = selectedMap?.pixelsPerMeter || 20;
-                    const maxPx = skill.behavior.maxCastRange * mToPx;
+                    const maxPx = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) * mToPx;
                     const dist = Math.sqrt(
                         (skill.x - agentObj.x) ** 2 +
                             (skill.y - agentObj.y) ** 2,
@@ -2150,7 +2325,10 @@ export default function StrategiesPage() {
                 activeSkill.agentInstanceId === a.instanceId &&
                 (!activeSkill.unlinked || isPlacingSecondPointRef.current)
             ) {
-                const isGroundSpawn = activeSkill.behavior?.spawn === "ground";
+                const isGroundSpawn = [
+                    "map_target_aoe",
+                    "two_point_barrier",
+                ].includes(activeSkill.mechanics?.deploymentType);
                 const isDraggingTarget =
                     draggedSkillTargetRef.current?.instanceId ===
                     activeSkill.instanceId;
@@ -2166,9 +2344,11 @@ export default function StrategiesPage() {
                     if (
                         s.agentInstanceId === a.instanceId &&
                         !s.unlinked &&
-                        s.behavior?.spawn === "ground"
+                        ["map_target_aoe", "two_point_barrier"].includes(
+                            s.mechanics?.deploymentType,
+                        )
                     ) {
-                        const maxRange = s.behavior?.maxCastRange || 0;
+                        const maxRange = s.mechanics?.castRange || 0;
                         if (maxRange > 0) {
                             const dist = Math.sqrt(
                                 (s.x - a.x) ** 2 + (s.y - a.y) ** 2,
@@ -2184,9 +2364,11 @@ export default function StrategiesPage() {
                         if (
                             s.agentInstanceId === a.instanceId &&
                             !s.unlinked &&
-                            s.behavior?.spawn === "ground"
+                            ["map_target_aoe", "two_point_barrier"].includes(
+                                s.mechanics?.deploymentType,
+                            )
                         ) {
-                            const maxRange = s.behavior?.maxCastRange || 0;
+                            const maxRange = s.mechanics?.castRange || 0;
                             if (maxRange > 0) {
                                 ctx.save();
                                 ctx.beginPath();
@@ -2853,7 +3035,8 @@ export default function StrategiesPage() {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
                 if (
-                    (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current) &&
+                    (isPlacingSecondPointRef.current ||
+                        isPlacingMultiDisplacementRef.current) &&
                     draggedSkillTargetRef.current
                 ) {
                     const sId = draggedSkillTargetRef.current.instanceId;
@@ -3029,7 +3212,17 @@ export default function StrategiesPage() {
         mouseY: number,
         pos: { x: number; y: number },
     ): boolean => {
-        const isLinked = !s.unlinked && s.behavior?.spawn === "player";
+        const isLinked =
+            !s.unlinked &&
+            [
+                "projectile_aoe",
+                "projectile_line",
+                "linear_wall",
+                "self_mobile_aura", "static_deployable",
+                "autonomous_entity",
+                "equip_weapon",
+                "self_instant",
+            ].includes(s.mechanics?.deploymentType);
         if (!isLinked) {
             const screenPos = getScreenPos(s.x, s.y);
             if (
@@ -3055,7 +3248,10 @@ export default function StrategiesPage() {
 
         if (s.pathPoints && s.pathPoints.length > 2) {
             for (let i = 1; i < s.pathPoints.length - 1; i++) {
-                const ptScreen = getScreenPos(s.pathPoints[i].x, s.pathPoints[i].y);
+                const ptScreen = getScreenPos(
+                    s.pathPoints[i].x,
+                    s.pathPoints[i].y,
+                );
                 const pdx = ptScreen.x - mouseX;
                 const pdy = ptScreen.y - mouseY;
                 if (Math.sqrt(pdx * pdx + pdy * pdy) <= 12 * zoomRef.current) {
@@ -3064,14 +3260,16 @@ export default function StrategiesPage() {
             }
         }
 
-        if (!s.geometry) return false;
+        if (!s.mechanics) return false;
         const mToPx = selectedMap?.pixelsPerMeter || 20;
-        const geom = s.geometry;
+        const geom = s.mechanics.geometry || { type: "none" };
 
         const isProj =
-            s.behavior?.flags?.projectile ||
-            s.behavior?.flags?.agentDisplacement ||
-            !!s.behavior?.flags?.groundPath;
+            ["projectile_aoe", "projectile_line"].includes(
+                s.mechanics?.deploymentType,
+            ) ||
+            ["self_instant"].includes(s.mechanics?.deploymentType) ||
+            !!["linear_wall"].includes(s.mechanics?.deploymentType);
         let drawOriginX = s.x;
         let drawOriginY = s.y;
         if (
@@ -3107,13 +3305,9 @@ export default function StrategiesPage() {
         ) {
             const width = ((geom as any).width || 0) * mToPx;
             let length = (geom.length || 0) * mToPx;
-            if (
-                s.behavior?.flags?.chargeable &&
-                s.targetX !== undefined &&
-                s.targetY !== undefined
-            ) {
+            if (false && s.targetX !== undefined && s.targetY !== undefined) {
                 length = Math.sqrt(
-                    (s.targetX - s.x) ** 2 + (s.targetY - s.y) ** 2,
+                    ((s.targetX || 0) - s.x) ** 2 + ((s.targetY || 0) - s.y) ** 2,
                 );
             }
             const angle =
@@ -3211,14 +3405,23 @@ export default function StrategiesPage() {
     const startDraw = (
         e: React.MouseEvent | React.TouchEvent | React.DragEvent,
     ) => {
-        if (isPlacingMultiDisplacementRef.current && draggedSkillTargetRef.current) {
+        if (
+            isPlacingMultiDisplacementRef.current &&
+            draggedSkillTargetRef.current
+        ) {
             const confirmedSkill = draggedSkillTargetRef.current;
-            const maxDisplacements = confirmedSkill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
-            
-            if (confirmedSkill.targetX !== undefined && confirmedSkill.targetY !== undefined) {
-                confirmedSkill.pathPoints!.push({ x: confirmedSkill.targetX, y: confirmedSkill.targetY });
+            const maxDisplacements = 0 || 1;
+
+            if (
+                confirmedSkill.targetX !== undefined &&
+                confirmedSkill.targetY !== undefined
+            ) {
+                confirmedSkill.pathPoints!.push({
+                    x: confirmedSkill.targetX,
+                    y: confirmedSkill.targetY,
+                });
             }
-            
+
             if (confirmedSkill.pathPoints!.length <= maxDisplacements) {
                 // Keep the mode active for the next dash target
                 redrawImmediate();
@@ -3278,7 +3481,15 @@ export default function StrategiesPage() {
                         (s) =>
                             s.agentInstanceId === a.instanceId &&
                             !s.unlinked &&
-                            s.behavior?.spawn === "player" &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(s.mechanics?.deploymentType) &&
                             s.draggedBy &&
                             s.draggedBy !== myUserId,
                     );
@@ -3303,7 +3514,16 @@ export default function StrategiesPage() {
                         if (s.draggedBy && s.draggedBy !== myUserId)
                             return false;
                         const linkedAgent =
-                            !s.unlinked && s.behavior?.spawn === "player"
+                            !s.unlinked &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(s.mechanics?.deploymentType)
                                 ? agentsRef.current.find(
                                       (a) => a.instanceId === s.agentInstanceId,
                                   )
@@ -3318,11 +3538,18 @@ export default function StrategiesPage() {
                             return false;
 
                         if (
-                            s.behavior?.flags?.projectile &&
-                            (s.geometry?.type === "cross" ||
-                                s.geometry?.type === "rectangle" ||
-                                s.geometry?.type === "cone" ||
-                                s.geometry?.type === "trapezoid")
+                            ["projectile_aoe", "projectile_line"].includes(
+                                s.mechanics?.deploymentType,
+                            ) &&
+                            (s.mechanics?.deploymentType === "cross" ||
+                                [
+                                    "linear_wall",
+                                    "projectile_line",
+                                    "two_point_barrier",
+                                ].includes(s.mechanics?.deploymentType) ||
+                                s.mechanics?.deploymentType ===
+                                    "autonomous_entity" ||
+                                s.mechanics?.deploymentType === "trapezoid")
                         ) {
                             const rotAngle =
                                 s.customRotation !== undefined
@@ -3357,10 +3584,16 @@ export default function StrategiesPage() {
 
                         if (s.pathPoints && s.pathPoints.length > 2) {
                             for (let i = 1; i < s.pathPoints.length - 1; i++) {
-                                const ptScreen = getScreenPos(s.pathPoints[i].x, s.pathPoints[i].y);
+                                const ptScreen = getScreenPos(
+                                    s.pathPoints[i].x,
+                                    s.pathPoints[i].y,
+                                );
                                 const pdx = ptScreen.x - mouseX;
                                 const pdy = ptScreen.y - mouseY;
-                                if (Math.sqrt(pdx * pdx + pdy * pdy) <= 12 * zoomRef.current) {
+                                if (
+                                    Math.sqrt(pdx * pdx + pdy * pdy) <=
+                                    12 * zoomRef.current
+                                ) {
                                     foundSkillPathPointIndex = i;
                                     return true;
                                 }
@@ -3381,7 +3614,8 @@ export default function StrategiesPage() {
                 }
                 if (foundSkillTarget) {
                     draggedSkillTargetRef.current = foundSkillTarget;
-                    draggedSkillPathPointIndexRef.current = foundSkillPathPointIndex;
+                    draggedSkillPathPointIndexRef.current =
+                        foundSkillPathPointIndex;
                     return;
                 }
 
@@ -3391,7 +3625,16 @@ export default function StrategiesPage() {
                         if (s.draggedBy && s.draggedBy !== myUserId)
                             return false;
                         const linkedAgent =
-                            !s.unlinked && s.behavior?.spawn === "player"
+                            !s.unlinked &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(s.mechanics?.deploymentType)
                                 ? agentsRef.current.find(
                                       (a) => a.instanceId === s.agentInstanceId,
                                   )
@@ -3407,7 +3650,15 @@ export default function StrategiesPage() {
                 if (foundSkill) {
                     const isLinked =
                         !foundSkill.unlinked &&
-                        foundSkill.behavior?.spawn === "player";
+                        [
+                            "projectile_aoe",
+                            "projectile_line",
+                            "linear_wall",
+                            "self_mobile_aura", "static_deployable",
+                            "autonomous_entity",
+                            "equip_weapon",
+                            "self_instant",
+                        ].includes(foundSkill.mechanics?.deploymentType);
                     if (!isLinked) {
                         draggedSkillRef.current = foundSkill;
                         draggedSkillOffsetRef.current = {
@@ -3644,31 +3895,67 @@ export default function StrategiesPage() {
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let playerToMouseAngle = 0;
-            if (skill.behavior?.flags?.agentDisplacement && agentObj) {
+            if (
+                ["self_instant"].includes(skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 startX = agentObj.x;
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
-                if (skill.behavior?.spawn === "player" && skill.behavior?.spawnOffset) {
-                    startX += Math.cos(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
-                    startY += Math.sin(playerToMouseAngle) * skill.behavior.spawnOffset * mToPx;
+                if (
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType) &&
+                    skill.mechanics?.windup
+                ) {
+                    startX +=
+                        Math.cos(playerToMouseAngle) *
+                        skill.mechanics?.windup *
+                        mToPx;
+                    startY +=
+                        Math.sin(playerToMouseAngle) *
+                        skill.mechanics?.windup *
+                        mToPx;
                 }
-            } else if (skill.behavior?.spawn === "player" && agentObj) {
+            } else if (
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 startX = agentObj.x;
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
 
-                if (skill.behavior?.spawnOffset) {
+                if (skill.mechanics?.windup) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        skill.behavior.spawnOffset *
+                        skill.mechanics?.windup *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        skill.behavior.spawnOffset *
+                        skill.mechanics?.windup *
                         mToPx;
                 }
-            } else if (skill.behavior?.spawn === "ground" && agentObj) {
-                const maxRange = skill.behavior?.maxCastRange || 0;
+            } else if (
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    skill.mechanics?.deploymentType,
+                ) &&
+                agentObj
+            ) {
+                const maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                 if (maxRange > 0) {
                     const maxPx = maxRange * mToPx;
                     const dist = Math.sqrt(
@@ -3688,28 +3975,47 @@ export default function StrategiesPage() {
             let initTargetX: number | undefined = undefined;
             let initTargetY: number | undefined = undefined;
             const isProj =
-                skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.agentDisplacement ||
-                !!skill.behavior?.flags?.groundPath;
+                ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                ) ||
+                ["self_instant"].includes(skill.mechanics?.deploymentType) ||
+                !!["linear_wall"].includes(skill.mechanics?.deploymentType);
             const isGeomWithTarget =
                 !isProj &&
-                skill.geometry &&
-                (skill.geometry.type === "rectangle" ||
-                    skill.geometry.type === "cone" ||
-                    skill.geometry.type === "trapezoid" ||
-                    skill.geometry.type === "curve" ||
-                    skill.geometry.type === "line");
+                skill.mechanics &&
+                ([
+                    "linear_wall",
+                    "projectile_line",
+                    "two_point_barrier",
+                ].includes(skill.mechanics?.deploymentType) ||
+                    skill.mechanics?.deploymentType === "autonomous_entity" ||
+                    [
+                        "linear_wall",
+                        "projectile_line",
+                        "two_point_barrier",
+                    ].includes(skill.mechanics?.deploymentType));
 
             if (isGeomWithTarget || isProj) {
                 const length =
-                    (("length" in skill.geometry ? skill.geometry.length : 0) ||
-                        0) * mToPx;
+                    (("length" in skill.mechanics
+                        ? (skill.mechanics as any)?.aoeLength || 0
+                        : 0) || 0) * mToPx;
 
-                if (skill.behavior?.flags?.agentDisplacement && agentObj) {
+                if (
+                    ["self_instant"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) &&
+                    agentObj
+                ) {
                     const sa = playerToMouseAngle;
-                    let { maxRange, isFixed: projIsFixed } = getProjRangeAndFixed(skill);
-                    if (skill.behavior?.spawn === "ground") {
-                        maxRange = skill.behavior.maxCastRange || 0;
+                    let { maxRange, isFixed: projIsFixed } =
+                        getProjRangeAndFixed(skill);
+                    if (
+                        ["map_target_aoe", "two_point_barrier"].includes(
+                            skill.mechanics?.deploymentType,
+                        )
+                    ) {
+                        maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                         projIsFixed = false;
                     }
                     let tX = pos.x;
@@ -3728,12 +4034,23 @@ export default function StrategiesPage() {
                     }
                     initTargetX = tX;
                     initTargetY = tY;
-                } else if (skill.behavior?.spawn === "player" && agentObj) {
+                } else if (
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType) &&
+                    agentObj
+                ) {
                     const sa = playerToMouseAngle;
-                    if (skill.behavior?.flags?.chargeable) {
+                    if (false) {
                         const maxLen =
-                            (skill.behavior?.flags?.chargeable?.maxLength ||
-                                (skill.geometry as any)?.length ||
+                            (0 /* no max length */ ||
+                                (skill.mechanics as any)?.length ||
                                 0) * mToPx;
                         const dx = pos.x - startX;
                         const dy = pos.y - startY;
@@ -3789,11 +4106,11 @@ export default function StrategiesPage() {
                         }
                         initTargetX = startX + Math.cos(angle) * spawnLen;
                         initTargetY = startY + Math.sin(angle) * spawnLen;
-                    } else if (skill.behavior?.flags?.chargeable) {
+                    } else if (false) {
                         initTargetX =
                             pos.x +
-                            (skill.behavior?.flags?.chargeable?.minLength ||
-                                (skill.geometry as any)?.length ||
+                            (0 /* no min length */ ||
+                                (skill.mechanics as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = pos.y;
@@ -3806,7 +4123,9 @@ export default function StrategiesPage() {
 
             // For two-point deployment skills, always set initial target at mouse position
             // so the user can aim with the mouse before the second click
-            if (skill.behavior?.flags?.twoPointDeployment) {
+            if (
+                ["two_point_barrier"].includes(skill.mechanics?.deploymentType)
+            ) {
                 initTargetX = pos.x;
                 initTargetY = pos.y;
             }
@@ -3819,23 +4138,34 @@ export default function StrategiesPage() {
                 y: startY,
                 targetX: initTargetX,
                 targetY: initTargetY,
-                geometry: skill.geometry,
-                behavior: skill.behavior,
-                projectileMode: skill.behavior?.flags?.projectile
+                mechanics: skill.mechanics,
+                effects: skill.effects,
+                projectileMode: ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                )
                     ? projectileMode
                     : undefined,
-                pathPoints: (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable)
-                    ? [
-                          { x: startX, y: startY },
-                          { x: initTargetX ?? pos.x, y: initTargetY ?? pos.y },
-                      ]
-                    : undefined,
+                pathPoints:
+                    ["linear_wall"].includes(skill.mechanics?.deploymentType) ||
+                    false /* no controllable flag yet */
+                        ? [
+                              { x: startX, y: startY },
+                              {
+                                  x: initTargetX ?? pos.x,
+                                  y: initTargetY ?? pos.y,
+                              },
+                          ]
+                        : undefined,
                 color: skillColor,
                 createdBy: myUserId,
                 unlinked:
-                    skill.behavior?.spawn === "ground" ||
-                    !!skill.behavior?.flags?.projectile ||
-                    !!skill.behavior?.flags?.groundPath,
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    !!["projectile_aoe", "projectile_line"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    !!["linear_wall"].includes(skill.mechanics?.deploymentType),
             };
 
             skillsRef.current.push(newSkill);
@@ -3843,7 +4173,10 @@ export default function StrategiesPage() {
             undoStackRef.current.push({ type: "add-skill", skill: newSkill });
             redoStackRef.current = [];
 
-            if (skill.behavior?.flags?.grantsWeapon && agentObj) {
+            if (
+                ["equip_weapon"].includes(skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 agentObj.weaponId = "skill:" + skill.key;
             }
 
@@ -3851,18 +4184,22 @@ export default function StrategiesPage() {
             pendingSkillRef.current = null;
             if (
                 initTargetX !== undefined &&
-                skill.behavior?.spawn === "ground" &&
-                !skill.behavior?.flags?.agentDisplacement
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    skill.mechanics?.deploymentType,
+                ) &&
+                !["self_instant"].includes(skill.mechanics?.deploymentType)
             ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
-            } else if (skill.behavior?.flags?.agentDisplacement?.maxDisplacements && skill.behavior?.flags?.agentDisplacement?.maxDisplacements > 1) {
+            } else if (0 && 0 > 1) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingMultiDisplacementRef.current = true;
                 // Initialize pathPoints with the first committed dash target!
                 newSkill.pathPoints = [
                     { x: startX, y: startY },
-                    ...(initTargetX !== undefined && initTargetY !== undefined ? [{ x: initTargetX, y: initTargetY }] : [])
+                    ...(initTargetX !== undefined && initTargetY !== undefined
+                        ? [{ x: initTargetX, y: initTargetY }]
+                        : []),
                 ];
             } else {
                 setTool("select");
@@ -4073,7 +4410,15 @@ export default function StrategiesPage() {
                             const skill = draggedSkillRef.current;
                             if (
                                 skill.unlinked &&
-                                skill.behavior?.spawn === "player"
+                                [
+                                    "projectile_aoe",
+                                    "projectile_line",
+                                    "linear_wall",
+                                    "self_mobile_aura", "static_deployable",
+                                    "autonomous_entity",
+                                    "equip_weapon",
+                                    "self_instant",
+                                ].includes(skill.mechanics?.deploymentType)
                             ) {
                                 const originalCreator = agentsRef.current.find(
                                     (a) =>
@@ -4134,7 +4479,15 @@ export default function StrategiesPage() {
                             (s) =>
                                 s.agentInstanceId === a.instanceId &&
                                 !s.unlinked &&
-                                s.behavior?.spawn === "player" &&
+                                [
+                                    "projectile_aoe",
+                                    "projectile_line",
+                                    "linear_wall",
+                                    "self_mobile_aura", "static_deployable",
+                                    "autonomous_entity",
+                                    "equip_weapon",
+                                    "self_instant",
+                                ].includes(s.mechanics?.deploymentType) &&
                                 s.draggedBy &&
                                 s.draggedBy !== myUserId,
                         );
@@ -4155,7 +4508,16 @@ export default function StrategiesPage() {
                         if (s.draggedBy && s.draggedBy !== myUserId)
                             return false;
                         const linkedAgent =
-                            !s.unlinked && s.behavior?.spawn === "player"
+                            !s.unlinked &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(s.mechanics?.deploymentType)
                                 ? agentsRef.current.find(
                                       (a) => a.instanceId === s.agentInstanceId,
                                   )
@@ -4183,7 +4545,16 @@ export default function StrategiesPage() {
                         if (s.draggedBy && s.draggedBy !== myUserId)
                             return false;
                         const linkedAgent =
-                            !s.unlinked && s.behavior?.spawn === "player"
+                            !s.unlinked &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(s.mechanics?.deploymentType)
                                 ? agentsRef.current.find(
                                       (a) => a.instanceId === s.agentInstanceId,
                                   )
@@ -4227,12 +4598,27 @@ export default function StrategiesPage() {
                             let menuY = fSkill.y;
                             let anchor: "start" | "target" = "start";
 
-                            if (fSkill.targetX !== undefined && fSkill.targetY !== undefined) {
-                                const screenStart = getScreenPos(fSkill.x, fSkill.y);
-                                const screenTarget = getScreenPos(fSkill.targetX, fSkill.targetY);
-                                const distStart = Math.sqrt((screenStart.x - mouseX) ** 2 + (screenStart.y - mouseY) ** 2);
-                                const distTarget = Math.sqrt((screenTarget.x - mouseX) ** 2 + (screenTarget.y - mouseY) ** 2);
-                                
+                            if (
+                                fSkill.targetX !== undefined &&
+                                fSkill.targetY !== undefined
+                            ) {
+                                const screenStart = getScreenPos(
+                                    fSkill.x,
+                                    fSkill.y,
+                                );
+                                const screenTarget = getScreenPos(
+                                    fSkill.targetX,
+                                    fSkill.targetY,
+                                );
+                                const distStart = Math.sqrt(
+                                    (screenStart.x - mouseX) ** 2 +
+                                        (screenStart.y - mouseY) ** 2,
+                                );
+                                const distTarget = Math.sqrt(
+                                    (screenTarget.x - mouseX) ** 2 +
+                                        (screenTarget.y - mouseY) ** 2,
+                                );
+
                                 if (distTarget < distStart) {
                                     menuX = fSkill.targetX;
                                     menuY = fSkill.targetY;
@@ -4240,7 +4626,10 @@ export default function StrategiesPage() {
                                 }
                             }
 
-                            if (hoveredSkillRef.current !== foundHoverSkill || hoveredSkillAnchorRef.current !== anchor) {
+                            if (
+                                hoveredSkillRef.current !== foundHoverSkill ||
+                                hoveredSkillAnchorRef.current !== anchor
+                            ) {
                                 hoveredSkillRef.current = foundHoverSkill;
                                 hoveredSkillAnchorRef.current = anchor;
                                 hoveredAgentRef.current = null;
@@ -4289,7 +4678,16 @@ export default function StrategiesPage() {
                     } else if (isOverSkill && foundHoverSkill) {
                         const fs = foundHoverSkill as CanvasSkill;
                         const isLinked =
-                            !fs.unlinked && fs.behavior?.spawn === "player";
+                            !fs.unlinked &&
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(fs.mechanics?.deploymentType);
                         canvas.style.cursor = isLinked ? "pointer" : "grab";
                     } else {
                         canvas.style.cursor = "default";
@@ -4511,13 +4909,22 @@ export default function StrategiesPage() {
         // Handle rotation anchor dragging regardless of tool state lag
         if (draggedSkillTargetRef.current) {
             const skill = draggedSkillTargetRef.current;
-            const geom = skill.geometry;
-            const isChargeable = skill.behavior?.flags?.chargeable;
+            const geom = skill.mechanics.geometry || { type: "none" };
+            const isChargeable = false;
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let agentObj = null;
             let isLinked =
-                !skill.unlinked && skill.behavior?.spawn === "player";
+                !skill.unlinked &&
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(skill.mechanics?.deploymentType);
             if (isLinked) {
                 agentObj = agentsRef.current.find(
                     (a) => a.instanceId === skill.agentInstanceId,
@@ -4534,15 +4941,23 @@ export default function StrategiesPage() {
                 originY = agentObj.y;
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
                 if (
-                    skill.behavior?.spawn === "player" &&
-                    skill.behavior.spawnOffset
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType) &&
+                    skill.mechanics?.windup
                 ) {
                     skill.x =
                         originX +
-                        Math.cos(sa) * skill.behavior.spawnOffset * mToPx;
+                        Math.cos(sa) * skill.mechanics?.windup * mToPx;
                     skill.y =
                         originY +
-                        Math.sin(sa) * skill.behavior.spawnOffset * mToPx;
+                        Math.sin(sa) * skill.mechanics?.windup * mToPx;
                 } else {
                     skill.x = originX;
                     skill.y = originY;
@@ -4551,10 +4966,14 @@ export default function StrategiesPage() {
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
             }
 
-            const maxDisplacements = skill.behavior?.flags?.agentDisplacement?.maxDisplacements || 1;
+            const maxDisplacements = 0 || 1;
             const draggedPtIdx = draggedSkillPathPointIndexRef.current;
-            
-            if (maxDisplacements > 1 && skill.pathPoints && skill.pathPoints.length > 0) {
+
+            if (
+                maxDisplacements > 1 &&
+                skill.pathPoints &&
+                skill.pathPoints.length > 0
+            ) {
                 if (isPlacingMultiDisplacementRef.current) {
                     originX = skill.pathPoints[skill.pathPoints.length - 1].x;
                     originY = skill.pathPoints[skill.pathPoints.length - 1].y;
@@ -4563,17 +4982,21 @@ export default function StrategiesPage() {
                         originX = skill.pathPoints[draggedPtIdx - 1].x;
                         originY = skill.pathPoints[draggedPtIdx - 1].y;
                     } else if (skill.pathPoints.length >= 2) {
-                        originX = skill.pathPoints[skill.pathPoints.length - 2].x;
-                        originY = skill.pathPoints[skill.pathPoints.length - 2].y;
+                        originX =
+                            skill.pathPoints[skill.pathPoints.length - 2].x;
+                        originY =
+                            skill.pathPoints[skill.pathPoints.length - 2].y;
                     }
                 }
                 sa = Math.atan2(pos.y - originY, pos.x - originX);
             }
 
             const isProj =
-                skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.groundPath ||
-                skill.behavior?.flags?.agentDisplacement;
+                ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                ) ||
+                ["linear_wall"].includes(skill.mechanics?.deploymentType) ||
+                ["self_instant"].includes(skill.mechanics?.deploymentType);
 
             if (
                 geom &&
@@ -4583,7 +5006,11 @@ export default function StrategiesPage() {
                     geom.type === "trapezoid" ||
                     geom.type === "line")
             ) {
-                if (skill.behavior?.flags?.twoPointDeployment) {
+                if (
+                    ["two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    )
+                ) {
                     const agentObj = agentsRef.current.find(
                         (a) => a.instanceId === skill.agentInstanceId,
                     );
@@ -4592,14 +5019,18 @@ export default function StrategiesPage() {
 
                     // Directional skills: limit the second point by maxCastRange from the agent (when spawning or when linked)
                     if (
-                        skill.behavior?.flags?.twoPointDirectional &&
+                        ["two_point_barrier"].includes(
+                            skill.mechanics?.deploymentType,
+                        ) &&
                         agentObj &&
                         (isPlacingSecondPointRef.current || !skill.unlinked)
                     ) {
-                        const maxRange =
-                            skill.behavior?.spawn === "ground"
-                                ? skill.behavior.maxCastRange || 0
-                                : 0;
+                        const maxRange = [
+                            "map_target_aoe",
+                            "two_point_barrier",
+                        ].includes(skill.mechanics?.deploymentType)
+                            ? ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0
+                            : 0;
                         if (maxRange > 0) {
                             const maxPx = maxRange * mToPx;
 
@@ -4657,9 +5088,7 @@ export default function StrategiesPage() {
                     skill.targetY = skill.y + Math.sin(sa) * length;
                 } else {
                     const maxLen =
-                        (skill.behavior?.flags?.chargeable?.maxLength ||
-                            geom.length ||
-                            0) * mToPx;
+                        (0 /* no max length */ || geom.length || 0) * mToPx;
                     const dx = pos.x - skill.x;
                     const dy = pos.y - skill.y;
                     let dist = dx * Math.cos(sa) + dy * Math.sin(sa);
@@ -4671,8 +5100,15 @@ export default function StrategiesPage() {
                 let { maxRange, isFixed: projIsFixed } =
                     getProjRangeAndFixed(skill);
 
-                if (skill.behavior?.flags?.agentDisplacement && skill.behavior?.spawn === "ground") {
-                    maxRange = skill.behavior.maxCastRange || 0;
+                if (
+                    ["self_instant"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) &&
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    )
+                ) {
+                    maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                     projIsFixed = false;
                 }
 
@@ -4704,22 +5140,37 @@ export default function StrategiesPage() {
                 if (draggedPtIdx !== null && skill.pathPoints) {
                     const dx = tX - skill.pathPoints[draggedPtIdx].x;
                     const dy = tY - skill.pathPoints[draggedPtIdx].y;
-                    for (let j = draggedPtIdx; j < skill.pathPoints.length; j++) {
+                    for (
+                        let j = draggedPtIdx;
+                        j < skill.pathPoints.length;
+                        j++
+                    ) {
                         skill.pathPoints[j].x += dx;
                         skill.pathPoints[j].y += dy;
                     }
-                    skill.targetX = skill.pathPoints[skill.pathPoints.length - 1].x;
-                    skill.targetY = skill.pathPoints[skill.pathPoints.length - 1].y;
+                    skill.targetX =
+                        skill.pathPoints[skill.pathPoints.length - 1].x;
+                    skill.targetY =
+                        skill.pathPoints[skill.pathPoints.length - 1].y;
                 } else {
                     skill.targetX = tX;
                     skill.targetY = tY;
-                    if (skill.pathPoints && !isPlacingMultiDisplacementRef.current) {
-                        skill.pathPoints[skill.pathPoints.length - 1] = { x: tX, y: tY };
+                    if (
+                        skill.pathPoints &&
+                        !isPlacingMultiDisplacementRef.current
+                    ) {
+                        skill.pathPoints[skill.pathPoints.length - 1] = {
+                            x: tX,
+                            y: tY,
+                        };
                     }
                 }
             }
 
-            if (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable) {
+            if (
+                ["linear_wall"].includes(skill.mechanics?.deploymentType) ||
+                false /* no controllable flag yet */
+            ) {
                 if (!skill.pathPoints)
                     skill.pathPoints = [{ x: skill.x, y: skill.y }];
                 skill.pathPoints.push({ x: pos.x, y: pos.y });
@@ -4747,18 +5198,31 @@ export default function StrategiesPage() {
                         skill.agentInstanceId ===
                             draggedAgentRef.current?.instanceId &&
                         !skill.unlinked &&
-                        skill.behavior?.spawn === "player"
+                        [
+                            "projectile_aoe",
+                            "projectile_line",
+                            "linear_wall",
+                            "self_mobile_aura", "static_deployable",
+                            "autonomous_entity",
+                            "equip_weapon",
+                            "self_instant",
+                        ].includes(skill.mechanics?.deploymentType)
                     ) {
                         skill.x += dx;
                         skill.y += dy;
 
                         const pFlagForInf =
-                            skill.behavior?.flags?.projectile ||
-                            skill.behavior?.flags?.groundPath;
+                            ["projectile_aoe", "projectile_line"].includes(
+                                skill.mechanics?.deploymentType,
+                            ) ||
+                            ["linear_wall"].includes(
+                                skill.mechanics?.deploymentType,
+                            );
                         const isInfiniteProj =
                             pFlagForInf &&
-                            (!pFlagForInf.maxDistance ||
-                                pFlagForInf.maxDistance === 0);
+                            (!(skill.mechanics as any)?.projectileMaxDistance ||
+                                (skill.mechanics as any)
+                                    ?.projectileMaxDistance === 0);
                         const isFixed = isInfiniteProj;
                         if (!isFixed) {
                             if (skill.targetX !== undefined)
@@ -4783,7 +5247,15 @@ export default function StrategiesPage() {
                             skill.agentInstanceId ===
                                 draggedAgentRef.current?.instanceId &&
                             !skill.unlinked &&
-                            skill.behavior?.spawn === "player"
+                            [
+                                "projectile_aoe",
+                                "projectile_line",
+                                "linear_wall",
+                                "self_mobile_aura", "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "self_instant",
+                            ].includes(skill.mechanics?.deploymentType)
                         ) {
                             broadcastSkillUpdate(skill, true);
                         }
@@ -4805,8 +5277,13 @@ export default function StrategiesPage() {
                     );
                 }
 
-                if (skill.behavior?.spawn === "ground" && agentObj) {
-                    const maxRange = skill.behavior?.maxCastRange || 0;
+                if (
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) &&
+                    agentObj
+                ) {
+                    const maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                     if (maxRange > 0) {
                         const mToPx = selectedMap?.pixelsPerMeter || 20;
                         const maxPx = maxRange * mToPx;
@@ -4838,18 +5315,22 @@ export default function StrategiesPage() {
                         // Cables restrict their target point to the first point (maintained during drag).
                         if (
                             !(
-                                draggedSkillRef.current.behavior?.flags
+                                draggedSkillRef.current.effects?.flags
                                     ?.twoPointDeployment &&
-                                !draggedSkillRef.current.behavior?.flags
+                                !draggedSkillRef.current.effects?.flags
                                     ?.twoPointDirectional
                             )
                         ) {
-                            const maxRange =
-                                draggedSkillRef.current.behavior?.spawn ===
-                                "ground"
-                                    ? draggedSkillRef.current.behavior
-                                          .maxCastRange || 0
-                                    : 0;
+                            const maxRange = [
+                                "map_target_aoe",
+                                "two_point_barrier",
+                            ].includes(
+                                draggedSkillRef.current.mechanics
+                                    ?.deploymentType,
+                            )
+                                ? draggedSkillRef.current.mechanics
+                                      ?.castRange || 0
+                                : 0;
                             if (maxRange > 0) {
                                 const mToPx = selectedMap?.pixelsPerMeter || 20;
                                 const maxPx = maxRange * mToPx;
@@ -5027,7 +5508,15 @@ export default function StrategiesPage() {
                 if (
                     skill.agentInstanceId === agent.instanceId &&
                     !skill.unlinked &&
-                    skill.behavior?.spawn === "player"
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType)
                 ) {
                     broadcastSkillUpdate(skill, false);
                 }
@@ -5040,7 +5529,15 @@ export default function StrategiesPage() {
             const skill = draggedSkillRef.current;
             if (
                 skill.unlinked &&
-                skill.behavior?.spawn === "player" &&
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(skill.mechanics?.deploymentType) &&
                 worldMousePosRef.current
             ) {
                 const mouseX = worldMousePosRef.current.x;
@@ -5076,16 +5573,16 @@ export default function StrategiesPage() {
                                         skill.targetX - skill.x,
                                     );
                                 }
-                                if (skill.behavior?.spawnOffset) {
+                                if (skill.mechanics?.windup) {
                                     newX =
                                         agent.x +
                                         Math.cos(sa) *
-                                            skill.behavior.spawnOffset *
+                                            skill.mechanics?.windup *
                                             mToPx;
                                     newY =
                                         agent.y +
                                         Math.sin(sa) *
-                                            skill.behavior.spawnOffset *
+                                            skill.mechanics?.windup *
                                             mToPx;
                                 }
 
@@ -5128,7 +5625,10 @@ export default function StrategiesPage() {
         if (draggedSkillTargetRef.current) {
             // If we're in the middle of placing a second point, don't clear the ref
             // The second click (mousedown) will confirm and clear it
-            if (!isPlacingSecondPointRef.current && !isPlacingMultiDisplacementRef.current) {
+            if (
+                !isPlacingSecondPointRef.current &&
+                !isPlacingMultiDisplacementRef.current
+            ) {
                 broadcastSkillUpdate(draggedSkillTargetRef.current, false);
                 draggedSkillTargetRef.current = null;
                 draggedSkillPathPointIndexRef.current = null;
@@ -5228,23 +5728,39 @@ export default function StrategiesPage() {
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let playerToMouseAngle = 0;
-            if (skill.behavior?.spawn === "player" && agentObj) {
+            if (
+                [
+                    "projectile_aoe",
+                    "projectile_line",
+                    "linear_wall",
+                    "self_mobile_aura", "static_deployable",
+                    "autonomous_entity",
+                    "equip_weapon",
+                    "self_instant",
+                ].includes(skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 startX = agentObj.x;
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
 
-                if (skill.behavior?.spawnOffset) {
+                if (skill.mechanics?.windup) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        skill.behavior.spawnOffset *
+                        skill.mechanics?.windup *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        skill.behavior.spawnOffset *
+                        skill.mechanics?.windup *
                         mToPx;
                 }
-            } else if (skill.behavior?.spawn === "ground" && agentObj) {
-                const maxRange = skill.behavior?.maxCastRange || 0;
+            } else if (
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    skill.mechanics?.deploymentType,
+                ) &&
+                agentObj
+            ) {
+                const maxRange = ("castRange" in (skill.mechanics || {}) ? (skill.mechanics as any).castRange : 0) || 0;
                 if (maxRange > 0) {
                     const maxPx = maxRange * mToPx;
                     const dist = Math.sqrt(
@@ -5264,29 +5780,49 @@ export default function StrategiesPage() {
             let initTargetX: number | undefined = undefined;
             let initTargetY: number | undefined = undefined;
             const isProj =
-                skill.behavior?.flags?.projectile ||
-                skill.behavior?.flags?.agentDisplacement ||
-                !!skill.behavior?.flags?.groundPath;
+                ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                ) ||
+                ["self_instant"].includes(skill.mechanics?.deploymentType) ||
+                !!["linear_wall"].includes(skill.mechanics?.deploymentType);
             const isGeomWithTarget =
                 !isProj &&
-                skill.geometry &&
-                (skill.geometry.type === "rectangle" ||
-                    skill.geometry.type === "cone" ||
-                    skill.geometry.type === "trapezoid" ||
-                    skill.geometry.type === "curve" ||
-                    skill.geometry.type === "line");
+                skill.mechanics &&
+                ([
+                    "linear_wall",
+                    "projectile_line",
+                    "two_point_barrier",
+                ].includes(skill.mechanics?.deploymentType) ||
+                    skill.mechanics?.deploymentType === "autonomous_entity" ||
+                    [
+                        "linear_wall",
+                        "projectile_line",
+                        "two_point_barrier",
+                    ].includes(skill.mechanics?.deploymentType));
 
             if (isGeomWithTarget || isProj) {
                 const length =
-                    (("length" in skill.geometry ? skill.geometry.length : 0) ||
-                        0) * mToPx;
+                    (("length" in skill.mechanics
+                        ? (skill.mechanics as any)?.aoeLength || 0
+                        : 0) || 0) * mToPx;
 
-                if (skill.behavior?.spawn === "player" && agentObj) {
+                if (
+                    [
+                        "projectile_aoe",
+                        "projectile_line",
+                        "linear_wall",
+                        "self_mobile_aura", "static_deployable",
+                        "autonomous_entity",
+                        "equip_weapon",
+                        "self_instant",
+                    ].includes(skill.mechanics?.deploymentType) &&
+                    agentObj
+                ) {
                     const sa = playerToMouseAngle;
-                    if (skill.behavior?.flags?.chargeable) {
+                    if (false) {
                         const maxLen =
-                            (skill.behavior?.flags?.chargeable?.maxLength ||
-                                (skill.geometry as any)?.length ||
+                            (0 /* no max length */ ||
+                                (skill.mechanics as any)?.length ||
                                 0) * mToPx;
                         const dx = pos.x - startX;
                         const dy = pos.y - startY;
@@ -5342,11 +5878,11 @@ export default function StrategiesPage() {
                         }
                         initTargetX = startX + Math.cos(angle) * spawnLen;
                         initTargetY = startY + Math.sin(angle) * spawnLen;
-                    } else if (skill.behavior?.flags?.chargeable) {
+                    } else if (false) {
                         initTargetX =
                             pos.x +
-                            (skill.behavior?.flags?.chargeable?.minLength ||
-                                (skill.geometry as any)?.length ||
+                            (0 /* no min length */ ||
+                                (skill.mechanics as any)?.length ||
                                 0) *
                                 mToPx;
                         initTargetY = pos.y;
@@ -5359,7 +5895,9 @@ export default function StrategiesPage() {
 
             // For two-point deployment skills, always set initial target at drop/mouse position
             // so the user can aim with the mouse before the second click
-            if (skill.behavior?.flags?.twoPointDeployment) {
+            if (
+                ["two_point_barrier"].includes(skill.mechanics?.deploymentType)
+            ) {
                 initTargetX = pos.x;
                 initTargetY = pos.y;
             }
@@ -5372,30 +5910,44 @@ export default function StrategiesPage() {
                 y: startY,
                 targetX: initTargetX,
                 targetY: initTargetY,
-                geometry: skill.geometry,
-                behavior: skill.behavior,
-                projectileMode: skill.behavior?.flags?.projectile
+                mechanics: skill.mechanics,
+                effects: skill.effects,
+                projectileMode: ["projectile_aoe", "projectile_line"].includes(
+                    skill.mechanics?.deploymentType,
+                )
                     ? projectileMode
                     : undefined,
-                pathPoints: (skill.behavior?.flags?.groundPath?.controllable || skill.behavior?.flags?.projectile?.controllable)
-                    ? [
-                          { x: startX, y: startY },
-                          { x: initTargetX ?? pos.x, y: initTargetY ?? pos.y },
-                      ]
-                    : undefined,
+                pathPoints:
+                    ["linear_wall"].includes(skill.mechanics?.deploymentType) ||
+                    false /* no controllable flag yet */
+                        ? [
+                              { x: startX, y: startY },
+                              {
+                                  x: initTargetX ?? pos.x,
+                                  y: initTargetY ?? pos.y,
+                              },
+                          ]
+                        : undefined,
                 color: pendingData.color,
                 createdBy: myUserId,
                 unlinked:
-                    skill.behavior?.spawn === "ground" ||
-                    !!skill.behavior?.flags?.projectile ||
-                    !!skill.behavior?.flags?.groundPath,
+                    ["map_target_aoe", "two_point_barrier"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    !!["projectile_aoe", "projectile_line"].includes(
+                        skill.mechanics?.deploymentType,
+                    ) ||
+                    !!["linear_wall"].includes(skill.mechanics?.deploymentType),
             };
             skillsRef.current.push(newSkill);
             loadedSkillIdsRef.current.add(newSkill.instanceId);
             undoStackRef.current.push({ type: "add-skill", skill: newSkill });
             redoStackRef.current = [];
 
-            if (skill.behavior?.flags?.grantsWeapon && agentObj) {
+            if (
+                ["equip_weapon"].includes(skill.mechanics?.deploymentType) &&
+                agentObj
+            ) {
                 agentObj.weaponId = "skill:" + skill.key;
             }
 
@@ -5404,8 +5956,12 @@ export default function StrategiesPage() {
 
             // For two-point deployment skills with ground spawn, keep draggedSkillTargetRef so the user can place the second point
             if (
-                newSkill.behavior?.flags?.twoPointDeployment &&
-                newSkill.behavior?.spawn === "ground" &&
+                ["two_point_barrier"].includes(
+                    newSkill.mechanics?.deploymentType,
+                ) &&
+                ["map_target_aoe", "two_point_barrier"].includes(
+                    newSkill.mechanics?.deploymentType,
+                ) &&
                 newSkill.targetX !== undefined
             ) {
                 draggedSkillTargetRef.current = newSkill;
@@ -5524,7 +6080,7 @@ export default function StrategiesPage() {
                         agents: agentsRef.current,
                         skills: skillsRef.current.map((s) => {
                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            const { geometry, behavior, ...rest } = s;
+                            const { mechanics, effects, ...rest } = s;
                             return rest;
                         }),
                         clientKnownPathIds: Array.from(
@@ -8966,23 +9522,42 @@ export default function StrategiesPage() {
 
                                         let newZoom = currentZoom;
                                         if (e.deltaY < 0) {
-                                            newZoom = Math.min(currentZoom * scaleFactor, 6);
+                                            newZoom = Math.min(
+                                                currentZoom * scaleFactor,
+                                                6,
+                                            );
                                         } else {
-                                            newZoom = Math.max(currentZoom / scaleFactor, 0.4);
+                                            newZoom = Math.max(
+                                                currentZoom / scaleFactor,
+                                                0.4,
+                                            );
                                         }
 
                                         const canvas = canvasRef.current;
                                         if (!canvas) return;
-                                        const rect = canvas.getBoundingClientRect();
+                                        const rect =
+                                            canvas.getBoundingClientRect();
                                         const mouseX = e.clientX - rect.left;
                                         const mouseY = e.clientY - rect.top;
 
-                                        const dx = mouseX - canvas.width / 2 - currentPan.x;
-                                        const dy = mouseY - canvas.height / 2 - currentPan.y;
+                                        const dx =
+                                            mouseX -
+                                            canvas.width / 2 -
+                                            currentPan.x;
+                                        const dy =
+                                            mouseY -
+                                            canvas.height / 2 -
+                                            currentPan.y;
 
                                         const zoomRatio = newZoom / currentZoom;
-                                        const newPanX = mouseX - canvas.width / 2 - dx * zoomRatio;
-                                        const newPanY = mouseY - canvas.height / 2 - dy * zoomRatio;
+                                        const newPanX =
+                                            mouseX -
+                                            canvas.width / 2 -
+                                            dx * zoomRatio;
+                                        const newPanY =
+                                            mouseY -
+                                            canvas.height / 2 -
+                                            dy * zoomRatio;
 
                                         setZoom(newZoom);
                                         setPan({ x: newPanX, y: newPanY });
@@ -9034,7 +9609,8 @@ export default function StrategiesPage() {
                                                     visible: false,
                                                 }));
                                             if (
-                                                (isPlacingSecondPointRef.current || isPlacingMultiDisplacementRef.current) &&
+                                                (isPlacingSecondPointRef.current ||
+                                                    isPlacingMultiDisplacementRef.current) &&
                                                 draggedSkillTargetRef.current
                                             ) {
                                                 const sId =
@@ -10006,8 +10582,18 @@ export default function StrategiesPage() {
                                                 const s =
                                                     skillsRef.current[idx];
                                                 if (
-                                                    s.behavior?.spawn ===
-                                                    "player"
+                                                    [
+                                                        "projectile_aoe",
+                                                        "projectile_line",
+                                                        "linear_wall",
+                                                        "self_mobile_aura", "static_deployable",
+                                                        "autonomous_entity",
+                                                        "equip_weapon",
+                                                        "self_instant",
+                                                    ].includes(
+                                                        s.mechanics
+                                                            ?.deploymentType,
+                                                    )
                                                 ) {
                                                     const agent =
                                                         agentsRef.current.find(
@@ -10034,19 +10620,19 @@ export default function StrategiesPage() {
                                                             );
                                                         }
                                                         if (
-                                                            s.behavior
+                                                            s.effects
                                                                 ?.spawnOffset
                                                         ) {
                                                             newX =
                                                                 agent.x +
                                                                 Math.cos(sa) *
-                                                                    s.behavior
+                                                                    s.effects
                                                                         .spawnOffset *
                                                                     mToPx;
                                                             newY =
                                                                 agent.y +
                                                                 Math.sin(sa) *
-                                                                    s.behavior
+                                                                    s.effects
                                                                         .spawnOffset *
                                                                     mToPx;
                                                         }
@@ -10184,7 +10770,7 @@ export default function StrategiesPage() {
                                         );
                                         if (agentObj) {
                                             if (
-                                                ctxSkill.behavior?.flags
+                                                ctxSkill.effects?.flags
                                                     ?.grantsWeapon
                                             ) {
                                                 agentObj.weaponId = "default";
@@ -10430,10 +11016,9 @@ export default function StrategiesPage() {
                                                             "#fff",
                                                         agentInstanceId:
                                                             ctxAgent.instanceId,
-                                                        geometry:
-                                                            skill.geometry,
-                                                        behavior:
-                                                            skill.behavior,
+                                                        mechanics:
+                                                            skill.mechanics,
+                                                        effects: skill.effects,
                                                     }),
                                                 );
                                                 pendingSkillRef.current = {
@@ -10513,8 +11098,7 @@ export default function StrategiesPage() {
 
                                                 // Lógica Sandbox: Teletransporte a habilidad desplegada
                                                 if (
-                                                    skill.behavior?.flags
-                                                        ?.teleportsToDeployed
+                                                    skill.effects?.recollectable
                                                 ) {
                                                     // Buscar si ya hay un ancla desplegada por este agente
                                                     const deployedSkill =
@@ -10529,7 +11113,7 @@ export default function StrategiesPage() {
                                                     if (deployedSkill) {
                                                         const range =
                                                             (
-                                                                skill.behavior as any
+                                                                skill.effects as any
                                                             )?.maxCastRange ||
                                                             13;
                                                         const dx =
@@ -10589,12 +11173,12 @@ export default function StrategiesPage() {
 
                                                 // Lógica Sandbox: Auto-Buff y Revivir visual
                                                 if (
-                                                    skill.behavior?.flags
-                                                        ?.instantSelfBuff ||
-                                                    skill.behavior?.flags
-                                                        ?.selfRevive ||
-                                                    skill.behavior?.flags
-                                                        ?.targetRevive
+                                                    ["self_instant"].includes(
+                                                        skill.mechanics
+                                                            ?.deploymentType,
+                                                    ) ||
+                                                    skill.effects?.revives ||
+                                                    skill.effects?.revives
                                                 ) {
                                                     const agentIndex =
                                                         agentsRef.current.findIndex(
@@ -10630,9 +11214,7 @@ export default function StrategiesPage() {
 
                                                             // Auto-expiración del buff
                                                             const duration =
-                                                                skill.behavior
-                                                                    ?.flags
-                                                                    ?.instantSelfBuff
+                                                                skill.mechanics
                                                                     ?.duration;
                                                             if (
                                                                 duration &&
