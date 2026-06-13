@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { agentId, key, name, description, economy, mechanics, effects, color, displayIcon, enabled, type } = parsed.data;
+  const { agentId, key, name, description, economy, deployment, lifetime, resolution, color, displayIcon, enabled, type } = parsed.data;
 
   try {
     const skill = await db.agentSkill.upsert({
@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
         name,
         description,
         economy: economy as any,
-        mechanics: mechanics as any,
-        effects: effects as any,
+        deployment: deployment as any,
+        lifetime: lifetime as any,
+        resolution: resolution as any,
         color,
         displayIcon,
         type,
@@ -65,8 +66,9 @@ export async function POST(req: NextRequest) {
         name,
         description,
         economy: economy as any,
-        mechanics: mechanics as any,
-        effects: effects as any,
+        deployment: deployment as any,
+        lifetime: lifetime as any,
+        resolution: resolution as any,
         color,
         displayIcon,
         type,

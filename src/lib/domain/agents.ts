@@ -9,16 +9,10 @@ export interface EconomyData {
   costUltPoints?: number;
   costNote?: string;
   usesPerRound?: number;
-  rechargeCondition?: string; // e.g. "2 kills", "Left-click only", "40s cooldown"
+  rechargeCondition?: string;
 }
 
-// --- MECHANICS (Discriminated Union) ---
-export type BaseMechanics<T extends string> = {
-  deploymentType: T;
-  windup?: number;
-  duration?: number; // duration of the effect or life of the entity
-}
-
+// --- GEOMETRY ---
 export type SkillGeometry =
   | { type: 'circle'; radius?: number }
   | { type: 'rectangle'; width?: number; length?: number }
@@ -30,19 +24,17 @@ export type SkillGeometry =
   | { type: 'cross'; width?: number; length?: number }
   | { type: 'none' };
 
-export type MechanicsData = 
-  | (BaseMechanics<"self_instant"> & { geometry?: never })
-  | (BaseMechanics<"self_mobile_aura"> & { geometry?: SkillGeometry; pulses?: number; traversesWalls?: boolean })
-  | (BaseMechanics<"projectile_terminal_aoe"> & { geometry?: SkillGeometry; projectileSpeed?: number; projectileMaxDistance?: number; bounces?: number; steerable?: boolean; traversesWalls?: boolean })
-  | (BaseMechanics<"projectile_sweeping"> & { geometry?: SkillGeometry; projectileSpeed?: number; projectileMaxDistance?: number; traversesWalls?: boolean })
-  | (BaseMechanics<"map_target_aoe"> & { geometry?: SkillGeometry; mapRadiusUnits?: number; castRange?: number })
-  | (BaseMechanics<"static_deployable"> & { geometry?: SkillGeometry; castRange?: number })
-  | (BaseMechanics<"linear_wall"> & { geometry?: SkillGeometry; steerable?: boolean; castRange?: number; traversesWalls?: boolean })
-  | (BaseMechanics<"two_point_barrier"> & { geometry?: SkillGeometry; directionalOnly?: boolean; castRange?: number })
-  | (BaseMechanics<"equip_weapon"> & { geometry?: never; maxAmmo?: number })
-  | (BaseMechanics<"autonomous_entity"> & { geometry?: SkillGeometry; activationRadius?: number; movementSpeed?: number });
-
-export type DeploymentType = MechanicsData["deploymentType"];
+export const SkillGeometrySchema: z.ZodType<SkillGeometry> = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("circle"), radius: z.number().optional() }),
+  z.object({ type: z.literal("rectangle"), width: z.number().optional(), length: z.number().optional() }),
+  z.object({ type: z.literal("cone"), radius: z.number().optional(), angle: z.number().optional() }),
+  z.object({ type: z.literal("sector"), radius: z.number().optional(), angle: z.number().optional() }),
+  z.object({ type: z.literal("line"), width: z.number().optional(), length: z.number().optional() }),
+  z.object({ type: z.literal("curve"), width: z.number().optional(), length: z.number().optional() }),
+  z.object({ type: z.literal("trapezoid"), width: z.number().optional(), endWidth: z.number().optional(), length: z.number().optional() }),
+  z.object({ type: z.literal("cross"), width: z.number().optional(), length: z.number().optional() }),
+  z.object({ type: z.literal("none") }),
+]);
 
 // --- EFFECTS ---
 export interface DamageData {
@@ -59,6 +51,7 @@ export interface DamageData {
   legDamage?: number;
   oneShotBody?: boolean;
 }
+
 export interface HealData {
   amount?: number;
   duration?: number;
@@ -68,7 +61,7 @@ export interface HealData {
 }
 
 export interface VisionData {
-  blocksVision?: boolean; // Smokes, walls
+  blocksVision?: boolean;
   nearsight?: boolean;
   flash?: boolean;
   flashDuration?: number;
@@ -76,21 +69,149 @@ export interface VisionData {
   revealPulses?: number;
 }
 
-export interface EffectsData {
+export interface ActionEffects {
   damage?: DamageData;
   heal?: HealData;
   vision?: VisionData;
-  cc?: string[]; // E.g. "Vulnerable 2.5s", "Concuss 2.5s"
-  buffs?: string[]; // E.g. "+10% Equip speed"
-  destructible?: { hp: number }; // Only if it can be destroyed
+  cc?: string[];
+  buffs?: string[];
   isolatesTarget?: boolean;
   revives?: boolean;
-  notes?: string;
-  recollectable?: boolean; // e.g. Killjoy turret, Viper orb
-  fuelBased?: boolean; // e.g. Viper fuel
-  audioCueRadius?: number;
 }
 
+// Zod schemas for effects
+const DamageDataSchema: z.ZodType<DamageData> = z.object({
+  type: z.enum(["instant", "dot", "decay", "burst", "weapon"]).optional(),
+  baseDamage: z.number().optional(),
+  damagePerSecond: z.number().optional(),
+  damagePerPulse: z.number().optional(),
+  pulses: z.number().optional(),
+  ticksPerSecond: z.number().optional(),
+  damageMin: z.number().optional(),
+  damageMax: z.number().optional(),
+  headshotDamage: z.number().optional(),
+  bodyDamage: z.number().optional(),
+  legDamage: z.number().optional(),
+  oneShotBody: z.boolean().optional(),
+});
+
+const HealDataSchema: z.ZodType<HealData> = z.object({
+  amount: z.number().optional(),
+  duration: z.number().optional(),
+  selfAmount: z.number().optional(),
+  selfDuration: z.number().optional(),
+  requiresSoulOrb: z.boolean().optional(),
+});
+
+const VisionDataSchema: z.ZodType<VisionData> = z.object({
+  blocksVision: z.boolean().optional(),
+  nearsight: z.boolean().optional(),
+  flash: z.boolean().optional(),
+  flashDuration: z.number().optional(),
+  reveal: z.boolean().optional(),
+  revealPulses: z.number().optional(),
+});
+
+export const ActionEffectsSchema: z.ZodType<ActionEffects> = z.object({
+  damage: DamageDataSchema.optional(),
+  heal: HealDataSchema.optional(),
+  vision: VisionDataSchema.optional(),
+  cc: z.array(z.string()).optional(),
+  buffs: z.array(z.string()).optional(),
+  isolatesTarget: z.boolean().optional(),
+  revives: z.boolean().optional(),
+});
+
+// --- DEPLOYMENT ---
+export type DeploymentType = 
+  | "self_instant" 
+  | "self_mobile_aura" 
+  | "projectile_terminal_aoe" 
+  | "projectile_sweeping" 
+  | "map_target_aoe" 
+  | "static_deployable" 
+  | "linear_wall" 
+  | "two_point_barrier" 
+  | "equip_weapon";
+
+export type DeploymentMechanics = 
+  | { type: "self_instant"; windup?: number }
+  | { type: "self_mobile_aura"; windup?: number }
+  | { type: "projectile_terminal_aoe"; windup?: number; projectileSpeed?: number; projectileMaxDistance?: number; bounces?: number; steerable?: boolean; traversesWalls?: boolean }
+  | { type: "projectile_sweeping"; windup?: number; projectileSpeed?: number; projectileMaxDistance?: number; traversesWalls?: boolean; sweepEffects?: ActionEffects; geometry?: SkillGeometry }
+  | { type: "map_target_aoe"; windup?: number; castRange?: number }
+  | { type: "static_deployable"; windup?: number; castRange?: number }
+  | { type: "linear_wall"; windup?: number; steerable?: boolean; castRange?: number; traversesWalls?: boolean }
+  | { type: "two_point_barrier"; windup?: number; directionalOnly?: boolean; castRange?: number }
+  | { type: "equip_weapon"; windup?: number; maxAmmo?: number };
+
+const BaseDeploymentSchema = z.object({
+  windup: z.number().optional()
+});
+
+export const DeploymentMechanicsSchema: z.ZodType<DeploymentMechanics> = z.discriminatedUnion("type", [
+  BaseDeploymentSchema.extend({ type: z.literal("self_instant") }),
+  BaseDeploymentSchema.extend({ type: z.literal("self_mobile_aura") }),
+  BaseDeploymentSchema.extend({ type: z.literal("projectile_terminal_aoe"), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), bounces: z.number().optional(), steerable: z.boolean().optional(), traversesWalls: z.boolean().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("projectile_sweeping"), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), traversesWalls: z.boolean().optional(), sweepEffects: ActionEffectsSchema.optional(), geometry: SkillGeometrySchema.optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("map_target_aoe"), castRange: z.number().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("static_deployable"), castRange: z.number().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("linear_wall"), steerable: z.boolean().optional(), castRange: z.number().optional(), traversesWalls: z.boolean().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("two_point_barrier"), directionalOnly: z.boolean().optional(), castRange: z.number().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("equip_weapon"), maxAmmo: z.number().optional() }),
+]);
+
+// --- LIFETIME ---
+export interface AutonomousBehavior {
+  activationRadius?: number;
+  movementSpeed?: number;
+}
+
+export interface LifetimeMechanics {
+  duration?: number;
+  destructible?: { hp: number };
+  behavior?: "static" | "autonomous" | "mobile_aura";
+  autonomous?: AutonomousBehavior;
+  geometry?: SkillGeometry; // Form/Area during active phase
+  effects?: ActionEffects; // Ticking effects or constant effects
+  pulses?: number;
+  audioCueRadius?: number;
+  notes?: string;
+  recollectable?: boolean;
+  fuelBased?: boolean;
+}
+
+export const LifetimeMechanicsSchema: z.ZodType<LifetimeMechanics> = z.object({
+  duration: z.number().optional(),
+  destructible: z.object({ hp: z.number() }).optional(),
+  behavior: z.enum(["static", "autonomous", "mobile_aura"]).optional(),
+  autonomous: z.object({
+    activationRadius: z.number().optional(),
+    movementSpeed: z.number().optional()
+  }).optional(),
+  geometry: SkillGeometrySchema.optional(),
+  effects: ActionEffectsSchema.optional(),
+  pulses: z.number().optional(),
+  audioCueRadius: z.number().optional(),
+  notes: z.string().optional(),
+  recollectable: z.boolean().optional(),
+  fuelBased: z.boolean().optional()
+});
+
+// --- RESOLUTION ---
+export interface ResolutionMechanics {
+  trigger?: "on_impact" | "on_timer" | "on_recast" | "on_death";
+  geometry?: SkillGeometry; // Explosion area
+  effects?: ActionEffects;
+}
+
+export const ResolutionMechanicsSchema: z.ZodType<ResolutionMechanics> = z.object({
+  trigger: z.enum(["on_impact", "on_timer", "on_recast", "on_death"]).optional(),
+  geometry: SkillGeometrySchema.optional(),
+  effects: ActionEffectsSchema.optional()
+});
+
+// --- BASE AGENT SKILL ---
 export interface AgentSkill {
   id: string;
   agentId: string;
@@ -103,9 +224,33 @@ export interface AgentSkill {
   enabled?: boolean;
   
   economy?: EconomyData;
-  mechanics: MechanicsData;
-  effects?: EffectsData;
+  deployment?: DeploymentMechanics;
+  lifetime?: LifetimeMechanics;
+  resolution?: ResolutionMechanics;
 }
+
+export const EconomyDataSchema: z.ZodType<EconomyData> = z.object({
+  costCredits: z.number().optional(),
+  costUltPoints: z.number().optional(),
+  costNote: z.string().optional(),
+  usesPerRound: z.number().optional(),
+  rechargeCondition: z.string().optional(),
+});
+
+export const AgentSkillUpdateSchema = z.object({
+  agentId: z.string().min(1),
+  key: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  color: z.string().optional(),
+  type: z.string().optional(),
+  displayIcon: z.string().optional(),
+  enabled: z.boolean().optional(),
+  economy: EconomyDataSchema.optional(),
+  deployment: DeploymentMechanicsSchema.optional(),
+  lifetime: LifetimeMechanicsSchema.optional(),
+  resolution: ResolutionMechanicsSchema.optional(),
+});
 
 export interface ValorantAgent {
   id: string;
@@ -126,148 +271,3 @@ export const ROLE_COLORS: Record<AgentRole, string> = {
   controller: '#A855F7',
   sentinel: '#3B82F6',
 };
-
-// --- ZOD SCHEMAS ---
-export const SkillGeometrySchema: z.ZodType<SkillGeometry> = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("circle"), radius: z.number().optional() }),
-  z.object({ type: z.literal("rectangle"), width: z.number().optional(), length: z.number().optional() }),
-  z.object({ type: z.literal("cone"), radius: z.number().optional(), angle: z.number().optional() }),
-  z.object({ type: z.literal("sector"), radius: z.number().optional(), angle: z.number().optional() }),
-  z.object({ type: z.literal("line"), width: z.number().optional(), length: z.number().optional() }),
-  z.object({ type: z.literal("curve"), width: z.number().optional(), length: z.number().optional() }),
-  z.object({ type: z.literal("trapezoid"), width: z.number().optional(), endWidth: z.number().optional(), length: z.number().optional() }),
-  z.object({ type: z.literal("cross"), width: z.number().optional(), length: z.number().optional() }),
-  z.object({ type: z.literal("none") }),
-]);
-
-const BaseMechanicsSchema = z.object({
-  windup: z.number().optional(),
-  duration: z.number().optional(),
-});
-
-export const MechanicsDataSchema: z.ZodType<MechanicsData> = z.discriminatedUnion("deploymentType", [
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("self_instant"),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("self_mobile_aura"),
-    geometry: SkillGeometrySchema.optional(),
-    pulses: z.number().optional(),
-    traversesWalls: z.boolean().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("projectile_terminal_aoe"),
-    geometry: SkillGeometrySchema.optional(),
-    projectileSpeed: z.number().optional(),
-    projectileMaxDistance: z.number().optional(),
-    bounces: z.number().optional(),
-    steerable: z.boolean().optional(),
-    traversesWalls: z.boolean().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("projectile_sweeping"),
-    geometry: SkillGeometrySchema.optional(),
-    projectileSpeed: z.number().optional(),
-    projectileMaxDistance: z.number().optional(),
-    traversesWalls: z.boolean().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("map_target_aoe"),
-    geometry: SkillGeometrySchema.optional(),
-    mapRadiusUnits: z.number().optional(),
-    castRange: z.number().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("static_deployable"),
-    geometry: SkillGeometrySchema.optional(),
-    castRange: z.number().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("linear_wall"),
-    geometry: SkillGeometrySchema.optional(),
-    steerable: z.boolean().optional(),
-    castRange: z.number().optional(),
-    traversesWalls: z.boolean().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("two_point_barrier"),
-    geometry: SkillGeometrySchema.optional(),
-    directionalOnly: z.boolean().optional(),
-    castRange: z.number().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("equip_weapon"),
-    maxAmmo: z.number().optional(),
-  }),
-  BaseMechanicsSchema.extend({
-    deploymentType: z.literal("autonomous_entity"),
-    geometry: SkillGeometrySchema.optional(),
-    activationRadius: z.number().optional(),
-    movementSpeed: z.number().optional(),
-  }),
-]);
-
-export const EconomyDataSchema: z.ZodType<EconomyData> = z.object({
-  costCredits: z.number().optional(),
-  costUltPoints: z.number().optional(),
-  costNote: z.string().optional(),
-  usesPerRound: z.number().optional(),
-  rechargeCondition: z.string().optional(),
-});
-
-export const EffectsDataSchema: z.ZodType<EffectsData> = z.object({
-  damage: z.object({
-    type: z.enum(["instant", "dot", "decay", "burst", "weapon"]).optional(),
-    baseDamage: z.number().optional(),
-    damagePerSecond: z.number().optional(),
-    damagePerPulse: z.number().optional(),
-    pulses: z.number().optional(),
-    ticksPerSecond: z.number().optional(),
-    damageMin: z.number().optional(),
-    damageMax: z.number().optional(),
-    headshotDamage: z.number().optional(),
-    bodyDamage: z.number().optional(),
-    legDamage: z.number().optional(),
-    oneShotBody: z.boolean().optional(),
-  }).optional(),
-  heal: z.object({
-    amount: z.number().optional(),
-    duration: z.number().optional(),
-    selfAmount: z.number().optional(),
-    selfDuration: z.number().optional(),
-    requiresSoulOrb: z.boolean().optional(),
-  }).optional(),
-  vision: z.object({
-    blocksVision: z.boolean().optional(),
-    nearsight: z.boolean().optional(),
-    flash: z.boolean().optional(),
-    flashDuration: z.number().optional(),
-    reveal: z.boolean().optional(),
-    revealPulses: z.number().optional(),
-  }).optional(),
-  destructible: z.object({
-    hp: z.number(),
-  }).optional(),
-  cc: z.array(z.string()).optional(),
-  buffs: z.array(z.string()).optional(),
-  notes: z.string().optional(),
-  isolatesTarget: z.boolean().optional(),
-  revives: z.boolean().optional(),
-  recollectable: z.boolean().optional(),
-  fuelBased: z.boolean().optional(),
-  audioCueRadius: z.number().optional(),
-});
-
-export const AgentSkillUpdateSchema = z.object({
-  agentId: z.string().min(1),
-  key: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  color: z.string().optional(),
-  type: z.string().optional(),
-  displayIcon: z.string().optional(),
-  enabled: z.boolean().optional(),
-  economy: EconomyDataSchema.optional(),
-  mechanics: MechanicsDataSchema.optional(),
-  effects: EffectsDataSchema.optional(),
-});
