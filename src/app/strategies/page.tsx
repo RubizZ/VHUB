@@ -2260,63 +2260,52 @@ export default function StrategiesPage() {
                     ctx.translate(tx, ty);
                     ctx.rotate(Math.atan2(ty, tx));
 
-                    if (getDeploymentType(skill) === "projectile_sweeping") {
-                        // For sweep projectiles, show only a small rotation indicator
-                        const r = 8 / scale;
+                    if (isTargetHovered) {
                         ctx.beginPath();
-                        ctx.arc(0, 0, r, -Math.PI / 6, Math.PI / 6);
-                        ctx.strokeStyle = isTargetHovered ? "#fff" : "rgba(255,255,255,0.5)";
-                        ctx.lineWidth = 1.5 / scale;
-                        ctx.lineCap = "round";
-                        ctx.stroke();
-                    } else {
-                        if (isTargetHovered) {
-                            ctx.beginPath();
-                            ctx.arc(0, 0, 8 / scale + 4 / scale, 0, Math.PI * 2);
-                            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                            ctx.fill();
-                        }
-
-                        // Draw the base anchor circle
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
-                        ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+                        ctx.arc(0, 0, 8 / scale + 4 / scale, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
                         ctx.fill();
-                        ctx.strokeStyle = isTargetHovered ? "#fff" : skill.color;
-                        ctx.lineWidth = (isTargetHovered ? 3 : 2) / scale;
-                        ctx.stroke();
-
-                        // Draw rotation indicator (curved arc on the right with arrows)
-                        const r = 14 / scale;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
-                        ctx.strokeStyle = isTargetHovered
-                            ? "#fff"
-                            : "rgba(255,255,255,0.7)";
-                        ctx.lineWidth = 2 / scale;
-                        ctx.lineCap = "round";
-                        ctx.stroke();
-
-                        const arrowSize = 4 / scale;
-
-                        // Top arrow tip
-                        const topX = Math.cos(-Math.PI / 5) * r;
-                        const topY = Math.sin(-Math.PI / 5) * r;
-                        ctx.beginPath();
-                        ctx.moveTo(topX - arrowSize * 0.5, topY + arrowSize);
-                        ctx.lineTo(topX, topY);
-                        ctx.lineTo(topX + arrowSize, topY + arrowSize * 0.5);
-                        ctx.stroke();
-
-                        // Bottom arrow tip
-                        const botX = Math.cos(Math.PI / 5) * r;
-                        const botY = Math.sin(Math.PI / 5) * r;
-                        ctx.beginPath();
-                        ctx.moveTo(botX - arrowSize * 0.5, botY - arrowSize);
-                        ctx.lineTo(botX, botY);
-                        ctx.lineTo(botX + arrowSize, botY - arrowSize * 0.5);
-                        ctx.stroke();
                     }
+
+                    // Draw the base anchor circle
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 8 / scale, 0, Math.PI * 2);
+                    ctx.fillStyle = "rgba(10, 14, 20, 0.9)";
+                    ctx.fill();
+                    ctx.strokeStyle = isTargetHovered ? "#fff" : skill.color;
+                    ctx.lineWidth = (isTargetHovered ? 3 : 2) / scale;
+                    ctx.stroke();
+
+                    // Draw rotation indicator (curved arc on the right with arrows)
+                    const r = 14 / scale;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, -Math.PI / 5, Math.PI / 5);
+                    ctx.strokeStyle = isTargetHovered
+                        ? "#fff"
+                        : "rgba(255,255,255,0.7)";
+                    ctx.lineWidth = 2 / scale;
+                    ctx.lineCap = "round";
+                    ctx.stroke();
+
+                    const arrowSize = 4 / scale;
+
+                    // Top arrow tip
+                    const topX = Math.cos(-Math.PI / 5) * r;
+                    const topY = Math.sin(-Math.PI / 5) * r;
+                    ctx.beginPath();
+                    ctx.moveTo(topX - arrowSize * 0.5, topY + arrowSize);
+                    ctx.lineTo(topX, topY);
+                    ctx.lineTo(topX + arrowSize, topY + arrowSize * 0.5);
+                    ctx.stroke();
+
+                    // Bottom arrow tip
+                    const botX = Math.cos(Math.PI / 5) * r;
+                    const botY = Math.sin(Math.PI / 5) * r;
+                    ctx.beginPath();
+                    ctx.moveTo(botX - arrowSize * 0.5, botY - arrowSize);
+                    ctx.lineTo(botX, botY);
+                    ctx.lineTo(botX + arrowSize, botY - arrowSize * 0.5);
+                    ctx.stroke();
 
                     ctx.restore();
                 }
