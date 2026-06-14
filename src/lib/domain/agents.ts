@@ -253,9 +253,6 @@ export const AgentSkillUpdateSchema = z.object({
   deployment: DeploymentMechanicsSchema,
   lifetime: LifetimeMechanicsSchema.optional().nullable(),
   resolution: ResolutionMechanicsSchema.optional().nullable(),
-}).refine(data => data.lifetime || data.resolution, {
-  message: "La habilidad debe tener al menos una fase de Vida Útil o de Resolución.",
-  path: ["lifetime"]
 });
 
 export interface ValorantAgent {
