@@ -11042,11 +11042,6 @@ export default function StrategiesPage() {
                                                                 s.targetX - s.x,
                                                             );
                                                         }
-                                                        if (
-                                                            false /* legacy spawnOffset */
-                                                        ) {
-                                                            // Logic for spawnOffset removed
-                                                        }
                                                         const dx = newX - s.x;
                                                         const dy = newY - s.y;
                                                         s.x = newX;
@@ -11180,11 +11175,7 @@ export default function StrategiesPage() {
                                                 ctxSkill.agentInstanceId,
                                         );
                                         if (agentObj) {
-                                            if (
-                                                false /* legacy ctxSkill.effects?.flags?.grantsWeapon */
-                                            ) {
-                                                // agentObj.weaponId = "default";
-                                            }
+                                            // legacy weapon logic removed
                                         }
                                         const skillIdx =
                                             skillsRef.current.findIndex(

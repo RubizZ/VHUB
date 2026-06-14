@@ -122,7 +122,26 @@ export async function GET(req: NextRequest) {
     const [matches, seasonsData, teamPlayers, teamEvents] = await Promise.all([
       db.match.findMany({
         where: whereClause,
-        include: {
+        select: {
+          id: true,
+          riot_match_id: true,
+          map_id: true,
+          map_name: true,
+          game_mode: true,
+          game_start: true,
+          game_length_ms: true,
+          queue_id: true,
+          team_blue_score: true,
+          team_red_score: true,
+          team_blue_won: true,
+          team_blue_name: true,
+          team_red_name: true,
+          team_blue_tag: true,
+          team_red_tag: true,
+          team_blue_icon: true,
+          team_red_icon: true,
+          event_id: true,
+          premier_season_id: true,
           player_stats: {
             select: { 
               team_id: true,
