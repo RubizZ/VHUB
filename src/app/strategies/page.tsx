@@ -11424,7 +11424,7 @@ export default function StrategiesPage() {
 
                                                 // Lógica Sandbox: Auto-Buff y Revivir visual
                                                 if (
-                                                    ["self_instant", "dash_teleport"].includes(
+                                                    ["self_instant"].includes(
                                                         getDeploymentType(
                                                             skill,
                                                         ) as string,
