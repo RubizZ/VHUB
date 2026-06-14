@@ -1504,7 +1504,7 @@ export default function StrategiesPage() {
                     } else if (
                         ["self_instant"].includes(getDeploymentType(skill))
                     ) {
-                        const isTeleportToPos = false;
+                        const isTeleportToPos = getCastRange(skill) > 0;
                         const maxDisplacements = 0 || 1;
 
                         const pts = [{ x: 0, y: 0 }];
@@ -1592,6 +1592,27 @@ export default function StrategiesPage() {
                                 ctx.fillStyle = skill.color;
                                 ctx.globalAlpha = 0.6;
                                 ctx.fill();
+
+                                const agentId = agentsRef.current.find(
+                                    (a) => a.instanceId === skill.agentInstanceId,
+                                )?.id;
+                                const aImg = agentId ? agentImgsRef.current.get(agentId) : null;
+                                if (aImg && aImg.complete) {
+                                    ctx.save();
+                                    ctx.translate(p2.x, p2.y);
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, 14 / scale, 0, Math.PI * 2);
+                                    ctx.clip();
+                                    ctx.globalAlpha = 0.5;
+                                    ctx.drawImage(
+                                        aImg,
+                                        -14 / scale,
+                                        -14 / scale,
+                                        28 / scale,
+                                        28 / scale,
+                                    );
+                                    ctx.restore();
+                                }
                             } else {
                                 ctx.lineWidth = 3 / scale;
                                 ctx.globalAlpha = 0.8;
@@ -5318,10 +5339,7 @@ export default function StrategiesPage() {
                     getProjRangeAndFixed(skill);
 
                 if (
-                    ["self_instant"].includes(
-                        skill.deployment?.type as string,
-                    ) &&
-                    ["map_target_aoe", "two_point_barrier"].includes(
+                    ["self_instant", "map_target_aoe", "two_point_barrier"].includes(
                         skill.deployment?.type as string,
                     )
                 ) {
