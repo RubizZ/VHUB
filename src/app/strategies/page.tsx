@@ -87,9 +87,9 @@ interface CanvasSkill {
     unlinked?: boolean;
     customRotation?: number;
     draggedBy?: string;
-    deployment?: DeploymentMechanics;
-    lifetime?: LifetimeMechanics;
-    resolution?: ResolutionMechanics;
+    deployment?: DeploymentMechanics | null;
+    lifetime?: LifetimeMechanics | null;
+    resolution?: ResolutionMechanics | null;
 }
 
 type UndoAction =
@@ -127,21 +127,21 @@ let pendingRedrawRef: number | null = null;
 
 // Helpers to eliminate 'any' casting and safely access discriminated union properties
 function getCastRange(
-    skill: { deployment?: DeploymentMechanics } | undefined,
+    skill: { deployment?: DeploymentMechanics | null } | undefined,
 ): number {
     return skill?.deployment && "castRange" in skill.deployment
         ? skill.deployment.castRange || 0
         : 0;
 }
 function getProjSpeed(
-    skill: { deployment?: DeploymentMechanics } | undefined,
+    skill: { deployment?: DeploymentMechanics | null } | undefined,
 ): number {
     return skill?.deployment && "projectileSpeed" in skill.deployment
         ? skill.deployment.projectileSpeed || 0
         : 0;
 }
 function getProjMaxDist(
-    skill: { deployment?: DeploymentMechanics } | undefined,
+    skill: { deployment?: DeploymentMechanics | null } | undefined,
 ): number | undefined {
     return skill?.deployment && "projectileMaxDistance" in skill.deployment
         ? skill.deployment.projectileMaxDistance
@@ -158,7 +158,7 @@ function getGeomRadius(geom: SkillGeometry | undefined): number {
 }
 function getGeometry(
     skill:
-        | { deployment?: DeploymentMechanics; lifetime?: LifetimeMechanics }
+        | { deployment?: DeploymentMechanics | null; lifetime?: LifetimeMechanics | null }
         | undefined,
 ): SkillGeometry | undefined {
     if (skill?.lifetime?.geometry) return skill.lifetime.geometry;
@@ -167,12 +167,12 @@ function getGeometry(
     return undefined;
 }
 function getDeploymentType(
-    skill: { deployment?: DeploymentMechanics } | undefined,
+    skill: { deployment?: DeploymentMechanics | null } | undefined,
 ): string {
     return skill?.deployment?.type || "";
 }
 function getAoeLength(
-    skill: { deployment?: DeploymentMechanics } | undefined,
+    skill: { deployment?: DeploymentMechanics | null } | undefined,
 ): number {
     // Some old skills might have used length directly. For sweeping projectiles, geometry length is used.
     if (skill?.deployment && "geometry" in skill.deployment) {
@@ -182,8 +182,8 @@ function getAoeLength(
 }
 
 function getProjRangeAndFixed(skill: {
-    deployment?: DeploymentMechanics;
-    lifetime?: LifetimeMechanics;
+    deployment?: DeploymentMechanics | null;
+    lifetime?: LifetimeMechanics | null;
     unlinked?: boolean;
 }) {
     const isProjectileOrLine = [
@@ -1701,10 +1701,11 @@ export default function StrategiesPage() {
                 }
             }
 
-            if (geom.type === "none") {
-                // No geometry shape — just a small circle around the icon
-                ctx.beginPath();
-                const noneRadius = 12 / scale;
+            if (skill.lifetime) {
+                if (geom.type === "none") {
+                    // No geometry shape — just a small circle around the icon
+                    ctx.beginPath();
+                    const noneRadius = 12 / scale;
                 ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.globalAlpha = strokeAlpha;
@@ -1999,6 +2000,70 @@ export default function StrategiesPage() {
                     ctx.stroke();
                     ctx.restore();
                     ctx.globalAlpha = baseAlpha;
+                }
+                ctx.restore();
+            }
+            }
+
+            if (skill.resolution?.geometry && skill.resolution.geometry.type !== "none") {
+                const rGeom = skill.resolution.geometry;
+                ctx.save();
+                
+                if (skill.targetX !== undefined && skill.targetY !== undefined) {
+                    ctx.rotate(Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x));
+                } else if (skill.customRotation !== undefined) {
+                    ctx.rotate(skill.customRotation);
+                }
+
+                ctx.fillStyle = skill.color;
+                ctx.strokeStyle = skill.color;
+                ctx.globalAlpha = baseAlpha;
+
+                if (rGeom.type === "circle") {
+                    ctx.beginPath();
+                    const radius = (rGeom.radius !== undefined ? rGeom.radius : getGeomWidth(rGeom) / 2) * mToPx;
+                    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.globalAlpha = strokeAlpha;
+                    ctx.lineWidth = 4 / scale;
+                    ctx.save();
+                    ctx.clip();
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (rGeom.type === "rectangle" || rGeom.type === "cone" || rGeom.type === "trapezoid" || rGeom.type === "line") {
+                    const rLength = getGeomLength(rGeom) * mToPx;
+                    const rWidth = getGeomWidth(rGeom) * mToPx;
+                    ctx.beginPath();
+                    if (rGeom.type === "cone") {
+                        const halfAngleRad = rGeom.angle !== undefined ? ((rGeom.angle / 2) * Math.PI) / 180 : Math.atan2(rWidth / 2, rLength);
+                        ctx.moveTo(0, 0);
+                        ctx.arc(0, 0, rLength, -halfAngleRad, halfAngleRad);
+                        ctx.closePath();
+                    } else if (rGeom.type === "trapezoid") {
+                        const endWidth = (rGeom.endWidth !== undefined ? rGeom.endWidth : rWidth * 0.5);
+                        ctx.moveTo(0, -rWidth / 2);
+                        ctx.lineTo(rLength, -endWidth / 2);
+                        ctx.lineTo(rLength, endWidth / 2);
+                        ctx.lineTo(0, rWidth / 2);
+                        ctx.closePath();
+                    } else if (rGeom.type === "line") {
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(rLength, 0);
+                    } else {
+                        ctx.rect(0, -rWidth / 2, rLength, rWidth);
+                    }
+                    if (rGeom.type === "line") {
+                        ctx.lineWidth = Math.max(rWidth, 2 / scale);
+                        ctx.stroke();
+                    } else {
+                        ctx.fill();
+                        ctx.globalAlpha = strokeAlpha;
+                        ctx.lineWidth = 4 / scale;
+                        ctx.save();
+                        ctx.clip();
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
                 ctx.restore();
             }

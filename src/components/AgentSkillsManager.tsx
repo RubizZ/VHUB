@@ -29,6 +29,7 @@ interface SkillFormData {
   // Deployment
   dep_type: DeploymentType;
   dep_windup: number;
+  dep_spawnOffset: number;
   dep_castRange: number;
   dep_projectileSpeed: number;
   dep_projectileMaxDistance: number;
@@ -44,6 +45,7 @@ interface SkillFormData {
   dep_geom_length: number;
 
   // Lifetime
+  hasLifetime: boolean;
   life_duration: number;
   life_hp: number;
   life_behavior: "static" | "autonomous" | "mobile_aura";
@@ -79,6 +81,7 @@ const getDefaultFormData = (): SkillFormData => ({
   rechargeCondition: "",
   dep_type: "self_instant",
   dep_windup: 0,
+  dep_spawnOffset: 0,
   dep_castRange: 0,
   dep_projectileSpeed: 0,
   dep_projectileMaxDistance: 0,
@@ -92,6 +95,7 @@ const getDefaultFormData = (): SkillFormData => ({
   dep_geom_angle: 0,
   dep_geom_width: 0,
   dep_geom_length: 0,
+  hasLifetime: false,
   life_duration: 0,
   life_hp: 0,
   life_behavior: "static",
@@ -149,6 +153,7 @@ function buildDeployment(f: SkillFormData): DeploymentMechanics {
     case "projectile_sweeping":
       return {
         type: "projectile_sweeping", windup,
+        spawnOffset: f.dep_spawnOffset || undefined,
         projectileSpeed: f.dep_projectileSpeed || undefined,
         projectileMaxDistance: f.dep_projectileMaxDistance || undefined,
         traversesWalls: f.dep_traversesWalls || undefined,
@@ -255,6 +260,7 @@ export function AgentSkillsManager({
 
       dep_type: ("type" in d ? (d as { type: DeploymentType }).type : "self_instant") || "self_instant",
       dep_windup: ("windup" in d ? (d as { windup?: number }).windup : undefined) || 0,
+      dep_spawnOffset: ("spawnOffset" in d ? (d as { spawnOffset?: number }).spawnOffset : undefined) || 0,
       dep_castRange: ("castRange" in d ? (d as { castRange?: number }).castRange : undefined) || 0,
       dep_projectileSpeed: ("projectileSpeed" in d ? (d as { projectileSpeed?: number }).projectileSpeed : undefined) || 0,
       dep_projectileMaxDistance: ("projectileMaxDistance" in d ? (d as { projectileMaxDistance?: number }).projectileMaxDistance : undefined) || 0,
@@ -269,6 +275,7 @@ export function AgentSkillsManager({
       dep_geom_width: depGeom.dep_geom_width,
       dep_geom_length: depGeom.dep_geom_length,
 
+      hasLifetime: skill.lifetime != null && Object.keys(skill.lifetime).length > 0,
       life_duration: l.duration || 0,
       life_hp: l.destructible?.hp || 0,
       life_behavior: l.behavior || "static",
@@ -328,7 +335,7 @@ export function AgentSkillsManager({
 
     const deployment: DeploymentMechanics = buildDeployment(formData);
 
-    const lifetime: LifetimeMechanics = {
+    const lifetime: LifetimeMechanics | null = formData.hasLifetime ? {
       duration: formData.life_duration || undefined,
       behavior: formData.life_behavior || undefined,
       destructible: formData.life_hp ? { hp: formData.life_hp } : undefined,
@@ -341,16 +348,16 @@ export function AgentSkillsManager({
         formData.life_geom_radius, formData.life_geom_angle,
         formData.life_geom_width, formData.life_geom_length
       ),
-    };
+    } : null;
 
-    const resolution: ResolutionMechanics | undefined = formData.hasResolution ? {
+    const resolution: ResolutionMechanics | null = formData.hasResolution ? {
       trigger: formData.res_trigger,
       geometry: buildGeometry(
         formData.res_geom_type,
         formData.res_geom_radius, formData.res_geom_angle,
         formData.res_geom_width, formData.res_geom_length
       ),
-    } : undefined;
+    } : null;
 
     const payload: Omit<AgentSkill, "id"> = {
       agentId: selectedAgent.id,
@@ -682,6 +689,12 @@ export function AgentSkillsManager({
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Windup (s)</label>
                           <input type="number" step="0.1" className="input-field" value={formData.dep_windup} onChange={e => setFormData({...formData, dep_windup: Number(e.target.value)})} />
                         </div>
+                        {formData.dep_type === "projectile_sweeping" && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Spawn Offset (m)</label>
+                            <input type="number" step="0.1" className="input-field" value={formData.dep_spawnOffset} onChange={e => setFormData({...formData, dep_spawnOffset: Number(e.target.value)})} />
+                          </div>
+                        )}
                         {(formData.dep_type === "map_target_aoe" || formData.dep_type === "static_deployable" || formData.dep_type === "two_point_barrier" || formData.dep_type === "linear_wall") && (
                           <div className="form-group" style={{ flex: 1 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango de Cast (m)</label>
@@ -758,9 +771,17 @@ export function AgentSkillsManager({
                   {/* ── Tab: Lifetime ──────────────────────────────────── */}
                   {activeTab === "lifetime" && (
                     <div className="tab-content fade-in">
-                      <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Duración (s)</label>
+                      <label className="checkbox-label" style={{ padding: 12, background: "rgba(255,255,255,0.05)", borderRadius: 8, marginBottom: 24, display: "flex" }}>
+                        <input type="checkbox" checked={formData.hasLifetime} onChange={e => setFormData({...formData, hasLifetime: e.target.checked})} />
+                        <span className="checkbox-custom"></span>
+                        <span style={{ fontWeight: 800 }}>Habilitar Fase de Vida Activa</span>
+                      </label>
+
+                      {formData.hasLifetime && (
+                        <>
+                          <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Duración (s)</label>
                           <input type="number" step="0.1" className="input-field" value={formData.life_duration} onChange={e => setFormData({...formData, life_duration: Number(e.target.value)})} />
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
@@ -803,6 +824,8 @@ export function AgentSkillsManager({
                         onWidth={v => setFormData({...formData, life_geom_width: v})}
                         onLength={v => setFormData({...formData, life_geom_length: v})}
                       />
+                        </>
+                      )}
                     </div>
                   )}
 

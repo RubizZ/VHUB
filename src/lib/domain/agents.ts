@@ -135,15 +135,15 @@ export type DeploymentType =
   | "equip_weapon";
 
 export type DeploymentMechanics = 
-  | { type: "self_instant"; windup?: number }
-  | { type: "self_mobile_aura"; windup?: number }
-  | { type: "projectile_terminal_aoe"; windup?: number; projectileSpeed?: number; projectileMaxDistance?: number; bounces?: number; steerable?: boolean; traversesWalls?: boolean }
-  | { type: "projectile_sweeping"; windup?: number; projectileSpeed?: number; projectileMaxDistance?: number; traversesWalls?: boolean; sweepEffects?: ActionEffects; geometry?: SkillGeometry }
-  | { type: "map_target_aoe"; windup?: number; castRange?: number }
-  | { type: "static_deployable"; windup?: number; castRange?: number }
-  | { type: "linear_wall"; windup?: number; steerable?: boolean; castRange?: number; traversesWalls?: boolean }
-  | { type: "two_point_barrier"; windup?: number; directionalOnly?: boolean; castRange?: number }
-  | { type: "equip_weapon"; windup?: number; maxAmmo?: number };
+  | { type: "self_instant"; windup?: number; spawnOffset?: number }
+  | { type: "self_mobile_aura"; windup?: number; spawnOffset?: number }
+  | { type: "projectile_terminal_aoe"; windup?: number; spawnOffset?: number; projectileSpeed?: number; projectileMaxDistance?: number; bounces?: number; steerable?: boolean; traversesWalls?: boolean }
+  | { type: "projectile_sweeping"; windup?: number; spawnOffset?: number; projectileSpeed?: number; projectileMaxDistance?: number; traversesWalls?: boolean; sweepEffects?: ActionEffects; geometry?: SkillGeometry }
+  | { type: "map_target_aoe"; windup?: number; spawnOffset?: number; castRange?: number }
+  | { type: "static_deployable"; windup?: number; spawnOffset?: number; castRange?: number }
+  | { type: "linear_wall"; windup?: number; spawnOffset?: number; steerable?: boolean; castRange?: number; traversesWalls?: boolean }
+  | { type: "two_point_barrier"; windup?: number; spawnOffset?: number; directionalOnly?: boolean; castRange?: number }
+  | { type: "equip_weapon"; windup?: number; spawnOffset?: number; maxAmmo?: number };
 
 const BaseDeploymentSchema = z.object({
   windup: z.number().optional()
@@ -153,7 +153,7 @@ export const DeploymentMechanicsSchema: z.ZodType<DeploymentMechanics> = z.discr
   BaseDeploymentSchema.extend({ type: z.literal("self_instant") }),
   BaseDeploymentSchema.extend({ type: z.literal("self_mobile_aura") }),
   BaseDeploymentSchema.extend({ type: z.literal("projectile_terminal_aoe"), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), bounces: z.number().optional(), steerable: z.boolean().optional(), traversesWalls: z.boolean().optional() }),
-  BaseDeploymentSchema.extend({ type: z.literal("projectile_sweeping"), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), traversesWalls: z.boolean().optional(), sweepEffects: ActionEffectsSchema.optional(), geometry: SkillGeometrySchema.optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("projectile_sweeping"), spawnOffset: z.number().optional(), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), traversesWalls: z.boolean().optional(), sweepEffects: ActionEffectsSchema.optional(), geometry: SkillGeometrySchema.optional() }),
   BaseDeploymentSchema.extend({ type: z.literal("map_target_aoe"), castRange: z.number().optional() }),
   BaseDeploymentSchema.extend({ type: z.literal("static_deployable"), castRange: z.number().optional() }),
   BaseDeploymentSchema.extend({ type: z.literal("linear_wall"), steerable: z.boolean().optional(), castRange: z.number().optional(), traversesWalls: z.boolean().optional() }),
@@ -223,10 +223,10 @@ export interface AgentSkill {
   displayIcon?: string;
   enabled?: boolean;
   
-  economy?: EconomyData;
-  deployment?: DeploymentMechanics;
-  lifetime?: LifetimeMechanics;
-  resolution?: ResolutionMechanics;
+  economy?: EconomyData | null;
+  deployment: DeploymentMechanics;
+  lifetime?: LifetimeMechanics | null;
+  resolution?: ResolutionMechanics | null;
 }
 
 export const EconomyDataSchema: z.ZodType<EconomyData> = z.object({
@@ -241,15 +241,18 @@ export const AgentSkillUpdateSchema = z.object({
   agentId: z.string().min(1),
   key: z.string().min(1),
   name: z.string().min(1),
-  description: z.string().optional(),
-  color: z.string().optional(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional().nullable(),
   type: z.string().optional(),
-  displayIcon: z.string().optional(),
+  displayIcon: z.string().optional().nullable(),
   enabled: z.boolean().optional(),
-  economy: EconomyDataSchema.optional(),
-  deployment: DeploymentMechanicsSchema.optional(),
-  lifetime: LifetimeMechanicsSchema.optional(),
-  resolution: ResolutionMechanicsSchema.optional(),
+  economy: EconomyDataSchema.optional().nullable(),
+  deployment: DeploymentMechanicsSchema,
+  lifetime: LifetimeMechanicsSchema.optional().nullable(),
+  resolution: ResolutionMechanicsSchema.optional().nullable(),
+}).refine(data => data.lifetime || data.resolution, {
+  message: "La habilidad debe tener al menos una fase de Vida Útil o de Resolución.",
+  path: ["lifetime"]
 });
 
 export interface ValorantAgent {
