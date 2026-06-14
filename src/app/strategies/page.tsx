@@ -3621,16 +3621,15 @@ export default function StrategiesPage() {
         const mToPx = selectedMap?.pixelsPerMeter || 20;
         const geom = getGeometry(s) || { type: "none" };
 
-        const isProj =
-            ["projectile_terminal_aoe", "projectile_sweeping"].includes(
+        const isTargetOriginGeom =
+            ["projectile_terminal_aoe", "dash_teleport"].includes(
                 getDeploymentType(s),
-            ) ||
-            ["dash_teleport"].includes(getDeploymentType(s)) ||
-            !!["linear_wall"].includes(getDeploymentType(s));
+            );
+            
         let drawOriginX = s.x;
         let drawOriginY = s.y;
         if (
-            isProj &&
+            isTargetOriginGeom &&
             s.targetX !== undefined &&
             s.targetY !== undefined &&
             geom.type !== "curve"
@@ -3641,6 +3640,8 @@ export default function StrategiesPage() {
 
         const wdx = pos.x - drawOriginX;
         const wdy = pos.y - drawOriginY;
+        
+        const isProj = isTargetOriginGeom || ["projectile_sweeping", "linear_wall"].includes(getDeploymentType(s));
 
         if (geom.type === "none") {
             return Math.sqrt(wdx * wdx + wdy * wdy) <= 12 / zoomRef.current;
@@ -4024,6 +4025,8 @@ export default function StrategiesPage() {
                             x: foundSkill.x - pos.x,
                             y: foundSkill.y - pos.y,
                         };
+                    } else if (foundSkill.targetX !== undefined && foundSkill.targetY !== undefined) {
+                        draggedSkillTargetRef.current = foundSkill;
                     }
                     return;
                 }
@@ -4731,7 +4734,7 @@ export default function StrategiesPage() {
             // ── Collaboration: Broadcast cursor position ──
             if (isSupabaseConfigured && channelRef.current) {
                 const now = Date.now();
-                if (now - lastCursorBroadcastTimeRef.current > 80) {
+                if (now - lastCursorBroadcastTimeRef.current > 150) {
                     channelRef.current.send({
                         type: "broadcast",
                         event: "cursor-move",
@@ -5779,7 +5782,7 @@ export default function StrategiesPage() {
         activePath.points.push(pos);
         redraw();
         const now = Date.now();
-        if (now - lastStrokeBroadcastTimeRef.current > 80) {
+        if (now - lastStrokeBroadcastTimeRef.current > 250) {
             broadcastStrokeUpdate(activePath, false);
             lastStrokeBroadcastTimeRef.current = now;
         }
@@ -6538,10 +6541,10 @@ export default function StrategiesPage() {
             if (autoSaveTimerRef.current)
                 clearTimeout(autoSaveTimerRef.current);
             autoSaveTimerRef.current = setTimeout(() => {
-                if (current) {
+                if (current && !saveStrategyMutation.isPending) {
                     saveStrategy();
                 }
-            }, 1000);
+            }, 3000);
         };
     }, [current, saveStrategy, scheduleAutoSave]);
 

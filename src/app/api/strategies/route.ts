@@ -214,7 +214,8 @@ export async function PUT(req: NextRequest) {
             side,
             description,
             canvas_data: finalCanvasData || undefined
-          }
+          },
+          select: { updated_at: true }
         });
       }, {
         timeout: 10000
@@ -230,13 +231,13 @@ export async function PUT(req: NextRequest) {
         name,
         side,
         description
-      }
+      },
+      select: { updated_at: true }
     });
   }
   
   return NextResponse.json({
     ok: true,
-    canvas_data: updatedStrategy?.canvas_data,
     updated_at: updatedStrategy?.updated_at
   });
 }
