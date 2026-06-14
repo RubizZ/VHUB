@@ -225,10 +225,10 @@ function getProjRangeAndFixed(skill: {
             "dash_teleport",
             "self_instant",
         ].includes(skill?.deployment?.type as string) &&
-        skill.deployment?.windup &&
+        (skill.deployment?.windup || skill.deployment?.spawnOffset) &&
         !skill.unlinked
     ) {
-        maxRange += skill.deployment?.windup;
+        maxRange += (skill.deployment?.windup || 0) + (skill.deployment?.spawnOffset || 0);
     }
 
     return { maxRange, isFixed };
@@ -1176,14 +1176,15 @@ export default function StrategiesPage() {
                     worldMousePosRef.current.x - startX,
                 );
 
-                if (pSkill.skill.deployment?.windup) {
+                const pSkillOffset = pSkill.skill.deployment?.spawnOffset || pSkill.skill.deployment?.windup;
+                if (pSkillOffset) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        pSkill.skill.deployment?.windup *
+                        pSkillOffset *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        pSkill.skill.deployment?.windup *
+                        pSkillOffset *
                         mToPx;
                 }
             } else if (
@@ -1597,6 +1598,33 @@ export default function StrategiesPage() {
                                 ctx.setLineDash([4 / scale, 8 / scale]);
                                 ctx.stroke();
                                 ctx.setLineDash([]);
+
+                                ctx.save();
+                                ctx.translate(p1.x, p1.y);
+                                ctx.rotate(
+                                    Math.atan2(p2.y - p1.y, p2.x - p1.x),
+                                );
+                                ctx.strokeStyle = skill.color;
+                                ctx.lineWidth = 1.5 / scale;
+                                ctx.lineCap = "round";
+                                ctx.lineJoin = "round";
+                                ctx.globalAlpha = 0.5;
+                                const spacingPx = 30 / scale;
+                                const numArrows = Math.max(
+                                    1,
+                                    Math.floor(segmentDist / spacingPx),
+                                );
+                                const spacing = segmentDist / (numArrows + 1);
+                                const arrowSize = 6 / scale;
+                                ctx.beginPath();
+                                for (let i = 1; i <= numArrows; i++) {
+                                    const acx = i * spacing;
+                                    ctx.moveTo(acx - arrowSize, -arrowSize);
+                                    ctx.lineTo(acx, 0);
+                                    ctx.lineTo(acx - arrowSize, arrowSize);
+                                }
+                                ctx.stroke();
+                                ctx.restore();
 
                                 ctx.beginPath();
                                 ctx.arc(p2.x, p2.y, 6 / scale, 0, Math.PI * 2);
@@ -4245,15 +4273,16 @@ export default function StrategiesPage() {
                         "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill)) &&
-                    skill.deployment?.windup
+                    (skill.deployment?.windup || skill.deployment?.spawnOffset)
                 ) {
+                    const offset = skill.deployment?.spawnOffset || skill.deployment?.windup || 0;
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        skill.deployment.windup *
+                        offset *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        skill.deployment.windup *
+                        offset *
                         mToPx;
                 }
             } else if (
@@ -4274,14 +4303,15 @@ export default function StrategiesPage() {
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
 
-                if (skill.deployment?.windup) {
+                const offset = skill.deployment.spawnOffset || skill.deployment?.windup;
+                if (offset) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        skill.deployment.windup *
+                        offset *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        (skill.deployment?.windup || 0) *
+                        offset *
                         mToPx;
                 }
             } else if (
@@ -5306,14 +5336,15 @@ export default function StrategiesPage() {
                         "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill)) &&
-                    skill.deployment?.windup
+                    (skill.deployment?.windup || skill.deployment?.spawnOffset)
                 ) {
+                    const offset = skill.deployment?.spawnOffset || skill.deployment?.windup || 0;
                     skill.x =
                         originX +
-                        Math.cos(sa) * skill.deployment.windup * mToPx;
+                        Math.cos(sa) * offset * mToPx;
                     skill.y =
                         originY +
-                        Math.sin(sa) * skill.deployment.windup * mToPx;
+                        Math.sin(sa) * offset * mToPx;
                 } else {
                     skill.x = originX;
                     skill.y = originY;
@@ -5945,16 +5976,17 @@ export default function StrategiesPage() {
                                         skill.targetX - skill.x,
                                     );
                                 }
-                                if (skill.deployment?.windup) {
+                                const offset = skill.deployment?.spawnOffset || skill.deployment?.windup;
+                                if (offset) {
                                     newX =
                                         agent.x +
                                         Math.cos(sa) *
-                                            skill.deployment?.windup *
+                                            offset *
                                             mToPx;
                                     newY =
                                         agent.y +
                                         Math.sin(sa) *
-                                            skill.deployment?.windup *
+                                            offset *
                                             mToPx;
                                 }
 
@@ -6118,14 +6150,15 @@ export default function StrategiesPage() {
                 startY = agentObj.y;
                 playerToMouseAngle = Math.atan2(pos.y - startY, pos.x - startX);
 
-                if (skill.deployment?.windup) {
+                const offset = skill.deployment.spawnOffset || skill.deployment?.windup;
+                if (offset) {
                     startX +=
                         Math.cos(playerToMouseAngle) *
-                        skill.deployment?.windup *
+                        offset *
                         mToPx;
                     startY +=
                         Math.sin(playerToMouseAngle) *
-                        skill.deployment?.windup *
+                        offset *
                         mToPx;
                 }
             } else if (
