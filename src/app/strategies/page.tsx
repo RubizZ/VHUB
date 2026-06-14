@@ -158,7 +158,10 @@ function getGeomRadius(geom: SkillGeometry | undefined): number {
 }
 function getGeometry(
     skill:
-        | { deployment?: DeploymentMechanics | null; lifetime?: LifetimeMechanics | null }
+        | {
+              deployment?: DeploymentMechanics | null;
+              lifetime?: LifetimeMechanics | null;
+          }
         | undefined,
 ): SkillGeometry | undefined {
     if (skill?.lifetime?.geometry) return skill.lifetime.geometry;
@@ -192,7 +195,12 @@ function getProjRangeAndFixed(skill: {
         "projectile_sweeping",
     ].includes(getDeploymentType(skill) as string);
     let isFixed = isProjectileOrLine;
-    if (getDeploymentType(skill) === "projectile_terminal_aoe" && skill.deployment && "variableDistance" in skill.deployment && skill.deployment.variableDistance) {
+    if (
+        getDeploymentType(skill) === "projectile_terminal_aoe" &&
+        skill.deployment &&
+        "variableDistance" in skill.deployment &&
+        skill.deployment.variableDistance
+    ) {
         isFixed = false;
     }
     let maxRange = 0;
@@ -214,6 +222,7 @@ function getProjRangeAndFixed(skill: {
             "self_mobile_aura",
             "static_deployable",
             "equip_weapon",
+            "dash_teleport",
             "self_instant",
         ].includes(skill?.deployment?.type as string) &&
         skill.deployment?.windup &&
@@ -1155,6 +1164,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(getDeploymentType(pSkill.skill) as string) &&
                 agentObj
@@ -1233,6 +1243,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(pSkill.skill)) &&
                     agentObj
@@ -1594,9 +1605,12 @@ export default function StrategiesPage() {
                                 ctx.fill();
 
                                 const agentId = agentsRef.current.find(
-                                    (a) => a.instanceId === skill.agentInstanceId,
+                                    (a) =>
+                                        a.instanceId === skill.agentInstanceId,
                                 )?.id;
-                                const aImg = agentId ? agentImgsRef.current.get(agentId) : null;
+                                const aImg = agentId
+                                    ? agentImgsRef.current.get(agentId)
+                                    : null;
                                 if (aImg && aImg.complete) {
                                     ctx.save();
                                     ctx.translate(p2.x, p2.y);
@@ -1647,24 +1661,34 @@ export default function StrategiesPage() {
                                 ctx.restore();
                             }
                         }
-                    } else if (getDeploymentType(skill) === "projectile_sweeping") {
+                    } else if (
+                        getDeploymentType(skill) === "projectile_sweeping"
+                    ) {
                         // Draw sweep projectile rectangle from start to end (NOT translated to endpoint)
                         const sweepDist = Math.sqrt(tx * tx + ty * ty);
                         const sweepAngle = Math.atan2(ty, tx);
-                        
+
                         let sweepWidth = 0;
                         if (geom.type === "circle") {
-                            sweepWidth = (geom.radius !== undefined ? geom.radius : getGeomWidth(geom) / 2) * 2 * mToPx;
-                        } else if (geom.type === "rectangle" || geom.type === "line") {
+                            sweepWidth =
+                                (geom.radius !== undefined
+                                    ? geom.radius
+                                    : getGeomWidth(geom) / 2) *
+                                2 *
+                                mToPx;
+                        } else if (
+                            geom.type === "rectangle" ||
+                            geom.type === "line"
+                        ) {
                             sweepWidth = getGeomWidth(geom) * mToPx;
                         } else if (geom.type === "trapezoid") {
                             sweepWidth = getGeomWidth(geom) * mToPx;
                         }
-                        
+
                         if (sweepWidth > 0) {
                             ctx.save();
                             ctx.rotate(sweepAngle);
-                            
+
                             ctx.beginPath();
                             ctx.moveTo(0, -sweepWidth / 2);
                             ctx.lineTo(sweepDist, -sweepWidth / 2);
@@ -1689,9 +1713,15 @@ export default function StrategiesPage() {
                                 ctx.lineJoin = "round";
 
                                 const spacingPx = 40 / scale;
-                                const numArrows = Math.max(1, Math.floor(sweepDist / spacingPx));
+                                const numArrows = Math.max(
+                                    1,
+                                    Math.floor(sweepDist / spacingPx),
+                                );
                                 const spacing = sweepDist / (numArrows + 1);
-                                const arrowSize = Math.min(sweepWidth * 0.25, 12 / scale);
+                                const arrowSize = Math.min(
+                                    sweepWidth * 0.25,
+                                    12 / scale,
+                                );
 
                                 ctx.beginPath();
                                 for (let i = 1; i <= numArrows; i++) {
@@ -1704,7 +1734,7 @@ export default function StrategiesPage() {
                                 ctx.restore();
                             }
                             ctx.globalAlpha = baseAlpha;
-                            
+
                             ctx.restore();
                         }
                         // DON'T translate for sweep projectiles - they're already fully rendered
@@ -1719,7 +1749,7 @@ export default function StrategiesPage() {
                         ctx.setLineDash([6 / scale, 6 / scale]);
                         ctx.stroke();
                         ctx.setLineDash([]);
-                        
+
                         ctx.translate(tx, ty);
                     }
                 }
@@ -1730,81 +1760,294 @@ export default function StrategiesPage() {
                     // No geometry shape — just a small circle around the icon
                     ctx.beginPath();
                     const noneRadius = 12 / scale;
-                ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = 4 / scale;
-                ctx.save();
-                ctx.clip();
-                ctx.stroke();
-                ctx.restore();
-            } else if (geom.type === "circle" && getDeploymentType(skill) !== "projectile_sweeping") {
-                ctx.beginPath();
-                const radius =
-                    (geom.radius !== undefined
-                        ? geom.radius
-                        : getGeomWidth(geom) / 2) * mToPx;
-                ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-                ctx.fill();
-
-                ctx.globalAlpha = strokeAlpha;
-                ctx.lineWidth = 4 / scale;
-                ctx.save();
-                ctx.clip();
-                ctx.stroke();
-                ctx.restore();
-            } else if (getDeploymentType(skill) === "projectile_sweeping" && (skill.targetX !== undefined && skill.targetY !== undefined)) {
-                // Draw sweep projectile area from start to end point (BEFORE translate)
-                ctx.save();
-                const sweepDist = Math.sqrt(
-                    (skill.targetX - skill.x) ** 2 + (skill.targetY - skill.y) ** 2,
-                );
-                const sweepAngle = Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x);
-                ctx.rotate(sweepAngle);
-
-                let sweepWidth = 0;
-                if (geom.type === "circle") {
-                    sweepWidth = (geom.radius !== undefined ? geom.radius : getGeomWidth(geom) / 2) * 2 * mToPx;
-                } else if (geom.type === "rectangle" || geom.type === "line") {
-                    sweepWidth = getGeomWidth(geom) * mToPx;
-                } else if (geom.type === "trapezoid") {
-                    sweepWidth = getGeomWidth(geom) * mToPx;
-                }
-
-                ctx.fillStyle = skill.color;
-                ctx.strokeStyle = skill.color;
-                let sweepBaseAlpha = skill.instanceId === "preview" ? 0.25 : 0.5;
-                let sweepStrokeAlpha = skill.instanceId === "preview" ? 0.4 : 0.8;
-                ctx.globalAlpha = sweepBaseAlpha;
-
-                if (sweepWidth > 0) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, -sweepWidth / 2);
-                    ctx.lineTo(sweepDist, -sweepWidth / 2);
-                    ctx.lineTo(sweepDist, sweepWidth / 2);
-                    ctx.lineTo(0, sweepWidth / 2);
-                    ctx.closePath();
+                    ctx.arc(0, 0, noneRadius, 0, 2 * Math.PI);
                     ctx.fill();
-                    ctx.globalAlpha = sweepStrokeAlpha;
+                    ctx.globalAlpha = strokeAlpha;
                     ctx.lineWidth = 4 / scale;
                     ctx.save();
                     ctx.clip();
                     ctx.stroke();
                     ctx.restore();
+                } else if (
+                    geom.type === "circle" &&
+                    getDeploymentType(skill) !== "projectile_sweeping"
+                ) {
+                    ctx.beginPath();
+                    const radius =
+                        (geom.radius !== undefined
+                            ? geom.radius
+                            : getGeomWidth(geom) / 2) * mToPx;
+                    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+                    ctx.fill();
 
-                    // Draw arrows if unlinked
-                    if (skill.unlinked) {
+                    ctx.globalAlpha = strokeAlpha;
+                    ctx.lineWidth = 4 / scale;
+                    ctx.save();
+                    ctx.clip();
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (
+                    getDeploymentType(skill) === "projectile_sweeping" &&
+                    skill.targetX !== undefined &&
+                    skill.targetY !== undefined
+                ) {
+                    // Draw sweep projectile area from start to end point (BEFORE translate)
+                    ctx.save();
+                    const sweepDist = Math.sqrt(
+                        (skill.targetX - skill.x) ** 2 +
+                            (skill.targetY - skill.y) ** 2,
+                    );
+                    const sweepAngle = Math.atan2(
+                        skill.targetY - skill.y,
+                        skill.targetX - skill.x,
+                    );
+                    ctx.rotate(sweepAngle);
+
+                    let sweepWidth = 0;
+                    if (geom.type === "circle") {
+                        sweepWidth =
+                            (geom.radius !== undefined
+                                ? geom.radius
+                                : getGeomWidth(geom) / 2) *
+                            2 *
+                            mToPx;
+                    } else if (
+                        geom.type === "rectangle" ||
+                        geom.type === "line"
+                    ) {
+                        sweepWidth = getGeomWidth(geom) * mToPx;
+                    } else if (geom.type === "trapezoid") {
+                        sweepWidth = getGeomWidth(geom) * mToPx;
+                    }
+
+                    ctx.fillStyle = skill.color;
+                    ctx.strokeStyle = skill.color;
+                    let sweepBaseAlpha =
+                        skill.instanceId === "preview" ? 0.25 : 0.5;
+                    let sweepStrokeAlpha =
+                        skill.instanceId === "preview" ? 0.4 : 0.8;
+                    ctx.globalAlpha = sweepBaseAlpha;
+
+                    if (sweepWidth > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -sweepWidth / 2);
+                        ctx.lineTo(sweepDist, -sweepWidth / 2);
+                        ctx.lineTo(sweepDist, sweepWidth / 2);
+                        ctx.lineTo(0, sweepWidth / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.globalAlpha = sweepStrokeAlpha;
+                        ctx.lineWidth = 4 / scale;
                         ctx.save();
                         ctx.clip();
+                        ctx.stroke();
+                        ctx.restore();
+
+                        // Draw arrows if unlinked
+                        if (skill.unlinked) {
+                            ctx.save();
+                            ctx.clip();
+                            ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+                            ctx.lineWidth = 3 / scale;
+                            ctx.lineCap = "round";
+                            ctx.lineJoin = "round";
+
+                            const spacingPx = 40 / scale;
+                            const numArrows = Math.max(
+                                1,
+                                Math.floor(sweepDist / spacingPx),
+                            );
+                            const spacing = sweepDist / (numArrows + 1);
+                            const arrowSize = Math.min(
+                                sweepWidth * 0.25,
+                                12 / scale,
+                            );
+
+                            ctx.beginPath();
+                            for (let i = 1; i <= numArrows; i++) {
+                                const cx = i * spacing;
+                                ctx.moveTo(cx - arrowSize, -arrowSize);
+                                ctx.lineTo(cx, 0);
+                                ctx.lineTo(cx - arrowSize, arrowSize);
+                            }
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                        ctx.globalAlpha = sweepBaseAlpha;
+                    }
+
+                    ctx.restore();
+                    // DON'T translate for sweep projectiles - they render the full area, not at the endpoint
+                } else if (
+                    (geom.type === "rectangle" ||
+                        geom.type === "cone" ||
+                        geom.type === "trapezoid" ||
+                        geom.type === "line" ||
+                        (geom.type === "circle" &&
+                            getDeploymentType(skill) !==
+                                "projectile_sweeping")) &&
+                    getDeploymentType(skill) !== "projectile_sweeping"
+                ) {
+                    ctx.save();
+                    if (
+                        skill.targetX !== undefined &&
+                        skill.targetY !== undefined
+                    ) {
+                        const sa = Math.atan2(
+                            skill.targetY - skill.y,
+                            skill.targetX - skill.x,
+                        );
+                        ctx.rotate(sa);
+                    } else if (skill.customRotation !== undefined) {
+                        ctx.rotate(skill.customRotation);
+                    }
+
+                    let baseLength = 0;
+                    if (getDeploymentType(skill)) {
+                        if (
+                            geom.type === "rectangle" ||
+                            geom.type === "cone" ||
+                            geom.type === "trapezoid" ||
+                            geom.type === "line"
+                        ) {
+                            baseLength = getGeomLength(geom);
+                        }
+                    }
+
+                    let length = baseLength * mToPx;
+
+                    if (
+                        skill.targetX !== undefined &&
+                        skill.targetY !== undefined
+                    ) {
+                        const dist = Math.sqrt(
+                            (skill.targetX - skill.x) ** 2 +
+                                (skill.targetY - skill.y) ** 2,
+                        );
+
+                        if (
+                            getDeploymentType(skill) === "two_point_barrier" ||
+                            getDeploymentType(skill) === "linear_wall"
+                        ) {
+                            length = dist;
+                        }
+                    }
+
+                    let width = 0;
+                    if (
+                        geom.type === "rectangle" ||
+                        geom.type === "line" ||
+                        geom.type === "trapezoid"
+                    ) {
+                        width = getGeomWidth(geom) * mToPx;
+                    }
+
+                    ctx.beginPath();
+                    if (geom.type === "cone") {
+                        const halfAngleRad =
+                            geom.angle !== undefined
+                                ? ((geom.angle / 2) * Math.PI) / 180
+                                : Math.atan2(width / 2, length);
+                        ctx.moveTo(0, 0);
+                        ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
+                        ctx.closePath();
+                    } else if (geom.type === "trapezoid") {
+                        const endWidth =
+                            (geom.endWidth !== undefined
+                                ? geom.endWidth
+                                : getGeomWidth(geom) * 0.5) * mToPx;
+                        ctx.moveTo(0, -width / 2);
+                        ctx.lineTo(length, -endWidth / 2);
+                        ctx.lineTo(length, endWidth / 2);
+                        ctx.lineTo(0, width / 2);
+                        ctx.closePath();
+                    } else if (geom.type === "line") {
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(length, 0);
+                    } else {
+                        ctx.rect(0, -width / 2, length, width);
+                    }
+
+                    if (geom.type === "line") {
+                        ctx.lineWidth = Math.max(width, 2 / scale);
+                        ctx.stroke();
+                    } else if (geom.type === "trapezoid") {
+                        ctx.fill();
+                        ctx.save();
+                        ctx.clip();
+                        ctx.beginPath();
+                        const endWidth =
+                            (geom.endWidth !== undefined
+                                ? geom.endWidth
+                                : getGeomWidth(geom) * 0.5) * mToPx;
+                        if (width >= endWidth) {
+                            // Longer base is at start (x=0). Hide it, draw the end line and laterals
+                            ctx.moveTo(0, -width / 2);
+                            ctx.lineTo(length, -endWidth / 2);
+                            ctx.lineTo(length, endWidth / 2);
+                            ctx.lineTo(0, width / 2);
+                        } else {
+                            // Longer base is at end (x=length). Hide it, draw the start line and laterals
+                            ctx.moveTo(length, -endWidth / 2);
+                            ctx.lineTo(0, -width / 2);
+                            ctx.lineTo(0, width / 2);
+                            ctx.lineTo(length, endWidth / 2);
+                        }
+                        ctx.globalAlpha = strokeAlpha;
+                        ctx.lineWidth = 4 / scale;
+                        ctx.stroke();
+                        ctx.restore();
+                        ctx.globalAlpha = baseAlpha;
+                    } else {
+                        ctx.fill();
+                        ctx.globalAlpha = strokeAlpha;
+                        ctx.lineWidth = 4 / scale;
+                        ctx.save();
+                        ctx.clip();
+                        ctx.stroke();
+                        ctx.restore();
+                        ctx.globalAlpha = baseAlpha;
+                    }
+
+                    const isFreePlaced =
+                        ["map_target_aoe", "two_point_barrier"].includes(
+                            getDeploymentType(skill),
+                        ) ||
+                        (skill.unlinked &&
+                            [
+                                "projectile_terminal_aoe",
+                                "projectile_sweeping",
+                                "projectile_terminal_aoe",
+                                "projectile_sweeping",
+                                "linear_wall",
+                                "self_mobile_aura",
+                                "static_deployable",
+                                "autonomous_entity",
+                                "equip_weapon",
+                                "dash_teleport",
+                                "self_instant",
+                            ].includes(getDeploymentType(skill)));
+                    const hasDirection =
+                        (skill.targetX !== undefined &&
+                            skill.targetY !== undefined) ||
+                        skill.customRotation !== undefined;
+
+                    if (isFreePlaced && hasDirection) {
+                        ctx.save();
+                        ctx.clip(); // Ensure arrows don't bleed out of the cone/trapezoid
+
                         ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
                         ctx.lineWidth = 3 / scale;
                         ctx.lineCap = "round";
                         ctx.lineJoin = "round";
 
                         const spacingPx = 40 / scale;
-                        const numArrows = Math.max(1, Math.floor(sweepDist / spacingPx));
-                        const spacing = sweepDist / (numArrows + 1);
-                        const arrowSize = Math.min(sweepWidth * 0.25, 12 / scale);
+                        const numArrows = Math.max(
+                            1,
+                            Math.floor(length / spacingPx),
+                        );
+                        const spacing = length / (numArrows + 1);
+                        const arrowSize = Math.min(width * 0.25, 12 / scale);
 
                         ctx.beginPath();
                         for (let i = 1; i <= numArrows; i++) {
@@ -1816,228 +2059,67 @@ export default function StrategiesPage() {
                         ctx.stroke();
                         ctx.restore();
                     }
-                    ctx.globalAlpha = sweepBaseAlpha;
-                }
 
-                ctx.restore();
-                // DON'T translate for sweep projectiles - they render the full area, not at the endpoint
-            } else if (
-                (geom.type === "rectangle" ||
-                geom.type === "cone" ||
-                geom.type === "trapezoid" ||
-                geom.type === "line" ||
-                (geom.type === "circle" && getDeploymentType(skill) !== "projectile_sweeping")) &&
-                getDeploymentType(skill) !== "projectile_sweeping"
-            ) {
-                ctx.save();
-                if (
-                    skill.targetX !== undefined &&
-                    skill.targetY !== undefined
-                ) {
-                    const sa = Math.atan2(
-                        skill.targetY - skill.y,
-                        skill.targetX - skill.x,
-                    );
-                    ctx.rotate(sa);
-                } else if (skill.customRotation !== undefined) {
-                    ctx.rotate(skill.customRotation);
-                }
-
-                let baseLength = 0;
-                if (getDeploymentType(skill)) {
-                    if (
+                    ctx.restore();
+                } else if (getDeploymentType(skill) === "projectile_sweeping") {
+                    // Preview circle for sweep projectile without target
+                    ctx.save();
+                    let sweepWidth = 0;
+                    if (geom.type === "circle") {
+                        sweepWidth =
+                            (geom.radius !== undefined
+                                ? geom.radius
+                                : getGeomWidth(geom) / 2) *
+                            2 *
+                            mToPx;
+                    } else if (
                         geom.type === "rectangle" ||
-                        geom.type === "cone" ||
-                        geom.type === "trapezoid" ||
                         geom.type === "line"
                     ) {
-                        baseLength = getGeomLength(geom);
+                        sweepWidth = getGeomWidth(geom) * mToPx;
+                    } else if (geom.type === "trapezoid") {
+                        sweepWidth = getGeomWidth(geom) * mToPx;
                     }
-                }
 
-                let length = baseLength * mToPx;
+                    if (sweepWidth > 0) {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, sweepWidth / 2, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.globalAlpha = strokeAlpha;
+                        ctx.lineWidth = 4 / scale;
+                        ctx.save();
+                        ctx.clip();
+                        ctx.stroke();
+                        ctx.restore();
+                        ctx.globalAlpha = baseAlpha;
+                    }
+                    ctx.restore();
+                }
+            }
+
+            if (
+                skill.resolution?.geometry &&
+                skill.resolution.geometry.type !== "none"
+            ) {
+                const rGeom = skill.resolution.geometry;
+                ctx.save();
 
                 if (
                     skill.targetX !== undefined &&
                     skill.targetY !== undefined
                 ) {
-                    const dist = Math.sqrt(
-                        (skill.targetX - skill.x) ** 2 +
-                            (skill.targetY - skill.y) ** 2,
-                    );
-
-                    if (
-                        getDeploymentType(skill) === "two_point_barrier" ||
-                        getDeploymentType(skill) === "linear_wall"
-                    ) {
-                        length = dist;
-                    }
-                }
-
-                let width = 0;
-                if (
-                    geom.type === "rectangle" ||
-                    geom.type === "line" ||
-                    geom.type === "trapezoid"
-                ) {
-                    width = getGeomWidth(geom) * mToPx;
-                }
-
-                ctx.beginPath();
-                if (geom.type === "cone") {
-                    const halfAngleRad =
-                        geom.angle !== undefined
-                            ? ((geom.angle / 2) * Math.PI) / 180
-                            : Math.atan2(width / 2, length);
-                    ctx.moveTo(0, 0);
-                    ctx.arc(0, 0, length, -halfAngleRad, halfAngleRad);
-                    ctx.closePath();
-                } else if (geom.type === "trapezoid") {
-                    const endWidth =
-                        (geom.endWidth !== undefined
-                            ? geom.endWidth
-                            : getGeomWidth(geom) * 0.5) * mToPx;
-                    ctx.moveTo(0, -width / 2);
-                    ctx.lineTo(length, -endWidth / 2);
-                    ctx.lineTo(length, endWidth / 2);
-                    ctx.lineTo(0, width / 2);
-                    ctx.closePath();
-                } else if (geom.type === "line") {
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(length, 0);
-                } else {
-                    ctx.rect(0, -width / 2, length, width);
-                }
-
-                if (geom.type === "line") {
-                    ctx.lineWidth = Math.max(width, 2 / scale);
-                    ctx.stroke();
-                } else if (geom.type === "trapezoid") {
-                    ctx.fill();
-                    ctx.save();
-                    ctx.clip();
-                    ctx.beginPath();
-                    const endWidth =
-                        (geom.endWidth !== undefined
-                            ? geom.endWidth
-                            : getGeomWidth(geom) * 0.5) * mToPx;
-                    if (width >= endWidth) {
-                        // Longer base is at start (x=0). Hide it, draw the end line and laterals
-                        ctx.moveTo(0, -width / 2);
-                        ctx.lineTo(length, -endWidth / 2);
-                        ctx.lineTo(length, endWidth / 2);
-                        ctx.lineTo(0, width / 2);
-                    } else {
-                        // Longer base is at end (x=length). Hide it, draw the start line and laterals
-                        ctx.moveTo(length, -endWidth / 2);
-                        ctx.lineTo(0, -width / 2);
-                        ctx.lineTo(0, width / 2);
-                        ctx.lineTo(length, endWidth / 2);
-                    }
-                    ctx.globalAlpha = strokeAlpha;
-                    ctx.lineWidth = 4 / scale;
-                    ctx.stroke();
-                    ctx.restore();
-                    ctx.globalAlpha = baseAlpha;
-                } else {
-                    ctx.fill();
-                    ctx.globalAlpha = strokeAlpha;
-                    ctx.lineWidth = 4 / scale;
-                    ctx.save();
-                    ctx.clip();
-                    ctx.stroke();
-                    ctx.restore();
-                    ctx.globalAlpha = baseAlpha;
-                }
-
-                const isFreePlaced =
-                    ["map_target_aoe", "two_point_barrier"].includes(
-                        getDeploymentType(skill),
-                    ) ||
-                    (skill.unlinked &&
-                        [
-                            "projectile_terminal_aoe",
-                            "projectile_sweeping",
-                            "projectile_terminal_aoe",
-                            "projectile_sweeping",
-                            "linear_wall",
-                            "self_mobile_aura",
-                            "static_deployable",
-                            "autonomous_entity",
-                            "equip_weapon",
-                            "self_instant",
-                        ].includes(getDeploymentType(skill)));
-                const hasDirection =
-                    (skill.targetX !== undefined &&
-                        skill.targetY !== undefined) ||
-                    skill.customRotation !== undefined;
-
-                if (isFreePlaced && hasDirection) {
-                    ctx.save();
-                    ctx.clip(); // Ensure arrows don't bleed out of the cone/trapezoid
-
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-                    ctx.lineWidth = 3 / scale;
-                    ctx.lineCap = "round";
-                    ctx.lineJoin = "round";
-
-                    const spacingPx = 40 / scale;
-                    const numArrows = Math.max(
-                        1,
-                        Math.floor(length / spacingPx),
-                    );
-                    const spacing = length / (numArrows + 1);
-                    const arrowSize = Math.min(width * 0.25, 12 / scale);
-
-                    ctx.beginPath();
-                    for (let i = 1; i <= numArrows; i++) {
-                        const cx = i * spacing;
-                        ctx.moveTo(cx - arrowSize, -arrowSize);
-                        ctx.lineTo(cx, 0);
-                        ctx.lineTo(cx - arrowSize, arrowSize);
-                    }
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
-                ctx.restore();
-            } else if (getDeploymentType(skill) === "projectile_sweeping") {
-                // Preview circle for sweep projectile without target
-                ctx.save();
-                let sweepWidth = 0;
-                if (geom.type === "circle") {
-                    sweepWidth = (geom.radius !== undefined ? geom.radius : getGeomWidth(geom) / 2) * 2 * mToPx;
-                } else if (geom.type === "rectangle" || geom.type === "line") {
-                    sweepWidth = getGeomWidth(geom) * mToPx;
-                } else if (geom.type === "trapezoid") {
-                    sweepWidth = getGeomWidth(geom) * mToPx;
-                }
-                
-                if (sweepWidth > 0) {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, sweepWidth / 2, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.globalAlpha = strokeAlpha;
-                    ctx.lineWidth = 4 / scale;
-                    ctx.save();
-                    ctx.clip();
-                    ctx.stroke();
-                    ctx.restore();
-                    ctx.globalAlpha = baseAlpha;
-                }
-                ctx.restore();
-            }
-            }
-
-            if (skill.resolution?.geometry && skill.resolution.geometry.type !== "none") {
-                const rGeom = skill.resolution.geometry;
-                ctx.save();
-                
-                if (skill.targetX !== undefined && skill.targetY !== undefined) {
                     if (["dash_teleport"].includes(getDeploymentType(skill))) {
-                        ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
+                        ctx.translate(
+                            skill.targetX - skill.x,
+                            skill.targetY - skill.y,
+                        );
                     }
-                    ctx.rotate(Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x));
+                    ctx.rotate(
+                        Math.atan2(
+                            skill.targetY - skill.y,
+                            skill.targetX - skill.x,
+                        ),
+                    );
                 } else if (skill.customRotation !== undefined) {
                     ctx.rotate(skill.customRotation);
                 }
@@ -2048,7 +2130,10 @@ export default function StrategiesPage() {
 
                 if (rGeom.type === "circle") {
                     ctx.beginPath();
-                    const radius = (rGeom.radius !== undefined ? rGeom.radius : getGeomWidth(rGeom) / 2) * mToPx;
+                    const radius =
+                        (rGeom.radius !== undefined
+                            ? rGeom.radius
+                            : getGeomWidth(rGeom) / 2) * mToPx;
                     ctx.arc(0, 0, radius, 0, 2 * Math.PI);
                     ctx.fill();
                     ctx.globalAlpha = strokeAlpha;
@@ -2057,17 +2142,28 @@ export default function StrategiesPage() {
                     ctx.clip();
                     ctx.stroke();
                     ctx.restore();
-                } else if (rGeom.type === "rectangle" || rGeom.type === "cone" || rGeom.type === "trapezoid" || rGeom.type === "line") {
+                } else if (
+                    rGeom.type === "rectangle" ||
+                    rGeom.type === "cone" ||
+                    rGeom.type === "trapezoid" ||
+                    rGeom.type === "line"
+                ) {
                     const rLength = getGeomLength(rGeom) * mToPx;
                     const rWidth = getGeomWidth(rGeom) * mToPx;
                     ctx.beginPath();
                     if (rGeom.type === "cone") {
-                        const halfAngleRad = rGeom.angle !== undefined ? ((rGeom.angle / 2) * Math.PI) / 180 : Math.atan2(rWidth / 2, rLength);
+                        const halfAngleRad =
+                            rGeom.angle !== undefined
+                                ? ((rGeom.angle / 2) * Math.PI) / 180
+                                : Math.atan2(rWidth / 2, rLength);
                         ctx.moveTo(0, 0);
                         ctx.arc(0, 0, rLength, -halfAngleRad, halfAngleRad);
                         ctx.closePath();
                     } else if (rGeom.type === "trapezoid") {
-                        const endWidth = (rGeom.endWidth !== undefined ? rGeom.endWidth : rWidth * 0.5);
+                        const endWidth =
+                            rGeom.endWidth !== undefined
+                                ? rGeom.endWidth
+                                : rWidth * 0.5;
                         ctx.moveTo(0, -rWidth / 2);
                         ctx.lineTo(rLength, -endWidth / 2);
                         ctx.lineTo(rLength, endWidth / 2);
@@ -2259,6 +2355,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(getDeploymentType(skill)) &&
                 skill.targetX !== undefined &&
@@ -2281,6 +2378,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill));
 
@@ -3451,6 +3549,7 @@ export default function StrategiesPage() {
                 "static_deployable",
                 "autonomous_entity",
                 "equip_weapon",
+                "dash_teleport",
                 "self_instant",
             ].includes(getDeploymentType(s));
         if (!isLinked) {
@@ -3713,6 +3812,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(s) as string) &&
                             s.draggedBy &&
@@ -3748,6 +3848,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(s) as string)
                                 ? agentsRef.current.find(
@@ -3860,6 +3961,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(s) as string)
                                 ? agentsRef.current.find(
@@ -3885,6 +3987,7 @@ export default function StrategiesPage() {
                             "static_deployable",
                             "autonomous_entity",
                             "equip_weapon",
+                            "dash_teleport",
                             "self_instant",
                         ].includes(getDeploymentType(foundSkill));
                     if (!isLinked) {
@@ -4139,6 +4242,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill)) &&
                     skill.deployment?.windup
@@ -4161,6 +4265,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(getDeploymentType(skill)) &&
                 agentObj
@@ -4236,9 +4341,11 @@ export default function StrategiesPage() {
                     let { maxRange, isFixed: projIsFixed } =
                         getProjRangeAndFixed(skill);
                     if (
-                        ["map_target_aoe", "two_point_barrier", "dash_teleport"].includes(
-                            getDeploymentType(skill),
-                        )
+                        [
+                            "map_target_aoe",
+                            "two_point_barrier",
+                            "dash_teleport",
+                        ].includes(getDeploymentType(skill))
                     ) {
                         maxRange = getCastRange(skill);
                         projIsFixed = false;
@@ -4268,6 +4375,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill)) &&
                     agentObj
@@ -4369,9 +4477,10 @@ export default function StrategiesPage() {
                 deployment: skill.deployment,
                 lifetime: skill.lifetime,
                 resolution: skill.resolution,
-                projectileMode: ["projectile_terminal_aoe", "projectile_sweeping"].includes(
-                    getDeploymentType(skill) as string,
-                )
+                projectileMode: [
+                    "projectile_terminal_aoe",
+                    "projectile_sweeping",
+                ].includes(getDeploymentType(skill) as string)
                     ? projectileMode
                     : undefined,
                 pathPoints:
@@ -4418,7 +4527,9 @@ export default function StrategiesPage() {
                 ["map_target_aoe", "two_point_barrier"].includes(
                     getDeploymentType(skill),
                 ) &&
-                !["dash_teleport", "self_instant"].includes(getDeploymentType(skill))
+                !["dash_teleport", "self_instant"].includes(
+                    getDeploymentType(skill),
+                )
             ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
@@ -4649,6 +4760,7 @@ export default function StrategiesPage() {
                                     "static_deployable",
                                     "autonomous_entity",
                                     "equip_weapon",
+                                    "dash_teleport",
                                     "self_instant",
                                 ].includes(getDeploymentType(skill))
                             ) {
@@ -4719,6 +4831,7 @@ export default function StrategiesPage() {
                                     "static_deployable",
                                     "autonomous_entity",
                                     "equip_weapon",
+                                    "dash_teleport",
                                     "self_instant",
                                 ].includes(getDeploymentType(s) as string) &&
                                 s.draggedBy &&
@@ -4750,6 +4863,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(s) as string)
                                 ? agentsRef.current.find(
@@ -4788,6 +4902,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(s) as string)
                                 ? agentsRef.current.find(
@@ -4922,6 +5037,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(getDeploymentType(fs));
                         canvas.style.cursor = isLinked ? "pointer" : "grab";
@@ -5160,6 +5276,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(getDeploymentType(skill));
             if (isLinked) {
@@ -5186,6 +5303,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(getDeploymentType(skill)) &&
                     skill.deployment?.windup
@@ -5342,9 +5460,11 @@ export default function StrategiesPage() {
                     getProjRangeAndFixed(skill);
 
                 if (
-                    ["dash_teleport", "map_target_aoe", "two_point_barrier"].includes(
-                        skill.deployment?.type as string,
-                    )
+                    [
+                        "dash_teleport",
+                        "map_target_aoe",
+                        "two_point_barrier",
+                    ].includes(skill.deployment?.type as string)
                 ) {
                     maxRange =
                         ("castRange" in (skill.deployment || {})
@@ -5447,6 +5567,7 @@ export default function StrategiesPage() {
                             "static_deployable",
                             "autonomous_entity",
                             "equip_weapon",
+                            "dash_teleport",
                             "self_instant",
                         ].includes(skill.deployment?.type as string)
                     ) {
@@ -5497,6 +5618,7 @@ export default function StrategiesPage() {
                                 "static_deployable",
                                 "autonomous_entity",
                                 "equip_weapon",
+                                "dash_teleport",
                                 "self_instant",
                             ].includes(skill.deployment?.type as string)
                         ) {
@@ -5762,6 +5884,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(skill.deployment?.type as string)
                 ) {
@@ -5784,6 +5907,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(skill.deployment?.type as string) &&
                 worldMousePosRef.current
@@ -5985,6 +6109,7 @@ export default function StrategiesPage() {
                     "static_deployable",
                     "autonomous_entity",
                     "equip_weapon",
+                    "dash_teleport",
                     "self_instant",
                 ].includes(skill.deployment?.type as string) &&
                 agentObj
@@ -6066,6 +6191,7 @@ export default function StrategiesPage() {
                         "static_deployable",
                         "autonomous_entity",
                         "equip_weapon",
+                        "dash_teleport",
                         "self_instant",
                     ].includes(skill.deployment?.type as string) &&
                     agentObj
