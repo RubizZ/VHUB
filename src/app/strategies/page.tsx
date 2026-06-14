@@ -191,7 +191,10 @@ function getProjRangeAndFixed(skill: {
         "projectile_sweeping",
         "projectile_sweeping",
     ].includes(getDeploymentType(skill) as string);
-    const isFixed = isProjectileOrLine;
+    let isFixed = isProjectileOrLine;
+    if (getDeploymentType(skill) === "projectile_terminal_aoe" && skill.deployment && "variableDistance" in skill.deployment && skill.deployment.variableDistance) {
+        isFixed = false;
+    }
     let maxRange = 0;
 
     if (

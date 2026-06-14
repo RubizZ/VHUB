@@ -36,6 +36,7 @@ interface SkillFormData {
   dep_bounces: number;
   dep_steerable: boolean;
   dep_traversesWalls: boolean;
+  dep_variableDistance: boolean;
   dep_maxAmmo: number;
   dep_directionalOnly: boolean;
   dep_geom_type: "none" | "circle" | "rectangle" | "cone" | "line" | "curve" | "sector" | "trapezoid" | "cross";
@@ -88,6 +89,7 @@ const getDefaultFormData = (): SkillFormData => ({
   dep_bounces: 0,
   dep_steerable: false,
   dep_traversesWalls: false,
+  dep_variableDistance: false,
   dep_maxAmmo: 0,
   dep_directionalOnly: false,
   dep_geom_type: "none",
@@ -149,6 +151,7 @@ function buildDeployment(f: SkillFormData): DeploymentMechanics {
         bounces: f.dep_bounces || undefined,
         steerable: f.dep_steerable || undefined,
         traversesWalls: f.dep_traversesWalls || undefined,
+        variableDistance: f.dep_variableDistance || undefined,
       };
     case "projectile_sweeping":
       return {
@@ -267,6 +270,7 @@ export function AgentSkillsManager({
       dep_bounces: ("bounces" in d ? (d as { bounces?: number }).bounces : undefined) || 0,
       dep_steerable: ("steerable" in d ? (d as { steerable?: boolean }).steerable : undefined) || false,
       dep_traversesWalls: ("traversesWalls" in d ? (d as { traversesWalls?: boolean }).traversesWalls : undefined) || false,
+      dep_variableDistance: ("variableDistance" in d ? (d as { variableDistance?: boolean }).variableDistance : undefined) || false,
       dep_maxAmmo: ("maxAmmo" in d ? (d as { maxAmmo?: number }).maxAmmo : undefined) || 0,
       dep_directionalOnly: ("directionalOnly" in d ? (d as { directionalOnly?: boolean }).directionalOnly : undefined) || false,
       dep_geom_type: depGeom.gType,
@@ -732,6 +736,11 @@ export function AgentSkillsManager({
                                 <input type="checkbox" checked={formData.dep_steerable} onChange={e => setFormData({...formData, dep_steerable: e.target.checked})} />
                                 <span className="checkbox-custom"></span>
                                 <span style={{ fontSize: 12, fontWeight: 800 }}>Controlable</span>
+                              </label>
+                              <label className="checkbox-label" style={{ marginTop: 20 }}>
+                                <input type="checkbox" checked={formData.dep_variableDistance} onChange={e => setFormData({...formData, dep_variableDistance: e.target.checked})} />
+                                <span className="checkbox-custom"></span>
+                                <span style={{ fontSize: 12, fontWeight: 800 }}>Distancia Variable</span>
                               </label>
                             </div>
                           )}
