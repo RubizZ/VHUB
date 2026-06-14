@@ -140,7 +140,7 @@ function buildDeployment(f: SkillFormData): DeploymentMechanics {
   const windup = f.dep_windup || undefined;
   switch (f.dep_type) {
     case "self_instant":
-      return { type: "self_instant", windup };
+      return { type: "self_instant", windup, castRange: f.dep_castRange || undefined };
     case "self_mobile_aura":
       return { type: "self_mobile_aura", windup };
     case "projectile_terminal_aoe":
@@ -699,7 +699,7 @@ export function AgentSkillsManager({
                             <input type="number" step="0.1" className="input-field" value={formData.dep_spawnOffset} onChange={e => setFormData({...formData, dep_spawnOffset: Number(e.target.value)})} />
                           </div>
                         )}
-                        {(formData.dep_type === "map_target_aoe" || formData.dep_type === "static_deployable" || formData.dep_type === "two_point_barrier" || formData.dep_type === "linear_wall") && (
+                        {(formData.dep_type === "map_target_aoe" || formData.dep_type === "self_instant" || formData.dep_type === "static_deployable" || formData.dep_type === "two_point_barrier" || formData.dep_type === "linear_wall") && (
                           <div className="form-group" style={{ flex: 1 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango de Cast (m)</label>
                             <input type="number" step="0.1" className="input-field" value={formData.dep_castRange} onChange={e => setFormData({...formData, dep_castRange: Number(e.target.value)})} />

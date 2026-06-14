@@ -4212,7 +4212,7 @@ export default function StrategiesPage() {
                     let { maxRange, isFixed: projIsFixed } =
                         getProjRangeAndFixed(skill);
                     if (
-                        ["map_target_aoe", "two_point_barrier"].includes(
+                        ["map_target_aoe", "two_point_barrier", "self_instant"].includes(
                             getDeploymentType(skill),
                         )
                     ) {
