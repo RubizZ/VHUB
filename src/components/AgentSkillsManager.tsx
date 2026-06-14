@@ -140,7 +140,9 @@ function buildDeployment(f: SkillFormData): DeploymentMechanics {
   const windup = f.dep_windup || undefined;
   switch (f.dep_type) {
     case "self_instant":
-      return { type: "self_instant", windup, castRange: f.dep_castRange || undefined };
+      return { type: "self_instant", windup };
+    case "dash_teleport":
+      return { type: "dash_teleport", windup, castRange: f.dep_castRange || undefined };
     case "self_mobile_aura":
       return { type: "self_mobile_aura", windup };
     case "projectile_terminal_aoe":
@@ -676,7 +678,8 @@ export function AgentSkillsManager({
                       <div className="form-group" style={{ marginBottom: 24, padding: 16, background: "rgba(0, 212, 170, 0.05)", border: "1px solid rgba(0, 212, 170, 0.2)", borderRadius: 12 }}>
                         <label style={{ fontSize: 14, fontWeight: 900, color: "var(--val-cyan)", marginBottom: 8, display: "block" }}>Mecánica Central de Despliegue</label>
                         <select className="input-field" value={formData.dep_type} onChange={e => setFormData({...formData, dep_type: e.target.value as DeploymentType})} style={{ background: "rgba(0,0,0,0.5)", fontSize: 16, height: 56 }}>
-                          <option value="self_instant">Self / Instantáneo (Ej: Dash, Curación Reyna)</option>
+                          <option value="self_instant">Instante (Bufo Propio)</option>
+                          <option value="dash_teleport">Movimiento (Dash / Teletransporte)</option>
                           <option value="projectile_terminal_aoe">Proyectil → Área Terminal (Detonación)</option>
                           <option value="projectile_sweeping">Proyectil → Barrido en Vuelo (Sweeping)</option>
                           <option value="map_target_aoe">Target en Mapa Táctico → Área</option>
@@ -699,7 +702,7 @@ export function AgentSkillsManager({
                             <input type="number" step="0.1" className="input-field" value={formData.dep_spawnOffset} onChange={e => setFormData({...formData, dep_spawnOffset: Number(e.target.value)})} />
                           </div>
                         )}
-                        {(formData.dep_type === "map_target_aoe" || formData.dep_type === "self_instant" || formData.dep_type === "static_deployable" || formData.dep_type === "two_point_barrier" || formData.dep_type === "linear_wall") && (
+                        {(formData.dep_type === "map_target_aoe" || formData.dep_type === "dash_teleport" || formData.dep_type === "static_deployable" || formData.dep_type === "two_point_barrier" || formData.dep_type === "linear_wall") && (
                           <div className="form-group" style={{ flex: 1 }}>
                             <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Rango de Cast (m)</label>
                             <input type="number" step="0.1" className="input-field" value={formData.dep_castRange} onChange={e => setFormData({...formData, dep_castRange: Number(e.target.value)})} />

@@ -1109,7 +1109,7 @@ export default function StrategiesPage() {
             const mToPx = selectedMap?.pixelsPerMeter || 20;
 
             let maxPreviewRange = 0;
-            if (["self_instant"].includes(getDeploymentType(pSkill.skill))) {
+            if (["dash_teleport"].includes(getDeploymentType(pSkill.skill))) {
                 const { maxRange } = getProjRangeAndFixed(pSkill.skill);
                 maxPreviewRange = maxRange;
                 if (
@@ -1209,7 +1209,7 @@ export default function StrategiesPage() {
                 ["projectile_terminal_aoe", "projectile_sweeping"].includes(
                     getDeploymentType(pSkill.skill),
                 ) ||
-                ["self_instant"].includes(getDeploymentType(pSkill.skill)) ||
+                ["dash_teleport"].includes(getDeploymentType(pSkill.skill)) ||
                 !!["linear_wall"].includes(getDeploymentType(pSkill.skill));
             const isGeomWithTarget =
                 !isProj &&
@@ -1436,7 +1436,7 @@ export default function StrategiesPage() {
                 ["projectile_terminal_aoe", "projectile_sweeping"].includes(
                     getDeploymentType(skill),
                 ) ||
-                ["self_instant"].includes(getDeploymentType(skill)) ||
+                ["dash_teleport"].includes(getDeploymentType(skill)) ||
                 hasGroundPath;
 
             if (
@@ -1502,7 +1502,7 @@ export default function StrategiesPage() {
 
                         ctx.restore();
                     } else if (
-                        ["self_instant"].includes(getDeploymentType(skill))
+                        ["dash_teleport"].includes(getDeploymentType(skill))
                     ) {
                         const isTeleportToPos = getCastRange(skill) > 0;
                         const maxDisplacements = 0 || 1;
@@ -2034,6 +2034,9 @@ export default function StrategiesPage() {
                 ctx.save();
                 
                 if (skill.targetX !== undefined && skill.targetY !== undefined) {
+                    if (["dash_teleport"].includes(getDeploymentType(skill))) {
+                        ctx.translate(skill.targetX - skill.x, skill.targetY - skill.y);
+                    }
                     ctx.rotate(Math.atan2(skill.targetY - skill.y, skill.targetX - skill.x));
                 } else if (skill.customRotation !== undefined) {
                     ctx.rotate(skill.customRotation);
@@ -2118,7 +2121,7 @@ export default function StrategiesPage() {
                         getDeploymentType(skill),
                     ) || ["linear_wall"].includes(getDeploymentType(skill));
                 const isTeleport =
-                    ["self_instant"].includes(getDeploymentType(skill)) ||
+                    ["dash_teleport"].includes(getDeploymentType(skill)) ||
                     skill.lifetime?.recollectable;
                 if (
                     (isProj || isTeleport) &&
@@ -2240,7 +2243,7 @@ export default function StrategiesPage() {
             }
 
             const isTeleportFlag =
-                ["self_instant"].includes(getDeploymentType(skill)) ||
+                ["dash_teleport"].includes(getDeploymentType(skill)) ||
                 skill.lifetime?.recollectable;
             const isProjFlag =
                 ["projectile_terminal_aoe", "projectile_sweeping"].includes(
@@ -3495,7 +3498,7 @@ export default function StrategiesPage() {
             ["projectile_terminal_aoe", "projectile_sweeping"].includes(
                 getDeploymentType(s),
             ) ||
-            ["self_instant"].includes(getDeploymentType(s)) ||
+            ["dash_teleport"].includes(getDeploymentType(s)) ||
             !!["linear_wall"].includes(getDeploymentType(s));
         let drawOriginX = s.x;
         let drawOriginY = s.y;
@@ -4121,7 +4124,7 @@ export default function StrategiesPage() {
 
             let playerToMouseAngle = 0;
             if (
-                ["self_instant"].includes(getDeploymentType(skill)) &&
+                ["dash_teleport"].includes(getDeploymentType(skill)) &&
                 agentObj
             ) {
                 startX = agentObj.x;
@@ -4205,7 +4208,7 @@ export default function StrategiesPage() {
                 ["projectile_terminal_aoe", "projectile_sweeping"].includes(
                     getDeploymentType(skill),
                 ) ||
-                ["self_instant"].includes(getDeploymentType(skill)) ||
+                ["dash_teleport"].includes(getDeploymentType(skill)) ||
                 !!["linear_wall"].includes(getDeploymentType(skill));
             const isGeomWithTarget =
                 !isProj &&
@@ -4226,14 +4229,14 @@ export default function StrategiesPage() {
                 const length = getAoeLength(skill) * mToPx;
 
                 if (
-                    ["self_instant"].includes(getDeploymentType(skill)) &&
+                    ["dash_teleport"].includes(getDeploymentType(skill)) &&
                     agentObj
                 ) {
                     const sa = playerToMouseAngle;
                     let { maxRange, isFixed: projIsFixed } =
                         getProjRangeAndFixed(skill);
                     if (
-                        ["map_target_aoe", "two_point_barrier", "self_instant"].includes(
+                        ["map_target_aoe", "two_point_barrier", "dash_teleport"].includes(
                             getDeploymentType(skill),
                         )
                     ) {
@@ -4415,7 +4418,7 @@ export default function StrategiesPage() {
                 ["map_target_aoe", "two_point_barrier"].includes(
                     getDeploymentType(skill),
                 ) &&
-                !["self_instant"].includes(getDeploymentType(skill))
+                !["dash_teleport", "self_instant"].includes(getDeploymentType(skill))
             ) {
                 draggedSkillTargetRef.current = newSkill;
                 isPlacingSecondPointRef.current = true;
@@ -5231,7 +5234,7 @@ export default function StrategiesPage() {
                     getDeploymentType(skill),
                 ) ||
                 ["linear_wall"].includes(getDeploymentType(skill)) ||
-                ["self_instant"].includes(getDeploymentType(skill));
+                ["dash_teleport"].includes(getDeploymentType(skill));
 
             if (
                 geom &&
@@ -5339,7 +5342,7 @@ export default function StrategiesPage() {
                     getProjRangeAndFixed(skill);
 
                 if (
-                    ["self_instant", "map_target_aoe", "two_point_barrier"].includes(
+                    ["dash_teleport", "map_target_aoe", "two_point_barrier"].includes(
                         skill.deployment?.type as string,
                     )
                 ) {
@@ -6032,7 +6035,7 @@ export default function StrategiesPage() {
                 ["projectile_terminal_aoe", "projectile_sweeping"].includes(
                     skill.deployment?.type as string,
                 ) ||
-                ["self_instant"].includes(skill.deployment?.type as string) ||
+                ["dash_teleport"].includes(skill.deployment?.type as string) ||
                 !!["linear_wall"].includes(skill.deployment?.type as string);
             const isGeomWithTarget =
                 !isProj &&
@@ -11421,7 +11424,7 @@ export default function StrategiesPage() {
 
                                                 // Lógica Sandbox: Auto-Buff y Revivir visual
                                                 if (
-                                                    ["self_instant"].includes(
+                                                    ["self_instant", "dash_teleport"].includes(
                                                         getDeploymentType(
                                                             skill,
                                                         ) as string,

@@ -132,10 +132,12 @@ export type DeploymentType =
   | "static_deployable" 
   | "linear_wall" 
   | "two_point_barrier" 
-  | "equip_weapon";
+  | "equip_weapon"
+  | "dash_teleport";
 
 export type DeploymentMechanics = 
-  | { type: "self_instant"; windup?: number; spawnOffset?: number; castRange?: number }
+  | { type: "self_instant"; windup?: number; spawnOffset?: number }
+  | { type: "dash_teleport"; windup?: number; spawnOffset?: number; castRange?: number }
   | { type: "self_mobile_aura"; windup?: number; spawnOffset?: number }
   | { type: "projectile_terminal_aoe"; windup?: number; spawnOffset?: number; projectileSpeed?: number; projectileMaxDistance?: number; bounces?: number; steerable?: boolean; traversesWalls?: boolean; variableDistance?: boolean }
   | { type: "projectile_sweeping"; windup?: number; spawnOffset?: number; projectileSpeed?: number; projectileMaxDistance?: number; traversesWalls?: boolean; sweepEffects?: ActionEffects; geometry?: SkillGeometry }
@@ -150,7 +152,8 @@ const BaseDeploymentSchema = z.object({
 });
 
 export const DeploymentMechanicsSchema: z.ZodType<DeploymentMechanics> = z.discriminatedUnion("type", [
-  BaseDeploymentSchema.extend({ type: z.literal("self_instant"), castRange: z.number().optional() }),
+  BaseDeploymentSchema.extend({ type: z.literal("self_instant") }),
+  BaseDeploymentSchema.extend({ type: z.literal("dash_teleport"), castRange: z.number().optional() }),
   BaseDeploymentSchema.extend({ type: z.literal("self_mobile_aura") }),
   BaseDeploymentSchema.extend({ type: z.literal("projectile_terminal_aoe"), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), bounces: z.number().optional(), steerable: z.boolean().optional(), traversesWalls: z.boolean().optional(), variableDistance: z.boolean().optional() }),
   BaseDeploymentSchema.extend({ type: z.literal("projectile_sweeping"), spawnOffset: z.number().optional(), projectileSpeed: z.number().optional(), projectileMaxDistance: z.number().optional(), traversesWalls: z.boolean().optional(), sweepEffects: ActionEffectsSchema.optional(), geometry: SkillGeometrySchema.optional() }),
