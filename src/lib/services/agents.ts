@@ -1,10 +1,40 @@
 import { prisma } from "@/lib/db";
 import { ValorantApi } from "@valpro-labs/valorant-api";
+import { Prisma } from "@prisma/client";
+
+export interface HydratedAgentSkill {
+    id?: string;
+    agentId: string;
+    key: string;
+    economy: Prisma.JsonValue | null;
+    deployment: Prisma.JsonValue | null;
+    lifetime: Prisma.JsonValue | null;
+    resolution: Prisma.JsonValue | null;
+    color: string;
+    enabled: boolean;
+    name: string;
+    description: string;
+    type: string;
+    displayIcon: string;
+}
+
+export interface HydratedAgent {
+    id: string;
+    name: string;
+    role: string;
+    displayIcon: string;
+    killfeedPortrait: string;
+    fullPortrait: string;
+    background: string;
+    roleIcon: string;
+    bgColors: string[];
+    skills: HydratedAgentSkill[];
+}
 
 const CACHE_TIME = 12 * 60 * 60 * 1000;
-const agentsCache: Record<string, { data: any; timestamp: number }> = {};
+const agentsCache: Record<string, { data: HydratedAgent[]; timestamp: number }> = {};
 
-export async function getHydratedAgents(language: string = "es-ES") {
+export async function getHydratedAgents(language: string = "es-ES"): Promise<HydratedAgent[]> {
     const now = Date.now();
     const cached = agentsCache[language];
     if (cached && now - cached.timestamp < CACHE_TIME) {
@@ -12,9 +42,7 @@ export async function getHydratedAgents(language: string = "es-ES") {
     }
 
     const api = new ValorantApi({ language: language as any });
-    const agentsData = await api.agentsEndpoints.getAgentsV1({
-        isPlayableCharacter: true,
-    });
+    const agentsData = await api.agentsEndpoints.getAgentsV1(true);
 
     // Fetch local engine skills
     const dbAgents = await prisma.agent.findMany({
@@ -23,7 +51,7 @@ export async function getHydratedAgents(language: string = "es-ES") {
 
     const dbAgentsMap = new Map(dbAgents.map((a) => [a.id, a]));
 
-    const hydratedAgents = [];
+    const hydratedAgents: HydratedAgent[] = [];
 
     for (const agent of agentsData) {
         const roleDisplayName = agent.role?.displayName || "duelist";
@@ -65,7 +93,7 @@ export async function getHydratedAgents(language: string = "es-ES") {
             Passive: "passive",
         };
 
-        const hydratedSkills = [];
+        const hydratedSkills: HydratedAgentSkill[] = [];
         if (agent.abilities && Array.isArray(agent.abilities)) {
             for (const ability of agent.abilities) {
                 const key = keyMap[ability.slot];
