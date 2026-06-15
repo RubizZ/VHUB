@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ValorantApi } from "@valpro-labs/valorant-api";
 import { Prisma } from "@prisma/client";
+import { unstable_cache, revalidateTag } from "next/cache";
 
 export interface HydratedAgentSkill {
     id?: string;
@@ -31,27 +32,13 @@ export interface HydratedAgent {
     skills: HydratedAgentSkill[];
 }
 
-const CACHE_TIME = 12 * 60 * 60 * 1000;
-const agentsCache: Record<string, { data: HydratedAgent[]; timestamp: number }> = {};
-
 export function invalidateAgentsCache(language?: string) {
-    if (language) {
-        delete agentsCache[language];
-    } else {
-        for (const key in agentsCache) {
-            delete agentsCache[key];
-        }
-    }
+    revalidateTag("agents");
 }
 
-export async function getHydratedAgents(language: string = "es-ES"): Promise<HydratedAgent[]> {
-    const now = Date.now();
-    const cached = agentsCache[language];
-    if (cached && now - cached.timestamp < CACHE_TIME) {
-        return cached.data;
-    }
-
-    const api = new ValorantApi({ language: language as any });
+export const getHydratedAgents = unstable_cache(
+    async (language: string = "es-ES"): Promise<HydratedAgent[]> => {
+        const api = new ValorantApi({ language: language as any });
     const agentsData = await api.agentsEndpoints.getAgentsV1(true);
 
     // Fetch local engine skills
@@ -168,10 +155,8 @@ export async function getHydratedAgents(language: string = "es-ES"): Promise<Hyd
         });
     }
 
-    agentsCache[language] = {
-        data: hydratedAgents,
-        timestamp: now,
-    };
-
-    return hydratedAgents;
-}
+        return hydratedAgents;
+    },
+    ["agents"],
+    { tags: ["agents"], revalidate: 43200 }
+);
