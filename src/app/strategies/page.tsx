@@ -1850,9 +1850,9 @@ export default function StrategiesPage() {
 
                     ctx.fillStyle = skill.color;
                     ctx.strokeStyle = skill.color;
-                    let sweepBaseAlpha =
+                    const sweepBaseAlpha =
                         skill.instanceId === "preview" ? 0.25 : 0.5;
-                    let sweepStrokeAlpha =
+                    const sweepStrokeAlpha =
                         skill.instanceId === "preview" ? 0.4 : 0.8;
                     ctx.globalAlpha = sweepBaseAlpha;
 
