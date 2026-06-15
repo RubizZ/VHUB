@@ -5,9 +5,10 @@ import { Providers } from "@/components/Providers";
 import { ClientLayout } from "@/components/ClientLayout";
 import { SessionGuard } from "@/components/SessionGuard";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getLocale } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "V-HUB — Valorant Premier Platform",
@@ -53,15 +54,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     }
   }
 
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="es">
+    <html lang={locale.split('-')[0]}>
       <body>
-        <Providers>
-          <SessionGuard />
-          <ClientLayout>
-            {children}
-          </ClientLayout>
-        </Providers>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <Providers>
+            <SessionGuard />
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </Providers>
+        </NextIntlClientProvider>
         <SpeedInsights />
       </body>
     </html>

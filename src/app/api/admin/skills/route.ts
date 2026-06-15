@@ -12,15 +12,12 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const agentId = searchParams.get('agentId');
 
-  const whereClause = agentId ? { id: agentId } : {};
-
-  const agentsWithSkills = await db.agent.findMany({
-    where: whereClause,
-    include: {
-      skills: true
-    },
-    orderBy: { name: 'asc' }
-  });
+  const lang = searchParams.get('lang') || 'es-ES';
+  const { getHydratedAgents } = await import("@/lib/services/agents");
+  let agentsWithSkills = await getHydratedAgents(lang);
+  if (agentId) {
+    agentsWithSkills = agentsWithSkills.filter(a => a.id === agentId);
+  }
 
   return NextResponse.json({ agents: agentsWithSkills });
 }
@@ -38,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { agentId, key, name, description, economy, deployment, lifetime, resolution, color, displayIcon, enabled, type } = parsed.data;
+  const { agentId, key, economy, deployment, lifetime, resolution, color, enabled } = parsed.data;
 
   try {
     const skill = await db.agentSkill.upsert({
@@ -49,29 +46,21 @@ export async function POST(req: NextRequest) {
         }
       },
       update: {
-        name,
-        description,
         economy: economy as any,
         deployment: deployment as any,
         lifetime: lifetime as any,
         resolution: resolution as any,
         color,
-        displayIcon,
-        type,
         enabled
       },
       create: {
         agentId,
         key,
-        name,
-        description,
         economy: economy as any,
         deployment: deployment as any,
         lifetime: lifetime as any,
         resolution: resolution as any,
         color,
-        displayIcon,
-        type,
         enabled
       }
     });

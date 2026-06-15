@@ -115,6 +115,9 @@ export async function GET(req: NextRequest) {
 
         // 2. Guardar y sincronizar las partidas en nuestra base de datos local
         if (matches && matches.length > 0) {
+          const { getHydratedAgents } = await import("@/lib/services/agents");
+          const enAgents = await getHydratedAgents("en-US");
+
           for (const matchData of matches) {
             if (!matchData || !matchData.metadata || !matchData.metadata.matchid) continue;
 
@@ -168,9 +171,7 @@ export async function GET(req: NextRequest) {
                     const ourPlayer = await tx.player.findUnique({
                       where: { puuid: playerStats.puuid }
                     });
-                    const agent = await tx.agent.findFirst({
-                      where: { name: { equals: playerStats.character, mode: "insensitive" } }
-                    });
+                    const agent = enAgents.find(a => a.name.toLowerCase() === playerStats.character.toLowerCase());
 
                     await tx.matchPlayerStats.create({
                       data: {

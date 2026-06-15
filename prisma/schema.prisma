@@ -251,14 +251,6 @@ model TeamJoinRequest {
 
 model Agent {
   id               String       @id
-  name             String
-  role             String // e.g. "duelist", "initiator", "controller", "sentinel"
-  displayIcon      String
-  killfeedPortrait String?
-  fullPortrait     String?
-  background       String?
-  roleIcon         String
-  bgColors         String[] // Array of colors for the gradient
   skills           AgentSkill[]
 }
 
@@ -266,15 +258,11 @@ model AgentSkill {
   id          String  @id @default(cuid(2))
   agentId     String
   key         String // "q", "e", "c", "x"
-  name        String
-  description String?
-  type        String  @default("Basic") // "Basic", "Signature", "Ultimate", "Passive"
   economy     Json? // EconomyData
   deployment  Json? // DeploymentMechanics
   lifetime    Json? // LifetimeMechanics
   resolution  Json? // ResolutionMechanics
   color       String? // Color promedio del icono, o color base
-  displayIcon String? // Icono oficial de la habilidad desde valorant-api
   enabled     Boolean @default(true) // Si la habilidad está configurada y lista para usarse
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)

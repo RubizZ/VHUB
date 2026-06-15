@@ -89,26 +89,9 @@ async function main() {
 
             await prisma.agent.upsert({
                 where: { id: agent.uuid },
-                update: {
-                    name: agent.displayName,
-                    role: roleName,
-                    displayIcon: agent.displayIcon,
-                    killfeedPortrait: agent.killfeedPortrait,
-                    fullPortrait: agent.fullPortrait,
-                    background: agent.background,
-                    roleIcon: roleIcon,
-                    bgColors: bgColors,
-                },
+                update: {},
                 create: {
                     id: agent.uuid,
-                    name: agent.displayName,
-                    role: roleName,
-                    displayIcon: agent.displayIcon,
-                    killfeedPortrait: agent.killfeedPortrait,
-                    fullPortrait: agent.fullPortrait,
-                    background: agent.background,
-                    roleIcon: roleIcon,
-                    bgColors: bgColors,
                 },
             });
 
@@ -126,17 +109,10 @@ async function main() {
                     if (key && ability.displayIcon) {
                         await prisma.agentSkill.upsert({
                             where: { agentId_key: { agentId: agent.uuid, key } },
-                            update: {
-                                name: ability.displayName,
-                                description: ability.description,
-                                displayIcon: ability.displayIcon,
-                            },
+                            update: {},
                             create: {
                                 agentId: agent.uuid,
                                 key,
-                                name: ability.displayName,
-                                description: ability.description,
-                                displayIcon: ability.displayIcon,
                                 color: bgColors[0] || "#ffffff",
                                 enabled: false
                             }

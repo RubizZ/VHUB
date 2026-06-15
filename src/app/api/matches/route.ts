@@ -368,6 +368,9 @@ export async function POST(req: NextRequest) {
 
       let synced = 0;
 
+      const { getHydratedAgents } = await import("@/lib/services/agents");
+      const enAgents = await getHydratedAgents("en-US");
+
       for (const matchData of matchlist) {
         const existing = await db.match.findUnique({
           where: { riot_match_id: matchData.metadata.matchid }
@@ -477,9 +480,7 @@ export async function POST(req: NextRequest) {
               const ourPlayer = await tx.player.findUnique({
                 where: { puuid: playerStats.puuid }
               });
-              const agent = await tx.agent.findFirst({
-                where: { name: { equals: playerStats.character, mode: "insensitive" } }
-              });
+              const agent = enAgents.find(a => a.name.toLowerCase() === playerStats.character.toLowerCase());
 
               await tx.matchPlayerStats.create({
                 data: {

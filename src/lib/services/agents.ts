@@ -1,0 +1,139 @@
+import { prisma } from "@/lib/db";
+import { ValorantApi } from "@valpro-labs/valorant-api";
+
+const CACHE_TIME = 12 * 60 * 60 * 1000;
+const agentsCache: Record<string, { data: any; timestamp: number }> = {};
+
+export async function getHydratedAgents(language: string = "es-ES") {
+    const now = Date.now();
+    const cached = agentsCache[language];
+    if (cached && now - cached.timestamp < CACHE_TIME) {
+        return cached.data;
+    }
+
+    const api = new ValorantApi({ language: language as any });
+    const agentsData = await api.agentsEndpoints.getAgentsV1({
+        isPlayableCharacter: true,
+    });
+
+    // Fetch local engine skills
+    const dbAgents = await prisma.agent.findMany({
+        include: { skills: true },
+    });
+
+    const dbAgentsMap = new Map(dbAgents.map((a) => [a.id, a]));
+
+    const hydratedAgents = [];
+
+    for (const agent of agentsData) {
+        const roleDisplayName = agent.role?.displayName || "duelist";
+        const roleName = (() => {
+            const name = roleDisplayName.toLowerCase();
+            if (name.includes("duel")) return "duelist";
+            if (name.includes("iniciador") || name.includes("init"))
+                return "initiator";
+            if (name.includes("control") || name.includes("controlador"))
+                return "controller";
+            if (name.includes("centinela") || name.includes("sentinel"))
+                return "sentinel";
+            return "duelist";
+        })();
+        const bgColors = (agent.backgroundGradientColors || []).map(
+            (c) => `#${c}`,
+        );
+
+        const localAgent = dbAgentsMap.get(agent.uuid) || { skills: [] };
+
+        // Sync agent ID if missing
+        if (!dbAgentsMap.has(agent.uuid)) {
+            try {
+                await prisma.agent.upsert({
+                    where: { id: agent.uuid },
+                    update: {},
+                    create: { id: agent.uuid },
+                });
+            } catch (e) {
+                console.error("Error upserting agent ID", e);
+            }
+        }
+
+        const keyMap: Record<string, string> = {
+            Ability1: "q",
+            Ability2: "e",
+            Grenade: "c",
+            Ultimate: "x",
+            Passive: "passive",
+        };
+
+        const hydratedSkills = [];
+        if (agent.abilities && Array.isArray(agent.abilities)) {
+            for (const ability of agent.abilities) {
+                const key = keyMap[ability.slot];
+                if (key && ability.displayIcon) {
+                    let localSkill = localAgent.skills.find(
+                        (s) => s.key === key,
+                    );
+
+                    if (!localSkill) {
+                        try {
+                            localSkill = await prisma.agentSkill.upsert({
+                                where: {
+                                    agentId_key: { agentId: agent.uuid, key },
+                                },
+                                update: {},
+                                create: {
+                                    agentId: agent.uuid,
+                                    key,
+                                    color: bgColors[0] || "#ffffff",
+                                    enabled: false,
+                                },
+                            });
+                        } catch (e) {
+                            console.error("Error upserting agent skill", e);
+                        }
+                    }
+
+                    hydratedSkills.push({
+                        // Local engine props
+                        id: localSkill?.id,
+                        agentId: localSkill?.agentId || agent.uuid,
+                        key,
+                        economy: localSkill?.economy || null,
+                        deployment: localSkill?.deployment || null,
+                        lifetime: localSkill?.lifetime || null,
+                        resolution: localSkill?.resolution || null,
+                        color: localSkill?.color || bgColors[0] || "#ffffff",
+                        enabled: localSkill?.enabled ?? false,
+                        // Valorant-API localized & visual props
+                        name: ability.displayName,
+                        description: ability.description,
+                        type: ability.slot,
+                        displayIcon: ability.displayIcon,
+                    });
+                }
+            }
+        }
+
+        hydratedAgents.push({
+            id: agent.uuid,
+            // Valorant-API visual props
+            name: agent.displayName,
+            role: roleName,
+            displayIcon: agent.displayIcon,
+            killfeedPortrait: agent.killfeedPortrait,
+            fullPortrait: agent.fullPortrait,
+            background: agent.background,
+            roleIcon: agent.role?.displayIcon || "",
+            bgColors,
+            // Hydrated skills
+            skills: hydratedSkills,
+        });
+    }
+
+    agentsCache[language] = {
+        data: hydratedAgents,
+        timestamp: now,
+    };
+
+    return hydratedAgents;
+}
