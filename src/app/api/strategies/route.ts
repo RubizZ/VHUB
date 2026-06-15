@@ -60,6 +60,18 @@ export async function POST(req: NextRequest) {
   if (!map_id || !name)
     return NextResponse.json({ error: "map_id and name required" }, { status: 400 });
 
+  const team = await db.team.findUnique({ where: { id: teamId } });
+  const defaultShowTrajectories = team?.defaultStrategyShowTrajectories ?? true;
+
+  const parsedCanvas = typeof canvas_data === 'string' ? JSON.parse(canvas_data || "{}") : (canvas_data || {});
+  const finalCanvasData = {
+    ...parsedCanvas,
+    settings: {
+      showProjectileTrajectories: defaultShowTrajectories,
+      ...(parsedCanvas.settings || {})
+    }
+  };
+
   const strategy = await db.strategy.create({
     data: {
       teamId,
@@ -67,7 +79,7 @@ export async function POST(req: NextRequest) {
       name,
       side: side || "attack",
       description: description || "",
-      canvas_data: canvas_data || {}
+      canvas_data: finalCanvasData
     }
   });
   

@@ -90,6 +90,8 @@ interface CanvasSkill {
     deployment?: DeploymentMechanics | null;
     lifetime?: LifetimeMechanics | null;
     resolution?: ResolutionMechanics | null;
+    orphaned?: boolean;
+    originalAgentId?: string;
 }
 
 type UndoAction =
@@ -368,6 +370,8 @@ export default function StrategiesPage() {
     );
     const [configDescription, setConfigDescription] = useState("");
     const [configMapId, setConfigMapId] = useState("");
+    const [configShowTrajectories, setConfigShowTrajectories] = useState(true);
+    const configShowTrajectoriesRef = useRef(true);
 
     // Brush Size States
     const [pencilSize, setPencilSize] = useState<number>(5);
@@ -811,6 +815,13 @@ export default function StrategiesPage() {
         setConfigSide(current.side as "attack" | "defense");
         setConfigDescription(current.description || "");
         setConfigMapId(current.map_id || selectedMap?.id || "");
+        
+        let canvasData: any = {};
+        try {
+            canvasData = typeof current.canvas_data === 'string' ? JSON.parse(current.canvas_data || '{}') : (current.canvas_data || {});
+        } catch (e) {}
+        setConfigShowTrajectories(canvasData?.settings?.showProjectileTrajectories ?? true);
+        
         setShowConfigModal(true);
     };
 
@@ -825,14 +836,20 @@ export default function StrategiesPage() {
                 mapImgRef.current = null;
             }
         }
-        setCurrent({
-            ...current,
+        let updatedCanvasData = current.canvas_data;
+        try {
+            const parsed = typeof updatedCanvasData === 'string' ? JSON.parse(updatedCanvasData || '{}') : (updatedCanvasData || {});
+            parsed.settings = { ...parsed.settings, showProjectileTrajectories: configShowTrajectories };
+            updatedCanvasData = parsed;
+        } catch (e) {}
+
+        updateStratMutation.mutate({
+            id: current.id,
             name: configName,
-            description: configDescription,
             side: configSide,
-            map_id: configMapId || current.map_id,
+            description: configDescription,
+            canvas_data: updatedCanvasData
         });
-        setSelectedSide(configSide);
         setShowConfigModal(false);
     };
 
@@ -919,6 +936,11 @@ export default function StrategiesPage() {
             redraw();
         }
     }, [agents, hydrateSkills, redraw]);
+
+    useEffect(() => {
+        configShowTrajectoriesRef.current = configShowTrajectories;
+        scheduleRedraw();
+    }, [configShowTrajectories, scheduleRedraw]);
 
     // The actual drawing function that reads from refs (no stale closures for pan/zoom)
     const redrawImmediate = useCallback(() => {
@@ -1685,7 +1707,9 @@ export default function StrategiesPage() {
                                     ctx.lineTo(acx, 0);
                                     ctx.lineTo(acx - arrowSize, arrowSize);
                                 }
-                                ctx.stroke();
+                                if (configShowTrajectoriesRef.current) {
+                                    ctx.stroke();
+                                }
                                 ctx.restore();
                             }
                         }
@@ -1713,7 +1737,7 @@ export default function StrategiesPage() {
                             sweepWidth = getGeomWidth(geom) * mToPx;
                         }
 
-                        if (sweepWidth > 0) {
+                        if (sweepWidth > 0 && configShowTrajectoriesRef.current) {
                             ctx.save();
                             ctx.rotate(sweepAngle);
 
@@ -1768,15 +1792,17 @@ export default function StrategiesPage() {
                         // DON'T translate for sweep projectiles - they're already fully rendered
                     } else {
                         // Dashed line for other projectiles and narrow ground paths
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(tx, ty);
-                        ctx.strokeStyle = skill.color;
-                        ctx.lineWidth = 2 / scale;
-                        ctx.globalAlpha = 0.6;
-                        ctx.setLineDash([6 / scale, 6 / scale]);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
+                        if (configShowTrajectoriesRef.current || !["projectile_terminal_aoe"].includes(getDeploymentType(skill))) {
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.lineTo(tx, ty);
+                            ctx.strokeStyle = skill.color;
+                            ctx.lineWidth = 2 / scale;
+                            ctx.globalAlpha = 0.6;
+                            ctx.setLineDash([6 / scale, 6 / scale]);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                        }
 
                         ctx.translate(tx, ty);
                     }
@@ -3234,6 +3260,12 @@ export default function StrategiesPage() {
                         loadedSkillIdsRef.current.add(ls.skill.instanceId);
                     });
                 }
+                skillsRef.current.forEach((s) => {
+                    if (s.agentInstanceId === action.agent.instanceId && s.orphaned) {
+                        s.orphaned = false;
+                        s.originalAgentId = undefined;
+                    }
+                });
                 redoStackRef.current.push(action);
                 broadcastAgentUpdate(action.agent, false);
                 if (action.linkedSkills) {
@@ -3241,6 +3273,11 @@ export default function StrategiesPage() {
                         broadcastSkillUpdate(ls.skill, false),
                     );
                 }
+                skillsRef.current.forEach(s => {
+                    if (s.agentInstanceId === action.agent.instanceId && s.unlinked) {
+                        broadcastSkillUpdate(s, false);
+                    }
+                });
                 loadedAgentIdsRef.current.add(action.agent.instanceId);
                 break;
             }
@@ -3331,6 +3368,13 @@ export default function StrategiesPage() {
                         (s) => !skillIds.has(s.instanceId),
                     );
                 }
+                skillsRef.current.forEach((s) => {
+                    if (s.agentInstanceId === action.agent.instanceId && s.unlinked) {
+                        s.orphaned = true;
+                        s.originalAgentId = action.agent.id;
+                        broadcastSkillUpdate(s, false);
+                    }
+                });
                 undoStackRef.current.push(action);
                 const skillIds = action.linkedSkills
                     ? action.linkedSkills.map((ls) => ls.skill.instanceId)
@@ -6054,6 +6098,19 @@ export default function StrategiesPage() {
         }
     };
 
+    const adoptOrphanedSkills = (agent: CanvasAgent) => {
+        let adopted = false;
+        skillsRef.current.forEach((s) => {
+            if (s.orphaned && s.originalAgentId === agent.id) {
+                s.orphaned = false;
+                s.originalAgentId = undefined;
+                s.agentInstanceId = agent.instanceId;
+                adopted = true;
+            }
+        });
+        return adopted;
+    };
+
     const dropAgent = (a: ValorantAgent) => {
         const c = canvasRef.current;
         if (!c) return;
@@ -6079,6 +6136,13 @@ export default function StrategiesPage() {
         redoStackRef.current = [];
         agentsRef.current.push(newAgent);
         loadedAgentIdsRef.current.add(newAgent.instanceId);
+        if (adoptOrphanedSkills(newAgent)) {
+            skillsRef.current.forEach(s => {
+                if (s.agentInstanceId === newAgent.instanceId) {
+                    broadcastSkillUpdate(s, false);
+                }
+            });
+        }
         redraw();
         broadcastAgentUpdate(newAgent, false);
         updateUndoRedo();
@@ -6418,6 +6482,13 @@ export default function StrategiesPage() {
             loadedAgentIdsRef.current.add(newAgent.instanceId);
             undoStackRef.current.push({ type: "add-agent", agent: newAgent });
             redoStackRef.current = [];
+            if (adoptOrphanedSkills(newAgent)) {
+                skillsRef.current.forEach(s => {
+                    if (s.agentInstanceId === newAgent.instanceId) {
+                        broadcastSkillUpdate(s, false);
+                    }
+                });
+            }
             redraw();
             broadcastAgentUpdate(newAgent, false);
             updateUndoRedo();
@@ -6672,6 +6743,13 @@ export default function StrategiesPage() {
                         agentsRef.current[idx] = remoteAgent;
                     } else {
                         agentsRef.current.push(remoteAgent);
+                        if (adoptOrphanedSkills(remoteAgent)) {
+                            skillsRef.current.forEach(s => {
+                                if (s.agentInstanceId === remoteAgent.instanceId) {
+                                    broadcastSkillUpdate(s, false);
+                                }
+                            });
+                        }
                         if (!agentImgsRef.current.has(remoteAgent.id)) {
                             const agentObj = findAgent(remoteAgent.id);
                             if (agentObj) {
@@ -11775,13 +11853,18 @@ export default function StrategiesPage() {
                                     skillsRef.current.forEach((s, idx) => {
                                         if (
                                             s.agentInstanceId ===
-                                                ctxAgent.instanceId &&
-                                            !s.unlinked
-                                        )
-                                            linkedSkills.push({
-                                                skill: s,
-                                                index: idx,
-                                            });
+                                            ctxAgent.instanceId
+                                        ) {
+                                            if (!s.unlinked) {
+                                                linkedSkills.push({
+                                                    skill: s,
+                                                    index: idx,
+                                                });
+                                            } else {
+                                                s.orphaned = true;
+                                                s.originalAgentId = ctxAgent.id;
+                                            }
+                                        }
                                     });
                                     undoStackRef.current.push({
                                         type: "remove-agent",
@@ -12187,6 +12270,34 @@ export default function StrategiesPage() {
                             />
                         </div>
 
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <div>
+                                    <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 2 }}>Trayectorias de Proyectiles</label>
+                                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Mostrar u ocultar la trayectoria inicial de proyectiles en el mapa</span>
+                                </div>
+                                <label style={{ position: "relative", display: "inline-block", width: "40px", height: "22px" }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={configShowTrajectories} 
+                                        onChange={e => setConfigShowTrajectories(e.target.checked)}
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                    />
+                                    <span style={{ 
+                                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                                        backgroundColor: configShowTrajectories ? "var(--val-cyan)" : "rgba(255,255,255,0.2)", 
+                                        transition: ".4s", borderRadius: "34px" 
+                                    }}>
+                                        <span style={{ 
+                                            position: "absolute", content: '""', height: "14px", width: "14px", 
+                                            left: configShowTrajectories ? "22px" : "4px", bottom: "4px", 
+                                            backgroundColor: "white", transition: ".4s", borderRadius: "50%" 
+                                        }} />
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div style={{ marginBottom: 28 }}>
                             <label
                                 style={{
@@ -12420,6 +12531,34 @@ export default function StrategiesPage() {
                                     paddingBottom: 10,
                                 }}
                             />
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <div>
+                                    <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 2 }}>Trayectorias de Proyectiles</label>
+                                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Mostrar u ocultar la trayectoria inicial de proyectiles en el mapa</span>
+                                </div>
+                                <label style={{ position: "relative", display: "inline-block", width: "40px", height: "22px" }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={configShowTrajectories} 
+                                        onChange={e => setConfigShowTrajectories(e.target.checked)}
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                    />
+                                    <span style={{ 
+                                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                                        backgroundColor: configShowTrajectories ? "var(--val-cyan)" : "rgba(255,255,255,0.2)", 
+                                        transition: ".4s", borderRadius: "34px" 
+                                    }}>
+                                        <span style={{ 
+                                            position: "absolute", content: '""', height: "14px", width: "14px", 
+                                            left: configShowTrajectories ? "22px" : "4px", bottom: "4px", 
+                                            backgroundColor: "white", transition: ".4s", borderRadius: "50%" 
+                                        }} />
+                                    </span>
+                                </label>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: 28 }}>

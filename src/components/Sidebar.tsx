@@ -37,11 +37,15 @@ const playerLinks = [
 export function Sidebar({ 
   onShowDisclaimer,
   isOpen = false,
-  onClose
+  onClose,
+  isDesktopCollapsed = false,
+  onToggleDesktopCollapse
 }: { 
   onShowDisclaimer?: () => void,
   isOpen?: boolean,
-  onClose?: () => void
+  onClose?: () => void,
+  isDesktopCollapsed?: boolean,
+  onToggleDesktopCollapse?: () => void
 }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -105,6 +109,19 @@ export function Sidebar({
             </>
           )}
         </div>
+        {onToggleDesktopCollapse && (
+          <button 
+            className="desktop-menu-btn" 
+            onClick={onToggleDesktopCollapse}
+            aria-label="Alternar menú"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">
@@ -136,7 +153,7 @@ export function Sidebar({
                 onClick={handleLinkClick}
               >
                 <span className="nav-link-icon">{l.icon}</span>
-                {l.label}
+                <span className="nav-link-text">{l.label}</span>
               </Link>
             ))}
 
@@ -144,10 +161,10 @@ export function Sidebar({
               <>
                 <div className="nav-separator">GESTIÓN DE EQUIPO</div>
                 <Link href="/team/roster" className={`nav-link ${pathname === "/team/roster" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Roster /></span> Plantilla
+                  <span className="nav-link-icon"><Icons.Roster /></span> <span className="nav-link-text">Plantilla</span>
                 </Link>
                 <Link href="/team/settings" className={`nav-link ${pathname === "/team/settings" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Settings /></span> Ajustes de Equipo
+                  <span className="nav-link-icon"><Icons.Settings /></span> <span className="nav-link-text">Ajustes de Equipo</span>
                 </Link>
               </>
             )}
@@ -156,16 +173,16 @@ export function Sidebar({
               <>
                 <div className="nav-separator">SISTEMA</div>
                 <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Admin /></span> Panel Global
+                  <span className="nav-link-icon"><Icons.Admin /></span> <span className="nav-link-text">Panel Global</span>
                 </Link>
                 <Link href="/admin/teams" className={`nav-link ${pathname === "/admin/teams" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Org /></span> Equipos
+                  <span className="nav-link-icon"><Icons.Org /></span> <span className="nav-link-text">Equipos</span>
                 </Link>
                 <Link href="/admin/users" className={`nav-link ${pathname === "/admin/users" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Roster /></span> Usuarios
+                  <span className="nav-link-icon"><Icons.Roster /></span> <span className="nav-link-text">Usuarios</span>
                 </Link>
                 <Link href="/admin/agents" className={`nav-link ${pathname === "/admin/agents" ? "active" : ""}`} onClick={handleLinkClick}>
-                  <span className="nav-link-icon"><Icons.Strategies /></span> Agentes y Habilidades
+                  <span className="nav-link-icon"><Icons.Strategies /></span> <span className="nav-link-text">Agentes y Habilidades</span>
                 </Link>
               </>
             )}
@@ -255,7 +272,7 @@ export function Sidebar({
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="16" x2="12" y2="12" />
               <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg> Exención de Riot Games
+            </svg> <span className="nav-link-text">Exención de Riot Games</span>
           </button>
         )}
       </nav>

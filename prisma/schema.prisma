@@ -7,23 +7,24 @@ datasource db {
 }
 
 model Team {
-  id                  String            @id @default(cuid(2))
-  name                String
-  slug                String            @unique
-  logo_url            String?
-  inviteCode          String?           @unique @default(cuid(2))
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @updatedAt
-  matchHistoryConsent Boolean           @default(false)
-  premierTeam         PremierTeam?
-  calendarToken       String?           @unique @default(cuid(2))
-  strategies          Strategy[]
-  events              Event[]
-  matches             Match[]
-  messages            Message[]
-  players             Player[]
-  joinRequests        TeamJoinRequest[]
-  users               User[]
+  id                              String            @id @default(cuid(2))
+  name                            String
+  slug                            String            @unique
+  logo_url                        String?
+  inviteCode                      String?           @unique @default(cuid(2))
+  created_at                      DateTime          @default(now())
+  updated_at                      DateTime          @updatedAt
+  matchHistoryConsent             Boolean           @default(false)
+  defaultStrategyShowTrajectories Boolean           @default(true)
+  premierTeam                     PremierTeam?
+  calendarToken                   String?           @unique @default(cuid(2))
+  strategies                      Strategy[]
+  events                          Event[]
+  matches                         Match[]
+  messages                        Message[]
+  players                         Player[]
+  joinRequests                    TeamJoinRequest[]
+  users                           User[]
 }
 
 model User {
@@ -250,20 +251,20 @@ model TeamJoinRequest {
 }
 
 model Agent {
-  id               String       @id
-  skills           AgentSkill[]
+  id     String       @id
+  skills AgentSkill[]
 }
 
 model AgentSkill {
-  id          String  @id @default(cuid(2))
-  agentId     String
-  key         String // "q", "e", "c", "x"
-  economy     Json? // EconomyData
-  deployment  Json? // DeploymentMechanics
-  lifetime    Json? // LifetimeMechanics
-  resolution  Json? // ResolutionMechanics
-  color       String? // Color promedio del icono, o color base
-  enabled     Boolean @default(true) // Si la habilidad está configurada y lista para usarse
+  id         String  @id @default(cuid(2))
+  agentId    String
+  key        String // "q", "e", "c", "x"
+  economy    Json? // EconomyData
+  deployment Json? // DeploymentMechanics
+  lifetime   Json? // LifetimeMechanics
+  resolution Json? // ResolutionMechanics
+  color      String? // Color promedio del icono, o color base
+  enabled    Boolean @default(true) // Si la habilidad está configurada y lista para usarse
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 

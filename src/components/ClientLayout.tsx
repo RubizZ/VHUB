@@ -11,11 +11,12 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/onboarding" || isLandingPage;
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
   if (isAuthPage) return <>{children}</>;
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isDesktopCollapsed ? 'desktop-collapsed' : ''}`}>
       {/* Mobile Top Navbar */}
       <div className="mobile-top-nav">
         <button 
@@ -42,6 +43,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         onShowDisclaimer={() => setShowDisclaimer(true)} 
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        isDesktopCollapsed={isDesktopCollapsed}
+        onToggleDesktopCollapse={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
       />
       
       <main className="main-content">

@@ -30,11 +30,15 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, logo_url, premier_name, tag, division, conference } = body;
+    const { name, logo_url, premier_name, tag, division, conference, defaultStrategyShowTrajectories } = body;
 
     const updatedTeam = await prisma.team.update({
       where: { id: session.user.teamId },
-      data: { name, logo_url },
+      data: { 
+        name, 
+        logo_url,
+        ...(defaultStrategyShowTrajectories !== undefined && { defaultStrategyShowTrajectories })
+      },
       include: { premierTeam: true }
     });
 

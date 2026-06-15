@@ -16,13 +16,14 @@ interface TeamForm {
   tag?: string;
   division?: string | number;
   conference?: string;
+  defaultStrategyShowTrajectories: boolean;
 }
 
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
 
-  const [form, setForm] = useState<TeamForm>({ name: "", slug: "", logo_url: "", inviteCode: null, premier_name: "", tag: "", division: "", conference: "NONE" });
+  const [form, setForm] = useState<TeamForm>({ name: "", slug: "", logo_url: "", inviteCode: null, premier_name: "", tag: "", division: "", conference: "NONE", defaultStrategyShowTrajectories: true });
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -54,7 +55,8 @@ export default function TeamSettingsPage() {
         premier_name: t.premierTeam?.name || "",
         tag: t.premierTeam?.tag || "",
         division: t.premierTeam?.division || "",
-        conference: t.premierTeam?.conference || "NONE"
+        conference: t.premierTeam?.conference || "NONE",
+        defaultStrategyShowTrajectories: t.defaultStrategyShowTrajectories ?? true
       });
     }
   }, [teamData]);
@@ -71,7 +73,8 @@ export default function TeamSettingsPage() {
           premier_name: form.premier_name,
           tag: form.tag,
           division: form.division,
-          conference: form.conference
+          conference: form.conference,
+          defaultStrategyShowTrajectories: form.defaultStrategyShowTrajectories
         })
       });
       if (!res.ok) throw new Error("Error saving settings");
@@ -301,6 +304,41 @@ export default function TeamSettingsPage() {
                         <option value="KR" style={{ background: "#111" }}>Corea</option>
                       </select>
                     </div>
+                  </div>
+
+                  <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.08)", margin: "8px 0" }} />
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(0, 212, 170, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--val-cyan)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    </div>
+                    <h4 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--val-cyan)" }}>Tácticas</h4>
+                  </div>
+
+                  <div className="form-group" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(0,0,0,0.3)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "14px", fontWeight: 700, marginBottom: "4px", color: "#fff" }}>Mostrar trayectoria de proyectiles</label>
+                      <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>Valor por defecto al crear una nueva estrategia.</p>
+                    </div>
+                    <label style={{ position: "relative", display: "inline-block", width: "44px", height: "24px" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={form.defaultStrategyShowTrajectories} 
+                        onChange={e => setForm({ ...form, defaultStrategyShowTrajectories: e.target.checked })}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{ 
+                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                        backgroundColor: form.defaultStrategyShowTrajectories ? "var(--val-cyan)" : "rgba(255,255,255,0.2)", 
+                        transition: ".4s", borderRadius: "34px" 
+                      }}>
+                        <span style={{ 
+                          position: "absolute", content: '""', height: "16px", width: "16px", 
+                          left: form.defaultStrategyShowTrajectories ? "24px" : "4px", bottom: "4px", 
+                          backgroundColor: "white", transition: ".4s", borderRadius: "50%" 
+                        }} />
+                      </span>
+                    </label>
                   </div>
 
                   <button type="submit" className="btn btn-primary hover-lift" disabled={saveTeamMutation.isPending} style={{ padding: "18px", fontSize: 16, fontWeight: 800, borderRadius: 12, marginTop: 8, boxShadow: "0 4px 20px rgba(0, 212, 170, 0.3)" }}>
