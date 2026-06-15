@@ -33,7 +33,8 @@ export interface HydratedAgent {
 }
 
 export function invalidateAgentsCache(language?: string) {
-    revalidateTag("agents");
+    // @ts-expect-error Canary Next.js requires a second argument, but using "max" might fail if not configured
+    revalidateTag("agents", "max");
 }
 
 export const getHydratedAgents = unstable_cache(
