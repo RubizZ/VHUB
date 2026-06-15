@@ -9,7 +9,7 @@ export interface EconomyData {
   costUltPoints?: number;
   costNote?: string;
   usesPerRound?: number;
-  rechargeCondition?: string;
+  rechargeCondition?: { type: "kills" | "cooldown"; value: number };
 }
 
 // --- GEOMETRY ---
@@ -237,7 +237,10 @@ export const EconomyDataSchema: z.ZodType<EconomyData> = z.object({
   costUltPoints: z.number().optional(),
   costNote: z.string().optional(),
   usesPerRound: z.number().optional(),
-  rechargeCondition: z.string().optional(),
+  rechargeCondition: z.object({
+    type: z.enum(["kills", "cooldown"]),
+    value: z.number(),
+  }).optional(),
 });
 
 export const AgentSkillUpdateSchema = z.object({

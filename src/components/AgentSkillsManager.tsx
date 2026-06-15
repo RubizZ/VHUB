@@ -24,7 +24,9 @@ interface SkillFormData {
   costUltPoints: number;
   costNote: string;
   usesPerRound: number;
-  rechargeCondition: string;
+  hasRecharge: boolean;
+  rechargeType: "kills" | "cooldown";
+  rechargeValue: number;
 
   // Deployment
   dep_type: DeploymentType;
@@ -79,7 +81,9 @@ const getDefaultFormData = (): SkillFormData => ({
   costUltPoints: 0,
   costNote: "",
   usesPerRound: 1,
-  rechargeCondition: "",
+  hasRecharge: false,
+  rechargeType: "kills",
+  rechargeValue: 2,
   dep_type: "self_instant",
   dep_windup: 0,
   dep_spawnOffset: 0,
@@ -261,7 +265,9 @@ export function AgentSkillsManager({
       costUltPoints: skill.economy?.costUltPoints || 0,
       costNote: skill.economy?.costNote || "",
       usesPerRound: skill.economy?.usesPerRound || 1,
-      rechargeCondition: skill.economy?.rechargeCondition || "",
+      hasRecharge: !!skill.economy?.rechargeCondition,
+      rechargeType: (skill.economy?.rechargeCondition as any)?.type || "kills",
+      rechargeValue: (skill.economy?.rechargeCondition as any)?.value || 2,
 
       dep_type: ("type" in d ? (d as { type: DeploymentType }).type : "self_instant") || "self_instant",
       dep_windup: ("windup" in d ? (d as { windup?: number }).windup : undefined) || 0,
@@ -336,7 +342,7 @@ export function AgentSkillsManager({
       costUltPoints: formData.costUltPoints || undefined,
       costNote: formData.costNote || undefined,
       usesPerRound: formData.usesPerRound || undefined,
-      rechargeCondition: formData.rechargeCondition || undefined,
+      rechargeCondition: formData.hasRecharge ? { type: formData.rechargeType, value: formData.rechargeValue } : undefined,
     };
 
     const deployment: DeploymentMechanics = buildDeployment(formData);
@@ -661,7 +667,20 @@ export function AgentSkillsManager({
                       <div className="form-row" style={{ display: "flex", gap: 16 }}>
                         <div className="form-group" style={{ flex: 1 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Condición de Recarga</label>
-                          <input className="input-field" placeholder="ej. 2 kills, 40s cooldown..." value={formData.rechargeCondition} onChange={e => setFormData({...formData, rechargeCondition: e.target.value})} />
+                          <label className="checkbox-label" style={{ marginBottom: 8, display: "inline-flex" }}>
+                            <input type="checkbox" checked={formData.hasRecharge} onChange={e => setFormData({...formData, hasRecharge: e.target.checked})} />
+                            <span className="checkbox-custom"></span>
+                            <span style={{ fontSize: 12, fontWeight: 800 }}>Tiene recarga</span>
+                          </label>
+                          {formData.hasRecharge && (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <select className="input-field" value={formData.rechargeType} onChange={e => setFormData({...formData, rechargeType: e.target.value as "kills" | "cooldown"})} style={{ flex: 1 }}>
+                                <option value="kills">Kills</option>
+                                <option value="cooldown">Cooldown (s)</option>
+                              </select>
+                              <input type="number" className="input-field" value={formData.rechargeValue} onChange={e => setFormData({...formData, rechargeValue: Number(e.target.value)})} style={{ width: 80 }} />
+                            </div>
+                          )}
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nota de Coste</label>
