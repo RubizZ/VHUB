@@ -617,11 +617,11 @@ export function AgentSkillsManager({
                       <div className="form-row" style={{ display: "flex", gap: 16, marginBottom: 16 }}>
                         <div className="form-group" style={{ flex: 2 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Nombre Habilidad</label>
-                          <input className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                          <input className="input-field" value={formData.name} readOnly disabled style={{ opacity: 0.7, cursor: "not-allowed" }} />
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
                           <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Tipo</label>
-                          <select className="input-field" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as "Basic" | "Signature" | "Ultimate" | "Passive"})}>
+                          <select className="input-field" value={formData.type} disabled style={{ opacity: 0.7, cursor: "not-allowed" }}>
                             <option value="Basic">Básica</option>
                             <option value="Signature">Firma (Signature)</option>
                             <option value="Ultimate">Ultimate</option>
@@ -632,15 +632,14 @@ export function AgentSkillsManager({
 
                       <div className="form-group" style={{ marginBottom: 16 }}>
                         <label className="form-label">Descripción</label>
-                        <textarea className="input-field" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                        <textarea className="input-field" rows={3} value={formData.description} readOnly disabled style={{ opacity: 0.7, cursor: "not-allowed" }} />
                       </div>
 
                       <div className="form-group" style={{ marginBottom: 16 }}>
                         <label className="form-label">Icono de la habilidad (URL)</label>
                         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                           {formData.displayIcon && <img src={formData.displayIcon} style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(0,0,0,0.5)" }} alt="icon" />}
-                          <input className="input-field" value={formData.displayIcon} onChange={e => setFormData({...formData, displayIcon: e.target.value})} style={{ flex: 1 }} />
-                          <button type="button" className="btn btn-secondary" onClick={handleFetchIcon} style={{ flexShrink: 0, height: 48 }}>Valorant API</button>
+                          <input className="input-field" value={formData.displayIcon} readOnly disabled style={{ flex: 1, opacity: 0.7, cursor: "not-allowed" }} />
                         </div>
                       </div>
 
