@@ -62,7 +62,6 @@ interface SkillFormData {
 
   // Resolution
   hasResolution: boolean;
-  res_trigger: "on_impact" | "on_timer" | "on_recast" | "on_death";
   res_geom_type: "none" | "circle" | "rectangle" | "cone" | "line" | "curve" | "sector" | "trapezoid" | "cross";
   res_geom_radius: number;
   res_geom_angle: number;
@@ -113,7 +112,6 @@ const getDefaultFormData = (): SkillFormData => ({
   life_geom_width: 0,
   life_geom_length: 0,
   hasResolution: false,
-  res_trigger: "on_impact",
   res_geom_type: "none",
   res_geom_radius: 0,
   res_geom_angle: 0,
@@ -299,8 +297,7 @@ export function AgentSkillsManager({
       life_geom_width: lifeGeom.dep_geom_width,
       life_geom_length: lifeGeom.dep_geom_length,
 
-      hasResolution: !!r.trigger,
-      res_trigger: r.trigger || "on_impact",
+      hasResolution: r != null && Object.keys(r).length > 0,
       res_geom_type: resGeom.gType,
       res_geom_radius: resGeom.dep_geom_radius,
       res_geom_angle: resGeom.dep_geom_angle,
@@ -363,7 +360,6 @@ export function AgentSkillsManager({
     } : null;
 
     const resolution: ResolutionMechanics | null = formData.hasResolution ? {
-      trigger: formData.res_trigger,
       geometry: buildGeometry(
         formData.res_geom_type,
         formData.res_geom_radius, formData.res_geom_angle,
@@ -870,16 +866,6 @@ export function AgentSkillsManager({
 
                       {formData.hasResolution && (
                         <>
-                          <div className="form-group" style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--text-secondary)" }}>Trigger</label>
-                            <select className="input-field" value={formData.res_trigger} onChange={e => setFormData({...formData, res_trigger: e.target.value as "on_impact" | "on_timer" | "on_recast" | "on_death"})}>
-                              <option value="on_impact">Al Impactar (Ej: Flecha Raze)</option>
-                              <option value="on_timer">Por Tiempo (Ej: Flash KAY/O)</option>
-                              <option value="on_recast">Al Recastear (Ej: C4 Raze)</option>
-                              <option value="on_death">Al Morir la Entidad</option>
-                            </select>
-                          </div>
-
                           <h4 style={{ color: "var(--val-cyan)", marginBottom: 8 }}>Geometría del Impacto/Explosión</h4>
                           <GeomEditor
                             geomType={formData.res_geom_type} radius={formData.res_geom_radius}

@@ -203,13 +203,11 @@ export const LifetimeMechanicsSchema: z.ZodType<LifetimeMechanics> = z.object({
 
 // --- RESOLUTION ---
 export interface ResolutionMechanics {
-  trigger?: "on_impact" | "on_timer" | "on_recast" | "on_death";
   geometry?: SkillGeometry; // Explosion area
   effects?: ActionEffects;
 }
 
 export const ResolutionMechanicsSchema: z.ZodType<ResolutionMechanics> = z.object({
-  trigger: z.enum(["on_impact", "on_timer", "on_recast", "on_death"]).optional(),
   geometry: SkillGeometrySchema.optional(),
   effects: ActionEffectsSchema.optional()
 });
