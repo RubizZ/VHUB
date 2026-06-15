@@ -34,6 +34,16 @@ export interface HydratedAgent {
 const CACHE_TIME = 12 * 60 * 60 * 1000;
 const agentsCache: Record<string, { data: HydratedAgent[]; timestamp: number }> = {};
 
+export function invalidateAgentsCache(language?: string) {
+    if (language) {
+        delete agentsCache[language];
+    } else {
+        for (const key in agentsCache) {
+            delete agentsCache[key];
+        }
+    }
+}
+
 export async function getHydratedAgents(language: string = "es-ES"): Promise<HydratedAgent[]> {
     const now = Date.now();
     const cached = agentsCache[language];

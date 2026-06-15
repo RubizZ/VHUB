@@ -65,6 +65,9 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    const { invalidateAgentsCache } = await import("@/lib/services/agents");
+    invalidateAgentsCache();
+
     return NextResponse.json({ skill });
   } catch (err) {
     return NextResponse.json({ error: "Error saving skill" }, { status: 500 });
@@ -86,6 +89,9 @@ export async function DELETE(req: NextRequest) {
     await db.agentSkill.delete({
       where: { id }
     });
+    const { invalidateAgentsCache } = await import("@/lib/services/agents");
+    invalidateAgentsCache();
+
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: "Error deleting skill" }, { status: 500 });
