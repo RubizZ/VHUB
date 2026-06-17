@@ -27,6 +27,16 @@ export async function GET(req: NextRequest) {
       teamId,
       ...(mapId ? { map_id: mapId } : {})
     },
+    select: {
+      id: true,
+      teamId: true,
+      map_id: true,
+      name: true,
+      side: true,
+      description: true,
+      created_at: true,
+      updated_at: true
+    },
     orderBy: [
       { side: 'asc' },
       { updated_at: 'desc' }
