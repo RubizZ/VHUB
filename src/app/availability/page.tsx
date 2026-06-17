@@ -422,11 +422,13 @@ export default function AvailabilityPage() {
               events:
                   listEventsData?.pages.flatMap((p) => p?.events || []) || [],
               seasons: listEventsData?.pages[0]?.seasons || [],
+              seasonMaps: listEventsData?.pages[0]?.seasonMaps || {},
               activeSeasonId: listEventsData?.pages[0]?.activeSeasonId || "",
           }
         : {
               events: calendarEventsData?.events || [],
               seasons: calendarEventsData?.seasons || [],
+              seasonMaps: calendarEventsData?.seasonMaps || {},
               activeSeasonId: calendarEventsData?.activeSeasonId || "",
           };
 
@@ -761,17 +763,11 @@ export default function AvailabilityPage() {
     // Helper to get unique maps of the same season for playoffs
     const getSeasonMaps = (ev: Ev) => {
         if (!ev.premier_season_id) return [];
-        // Get all events in the same season
-        const seasonEvents = events.filter(
-            (e) => e.premier_season_id === ev.premier_season_id,
-        );
-        // Get all map IDs from these events (unique ones)
-        const mapIds = Array.from(
-            new Set(seasonEvents.map((e) => e.map).filter(Boolean)),
-        );
+        // Get unique map IDs for this season from API
+        const mapIds = (eventsData as any).seasonMaps?.[ev.premier_season_id] || [];
         // Get corresponding map objects
         return mapIds
-            .map((id) => maps.find((m) => m.id === id))
+            .map((id: string) => maps.find((m) => m.id === id))
             .filter(Boolean);
     };
 

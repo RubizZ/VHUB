@@ -550,14 +550,27 @@ export async function GET(req: NextRequest) {
     const mapsMap = new Map(maps.map(m => [m.id, m]));
 
 
-    // 3. Obtener IDs de temporadas presentes en los eventos para el filtro del frontend
+    // 3. Obtener IDs de temporadas presentes y sus mapas únicos en una sola consulta
     const seasonsData = await db.event.findMany({
       where: { teamId, premier_season_id: { not: null } },
-      select: { premier_season_id: true },
-      distinct: ['premier_season_id']
+      select: { premier_season_id: true, map: true },
+      distinct: ['premier_season_id', 'map']
     }).catch(() => []);
 
-    const seasons = seasonsData.map(s => s.premier_season_id).filter(Boolean) as string[];
+    const seasonsSet = new Set<string>();
+    const seasonMaps: Record<string, string[]> = {};
+
+    for (const s of seasonsData) {
+      if (!s.premier_season_id) continue;
+      seasonsSet.add(s.premier_season_id);
+      
+      if (s.map) {
+        if (!seasonMaps[s.premier_season_id]) seasonMaps[s.premier_season_id] = [];
+        seasonMaps[s.premier_season_id].push(s.map);
+      }
+    }
+
+    const seasons = Array.from(seasonsSet);
 
     // 4. Identificar temporada activa por fecha actual
     const nowTime = new Date();
@@ -694,6 +707,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       events: returnedEvents,
       seasons,
+      seasonMaps,
       activeSeasonId: activeSeason?.id || (seasons.length > 0 ? seasons[0] : ""),
       nextCursor,
       prevCursor,
